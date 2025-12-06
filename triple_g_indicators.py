@@ -86,8 +86,9 @@ def fetch_data(ticker, period, interval):
 
 # Opportunity Stats Settings
 STATS_FILE = Path(__file__).parent / "opportunity_stats.json"
+INITIAL_CAPITAL = 10000.0  # Capital de départ simulé
 
-# Spreads standards (pour calcul PnL net)
+# Spreads standards
 SPREADS = {
     "EURUSD": 1.0, "GBPUSD": 1.5, "USDJPY": 1.0, "USDCHF": 1.5,
     "EURJPY": 2.0, "GBPJPY": 2.5, "AUDJPY": 2.0, "CHFJPY": 2.5,
@@ -121,11 +122,8 @@ def save_stats(stats):
         print(f"⚠️ Erreur sauvegarde stats: {e}")
 
 def get_current_price_from_results(pair, results):
-    """Récupère le prix (approximatif via Close daily) depuis les résultats d'analyse."""
-    # Note: Dans ce script on n'a que le pct daily, pas le prix exact live sauf si on refetch.
-    # Pour simplifier et être précis, on va refetch le dernier prix live ici.
+    """Récupère le prix live."""
     try:
-        # Correspondance symbole (ajouter =X si besoin)
         ticker = pair if "=X" in pair else f"{pair}=X"
         df = yf.Ticker(ticker).history(period="1d", interval="1m")
         if not df.empty:
@@ -136,45 +134,33 @@ def get_current_price_from_results(pair, results):
 
 def update_performance_tracking(big3_pairs, confluence_pairs):
     """
-    Gère l'ouverture et la fermeture des trades virtuels.
-    - Entrée : Si dans BIG3 ou CONFLUENCE
-    - Sortie : Si disparait des deux listes
+    Gère le tracking et calcule les métriques du Portefeuille.
     """
     stats = load_stats()
     valid_pairs = set(p['pair'] for p in big3_pairs + confluence_pairs)
     
-    # 1. Vérifier les sorties (Clôtures)
+    # 1. Vérifier les sorties
     to_close = []
-    current_prices = {} # Cache
     
     for pair, trade in stats["active_trades"].items():
         if pair not in valid_pairs:
-            # Signal de sortie !
             current_price = get_current_price_from_results(pair, [])
             if current_price:
                 to_close.append((pair, current_price))
     
-    closed_summary = []
-    
+    # Clôture des positions
     for pair, exit_price in to_close:
         trade = stats["active_trades"][pair]
         entry_price = trade["entry_price"]
         direction = trade["direction"]
         
-        # Calcul PnL Brut
         pct_change = ((exit_price - entry_price) / entry_price) * 100
         if direction == "SHORT":
             pct_change = -pct_change
             
-        # Coûts (Spread)
-        spread_pips = SPREADS.get(pair, DEFAULT_SPREAD)
-        # Estim pip value % (approx 0.01% pour majors, 0.015% crosses)
-        # On simplifie : coût standard 0.03% par trade (entrée+sortie)
-        cost_pct = 0.03 
-        
+        cost_pct = 0.03 # Spread cost approx
         net_pnl = pct_change - cost_pct
         
-        # Mise à jour stats globales
         stats["performance"]["total_pnl"] += net_pnl
         if net_pnl > 0:
             stats["performance"]["wins"] += 1
@@ -193,20 +179,13 @@ def update_performance_tracking(big3_pairs, confluence_pairs):
         stats["closed_trades"].append(closed_trade)
         del stats["active_trades"][pair]
         
-        emoji = "✅" if net_pnl > 0 else "❌"
-        closed_summary.append(f"{emoji} Clôture {pair}: {net_pnl:+.2f}%")
         print(f"💰 Trade fermé: {pair} ({direction}) PnL: {net_pnl:+.2f}%")
 
-    # 2. Vérifier les entrées (Ouvertures)
+    # 2. Vérifier les entrées
     for p_data in big3_pairs + confluence_pairs:
         pair = p_data['pair']
         if pair not in stats["active_trades"]:
-            # Nouveau trade !
-            # Déterminer direction via le signe du runner actuel
-            # (Si runner positif -> BULLISH/LONG, car tendance haussière forte du jour)
-            # (Si runner négatif -> BEARISH/SHORT)
             direction = "LONG" if p_data['pct'] >= 0 else "SHORT"
-            
             price = get_current_price_from_results(pair, [])
             if price:
                 stats["active_trades"][pair] = {
@@ -215,10 +194,62 @@ def update_performance_tracking(big3_pairs, confluence_pairs):
                     "direction": direction,
                     "initial_runner": p_data['pct']
                 }
-                print(f"💰 Nouveau trade ouvert: {pair} ({direction}) @ {price:.4f}")
+                print(f"💰 Nouveau trade: {pair} ({direction}) @ {price:.4f}")
     
     save_stats(stats)
-    return closed_summary, stats["performance"]
+    
+    # 3. Calculs Métriques Portefeuille
+    
+    # Capital Actuel
+    # On suppose que chaque PnL % s'applique au Capital Initial (Simple Interest)
+    # ou Capital += (pnl% / 100) * 1000 (mise fixe de 10% par trade ?) 
+    # Pour matcher le format demandé "Capital : X EUR (-1.2%)", on va calculer le Total PnL EUR.
+    
+    # PnL Total Accumulé (EUR) - on suppose 1000 EUR de mise par trade pour simuler
+    # ou plus simple: on considère que stats["performance"]["total_pnl"] est la variation EQUIITY % cumulée
+    
+    total_pnl_pct = stats["performance"]["total_pnl"]
+    current_capital = INITIAL_CAPITAL * (1 + total_pnl_pct / 100)
+    total_accumulated_eur = current_capital - INITIAL_CAPITAL
+    
+    emoji_capital = "✅" if total_accumulated_eur >= 0 else "❌"
+    
+    # En cours (Active PnL)
+    active_pnl_eur = 0.0
+    active_count = len(stats["active_trades"])
+    
+    for pair, trade in stats["active_trades"].items():
+         current_price = get_current_price_from_results(pair, [])
+         if current_price:
+             pct = ((current_price - trade["entry_price"]) / trade["entry_price"]) * 100
+             if trade["direction"] == "SHORT": pct = -pct
+             pct -= 0.03 # spread count in unrealized
+             active_pnl_eur += (pct / 100) * INITIAL_CAPITAL # Sur base portfolio entier ou par trade?
+             # Si on trade avec tout le capital, le DD est énorme.
+             # On va supposer levier 1 (100% exposure) pour simplifier le % affiché.
+    
+    # PnL 24h
+    h24_pnl_eur = 0.0
+    h24_count = 0
+    now = datetime.now()
+    for trade in stats["closed_trades"]:
+        exit_dt = datetime.strptime(trade["exit_date"], "%Y-%m-%d %H:%M")
+        if (now - exit_dt).total_seconds() < 24 * 3600:
+            pnl_val = (trade["pnl_net"] / 100) * INITIAL_CAPITAL
+            h24_pnl_eur += pnl_val
+            h24_count += 1
+            
+    return {
+        "current_capital": current_capital,
+        "total_pnl_pct": total_pnl_pct,
+        "capital_emoji": emoji_capital,
+        "active_pnl_eur": active_pnl_eur,
+        "active_count": active_count,
+        "h24_pnl_eur": h24_pnl_eur,
+        "h24_count": h24_count,
+        "total_accumulated_eur": total_accumulated_eur
+    }
+
 
 def load_runner_history():
     """
@@ -640,20 +671,22 @@ def main():
         msg_lines.append("Aucune")
     
     msg_lines.append("")
-    msg_lines.append(f"⏰ {now} Paris")
 
+    
     # --- TRACKING PERFORMANCE ---
-    closed_summary, perf = update_performance_tracking(big3_runners, confluence_runners)
+    perf = update_performance_tracking(big3_runners, confluence_runners)
     
     msg_lines.append("")
-    msg_lines.append("💰 PERFORMANCE")
-    msg_lines.append(f"PnL Total: {perf['total_pnl']:+.2f}%")
-    msg_lines.append(f"Win/Loss: {perf['wins']}W / {perf['losses']}L")
+    msg_lines.append("💰 PORTEFEUILLE")
+    msg_lines.append("-------------------------")
+    msg_lines.append(f"   Capital : {int(perf['current_capital']):,} EUR ({perf['total_pnl_pct']:+.1f}%) {perf['capital_emoji']}")
+    msg_lines.append("")
+    msg_lines.append(f"   En cours : {int(perf['active_pnl_eur']):+} EUR ({perf['active_count']} pos)")
+    msg_lines.append(f"   Fermées 24h : {int(perf['h24_pnl_eur']):+} EUR ({perf['h24_count']} trades)")
+    msg_lines.append(f"   Total accumulé : {int(perf['total_accumulated_eur']):+} EUR")
     
-    if closed_summary:
-        msg_lines.append("")
-        msg_lines.append("Clôtures récentes:")
-        msg_lines.extend(closed_summary)
+    msg_lines.append("")
+    msg_lines.append(f"⏰ {now} Paris")
     
     telegram_msg = "\n".join(msg_lines)
     
