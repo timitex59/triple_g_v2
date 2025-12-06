@@ -1,0 +1,43 @@
+name: Triple G Indicators Scan
+
+on:
+  schedule:
+    - cron: "15 4-22 * * 1-5" # Du lundi au vendredi, de 4h15 à 22h15 UTC
+  workflow_dispatch: # Permet le lancement manuel
+
+permissions:
+  contents: write # Important pour pouvoir pusher les changements de runner_history.json
+
+jobs:
+  run-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip' # Cache les dépendances pip
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Run Triple G Indicators Scan
+      env:
+        TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      run: |
+        python triple_g_indicators.py
+        
+    - name: Commit and Push History
+      run: |
+        git config --global user.name "GitHub Actions Bot"
+        git config --global user.email "actions@github.com"
+        git add runner_history.json
+        # Ne commiter que s'il y a des changements
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update runner history [skip ci]" && git push)
