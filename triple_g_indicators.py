@@ -204,11 +204,14 @@ def get_paris_time():
     paris_tz = pytz.timezone('Europe/Paris')
     return datetime.now(paris_tz)
 
-def update_performance_tracking(big3_pairs, confluence_pairs):
+def update_performance_tracking(big3_pairs, confluence_pairs, top_5_short, top_5_large):
     """
     Gère le tracking, les horaires de trading et le calcul Portefeuille.
     Horaires: Lundi-Vendredi, 06h-22h Paris.
     A 22h: Clôture forcée de tout.
+    
+    Règles d'Entrée: BIG3 ou CONFLUENCE.
+    Règles de Sortie (Maintien): Tant que dans BIG3, CONFLUENCE, TOP 5 SHORT ou TOP 5 LARGE.
     """
     stats = load_stats()
     paris_now = get_paris_time()
@@ -225,7 +228,9 @@ def update_performance_tracking(big3_pairs, confluence_pairs):
     can_trade_new = is_weekday and (6 <= current_hour < 22)
     force_close_all = current_hour >= 22 or not is_weekday # APRÈS 22h ou Weekend -> CLOSE ALL
     
-    valid_pairs = set(p['pair'] for p in big3_pairs + confluence_pairs)
+    # Ensembles de paires pour Entrée et Maintien
+    entry_pool = set(p['pair'] for p in big3_pairs + confluence_pairs)
+    retention_pool = set(p['pair'] for p in big3_pairs + confluence_pairs + top_5_short + top_5_large)
     
     # 1. Gestion des Sorties (Normales + Forcées)
     to_close = []
@@ -234,10 +239,10 @@ def update_performance_tracking(big3_pairs, confluence_pairs):
         should_close = False
         reason = ""
         
-        # Condition 1: Sortie technique (plus dans le screener)
-        if pair not in valid_pairs:
+        # Condition 1: Sortie technique (plus dans le retention pool)
+        if pair not in retention_pool:
             should_close = True
-            reason = "Signal technique (Sortie screener)"
+            reason = "Signal technique (Sortie screener global)"
             
         # Condition 2: Clôture Forcée (22h ou Weekend)
         if force_close_all:
@@ -781,7 +786,7 @@ def main():
 
     
     # --- TRACKING PERFORMANCE ---
-    perf = update_performance_tracking(big3_runners, confluence_runners)
+    perf = update_performance_tracking(big3_runners, confluence_runners, top_5_short, top_5_large)
     
     msg_lines.append("")
     msg_lines.append("💰 PORTEFEUILLE")
