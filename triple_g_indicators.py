@@ -88,21 +88,21 @@ def fetch_data(ticker, period, interval):
 STATS_FILE = Path(__file__).parent / "opportunity_stats.json"
 INITIAL_CAPITAL = 10000.0  # Capital de départ simulé
 
-# Spreads réalistes (Compte Standard moyen)
+# Spreads réalistes (Compte Standard moyen - Source Confirmée)
 SPREADS = {
     # Majors
-    "EURUSD": 1.1, "USDJPY": 1.1, "GBPUSD": 1.4, "AUDUSD": 1.3,
-    "USDCHF": 1.5, "USDCAD": 1.6, "NZDUSD": 1.6,
+    "EURUSD": 1.1, "USDJPY": 1.5, "GBPUSD": 1.5, "AUDUSD": 1.3,
+    "USDCHF": 1.9, "USDCAD": 1.7, "NZDUSD": 1.8,
     # EUR Crosses
-    "EURGBP": 1.5, "EURJPY": 1.9, "EURCHF": 2.0, "EURAUD": 2.4,
-    "EURCAD": 2.4, "EURNZD": 3.8,
+    "EURGBP": 1.8, "EURJPY": 2.0, "EURCHF": 2.0, "EURAUD": 2.5,
+    "EURCAD": 2.4, "EURNZD": 3.2,
     # GBP Crosses
-    "GBPJPY": 2.6, "GBPCHF": 3.2, "GBPAUD": 3.2, "GBPCAD": 3.5,
-    "GBPNZD": 4.5,
+    "GBPJPY": 2.6, "GBPCHF": 2.8, "GBPAUD": 3.1, "GBPCAD": 3.1,
+    "GBPNZD": 4.0,
     # JPY Crosses
-    "AUDJPY": 2.1, "CHFJPY": 2.3, "CADJPY": 2.4, "NZDJPY": 2.5,
+    "AUDJPY": 2.2, "CHFJPY": 2.4, "CADJPY": 2.2, "NZDJPY": 2.4,
     # Other Crosses
-    "AUDCAD": 2.2, "AUDCHF": 2.3, "AUDNZD": 2.8, "CADCHF": 2.6,
+    "AUDCAD": 2.4, "AUDCHF": 2.4, "AUDNZD": 3.1, "CADCHF": 2.5,
     "NZDCAD": 2.8, "NZDCHF": 2.8
 }
 DEFAULT_SPREAD = 2.5
