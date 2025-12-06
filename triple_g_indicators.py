@@ -16,6 +16,7 @@ import json
 import requests
 import os
 from pathlib import Path
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 
@@ -82,6 +83,142 @@ def fetch_data(ticker, period, interval):
         return None
 
 # --- RUNNER HISTORY FUNCTIONS ---
+
+# Opportunity Stats Settings
+STATS_FILE = Path(__file__).parent / "opportunity_stats.json"
+
+# Spreads standards (pour calcul PnL net)
+SPREADS = {
+    "EURUSD": 1.0, "GBPUSD": 1.5, "USDJPY": 1.0, "USDCHF": 1.5,
+    "EURJPY": 2.0, "GBPJPY": 2.5, "AUDJPY": 2.0, "CHFJPY": 2.5,
+    "CADJPY": 2.5, "NZDJPY": 2.5, "EURGBP": 1.5, "EURAUD": 2.5,
+    "EURCAD": 2.5, "EURNZD": 3.0, "GBPCHF": 3.0, "GBPAUD": 3.0,
+    "GBPCAD": 3.5, "GBPNZD": 4.0, "AUDCAD": 2.5, "AUDCHF": 2.5,
+    "AUDNZD": 3.0, "CADCHF": 3.0, "NZDCAD": 3.5, "NZDCHF": 3.5
+}
+DEFAULT_SPREAD = 2.5
+
+def load_stats():
+    """Charge les stats de trading."""
+    if STATS_FILE.exists():
+        try:
+            with open(STATS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            pass
+    return {
+        "active_trades": {},
+        "closed_trades": [],
+        "performance": {"total_pnl": 0.0, "wins": 0, "losses": 0}
+    }
+
+def save_stats(stats):
+    """Sauvegarde les stats."""
+    try:
+        with open(STATS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(stats, f, indent=2)
+    except Exception as e:
+        print(f"⚠️ Erreur sauvegarde stats: {e}")
+
+def get_current_price_from_results(pair, results):
+    """Récupère le prix (approximatif via Close daily) depuis les résultats d'analyse."""
+    # Note: Dans ce script on n'a que le pct daily, pas le prix exact live sauf si on refetch.
+    # Pour simplifier et être précis, on va refetch le dernier prix live ici.
+    try:
+        # Correspondance symbole (ajouter =X si besoin)
+        ticker = pair if "=X" in pair else f"{pair}=X"
+        df = yf.Ticker(ticker).history(period="1d", interval="1m")
+        if not df.empty:
+            return df['Close'].iloc[-1]
+    except:
+        pass
+    return None
+
+def update_performance_tracking(big3_pairs, confluence_pairs):
+    """
+    Gère l'ouverture et la fermeture des trades virtuels.
+    - Entrée : Si dans BIG3 ou CONFLUENCE
+    - Sortie : Si disparait des deux listes
+    """
+    stats = load_stats()
+    valid_pairs = set(p['pair'] for p in big3_pairs + confluence_pairs)
+    
+    # 1. Vérifier les sorties (Clôtures)
+    to_close = []
+    current_prices = {} # Cache
+    
+    for pair, trade in stats["active_trades"].items():
+        if pair not in valid_pairs:
+            # Signal de sortie !
+            current_price = get_current_price_from_results(pair, [])
+            if current_price:
+                to_close.append((pair, current_price))
+    
+    closed_summary = []
+    
+    for pair, exit_price in to_close:
+        trade = stats["active_trades"][pair]
+        entry_price = trade["entry_price"]
+        direction = trade["direction"]
+        
+        # Calcul PnL Brut
+        pct_change = ((exit_price - entry_price) / entry_price) * 100
+        if direction == "SHORT":
+            pct_change = -pct_change
+            
+        # Coûts (Spread)
+        spread_pips = SPREADS.get(pair, DEFAULT_SPREAD)
+        # Estim pip value % (approx 0.01% pour majors, 0.015% crosses)
+        # On simplifie : coût standard 0.03% par trade (entrée+sortie)
+        cost_pct = 0.03 
+        
+        net_pnl = pct_change - cost_pct
+        
+        # Mise à jour stats globales
+        stats["performance"]["total_pnl"] += net_pnl
+        if net_pnl > 0:
+            stats["performance"]["wins"] += 1
+        else:
+            stats["performance"]["losses"] += 1
+            
+        closed_trade = {
+            "pair": pair,
+            "entry_date": trade["entry_date"],
+            "exit_date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "entry_price": entry_price,
+            "exit_price": exit_price,
+            "direction": direction,
+            "pnl_net": round(net_pnl, 2)
+        }
+        stats["closed_trades"].append(closed_trade)
+        del stats["active_trades"][pair]
+        
+        emoji = "✅" if net_pnl > 0 else "❌"
+        closed_summary.append(f"{emoji} Clôture {pair}: {net_pnl:+.2f}%")
+        print(f"💰 Trade fermé: {pair} ({direction}) PnL: {net_pnl:+.2f}%")
+
+    # 2. Vérifier les entrées (Ouvertures)
+    for p_data in big3_pairs + confluence_pairs:
+        pair = p_data['pair']
+        if pair not in stats["active_trades"]:
+            # Nouveau trade !
+            # Déterminer direction via le signe du runner actuel
+            # (Si runner positif -> BULLISH/LONG, car tendance haussière forte du jour)
+            # (Si runner négatif -> BEARISH/SHORT)
+            direction = "LONG" if p_data['pct'] >= 0 else "SHORT"
+            
+            price = get_current_price_from_results(pair, [])
+            if price:
+                stats["active_trades"][pair] = {
+                    "entry_date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "entry_price": price,
+                    "direction": direction,
+                    "initial_runner": p_data['pct']
+                }
+                print(f"💰 Nouveau trade ouvert: {pair} ({direction}) @ {price:.4f}")
+    
+    save_stats(stats)
+    return closed_summary, stats["performance"]
 
 def load_runner_history():
     """
@@ -504,6 +641,19 @@ def main():
     
     msg_lines.append("")
     msg_lines.append(f"⏰ {now} Paris")
+
+    # --- TRACKING PERFORMANCE ---
+    closed_summary, perf = update_performance_tracking(big3_runners, confluence_runners)
+    
+    msg_lines.append("")
+    msg_lines.append("💰 PERFORMANCE")
+    msg_lines.append(f"PnL Total: {perf['total_pnl']:+.2f}%")
+    msg_lines.append(f"Win/Loss: {perf['wins']}W / {perf['losses']}L")
+    
+    if closed_summary:
+        msg_lines.append("")
+        msg_lines.append("Clôtures récentes:")
+        msg_lines.extend(closed_summary)
     
     telegram_msg = "\n".join(msg_lines)
     
