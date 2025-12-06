@@ -2,9 +2,9 @@ name: Triple G Indicators Scan
 
 on:
   schedule:
-    # - cron: "15 4-22 * * 1-5" # Du lundi au vendredi, de 4h15 à 22h15 UTC
+    - cron: "15 4-22 * * 1-5" # Du lundi au vendredi, de 4h15 à 22h15 UTC
     # TEST JOUR : Toutes les heures à la minute 10
-    - cron: "10 * * * *"
+    #- cron: "10 * * * *"
   workflow_dispatch: # Permet le lancement manuel
 
 permissions:
