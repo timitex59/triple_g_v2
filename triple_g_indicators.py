@@ -152,24 +152,105 @@ def get_current_price_from_results(pair, results):
         pass
     return None
 
+    # 3. Calculs Métriques Portefeuille
+    total_pnl_pct = stats["performance"]["total_pnl"]
+    current_capital = INITIAL_CAPITAL * (1 + total_pnl_pct / 100)
+    total_accumulated_eur = current_capital - INITIAL_CAPITAL
+    
+    emoji_capital = "✅" if total_accumulated_eur >= 0 else "❌"
+    
+    # En cours (Active PnL)
+    active_pnl_eur = 0.0
+    active_count = len(stats["active_trades"])
+    
+    for pair, trade in stats["active_trades"].items():
+         current_price = get_current_price_from_results(pair, [])
+         if current_price:
+             pct = ((current_price - trade["entry_price"]) / trade["entry_price"]) * 100
+             if trade["direction"] == "SHORT": pct = -pct
+             
+             # Coût dynamique (Spread)
+             spread = SPREADS.get(pair, DEFAULT_SPREAD)
+             cost_pct = calculate_cost_percentage(pair, trade["entry_price"], spread)
+             pct -= cost_pct
+             
+             active_pnl_eur += (pct / 100) * INITIAL_CAPITAL
+    
+    # PnL 24h
+    h24_pnl_eur = 0.0
+    h24_count = 0
+    now = datetime.now()
+    for trade in stats["closed_trades"]:
+        exit_dt = datetime.strptime(trade["exit_date"], "%Y-%m-%d %H:%M")
+        if (now - exit_dt).total_seconds() < 24 * 3600:
+            pnl_val = (trade["pnl_net"] / 100) * INITIAL_CAPITAL
+            h24_pnl_eur += pnl_val
+            h24_count += 1
+            
+    return {
+        "current_capital": current_capital,
+        "total_pnl_pct": total_pnl_pct,
+        "capital_emoji": emoji_capital,
+        "active_pnl_eur": active_pnl_eur,
+        "active_count": active_count,
+        "h24_pnl_eur": h24_pnl_eur,
+        "h24_count": h24_count,
+        "total_accumulated_eur": total_accumulated_eur
+    }
+
+def get_paris_time():
+    """Retourne l'heure actuelle à Paris (aware datetime)."""
+    import pytz
+    paris_tz = pytz.timezone('Europe/Paris')
+    return datetime.now(paris_tz)
+
 def update_performance_tracking(big3_pairs, confluence_pairs):
     """
-    Gère le tracking et calcule les métriques du Portefeuille.
+    Gère le tracking, les horaires de trading et le calcul Portefeuille.
+    Horaires: Lundi-Vendredi, 06h-22h Paris.
+    A 22h: Clôture forcée de tout.
     """
     stats = load_stats()
+    paris_now = get_paris_time()
+    
+    # Trading Window checks
+    # Lundi=0, Dimanche=6. On trade Lundi-Vendredi (0-4)
+    is_weekday = paris_now.weekday() < 5
+    current_hour = paris_now.hour
+    
+    # Plage active: 06h00 inclus à 21h59 inclus.
+    # A partir de 22h00 -> On ferme tout.
+    # Avant 06h00 -> On ne fait rien (monitoring only)
+    
+    can_trade_new = is_weekday and (6 <= current_hour < 22)
+    force_close_all = current_hour >= 22 or not is_weekday # APRÈS 22h ou Weekend -> CLOSE ALL
+    
     valid_pairs = set(p['pair'] for p in big3_pairs + confluence_pairs)
     
-    # 1. Vérifier les sorties
+    # 1. Gestion des Sorties (Normales + Forcées)
     to_close = []
     
     for pair, trade in stats["active_trades"].items():
+        should_close = False
+        reason = ""
+        
+        # Condition 1: Sortie technique (plus dans le screener)
         if pair not in valid_pairs:
+            should_close = True
+            reason = "Signal technique (Sortie screener)"
+            
+        # Condition 2: Clôture Forcée (22h ou Weekend)
+        if force_close_all:
+            should_close = True
+            reason = "Clôture journalière (22h)"
+            
+        if should_close:
             current_price = get_current_price_from_results(pair, [])
             if current_price:
-                to_close.append((pair, current_price))
+                to_close.append((pair, current_price, reason))
     
-    # Clôture des positions
-    for pair, exit_price in to_close:
+    # Exécution des clôtures
+    for pair, exit_price, reason in to_close:
         trade = stats["active_trades"][pair]
         entry_price = trade["entry_price"]
         direction = trade["direction"]
@@ -193,36 +274,44 @@ def update_performance_tracking(big3_pairs, confluence_pairs):
         closed_trade = {
             "pair": pair,
             "entry_date": trade["entry_date"],
-            "exit_date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "exit_date": paris_now.strftime("%Y-%m-%d %H:%M"),
             "entry_price": entry_price,
             "exit_price": exit_price,
             "direction": direction,
             "pnl_net": round(net_pnl, 2),
-            "spread_cost_pct": round(cost_pct, 4)
+            "spread_cost_pct": round(cost_pct, 4),
+            "reason": reason
         }
         stats["closed_trades"].append(closed_trade)
         del stats["active_trades"][pair]
         
-        print(f"💰 Trade fermé: {pair} ({direction}) PnL: {net_pnl:+.2f}% (Coût: {cost_pct:.3f}%)")
+        print(f"💰 Trade fermé ({reason}): {pair} ({direction}) PnL: {net_pnl:+.2f}%")
 
-    # 2. Vérifier les entrées
-    for p_data in big3_pairs + confluence_pairs:
-        pair = p_data['pair']
-        if pair not in stats["active_trades"]:
-            direction = "LONG" if p_data['pct'] >= 0 else "SHORT"
-            price = get_current_price_from_results(pair, [])
-            if price:
-                stats["active_trades"][pair] = {
-                    "entry_date": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "entry_price": price,
-                    "direction": direction,
-                    "initial_runner": p_data['pct']
-                }
-                print(f"💰 Nouveau trade: {pair} ({direction}) @ {price:.4f}")
+    # 2. Gestion des Entrées (Uniquement dans la fenêtre de tir)
+    if can_trade_new:
+        for p_data in big3_pairs + confluence_pairs:
+            pair = p_data['pair']
+            if pair not in stats["active_trades"]:
+                direction = "LONG" if p_data['pct'] >= 0 else "SHORT"
+                price = get_current_price_from_results(pair, [])
+                if price:
+                    stats["active_trades"][pair] = {
+                        "entry_date": paris_now.strftime("%Y-%m-%d %H:%M"),
+                        "entry_price": price,
+                        "direction": direction,
+                        "initial_runner": p_data['pct']
+                    }
+                    print(f"💰 Nouveau trade: {pair} ({direction}) @ {price:.4f}")
+    else:
+        if force_close_all:
+            print("🚫 Créneau fermé (After 22h / Weekend). Pas de nouvelles positions.")
+        else:
+            print(f"⏸️ Avant 06h (Il est {current_hour}h). Monitoring seulement.")
     
     save_stats(stats)
     
-    # 3. Calculs Métriques Portefeuille
+    # 3. Calculs Métriques Portefeuille (Code existant inchangé ci-dessous)
+
     total_pnl_pct = stats["performance"]["total_pnl"]
     current_capital = INITIAL_CAPITAL * (1 + total_pnl_pct / 100)
     total_accumulated_eur = current_capital - INITIAL_CAPITAL
