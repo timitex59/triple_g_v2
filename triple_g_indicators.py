@@ -88,16 +88,36 @@ def fetch_data(ticker, period, interval):
 STATS_FILE = Path(__file__).parent / "opportunity_stats.json"
 INITIAL_CAPITAL = 10000.0  # Capital de départ simulé
 
-# Spreads standards
+# Spreads réalistes (Compte Standard moyen)
 SPREADS = {
-    "EURUSD": 1.0, "GBPUSD": 1.5, "USDJPY": 1.0, "USDCHF": 1.5,
-    "EURJPY": 2.0, "GBPJPY": 2.5, "AUDJPY": 2.0, "CHFJPY": 2.5,
-    "CADJPY": 2.5, "NZDJPY": 2.5, "EURGBP": 1.5, "EURAUD": 2.5,
-    "EURCAD": 2.5, "EURNZD": 3.0, "GBPCHF": 3.0, "GBPAUD": 3.0,
-    "GBPCAD": 3.5, "GBPNZD": 4.0, "AUDCAD": 2.5, "AUDCHF": 2.5,
-    "AUDNZD": 3.0, "CADCHF": 3.0, "NZDCAD": 3.5, "NZDCHF": 3.5
+    # Majors
+    "EURUSD": 1.1, "USDJPY": 1.1, "GBPUSD": 1.4, "AUDUSD": 1.3,
+    "USDCHF": 1.5, "USDCAD": 1.6, "NZDUSD": 1.6,
+    # EUR Crosses
+    "EURGBP": 1.5, "EURJPY": 1.9, "EURCHF": 2.0, "EURAUD": 2.4,
+    "EURCAD": 2.4, "EURNZD": 3.8,
+    # GBP Crosses
+    "GBPJPY": 2.6, "GBPCHF": 3.2, "GBPAUD": 3.2, "GBPCAD": 3.5,
+    "GBPNZD": 4.5,
+    # JPY Crosses
+    "AUDJPY": 2.1, "CHFJPY": 2.3, "CADJPY": 2.4, "NZDJPY": 2.5,
+    # Other Crosses
+    "AUDCAD": 2.2, "AUDCHF": 2.3, "AUDNZD": 2.8, "CADCHF": 2.6,
+    "NZDCAD": 2.8, "NZDCHF": 2.8
 }
 DEFAULT_SPREAD = 2.5
+
+def calculate_cost_percentage(pair, price, spread_pips):
+    """Calcule le coût du spread en pourcentage."""
+    if price == 0: return 0.0
+    
+    # Valeur d'un pip
+    # JPY pairs (2 décimales) -> 0.01
+    # Autres (4 décimales) -> 0.0001
+    pip_val = 0.01 if "JPY" in pair else 0.0001
+    
+    cost_val = spread_pips * pip_val
+    return (cost_val / price) * 100.0
 
 def load_stats():
     """Charge les stats de trading."""
@@ -158,7 +178,10 @@ def update_performance_tracking(big3_pairs, confluence_pairs):
         if direction == "SHORT":
             pct_change = -pct_change
             
-        cost_pct = 0.03 # Spread cost approx
+        # Coût dynamique
+        spread = SPREADS.get(pair, DEFAULT_SPREAD)
+        cost_pct = calculate_cost_percentage(pair, entry_price, spread)
+        
         net_pnl = pct_change - cost_pct
         
         stats["performance"]["total_pnl"] += net_pnl
@@ -174,12 +197,13 @@ def update_performance_tracking(big3_pairs, confluence_pairs):
             "entry_price": entry_price,
             "exit_price": exit_price,
             "direction": direction,
-            "pnl_net": round(net_pnl, 2)
+            "pnl_net": round(net_pnl, 2),
+            "spread_cost_pct": round(cost_pct, 4)
         }
         stats["closed_trades"].append(closed_trade)
         del stats["active_trades"][pair]
         
-        print(f"💰 Trade fermé: {pair} ({direction}) PnL: {net_pnl:+.2f}%")
+        print(f"💰 Trade fermé: {pair} ({direction}) PnL: {net_pnl:+.2f}% (Coût: {cost_pct:.3f}%)")
 
     # 2. Vérifier les entrées
     for p_data in big3_pairs + confluence_pairs:
@@ -199,15 +223,6 @@ def update_performance_tracking(big3_pairs, confluence_pairs):
     save_stats(stats)
     
     # 3. Calculs Métriques Portefeuille
-    
-    # Capital Actuel
-    # On suppose que chaque PnL % s'applique au Capital Initial (Simple Interest)
-    # ou Capital += (pnl% / 100) * 1000 (mise fixe de 10% par trade ?) 
-    # Pour matcher le format demandé "Capital : X EUR (-1.2%)", on va calculer le Total PnL EUR.
-    
-    # PnL Total Accumulé (EUR) - on suppose 1000 EUR de mise par trade pour simuler
-    # ou plus simple: on considère que stats["performance"]["total_pnl"] est la variation EQUIITY % cumulée
-    
     total_pnl_pct = stats["performance"]["total_pnl"]
     current_capital = INITIAL_CAPITAL * (1 + total_pnl_pct / 100)
     total_accumulated_eur = current_capital - INITIAL_CAPITAL
@@ -223,10 +238,13 @@ def update_performance_tracking(big3_pairs, confluence_pairs):
          if current_price:
              pct = ((current_price - trade["entry_price"]) / trade["entry_price"]) * 100
              if trade["direction"] == "SHORT": pct = -pct
-             pct -= 0.03 # spread count in unrealized
-             active_pnl_eur += (pct / 100) * INITIAL_CAPITAL # Sur base portfolio entier ou par trade?
-             # Si on trade avec tout le capital, le DD est énorme.
-             # On va supposer levier 1 (100% exposure) pour simplifier le % affiché.
+             
+             # Coût dynamique (Spread)
+             spread = SPREADS.get(pair, DEFAULT_SPREAD)
+             cost_pct = calculate_cost_percentage(pair, trade["entry_price"], spread)
+             pct -= cost_pct
+             
+             active_pnl_eur += (pct / 100) * INITIAL_CAPITAL
     
     # PnL 24h
     h24_pnl_eur = 0.0
