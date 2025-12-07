@@ -251,6 +251,10 @@ def analyze_pair(pair, debug_mode=False):
         # 3. Activation Check (Dynamic based on Current Price)
         current_price = df_h1['Close'].iloc[-1]
         
+        # Get Current H1 EMAs values for Strict Waiting Condition
+        current_candle = df_h1.iloc[-1]
+        emas_h1 = [current_candle[f'EMA_{l}'] for l in EMA_LENGTHS]
+        
         status = "PENDING"
         
         if trend == "BULLISH":
@@ -259,7 +263,11 @@ def analyze_pair(pair, debug_mode=False):
             elif current_price < asian_low_val:
                 status = "INVALIDATED"    # Currently below SL -> INVALID
             else:
-                status = "PENDING"        # Between SL and Entry -> WAITING
+                # Strict WAITING Condition: Price > All H1 EMAs
+                if all(current_price > ema for ema in emas_h1):
+                    status = "PENDING"
+                else:
+                    status = "IGNORED"    # Not ready yet (inside ribbon)
                 
         elif trend == "BEARISH":
             if current_price < asian_low_val:
@@ -267,7 +275,11 @@ def analyze_pair(pair, debug_mode=False):
             elif current_price > asian_high_val:
                 status = "INVALIDATED"    # Currently above SL -> INVALID
             else:
-                status = "PENDING"        # Between SL and Entry -> WAITING
+                # Strict WAITING Condition: Price < All H1 EMAs
+                if all(current_price < ema for ema in emas_h1):
+                    status = "PENDING"
+                else:
+                    status = "IGNORED"    # Not ready yet (inside ribbon)
 
         return {
             "pair": pair.replace("=X", ""),
@@ -411,7 +423,7 @@ def main():
 
         # 3. INVALIDATED
         if invalidated:
-            print("\n INVALIDATED (SL HIT)")
+            print("\n INVALIDATED (CURRENTLY INVALID)")
             print("=" * 40)
             tg_lines.append("\n❌ *INVALID*")
             
@@ -422,7 +434,7 @@ def main():
                 # Console
                 print(f"{emoji} {r['pair']} [{r['date']}] INVALIDATED {pct_str}")
                 print(f"   Signal  : {r['type']} @ {r['trigger']:.5f}")
-                print(f"   StopLoss: {r['sl']:.5f} HIT")
+                print(f"   StopLoss: {r['sl']:.5f} (Price beyond SL)")
                 print(f"   Current : {r['current_price']:.5f}")
                 print("-------------------------------------------")
                 # Telegram (Compact)
