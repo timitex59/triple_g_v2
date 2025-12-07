@@ -377,7 +377,7 @@ def main():
             
             for r in triggered:
                 emoji = get_emoji(r['trend'])
-                pct_str = f"({r['runner_pct']:+.2f}%)"
+                pct_str = f"({r['runner_pct']:+.1f}%)"
                 
                 # Console
                 print(f"{emoji} {r['pair']} [{r['date']}] TRIGGERED {pct_str}")
@@ -397,7 +397,7 @@ def main():
             
             for r in pending:
                 emoji = get_emoji(r['trend'])
-                pct_str = f"({r['runner_pct']:+.2f}%)"
+                pct_str = f"({r['runner_pct']:+.1f}%)"
                 
                 # Console
                 print(f"{emoji} {r['pair']} [{r['date']}] PENDING {pct_str}")
@@ -417,7 +417,7 @@ def main():
             
             for r in invalidated:
                 emoji = get_emoji(r['trend']) # Always color based on trend
-                pct_str = f"({r['runner_pct']:+.2f}%)"
+                pct_str = f"({r['runner_pct']:+.1f}%)"
                 
                 # Console
                 print(f"{emoji} {r['pair']} [{r['date']}] INVALIDATED {pct_str}")
