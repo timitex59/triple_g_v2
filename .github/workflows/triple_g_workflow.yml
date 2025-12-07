@@ -34,7 +34,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python triple_g_indicators.py
+          python asian_scanner.py
 
       - name: Commit and Push History
         run: |
