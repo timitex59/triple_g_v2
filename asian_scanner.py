@@ -180,16 +180,6 @@ def analyze_pair(pair, debug_mode=False):
     if open_price > 0:
         runner_pct = ((current_price_runner - open_price) / open_price) * 100.0
     
-    # --- FILTRE TRIPLE G : Volatilité > 0.2% & Cohérence Directionnelle ---
-    if abs(runner_pct) <= 0.2:
-        return None
-        
-    if trend == "BULLISH" and runner_pct < 0:
-        return None
-    if trend == "BEARISH" and runner_pct > 0:
-        return None
-    # ---------------------------------------------------------------------
-    
     if trend == "NEUTRAL":
         return None 
         
@@ -231,6 +221,24 @@ def analyze_pair(pair, debug_mode=False):
     
     candle_high = session_candles.loc[idx_high]
     candle_low = session_candles.loc[idx_low]
+
+    # --- FILTRE TRIPLE G V2 : Puissance depuis Asian Range (> 0.2%) ---
+    # Placé ici car asian_high_val et asian_low_val sont maintenant définis
+    current_price_check = df_h1['Close'].iloc[-1]
+    range_progress_pct = 0.0
+    
+    if trend == "BULLISH":
+        if asian_low_val > 0:
+            range_progress_pct = ((current_price_check - asian_low_val) / asian_low_val) * 100.0
+        if range_progress_pct < 0.2:
+            return None
+            
+    elif trend == "BEARISH":
+        if asian_high_val > 0:
+            range_progress_pct = ((asian_high_val - current_price_check) / asian_high_val) * 100.0
+        if range_progress_pct < 0.2:
+            return None
+    # ---------------------------------------------------------------------
     
     setup_valid = False
     setup_type = ""
