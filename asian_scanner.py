@@ -180,6 +180,16 @@ def analyze_pair(pair, debug_mode=False):
     if open_price > 0:
         runner_pct = ((current_price_runner - open_price) / open_price) * 100.0
     
+    # --- FILTRE TRIPLE G : Volatilité > 0.2% & Cohérence Directionnelle ---
+    if abs(runner_pct) <= 0.2:
+        return None
+        
+    if trend == "BULLISH" and runner_pct < 0:
+        return None
+    if trend == "BEARISH" and runner_pct > 0:
+        return None
+    # ---------------------------------------------------------------------
+    
     if trend == "NEUTRAL":
         return None 
         
