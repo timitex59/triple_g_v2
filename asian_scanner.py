@@ -73,7 +73,7 @@ PAIRS = [
     "CADCHF=X"
 ]
 
-# --- TRADINGVIEW WEBSOCKET ENGINE ---
+# --- DATA ENGINE (TV + YAHOO FALLBACK) ---
 def generate_session_id():
     return "cs_" + ''.join(random.choices(string.ascii_letters + string.digits, k=12))
 
@@ -81,17 +81,37 @@ def create_message(func, args):
     content = json.dumps({"m": func, "p": args})
     return f"~m~{len(content)}~m~{content}"
 
+def fetch_data_yahoo(pair_yahoo, interval_code, n_candles=None):
+    """
+    Fallback sur Yahoo Finance via yfinance.
+    """
+    try:
+        # Adaptation des périodes pour Asian Scanner
+        period = "1y"
+        if interval_code == "1h": period = "1mo" # Large buffer pour Asian
+        elif interval_code == "1d": period = "2y"
+        
+        df = yf.Ticker(pair_yahoo).history(period=period, interval=interval_code)
+        if df.empty: return None
+        
+        df.index.name = "datetime"
+        
+        # Filtrer week-end pour daily
+        if interval_code == "1d":
+            df = df[df.index.dayofweek < 5]
+            
+        return df
+    except Exception as e:
+        # print(f"Yahoo Error {pair_yahoo}: {e}")
+        return None
+
 def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
     """
-    Fetches data from TradingView via WebSocket (Single Shot).
-    Converts Yahoo pair (EURUSD=X) to TV OANDA pair (OANDA:EURUSD).
-    Returns a DataFrame with TitleCase columns (Open, High, Low, Close).
+    Fetches data from TradingView via WebSocket.
     """
-    # Convert Pair
     clean_pair = pair_yahoo.replace("=X", "")
     tv_pair = f"OANDA:{clean_pair}"
     
-    # Convert Interval (Yahoo '1d'/'1h' -> TV 'D'/'60')
     tv_interval = "60"
     if interval_code == "1d": tv_interval = "D"
     elif interval_code == "1h": tv_interval = "60"
@@ -100,21 +120,23 @@ def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
     extracted_df = None
     
     try:
-        # 1. Connect
-        ws = create_connection("wss://prodata.tradingview.com/socket.io/websocket")
+        # Headers sécurisés
+        headers = {
+            "Origin": "https://www.tradingview.com",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        
+        ws = create_connection("wss://prodata.tradingview.com/socket.io/websocket", header=headers, timeout=10)
         session_id = generate_session_id()
         
-        # 2. Init
         ws.send(create_message("chart_create_session", [session_id, ""]))
         ws.send(create_message("resolve_symbol", [session_id, "sds_sym_1", f"={{\"symbol\":\"{tv_pair}\",\"adjustment\":\"splits\",\"session\":\"regular\"}}"]))
         ws.send(create_message("create_series", [session_id, "sds_1", "s1", "sds_sym_1", tv_interval, n_candles, ""]))
         
-        # 3. Listen
         start_t = time.time()
         while time.time() - start_t < 8: # Timeout 8s
             try:
                 res = ws.recv()
-                
                 if '"s":[' in res:
                     start = res.find('"s":[')
                     end = res.find('"ns":', start)
@@ -127,20 +149,9 @@ def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
                         fdata = [item["v"] for item in data]
                         extracted_df = pd.DataFrame(fdata, columns=["timestamp", "open", "high", "low", "close", "volume"])
                         
-                        # --- FORMATTING FOR STRATEGY ---
                         extracted_df['datetime'] = pd.to_datetime(extracted_df['timestamp'], unit='s', utc=True)
                         extracted_df.set_index('datetime', inplace=True)
-                        
-                        # Rename columns to Match yfinance (Title Case)
-                        extracted_df.rename(columns={
-                            "open": "Open",
-                            "high": "High",
-                            "low": "Low",
-                            "close": "Close",
-                            "volume": "Volume"
-                        }, inplace=True)
-                        
-                        # Drop timestamp column
+                        extracted_df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"}, inplace=True)
                         extracted_df.drop(columns=['timestamp'], inplace=True)
                         
                 if "series_completed" in res:
@@ -149,13 +160,23 @@ def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
             
         ws.close()
         return extracted_df
-        
-    except Exception as e:
-        # print(f"TV Error {pair_yahoo}: {e}")
+    except Exception:
         if ws: 
-            try: ws.close()
+            try: ws.close() 
             except: pass
         return None
+
+def fetch_data_smart(pair_yahoo, interval_code, n_candles=300):
+    """
+    Tente de récupérer les données via TV, sinon bascule sur Yahoo.
+    """
+    # Tentative 1 : TradingView WebSocket
+    df = fetch_data_tv(pair_yahoo, interval_code, n_candles)
+    if df is not None and not df.empty:
+        return df
+    
+    # Tentative 2 : Yahoo Finance (Fallback)
+    return fetch_data_yahoo(pair_yahoo, interval_code, n_candles)
 
 # --- TIME & DST UTILS ---
 def is_dst(dt=None, timezone="Europe/Paris"):
@@ -229,9 +250,9 @@ def check_daily_trend(df, pair_name="Unknown", debug=False):
     }
 
 def analyze_pair(pair, debug_mode=False):
-    # 1. Daily Analysis (via TradingView Socket)
+    # 1. Daily Analysis (via TradingView Socket + Fallback)
     # We ask for 200 candles to be safe for EMA55 calculation
-    df_d = fetch_data_tv(pair, "1d", n_candles=200)
+    df_d = fetch_data_smart(pair, "1d", n_candles=200)
     
     if df_d is None: return None
     
@@ -252,9 +273,9 @@ def analyze_pair(pair, debug_mode=False):
     if trend == "NEUTRAL":
         return None 
     
-    # 2. H1 Analysis (via TradingView Socket)
+    # 2. H1 Analysis (via TradingView Socket + Fallback)
     # We fetch 120 candles (5 days * 24h) to cover Asian session
-    df_h1 = fetch_data_tv(pair, "1h", n_candles=120)
+    df_h1 = fetch_data_smart(pair, "1h", n_candles=120)
     
     if df_h1 is None: return None
     

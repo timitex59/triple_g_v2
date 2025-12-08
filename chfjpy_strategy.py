@@ -28,6 +28,7 @@ install_and_import("pandas")
 install_and_import("requests")
 install_and_import("python-dotenv", "dotenv")
 install_and_import("websocket-client", "websocket")
+install_and_import("yfinance")
 
 import time
 import json
@@ -36,6 +37,7 @@ import string
 import os
 import requests
 import pandas as pd
+import yfinance as yf
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from websocket import create_connection
 from dotenv import load_dotenv
@@ -91,13 +93,50 @@ ALL_PAIRS = [
     "CHFJPY=X","CADJPY=X","CADCHF=X"
 ]
 
-# --- TRADINGVIEW WEBSOCKET ENGINE ---
+# --- DATA ENGINE (TV + YAHOO FALLBACK) ---
 def generate_session_id():
     return "cs_" + ''.join(random.choices(string.ascii_letters + string.digits, k=12))
 
 def create_message(func, args):
     content = json.dumps({"m": func, "p": args})
     return f"~m~{len(content)}~m~{content}"
+
+def fetch_pair_data_yahoo(pair_yahoo, debug=False):
+    """
+    Fallback sur Yahoo Finance via yfinance.
+    """
+    clean_pair = pair_yahoo.replace("=X", "")
+    try:
+        # On demande 5 jours pour être sûr d'avoir l'Open Daily
+        ticker = yf.Ticker(pair_yahoo)
+        df = ticker.history(period="5d", interval="1d")
+        if df.empty: return None
+        
+        # Nettoyage week-end
+        if df.index[-1].dayofweek >= 5:
+            df = df.iloc[:-1]
+            if df.empty: return None
+            
+        daily_open = df.iloc[-1]['Open']
+        daily_close = df.iloc[-1]['Close'] # Close temporaire du jour
+        
+        # Tentative de précision avec 1h si possible (optionnel, on reste sur daily pour simplicité ici)
+        # Pour être iso avec TV qui donne le live price :
+        current_price = daily_close
+        
+        if daily_open > 0:
+            pct_change = ((current_price - daily_open) / daily_open) * 100
+            return {
+                "pair": clean_pair,
+                "pct": pct_change,
+                "close": current_price,
+                "open": daily_open,
+                "method": "Yahoo_Fallback"
+            }
+        return None
+    except Exception as e:
+        if debug: print(f"Yahoo Err {clean_pair}: {e}")
+        return None
 
 def fetch_pair_data_tv(pair_yahoo, debug=False):
     """
@@ -113,7 +152,13 @@ def fetch_pair_data_tv(pair_yahoo, debug=False):
     extracted_data = None
     
     try:
-        ws = create_connection("wss://prodata.tradingview.com/socket.io/websocket")
+        # Headers sécurisés
+        headers = {
+            "Origin": "https://www.tradingview.com",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        
+        ws = create_connection("wss://prodata.tradingview.com/socket.io/websocket", header=headers, timeout=10)
         session_id = generate_session_id()
         
         ws.send(create_message("chart_create_session", [session_id, ""]))
@@ -170,6 +215,15 @@ def fetch_pair_data_tv(pair_yahoo, debug=False):
             except: pass
         return None
 
+def fetch_pair_data_smart(pair_yahoo, debug=False):
+    """
+    Tente de récupérer les données via TV, sinon bascule sur Yahoo.
+    """
+    res = fetch_pair_data_tv(pair_yahoo, debug)
+    if res:
+        return res
+    return fetch_pair_data_yahoo(pair_yahoo, debug)
+
 def get_target_pairs():
     """Filtre les paires pour ne garder que celles avec CHF ou JPY."""
     targets = []
@@ -189,7 +243,7 @@ def main():
 
     results = []
     with ThreadPoolExecutor(max_workers=10) as executor: # Plus de workers car socket rapide
-        future_to_pair = {executor.submit(fetch_pair_data_tv, pair): pair for pair in target_pairs}
+        future_to_pair = {executor.submit(fetch_pair_data_smart, pair): pair for pair in target_pairs}
         for future in as_completed(future_to_pair):
             res = future.result()
             if res:
@@ -299,8 +353,8 @@ def main():
     if len(top_list) >= 2:
         info_type, info_value = get_relative_info(top_list[0]['pair'], top_list[1]['pair'])
         if info_type == "pair":
-            # Appel fetch_pair_data_tv avec format yahoo
-            rel_data = fetch_pair_data_tv(f"{info_value}=X")
+            # Appel fetch_pair_data_smart avec format yahoo
+            rel_data = fetch_pair_data_smart(f"{info_value}=X")
             if rel_data:
                 rp = rel_data['pct']
                 re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
@@ -349,7 +403,7 @@ def main():
         p2 = last_list[-1]['pair']
         info_type, info_value = get_relative_info(p1, p2)
         if info_type == "pair":
-            rel_data = fetch_pair_data_tv(f"{info_value}=X")
+            rel_data = fetch_pair_data_smart(f"{info_value}=X")
             if rel_data:
                 rp = rel_data['pct']
                 re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
@@ -396,7 +450,7 @@ def main():
                 print("⚔️ DUEL & DUEL")
                 msg_lines.append("")
                 msg_lines.append("⚔️ <b>DUEL & DUEL</b>")
-                dd_data = fetch_pair_data_tv(f"{final_pair}=X")
+                dd_data = fetch_pair_data_smart(f"{final_pair}=X")
                 if dd_data:
                     dd_pct = dd_data['pct']
                     dd_emoji = "🟢" if dd_pct > 0 else "🔴" if dd_pct < 0 else "⚪"
@@ -421,7 +475,7 @@ def main():
             print("🔀 CROSS")
             msg_lines.append("")
             msg_lines.append("🔀 <b>CROSS</b>")
-            cross_data = fetch_pair_data_tv(f"{final_pair}=X")
+            cross_data = fetch_pair_data_smart(f"{final_pair}=X")
             if cross_data:
                 cross_pct = cross_data['pct']
                 cross_emoji = "🟢" if cross_pct > 0 else "🔴" if cross_pct < 0 else "⚪"

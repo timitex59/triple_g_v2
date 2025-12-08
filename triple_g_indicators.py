@@ -28,6 +28,7 @@ install_and_import("numpy")
 install_and_import("requests")
 install_and_import("python-dotenv", "dotenv")
 install_and_import("websocket-client", "websocket")
+install_and_import("yfinance")
 
 import pandas as pd
 import numpy as np
@@ -37,6 +38,7 @@ import requests
 import os
 import random
 import string
+import yfinance as yf
 from pathlib import Path
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -97,13 +99,40 @@ def send_telegram_message(message):
 def get_clean_pair_name(ticker):
     return ticker.replace("=X", "")
 
-# --- TRADINGVIEW WEBSOCKET ENGINE ---
+# --- DATA ENGINE (TV + YAHOO FALLBACK) ---
 def generate_session_id():
     return "cs_" + ''.join(random.choices(string.ascii_letters + string.digits, k=12))
 
 def create_message(func, args):
     content = json.dumps({"m": func, "p": args})
     return f"~m~{len(content)}~m~{content}"
+
+def fetch_data_yahoo(pair_yahoo, interval_code, n_candles=None):
+    """
+    Fallback sur Yahoo Finance via yfinance.
+    """
+    try:
+        # Mapping Intervalles Yahoo
+        # "1h" -> "1h", "1d" -> "1d", "1wk" -> "1wk"
+        # Période : on doit estimer une période suffisante pour n_candles
+        period = "1y"
+        if interval_code == "1h": period = "1mo"
+        elif interval_code == "1wk": period = "2y"
+        
+        df = yf.Ticker(pair_yahoo).history(period=period, interval=interval_code)
+        if df.empty: return None
+        
+        # Renommer index si nécessaire (yfinance met déjà Title Case pour colonnes)
+        df.index.name = "datetime"
+        
+        # Filtrer week-end pour daily
+        if interval_code == "1d":
+            df = df[df.index.dayofweek < 5]
+            
+        return df
+    except Exception as e:
+        # print(f"Yahoo Error {pair_yahoo}: {e}")
+        return None
 
 def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
     """
@@ -113,9 +142,6 @@ def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
     tv_pair = f"OANDA:{clean_pair}"
     
     # Mapping Intervalles
-    # H1 ("1h") -> "60"
-    # D1 ("1d") -> "D"
-    # W1 ("1wk") -> "W"
     tv_interval = "60"
     if interval_code == "1h": tv_interval = "60"
     elif interval_code == "1d": tv_interval = "D"
@@ -125,7 +151,13 @@ def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
     extracted_df = None
     
     try:
-        ws = create_connection("wss://prodata.tradingview.com/socket.io/websocket")
+        # Headers pour simuler un navigateur
+        headers = {
+            "Origin": "https://www.tradingview.com",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        
+        ws = create_connection("wss://prodata.tradingview.com/socket.io/websocket", header=headers, timeout=10)
         session_id = generate_session_id()
         
         ws.send(create_message("chart_create_session", [session_id, ""]))
@@ -165,11 +197,24 @@ def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
             except: pass
         return None
 
-def get_current_price_tv(pair_yahoo):
+def fetch_data_smart(pair_yahoo, interval_code, n_candles=300):
     """
-    Récupère juste le dernier prix (Close) via une requête H1 rapide.
+    Tente de récupérer les données via TV, sinon bascule sur Yahoo.
     """
-    df = fetch_data_tv(pair_yahoo, "1h", n_candles=10)
+    # Tentative 1 : TradingView WebSocket
+    df = fetch_data_tv(pair_yahoo, interval_code, n_candles)
+    if df is not None and not df.empty:
+        return df
+    
+    # Tentative 2 : Yahoo Finance (Fallback)
+    # print(f"⚠️ Bascule Yahoo pour {pair_yahoo}")
+    return fetch_data_yahoo(pair_yahoo, interval_code, n_candles)
+
+def get_current_price_smart(pair_yahoo):
+    """
+    Récupère juste le dernier prix (Close) via smart fetch.
+    """
+    df = fetch_data_smart(pair_yahoo, "1h", n_candles=10)
     if df is not None and not df.empty:
         return df['Close'].iloc[-1]
     return None
@@ -224,13 +269,10 @@ def save_stats(stats):
         print(f"⚠️ Erreur sauvegarde stats: {e}")
 
 def get_current_price_from_results(pair, results):
-    """Récupère le prix live via TV."""
+    """Récupère le prix live via TV/Yahoo."""
     # Note: 'pair' est ici le nom propre (sans =X) ex: EURUSD
-    # On reconstruit le ticker yahoo pour fetch_data_tv si besoin, 
-    # mais fetch_data_tv gère le replace.
-    # On passe "EURUSD=X" par cohérence avec la liste PAIRS
     ticker = f"{pair}=X"
-    return get_current_price_tv(ticker)
+    return get_current_price_smart(ticker)
 
 def get_paris_time():
     """Retourne l'heure actuelle à Paris (aware datetime)."""
