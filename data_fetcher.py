@@ -59,25 +59,21 @@ def create_message(func, args):
     content = json.dumps({"m": func, "p": args})
     return f"~m~{len(content)}~m~{content}"
 
-def fetch_tv_batch(pair_yahoo):
+def fetch_single_tf(pair_yahoo, interval_code, n_candles, session_id=None):
     """
-    Récupère H1, D1, W1 en une seule session pour une paire donnée.
+    Récupère un seul timeframe via WebSocket.
     """
     clean_pair = pair_yahoo.replace("=X", "")
     tv_pair = f"OANDA:{clean_pair}"
     
-    # On demande large pour couvrir tous les besoins
-    # H1: 500 (Triple G) vs 120 (Asian) -> 500
-    # D1: 300 (Triple G) vs 200 (Asian) -> 300
-    # W1: 150 (Triple G)
-    reqs = [
-        ("1h", "60", 500),
-        ("1d", "D", 300),
-        ("1wk", "W", 150)
-    ]
+    # Mapping
+    tv_interval = "60"
+    if interval_code == "1h": tv_interval = "60"
+    elif interval_code == "1d": tv_interval = "D"
+    elif interval_code == "1wk": tv_interval = "W"
     
-    data_map = {}
     ws = None
+    extracted_df = None
     
     try:
         headers = {
@@ -86,78 +82,68 @@ def fetch_tv_batch(pair_yahoo):
         }
         
         ws = create_connection("wss://prodata.tradingview.com/socket.io/websocket", header=headers, timeout=10)
-        session_id = generate_session_id()
+        if not session_id:
+            session_id = generate_session_id()
         
         ws.send(create_message("chart_create_session", [session_id, ""]))
         ws.send(create_message("resolve_symbol", [session_id, "sds_sym_1", f"={{\"symbol\":\"{tv_pair}\",\"adjustment\":\"splits\",\"session\":\"regular\"}}"]))
-        
-        # On lance les 3 créations de séries (s1, s2, s3)
-        # s1 = H1, s2 = D1, s3 = W1
-        ws.send(create_message("create_series", [session_id, "sds_1", "s1", "sds_sym_1", "60", 500]))
-        ws.send(create_message("create_series", [session_id, "sds_2", "s2", "sds_sym_1", "D", 300]))
-        ws.send(create_message("create_series", [session_id, "sds_3", "s3", "sds_sym_1", "W", 150]))
+        ws.send(create_message("create_series", [session_id, "sds_1", "s1", "sds_sym_1", tv_interval, n_candles]))
         
         start_t = time.time()
-        completed = set()
-        
-        while time.time() - start_t < 15: # Timeout global 15s
+        while time.time() - start_t < 8:
             try:
                 res = ws.recv()
-                
-                # Parsing générique pour s1, s2, s3
-                for s_id, label, k_name in [("sds_1", "s1", "1h"), ("sds_2", "s2", "1d"), ("sds_3", "s3", "1wk")]:
-                    if f'"{s_id}":' in res and '"s":[' in res:
-                        # Extraction brute (un peu simplifiée, on suppose que le message contient les données de la série)
-                        # Attention: TV peut envoyer plusieurs updates dans un message ou séparés
-                        # On cherche le bloc correspondant à la série
-                        pass 
-                
-                # Méthode plus robuste : on cherche les patterns "sds_X"
                 if '"s":[' in res:
-                    # Identifier quelle série c'est
-                    key = None
-                    if '"sds_1":' in res: key = "1h"
-                    elif '"sds_2":' in res: key = "1d"
-                    elif '"sds_3":' in res: key = "1wk"
-                    
-                    if key and key not in data_map:
-                        start = res.find('"s":[')
-                        end = res.find('"ns":', start)
-                        if start != -1 and end != -1:
-                            extract_end = end - 1
-                            while res[extract_end] not in [',', '}']: extract_end -= 1
-                            
-                            raw = res[start + 4:extract_end]
-                            data = json.loads(raw)
-                            fdata = [item["v"] for item in data]
-                            df = pd.DataFrame(fdata, columns=["timestamp", "open", "high", "low", "close", "volume"])
-                            
-                            df['datetime'] = pd.to_datetime(df['timestamp'], unit='s', utc=True)
-                            df.set_index('datetime', inplace=True)
-                            df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"}, inplace=True)
-                            df.drop(columns=['timestamp'], inplace=True)
-                            
-                            data_map[key] = df
-                            completed.add(key)
-            
-                if len(completed) >= 3:
+                    start = res.find('"s":[')
+                    end = res.find('"ns":', start)
+                    if start != -1 and end != -1:
+                        extract_end = end - 1
+                        while res[extract_end] not in [',', '}']: extract_end -= 1
+                        
+                        raw = res[start + 4:extract_end]
+                        data = json.loads(raw)
+                        fdata = [item["v"] for item in data]
+                        extracted_df = pd.DataFrame(fdata, columns=["timestamp", "open", "high", "low", "close", "volume"])
+                        
+                        extracted_df['datetime'] = pd.to_datetime(extracted_df['timestamp'], unit='s', utc=True)
+                        extracted_df.set_index('datetime', inplace=True)
+                        extracted_df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"}, inplace=True)
+                        extracted_df.drop(columns=['timestamp'], inplace=True)
+                        
+                if "series_completed" in res:
                     break
-                    
-            except Exception:
-                break
+            except: pass
         
         ws.close()
-        
-        if len(data_map) > 0:
-            return (pair_yahoo, data_map)
-        return None
-        
-    except Exception as e:
-        # print(f"Err {pair_yahoo}: {e}")
+        return extracted_df
+    except:
         if ws: 
             try: ws.close() 
             except: pass
         return None
+
+def fetch_tv_batch(pair_yahoo):
+    """
+    Récupère H1, D1, W1 de manière séquentielle pour éviter les surcharges.
+    """
+    data_map = {}
+    
+    # H1
+    df_h1 = fetch_single_tf(pair_yahoo, "1h", 500)
+    if df_h1 is not None: data_map["1h"] = df_h1
+    
+    # D1
+    df_d = fetch_single_tf(pair_yahoo, "1d", 300)
+    if df_d is not None: data_map["1d"] = df_d
+    
+    # W1
+    df_w = fetch_single_tf(pair_yahoo, "1wk", 150)
+    if df_w is not None: data_map["1wk"] = df_w
+    
+    # Si on a au moins 1 TF, on considère le fetch réussi (partiellement)
+    if len(data_map) > 0:
+        return (pair_yahoo, data_map)
+    return None
 
 def main():
     print(f"🌍 MASTER DATA FETCHER")
