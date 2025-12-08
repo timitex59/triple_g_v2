@@ -18,12 +18,6 @@
       "direction": "LONG",
       "initial_runner": 0.2219977755449501
     },
-    "CADCHF": {
-      "entry_date": "2025-12-08 14:04",
-      "entry_price": 0.5835199952125549,
-      "direction": "LONG",
-      "initial_runner": 0.38017944248209457
-    },
     "GBPJPY": {
       "entry_date": "2025-12-08 16:35",
       "entry_price": 207.56399536132812,
@@ -59,11 +53,22 @@
       "pnl_net": -0.18,
       "spread_cost_pct": 0.0267,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CADCHF",
+      "entry_date": "2025-12-08 14:04",
+      "exit_date": "2025-12-08 19:47",
+      "entry_price": 0.5835199952125549,
+      "exit_price": 0.5823000073432922,
+      "direction": "LONG",
+      "pnl_net": -0.25,
+      "spread_cost_pct": 0.0428,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -0.264810586085086,
+    "total_pnl": -0.5167278950587455,
     "wins": 0,
-    "losses": 2
+    "losses": 3
   }
 }
