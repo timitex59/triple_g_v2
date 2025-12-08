@@ -45,8 +45,8 @@ requests = install_and_import("requests")
 EMA_LENGTHS = [20, 25, 30, 35, 40, 45, 50, 55]
 
 # Load .env variables manually
-TELEGRAM_BOT_TOKEN = None
-TELEGRAM_CHAT_ID = None
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 if os.path.exists(env_path):
