@@ -36,6 +36,7 @@ jobs:
         run: |
           python triple_g_indicators.py
           python asian_scanner.py
+          python chfjpy_strategy.py
 
       - name: Commit and Push History
         run: |
