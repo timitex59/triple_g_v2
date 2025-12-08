@@ -22,6 +22,7 @@ def install_and_import(package, import_name=None):
         return importlib.import_module(import_name)
 
 # Installer les dépendances critiques avant les imports globaux
+# Auto-install dependencies fix for GitHub Actions
 install_and_import("pandas")
 install_and_import("numpy")
 install_and_import("requests")
