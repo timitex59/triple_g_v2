@@ -4,10 +4,9 @@
 """
 TRIPLE G INDICATORS (ICH + EMA GAP)
 Basé sur le PineScript "triple_G"
-Analyse H1 et Daily pour chaque paire.
+Analyse H1 et Daily pour chaque paire via TradingView WebSocket (Données OANDA).
 """
 
-import yfinance as yf
 import pandas as pd
 import numpy as np
 import sys
@@ -15,10 +14,13 @@ import time
 import json
 import requests
 import os
+import random
+import string
 from pathlib import Path
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
+from websocket import create_connection
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -28,6 +30,7 @@ if sys.platform == "win32":
     sys.stdout.reconfigure(encoding='utf-8')
 
 # --- CONFIGURATION ---
+# Liste des paires (Format Yahoo conservé pour compatibilité, converti en interne)
 PAIRS = [
     "EURUSD=X", "EURGBP=X", "EURJPY=X", "EURCHF=X", "EURAUD=X", "EURCAD=X", "EURNZD=X",
     "GBPCHF=X", "GBPAUD=X", "GBPCAD=X", "GBPNZD=X", "GBPUSD=X", "GBPJPY=X",
@@ -73,14 +76,82 @@ def send_telegram_message(message):
 def get_clean_pair_name(ticker):
     return ticker.replace("=X", "")
 
-def fetch_data(ticker, period, interval):
+# --- TRADINGVIEW WEBSOCKET ENGINE ---
+def generate_session_id():
+    return "cs_" + ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+
+def create_message(func, args):
+    content = json.dumps({"m": func, "p": args})
+    return f"~m~{len(content)}~m~{content}"
+
+def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
+    """
+    Fetches data from TradingView via WebSocket.
+    """
+    clean_pair = pair_yahoo.replace("=X", "")
+    tv_pair = f"OANDA:{clean_pair}"
+    
+    # Mapping Intervalles
+    # H1 ("1h") -> "60"
+    # D1 ("1d") -> "D"
+    # W1 ("1wk") -> "W"
+    tv_interval = "60"
+    if interval_code == "1h": tv_interval = "60"
+    elif interval_code == "1d": tv_interval = "D"
+    elif interval_code == "1wk": tv_interval = "W"
+    
+    ws = None
+    extracted_df = None
+    
     try:
-        df = yf.Ticker(ticker).history(period=period, interval=interval)
-        if df.empty or len(df) < 60:
-            return None
-        return df
-    except:
+        ws = create_connection("wss://prodata.tradingview.com/socket.io/websocket")
+        session_id = generate_session_id()
+        
+        ws.send(create_message("chart_create_session", [session_id, ""]))
+        ws.send(create_message("resolve_symbol", [session_id, "sds_sym_1", f"={{\"symbol\":\"{tv_pair}\",\"adjustment\":\"splits\",\"session\":\"regular\"}}"]))
+        ws.send(create_message("create_series", [session_id, "sds_1", "s1", "sds_sym_1", tv_interval, n_candles, ""]))
+        
+        start_t = time.time()
+        while time.time() - start_t < 8: # Timeout 8s
+            try:
+                res = ws.recv()
+                if '"s":[' in res:
+                    start = res.find('"s":[')
+                    end = res.find('"ns":', start)
+                    if start != -1 and end != -1:
+                        extract_end = end - 1
+                        while res[extract_end] not in [',', '}']: extract_end -= 1
+                        
+                        raw = res[start + 4:extract_end]
+                        data = json.loads(raw)
+                        fdata = [item["v"] for item in data]
+                        extracted_df = pd.DataFrame(fdata, columns=["timestamp", "open", "high", "low", "close", "volume"])
+                        
+                        extracted_df['datetime'] = pd.to_datetime(extracted_df['timestamp'], unit='s', utc=True)
+                        extracted_df.set_index('datetime', inplace=True)
+                        extracted_df.rename(columns={"open": "Open", "high": "High", "low": "Low", "close": "Close", "volume": "Volume"}, inplace=True)
+                        extracted_df.drop(columns=['timestamp'], inplace=True)
+                        
+                if "series_completed" in res:
+                    break
+            except: pass
+        
+        ws.close()
+        return extracted_df
+    except Exception:
+        if ws: 
+            try: ws.close()
+            except: pass
         return None
+
+def get_current_price_tv(pair_yahoo):
+    """
+    Récupère juste le dernier prix (Close) via une requête H1 rapide.
+    """
+    df = fetch_data_tv(pair_yahoo, "1h", n_candles=10)
+    if df is not None and not df.empty:
+        return df['Close'].iloc[-1]
+    return None
 
 # --- RUNNER HISTORY FUNCTIONS ---
 
@@ -90,18 +161,13 @@ INITIAL_CAPITAL = 10000.0  # Capital de départ simulé
 
 # Spreads réalistes (Compte Standard moyen - Source Confirmée)
 SPREADS = {
-    # Majors
     "EURUSD": 1.1, "USDJPY": 1.5, "GBPUSD": 1.5, "AUDUSD": 1.3,
     "USDCHF": 1.9, "USDCAD": 1.7, "NZDUSD": 1.8,
-    # EUR Crosses
     "EURGBP": 1.8, "EURJPY": 2.0, "EURCHF": 2.0, "EURAUD": 2.5,
     "EURCAD": 2.4, "EURNZD": 3.2,
-    # GBP Crosses
     "GBPJPY": 2.6, "GBPCHF": 2.8, "GBPAUD": 3.1, "GBPCAD": 3.1,
     "GBPNZD": 4.0,
-    # JPY Crosses
     "AUDJPY": 2.2, "CHFJPY": 2.4, "CADJPY": 2.2, "NZDJPY": 2.4,
-    # Other Crosses
     "AUDCAD": 2.4, "AUDCHF": 2.4, "AUDNZD": 3.1, "CADCHF": 2.5,
     "NZDCAD": 2.8, "NZDCHF": 2.8
 }
@@ -110,12 +176,7 @@ DEFAULT_SPREAD = 2.5
 def calculate_cost_percentage(pair, price, spread_pips):
     """Calcule le coût du spread en pourcentage."""
     if price == 0: return 0.0
-    
-    # Valeur d'un pip
-    # JPY pairs (2 décimales) -> 0.01
-    # Autres (4 décimales) -> 0.0001
     pip_val = 0.01 if "JPY" in pair else 0.0001
-    
     cost_val = spread_pips * pip_val
     return (cost_val / price) * 100.0
 
@@ -142,61 +203,13 @@ def save_stats(stats):
         print(f"⚠️ Erreur sauvegarde stats: {e}")
 
 def get_current_price_from_results(pair, results):
-    """Récupère le prix live."""
-    try:
-        ticker = pair if "=X" in pair else f"{pair}=X"
-        df = yf.Ticker(ticker).history(period="1d", interval="1m")
-        if not df.empty:
-            return df['Close'].iloc[-1]
-    except:
-        pass
-    return None
-
-    # 3. Calculs Métriques Portefeuille
-    total_pnl_pct = stats["performance"]["total_pnl"]
-    current_capital = INITIAL_CAPITAL * (1 + total_pnl_pct / 100)
-    total_accumulated_eur = current_capital - INITIAL_CAPITAL
-    
-    emoji_capital = "✅" if total_accumulated_eur >= 0 else "❌"
-    
-    # En cours (Active PnL)
-    active_pnl_eur = 0.0
-    active_count = len(stats["active_trades"])
-    
-    for pair, trade in stats["active_trades"].items():
-         current_price = get_current_price_from_results(pair, [])
-         if current_price:
-             pct = ((current_price - trade["entry_price"]) / trade["entry_price"]) * 100
-             if trade["direction"] == "SHORT": pct = -pct
-             
-             # Coût dynamique (Spread)
-             spread = SPREADS.get(pair, DEFAULT_SPREAD)
-             cost_pct = calculate_cost_percentage(pair, trade["entry_price"], spread)
-             pct -= cost_pct
-             
-             active_pnl_eur += (pct / 100) * INITIAL_CAPITAL
-    
-    # PnL 24h
-    h24_pnl_eur = 0.0
-    h24_count = 0
-    now = datetime.now()
-    for trade in stats["closed_trades"]:
-        exit_dt = datetime.strptime(trade["exit_date"], "%Y-%m-%d %H:%M")
-        if (now - exit_dt).total_seconds() < 24 * 3600:
-            pnl_val = (trade["pnl_net"] / 100) * INITIAL_CAPITAL
-            h24_pnl_eur += pnl_val
-            h24_count += 1
-            
-    return {
-        "current_capital": current_capital,
-        "total_pnl_pct": total_pnl_pct,
-        "capital_emoji": emoji_capital,
-        "active_pnl_eur": active_pnl_eur,
-        "active_count": active_count,
-        "h24_pnl_eur": h24_pnl_eur,
-        "h24_count": h24_count,
-        "total_accumulated_eur": total_accumulated_eur
-    }
+    """Récupère le prix live via TV."""
+    # Note: 'pair' est ici le nom propre (sans =X) ex: EURUSD
+    # On reconstruit le ticker yahoo pour fetch_data_tv si besoin, 
+    # mais fetch_data_tv gère le replace.
+    # On passe "EURUSD=X" par cohérence avec la liste PAIRS
+    ticker = f"{pair}=X"
+    return get_current_price_tv(ticker)
 
 def get_paris_time():
     """Retourne l'heure actuelle à Paris (aware datetime)."""
@@ -207,44 +220,29 @@ def get_paris_time():
 def update_performance_tracking(big3_pairs, confluence_pairs, top_5_short, top_5_large):
     """
     Gère le tracking, les horaires de trading et le calcul Portefeuille.
-    Horaires: Lundi-Vendredi, 06h-22h Paris.
-    A 22h: Clôture forcée de tout.
-    
-    Règles d'Entrée: BIG3 ou CONFLUENCE.
-    Règles de Sortie (Maintien): Tant que dans BIG3, CONFLUENCE, TOP 5 SHORT ou TOP 5 LARGE.
     """
     stats = load_stats()
     paris_now = get_paris_time()
     
-    # Trading Window checks
-    # Lundi=0, Dimanche=6. On trade Lundi-Vendredi (0-4)
     is_weekday = paris_now.weekday() < 5
     current_hour = paris_now.hour
     
-    # Plage active: 06h00 inclus à 21h59 inclus.
-    # A partir de 22h00 -> On ferme tout.
-    # Avant 06h00 -> On ne fait rien (monitoring only)
-    
     can_trade_new = is_weekday and (6 <= current_hour < 22)
-    force_close_all = current_hour >= 22 or not is_weekday # APRÈS 22h ou Weekend -> CLOSE ALL
+    force_close_all = current_hour >= 22 or not is_weekday
     
-    # Ensembles de paires pour Entrée et Maintien
     entry_pool = set(p['pair'] for p in big3_pairs + confluence_pairs)
     retention_pool = set(p['pair'] for p in big3_pairs + confluence_pairs + top_5_short + top_5_large)
     
-    # 1. Gestion des Sorties (Normales + Forcées)
     to_close = []
     
     for pair, trade in stats["active_trades"].items():
         should_close = False
         reason = ""
         
-        # Condition 1: Sortie technique (plus dans le retention pool)
         if pair not in retention_pool:
             should_close = True
             reason = "Signal technique (Sortie screener global)"
             
-        # Condition 2: Clôture Forcée (22h ou Weekend)
         if force_close_all:
             should_close = True
             reason = "Clôture journalière (22h)"
@@ -254,7 +252,6 @@ def update_performance_tracking(big3_pairs, confluence_pairs, top_5_short, top_5
             if current_price:
                 to_close.append((pair, current_price, reason))
     
-    # Exécution des clôtures
     for pair, exit_price, reason in to_close:
         trade = stats["active_trades"][pair]
         entry_price = trade["entry_price"]
@@ -264,7 +261,6 @@ def update_performance_tracking(big3_pairs, confluence_pairs, top_5_short, top_5
         if direction == "SHORT":
             pct_change = -pct_change
             
-        # Coût dynamique
         spread = SPREADS.get(pair, DEFAULT_SPREAD)
         cost_pct = calculate_cost_percentage(pair, entry_price, spread)
         
@@ -292,7 +288,6 @@ def update_performance_tracking(big3_pairs, confluence_pairs, top_5_short, top_5
         
         print(f"💰 Trade fermé ({reason}): {pair} ({direction}) PnL: {net_pnl:+.2f}%")
 
-    # 2. Gestion des Entrées (Uniquement dans la fenêtre de tir)
     if can_trade_new:
         for p_data in big3_pairs + confluence_pairs:
             pair = p_data['pair']
@@ -315,15 +310,12 @@ def update_performance_tracking(big3_pairs, confluence_pairs, top_5_short, top_5
     
     save_stats(stats)
     
-    # 3. Calculs Métriques Portefeuille (Code existant inchangé ci-dessous)
-
     total_pnl_pct = stats["performance"]["total_pnl"]
     current_capital = INITIAL_CAPITAL * (1 + total_pnl_pct / 100)
     total_accumulated_eur = current_capital - INITIAL_CAPITAL
     
     emoji_capital = "✅" if total_accumulated_eur >= 0 else "❌"
     
-    # En cours (Active PnL)
     active_pnl_eur = 0.0
     active_count = len(stats["active_trades"])
     
@@ -333,14 +325,12 @@ def update_performance_tracking(big3_pairs, confluence_pairs, top_5_short, top_5
              pct = ((current_price - trade["entry_price"]) / trade["entry_price"]) * 100
              if trade["direction"] == "SHORT": pct = -pct
              
-             # Coût dynamique (Spread)
              spread = SPREADS.get(pair, DEFAULT_SPREAD)
              cost_pct = calculate_cost_percentage(pair, trade["entry_price"], spread)
              pct -= cost_pct
              
              active_pnl_eur += (pct / 100) * INITIAL_CAPITAL
     
-    # PnL 24h
     h24_pnl_eur = 0.0
     h24_count = 0
     now = datetime.now()
@@ -376,10 +366,8 @@ def load_runner_history():
             with open(RUNNER_HISTORY_FILE, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
-            # Vérifier si c'est un nouveau jour
             last_date = data.get("_last_date", "")
             if last_date != today:
-                # Nouvelle bougie daily -> réinitialiser l'historique
                 print(f"🔄 Nouvelle bougie daily détectée ({last_date} → {today}). Réinitialisation de l'historique RUNNER.")
                 return {"_last_date": today}
             
@@ -389,16 +377,12 @@ def load_runner_history():
     return {"_last_date": today}
 
 def save_runner_history(history):
-    """Sauvegarde l'historique RUNNER (limité à RUNNER_HISTORY_MAX points par paire)."""
+    """Sauvegarde l'historique RUNNER."""
     from datetime import datetime
-    
-    # Mettre à jour la date
     history["_last_date"] = datetime.now().strftime("%Y-%m-%d")
     
-    # Limiter chaque paire à RUNNER_HISTORY_MAX valeurs
     for pair in history:
-        if pair.startswith("_"):
-            continue  # Skip metadata keys like _last_date
+        if pair.startswith("_"): continue
         if len(history[pair]) > RUNNER_HISTORY_MAX:
             history[pair] = history[pair][-RUNNER_HISTORY_MAX:]
     
@@ -406,10 +390,7 @@ def save_runner_history(history):
         json.dump(history, f, indent=2)
 
 def calculate_runner_rsi_from_list(values, period=7):
-    """
-    Calcule le RSI sur une liste de valeurs RUNNER.
-    Retourne None si pas assez de données.
-    """
+    """Calcule le RSI sur une liste de valeurs RUNNER."""
     if len(values) < period + 1:
         return None
     
@@ -422,7 +403,6 @@ def calculate_runner_rsi_from_list(values, period=7):
     down[down > 0] = 0
     down = abs(down)
     
-    # Wilder's Smoothing
     alpha = 1.0 / period
     roll_up = up.ewm(alpha=alpha, adjust=False).mean()
     roll_down = down.ewm(alpha=alpha, adjust=False).mean()
@@ -435,19 +415,14 @@ def calculate_runner_rsi_from_list(values, period=7):
 # --- INDICATEURS TECHNIQUES ---
 
 def calculate_rsi_series(series, period=14):
-    """
-    Calcule le RSI sur une série arbitraire (pas forcément des prix).
-    Utilise la méthode de Wilder (Alpha = 1/N) pour correspondre à PineScript ta.rsi.
-    """
+    """Calcule le RSI sur une série arbitraire."""
     delta = series.diff()
-    
     up = delta.copy()
     down = delta.copy()
     up[up < 0] = 0
     down[down > 0] = 0
     down = abs(down)
     
-    # Wilder's Smoothing
     alpha = 1.0 / period
     roll_up = up.ewm(alpha=alpha, adjust=False).mean()
     roll_down = down.ewm(alpha=alpha, adjust=False).mean()
@@ -457,37 +432,25 @@ def calculate_rsi_series(series, period=14):
     return rsi
 
 def calculate_ema_gap_status(df):
-    """
-    Reproduit la logique EMA Gap du PineScript.
-    """
+    """Reproduit la logique EMA Gap du PineScript."""
     if df is None or len(df) < max(EMA_LENGTHS) + EMA_RSI_LEN + EMA_EMA_LEN:
         return "NEUTRAL"
         
     close = df['Close']
-    
-    # Calcul des 8 EMAs
     emas = []
     for length in EMA_LENGTHS:
         emas.append(close.ewm(span=length, adjust=False).mean())
         
-    # Calcul des 7 différences (d1..d7)
-    # d1 = EMA1 - EMA2, etc.
     diffs = []
     for i in range(len(emas) - 1):
         diffs.append(emas[i] - emas[i+1])
         
-    # Moyenne des écarts signés
-    # avgGapSigned = sum(diffs) / 7.0
     sum_diffs = sum(diffs)
     avgGapSigned = sum_diffs / 7.0
     
-    # RSI on Avg Gap
     rsiAvgGap = calculate_rsi_series(avgGapSigned, EMA_RSI_LEN)
-    
-    # EMA on RSI
     emaRsi8 = rsiAvgGap.ewm(span=EMA_EMA_LEN, adjust=False).mean()
     
-    # Check Last Value
     last_rsi = rsiAvgGap.iloc[-1]
     last_ema = emaRsi8.iloc[-1]
     
@@ -499,35 +462,31 @@ def calculate_ema_gap_status(df):
         return "NEUTRAL ⚪"
 
 def calculate_ema_aligned_status(df):
-    """
-    Vérifie si les 8 EMAs sont parfaitement alignées.
-    """
+    """Vérifie si les 8 EMAs sont parfaitement alignées."""
     if df is None or len(df) < max(EMA_LENGTHS):
         return "NEUTRAL ⚪"
     
     close = df['Close']
-    # Calculer les dernières valeurs des 8 EMAs
     emas = [close.ewm(span=l, adjust=False).mean().iloc[-1] for l in EMA_LENGTHS]
     
-    # Vérifier Alignement Bullish: EMA1 > EMA2 > ... > EMA8
     is_bull = all(emas[i] > emas[i+1] for i in range(len(emas)-1))
-    if is_bull:
-        return "BULLISH 🟢"
+    if is_bull: return "BULLISH 🟢"
         
-    # Vérifier Alignement Bearish: EMA1 < EMA2 < ... < EMA8
     is_bear = all(emas[i] < emas[i+1] for i in range(len(emas)-1))
-    if is_bear:
-        return "BEARISH 🔴"
+    if is_bear: return "BEARISH 🔴"
         
     return "NEUTRAL ⚪"
 
 def analyze_pair(ticker):
     pair_name = get_clean_pair_name(ticker)
     
-    # Fetch Data
-    df_h1 = fetch_data(ticker, "1mo", "1h")
-    df_d = fetch_data(ticker, "1y", "1d")
-    df_w = fetch_data(ticker, "2y", "1wk")
+    # Fetch Data via WebSocket TV (Single Shot)
+    # H1 sur 500 bougies (~1 mois)
+    df_h1 = fetch_data_tv(ticker, "1h", n_candles=500)
+    # Daily sur 300 bougies (~1 an)
+    df_d = fetch_data_tv(ticker, "1d", n_candles=300)
+    # Weekly sur 150 bougies (~3 ans)
+    df_w = fetch_data_tv(ticker, "1wk", n_candles=150)
     
     # --- ANALYSE SHORT (H1 + D1) ---
     align_h1 = calculate_ema_aligned_status(df_h1)
@@ -547,7 +506,6 @@ def analyze_pair(ticker):
         
         # Smart Close (toujours utiliser la dernière H1 si dispo pour le jour même)
         if df_h1 is not None and not df_h1.empty:
-            # Attention au timezone
             day_1h_candles = df_h1[df_h1.index.strftime("%Y-%m-%d") == last_date]
             if not day_1h_candles.empty:
                 daily_close = day_1h_candles['Close'].iloc[-1]
@@ -568,15 +526,14 @@ def analyze_pair(ticker):
     }
 
 def main():
-    print(f"🚀 TRIPLE G INDICATORS SCAN (Short & Large Views)")
+    print(f"🚀 TRIPLE G INDICATORS SCAN (WebSocket TV Edition)")
     print(f"Lancement de l'analyse sur {len(PAIRS)} paires...\n")
     
-    # Charger l'historique RUNNER
     runner_history = load_runner_history()
-    
     start_time = time.time()
     results = []
     
+    # Multithreading (très efficace car I/O bound avec le socket)
     with ThreadPoolExecutor(max_workers=5) as executor:
         future_to_pair = {executor.submit(analyze_pair, pair): pair for pair in PAIRS}
         for future in as_completed(future_to_pair):
@@ -585,19 +542,19 @@ def main():
                 results.append(res)
                 print(f".", end="", flush=True)
             except Exception as e:
+                # print(e)
                 print(f"x", end="", flush=True)
     
-    # Mettre à jour l'historique RUNNER avec les nouveaux PCT
+    # Mise à jour et sauvegarde historique RUNNER
     for r in results:
         pair = r['pair']
         if pair not in runner_history:
             runner_history[pair] = []
         runner_history[pair].append(r['pct'])
     
-    # Sauvegarder l'historique (limité à 21 points)
     save_runner_history(runner_history)
     
-    # Calculer le RSI RUNNER pour chaque paire
+    # Calcul RSI RUNNER
     rsi_runner_data = []
     for r in results:
         pair = r['pair']
@@ -610,7 +567,6 @@ def main():
             "history_len": len(history_values)
         })
                 
-    # Tri initial par pourcentage absolu décroissant (RUNNER)
     results.sort(key=lambda x: abs(x['pct']), reverse=True)
     
     # --- FILTRAGE SHORT VIEW ---
@@ -622,9 +578,6 @@ def main():
         h1 = r['h1_align'].split()[0]
         d1 = r['d_ema'].split()[0]
         
-        # Vérification Cohérence Sens (Bullish doit être positif, Bearish négatif)
-        # Si Bullish et pct < 0 -> Rejet
-        # Si Bearish et pct > 0 -> Rejet
         if h1 == "BULLISH" and r['pct'] < 0: continue
         if h1 == "BEARISH" and r['pct'] > 0: continue
         
@@ -642,7 +595,6 @@ def main():
         d1 = r['d_align'].split()[0]
         w1 = r['w_ema'].split()[0]
         
-        # Vérification Cohérence Sens Large
         if d1 == "BULLISH" and r['pct'] < 0: continue
         if d1 == "BEARISH" and r['pct'] > 0: continue
         
@@ -651,20 +603,19 @@ def main():
             
     top_5_large = large_aligned_runners[:5]
     
-    # --- Filtrer RSI RUNNER pour ne garder que les paires alignées avec RSI > 55 ---
+    # --- RSI Runner Aligned ---
     aligned_pairs = set(r['pair'] for r in short_aligned_runners + large_aligned_runners)
     rsi_runner_aligned = [r for r in rsi_runner_data 
                           if r['pair'] in aligned_pairs 
                           and r['rsi_runner'] is not None 
                           and r['rsi_runner'] > 55]
     
-    # Trier par RSI RUNNER décroissant
     rsi_runner_aligned.sort(key=lambda x: -x['rsi_runner'])
     top_5_rsi_runner = rsi_runner_aligned[:5]
     
     print(f"\n\n⏱️ Terminé en {time.time() - start_time:.2f}s")
     
-    # --- AFFICHAGE TOP 5 RSI RUNNER ---
+    # --- AFFICHAGE ---
     print(f"\n📊 TOP 5 RSI RUNNER")
     print(f"{'PAIRE':<10} | {'RUNNER':<10} | {'RSI_7':<8}")
     print("-" * 35)
@@ -682,7 +633,6 @@ def main():
     
     print("\n")
     
-    # --- AFFICHAGE SHORT ---
     print(f"✅ TOP 5 SHORT")
     print(f"{'PAIRE':<12} | {'RUNNER':<10}")
     print("-" * 27)
@@ -696,7 +646,6 @@ def main():
 
     print("\n")
 
-    # --- AFFICHAGE LARGE ---
     print(f"✅ TOP 5 LARGE")
     print(f"{'PAIRE':<12} | {'RUNNER':<10}")
     print("-" * 27)
@@ -710,12 +659,11 @@ def main():
 
     print("\n")
 
-    # --- AFFICHAGE CONFLUENCE (Croisement SHORT & LARGE) ---
+    # --- CONFLUENCE ---
     short_pairs = set(r['pair'] for r in top_5_short)
     large_pairs = set(r['pair'] for r in top_5_large)
-    confluence_pairs = short_pairs & large_pairs  # Intersection
+    confluence_pairs = short_pairs & large_pairs
     
-    # Récupérer les données complètes des paires en confluence
     confluence_runners = [r for r in results if r['pair'] in confluence_pairs]
     confluence_runners.sort(key=lambda x: abs(x['pct']), reverse=True)
     
@@ -732,8 +680,7 @@ def main():
 
     print("\n")
 
-    # --- AFFICHAGE BIG3 (Top 3 de l'union SHORT + LARGE par % RUNNER) ---
-    # Combiner SHORT et LARGE, dédupliquer, trier par % absolu
+    # --- BIG3 ---
     all_aligned_pairs = {r['pair']: r for r in top_5_short}
     for r in top_5_large:
         if r['pair'] not in all_aligned_pairs:
@@ -752,19 +699,16 @@ def main():
             emoji = "🟢" if r['pct'] > 0 else "🔴"
             print(f"{emoji} {r['pair']:<10} | {pct_str:<10}")
 
-    # --- ENVOI TELEGRAM ---
+    # --- ENVOI TELEGRAM & TRACKING ---
     from datetime import datetime
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     
-    # Construction du message simplifié (BIG3 + CONFLUENCE)
     msg_lines = ["🚀 TRIPLE G SCAN 🚀", ""]
     
-    # Identifier les paires présentes dans les deux sections
     big3_pairs_set = set(r['pair'] for r in big3_runners)
     confluence_pairs_set = set(r['pair'] for r in confluence_runners)
     common_pairs = big3_pairs_set.intersection(confluence_pairs_set)
 
-    # BIG3
     msg_lines.append("✅ BIG 3")
     for r in big3_runners:
         emoji = "🟢" if r['pct'] > 0 else "🔴"
@@ -772,7 +716,6 @@ def main():
         msg_lines.append(f"{emoji}{mark}{r['pair']} ({r['pct']:+.1f}%)")
     msg_lines.append("")
     
-    # CONFLUENCE
     msg_lines.append("⭐ CONFLUENCE")
     if confluence_runners:
         for r in confluence_runners:
@@ -783,9 +726,8 @@ def main():
         msg_lines.append("Aucune")
     
     msg_lines.append("")
-
     
-    # --- TRACKING PERFORMANCE ---
+    # Tracking Performance
     perf = update_performance_tracking(big3_runners, confluence_runners, top_5_short, top_5_large)
     
     msg_lines.append("")
@@ -806,7 +748,6 @@ def main():
         print("\n✅ Message Telegram envoyé!")
     else:
         print("\n⚠️ Échec envoi Telegram")
-
 
 if __name__ == "__main__":
     main()

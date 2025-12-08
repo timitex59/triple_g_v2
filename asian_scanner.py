@@ -22,24 +22,27 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import importlib
 import subprocess
+import json
+import random
+import string
+from websocket import create_connection
 
 # --- DEPENDENCY MANAGEMENT ---
-REQUIRED_PKGS = ["yfinance", "pandas", "numpy", "pytz", "requests"]
+REQUIRED_PKGS = ["pandas", "numpy", "pytz", "requests", "websocket-client"]
 
 def install_and_import(package):
     try:
         return importlib.import_module(package)
     except ImportError:
-        # print(f"Installing {package}...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", package])
         return importlib.import_module(package)
 
 # Load libs
-yf = install_and_import("yfinance")
 pd = install_and_import("pandas")
 np = install_and_import("numpy")
 pytz = install_and_import("pytz")
 requests = install_and_import("requests")
+# websocket is imported directly as 'from websocket import ...'
 
 # --- CONFIGURATION ---
 EMA_LENGTHS = [20, 25, 30, 35, 40, 45, 50, 55]
@@ -57,7 +60,7 @@ if os.path.exists(env_path):
                 if key == "TELEGRAM_BOT_TOKEN": TELEGRAM_BOT_TOKEN = value
                 if key == "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID = value
 
-# Forex Pairs List
+# Forex Pairs List (Yahoo format kept for compatibility, will be converted)
 PAIRS = [
     "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "NZDUSD=X", "USDCAD=X", "USDCHF=X",
     "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
@@ -67,6 +70,90 @@ PAIRS = [
     "NZDCAD=X", "NZDCHF=X",
     "CADCHF=X"
 ]
+
+# --- TRADINGVIEW WEBSOCKET ENGINE ---
+def generate_session_id():
+    return "cs_" + ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+
+def create_message(func, args):
+    content = json.dumps({"m": func, "p": args})
+    return f"~m~{len(content)}~m~{content}"
+
+def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
+    """
+    Fetches data from TradingView via WebSocket (Single Shot).
+    Converts Yahoo pair (EURUSD=X) to TV OANDA pair (OANDA:EURUSD).
+    Returns a DataFrame with TitleCase columns (Open, High, Low, Close).
+    """
+    # Convert Pair
+    clean_pair = pair_yahoo.replace("=X", "")
+    tv_pair = f"OANDA:{clean_pair}"
+    
+    # Convert Interval (Yahoo '1d'/'1h' -> TV 'D'/'60')
+    tv_interval = "60"
+    if interval_code == "1d": tv_interval = "D"
+    elif interval_code == "1h": tv_interval = "60"
+    
+    ws = None
+    extracted_df = None
+    
+    try:
+        # 1. Connect
+        ws = create_connection("wss://prodata.tradingview.com/socket.io/websocket")
+        session_id = generate_session_id()
+        
+        # 2. Init
+        ws.send(create_message("chart_create_session", [session_id, ""]))
+        ws.send(create_message("resolve_symbol", [session_id, "sds_sym_1", f"={{\"symbol\":\"{tv_pair}\",\"adjustment\":\"splits\",\"session\":\"regular\"}}"]))
+        ws.send(create_message("create_series", [session_id, "sds_1", "s1", "sds_sym_1", tv_interval, n_candles, ""]))
+        
+        # 3. Listen
+        start_t = time.time()
+        while time.time() - start_t < 8: # Timeout 8s
+            try:
+                res = ws.recv()
+                
+                if '"s":[' in res:
+                    start = res.find('"s":[')
+                    end = res.find('"ns":', start)
+                    if start != -1 and end != -1:
+                        extract_end = end - 1
+                        while res[extract_end] not in [',', '}']: extract_end -= 1
+                        
+                        raw = res[start + 4:extract_end]
+                        data = json.loads(raw)
+                        fdata = [item["v"] for item in data]
+                        extracted_df = pd.DataFrame(fdata, columns=["timestamp", "open", "high", "low", "close", "volume"])
+                        
+                        # --- FORMATTING FOR STRATEGY ---
+                        extracted_df['datetime'] = pd.to_datetime(extracted_df['timestamp'], unit='s', utc=True)
+                        extracted_df.set_index('datetime', inplace=True)
+                        
+                        # Rename columns to Match yfinance (Title Case)
+                        extracted_df.rename(columns={
+                            "open": "Open",
+                            "high": "High",
+                            "low": "Low",
+                            "close": "Close",
+                            "volume": "Volume"
+                        }, inplace=True)
+                        
+                        # Drop timestamp column
+                        extracted_df.drop(columns=['timestamp'], inplace=True)
+                        
+                if "series_completed" in res:
+                    break
+            except: pass
+            
+        ws.close()
+        return extracted_df
+        
+    except Exception as e:
+        # print(f"TV Error {pair_yahoo}: {e}")
+        if ws: 
+            try: ws.close()
+            except: pass
+        return None
 
 # --- TIME & DST UTILS ---
 def is_dst(dt=None, timezone="Europe/Paris"):
@@ -139,18 +226,11 @@ def check_daily_trend(df, pair_name="Unknown", debug=False):
         "ema20": ema_20
     }
 
-# --- CORE ANALYSIS ---
-def fetch_data(pair, interval="1d", period="1y"):
-    try:
-        ticker = yf.Ticker(pair)
-        df = ticker.history(period=period, interval=interval)
-        if df.empty: return None
-        return df
-    except: return None
-
 def analyze_pair(pair, debug_mode=False):
-    # 1. Daily Analysis
-    df_d = fetch_data(pair, "1d", "1y")
+    # 1. Daily Analysis (via TradingView Socket)
+    # We ask for 200 candles to be safe for EMA55 calculation
+    df_d = fetch_data_tv(pair, "1d", n_candles=200)
+    
     if df_d is None: return None
     
     # === CORRECTION: EXCLUDE WEEKEND CANDLES ===
@@ -167,25 +247,21 @@ def analyze_pair(pair, debug_mode=False):
     open_price = trend_data["open"]
     ema_20 = trend_data["ema20"]
     
-    # Calculate Runner PCT (Daily Variation)
-    # Using H1 close for latest price if available, otherwise Daily Close
-    current_price_runner = df_d['Close'].iloc[-1]
+    if trend == "NEUTRAL":
+        return None 
     
-    # Try to get more recent price from H1
-    df_h1 = fetch_data(pair, "1h", "5d") 
-    if df_h1 is not None and not df_h1.empty:
-        current_price_runner = df_h1['Close'].iloc[-1]
-        
+    # 2. H1 Analysis (via TradingView Socket)
+    # We fetch 120 candles (5 days * 24h) to cover Asian session
+    df_h1 = fetch_data_tv(pair, "1h", n_candles=120)
+    
+    if df_h1 is None: return None
+    
+    # Calculate Runner PCT (Variation based on Daily Open)
+    current_price_runner = df_h1['Close'].iloc[-1]
     runner_pct = 0.0
     if open_price > 0:
         runner_pct = ((current_price_runner - open_price) / open_price) * 100.0
-    
-    if trend == "NEUTRAL":
-        return None 
         
-    # 2. H1 Analysis (Already fetched above if available, but need EMA)
-    if df_h1 is None: return None
-    
     df_h1 = calculate_emas(df_h1)
     
     paris_tz = pytz.timezone("Europe/Paris")
@@ -223,7 +299,6 @@ def analyze_pair(pair, debug_mode=False):
     candle_low = session_candles.loc[idx_low]
 
     # --- FILTRE TRIPLE G V2 : Puissance depuis Asian Range (> 0.2%) ---
-    # Placé ici car asian_high_val et asian_low_val sont maintenant définis
     current_price_check = df_h1['Close'].iloc[-1]
     range_progress_pct = 0.0
     
