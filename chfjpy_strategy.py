@@ -10,6 +10,25 @@ Source Données : TradingView WebSocket (OANDA)
 """
 
 import sys
+import subprocess
+import importlib
+
+def install_and_import(package, import_name=None):
+    if import_name is None:
+        import_name = package
+    try:
+        return importlib.import_module(import_name)
+    except ImportError:
+        # print(f"Installing {package}...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        return importlib.import_module(import_name)
+
+# Installer les dépendances critiques avant les imports globaux
+install_and_import("pandas")
+install_and_import("requests")
+install_and_import("python-dotenv", "dotenv")
+install_and_import("websocket-client", "websocket")
+
 import time
 import json
 import random

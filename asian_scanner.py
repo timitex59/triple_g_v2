@@ -25,24 +25,26 @@ import subprocess
 import json
 import random
 import string
-from websocket import create_connection
 
 # --- DEPENDENCY MANAGEMENT ---
-REQUIRED_PKGS = ["pandas", "numpy", "pytz", "requests", "websocket-client"]
-
-def install_and_import(package):
+def install_and_import(package, import_name=None):
+    if import_name is None:
+        import_name = package
     try:
-        return importlib.import_module(package)
+        return importlib.import_module(import_name)
     except ImportError:
+        # print(f"Installing {package}...")
         subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        return importlib.import_module(package)
+        return importlib.import_module(import_name)
 
 # Load libs
+yf = install_and_import("yfinance")
 pd = install_and_import("pandas")
 np = install_and_import("numpy")
 pytz = install_and_import("pytz")
 requests = install_and_import("requests")
-# websocket is imported directly as 'from websocket import ...'
+websocket = install_and_import("websocket-client", "websocket")
+from websocket import create_connection
 
 # --- CONFIGURATION ---
 EMA_LENGTHS = [20, 25, 30, 35, 40, 45, 50, 55]
