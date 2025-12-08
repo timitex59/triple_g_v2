@@ -24,11 +24,11 @@
       "direction": "LONG",
       "initial_runner": 0.38017944248209457
     },
-    "NZDJPY": {
-      "entry_date": "2025-12-08 14:04",
-      "entry_price": 90.02400207519531,
+    "GBPJPY": {
+      "entry_date": "2025-12-08 16:35",
+      "entry_price": 207.56399536132812,
       "direction": "LONG",
-      "initial_runner": 0.28630096702855873
+      "initial_runner": 0.34710248172188796
     }
   },
   "closed_trades": [
@@ -42,11 +42,22 @@
       "pnl_net": -0.09,
       "spread_cost_pct": 0.0174,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "NZDJPY",
+      "entry_date": "2025-12-08 14:04",
+      "exit_date": "2025-12-08 16:35",
+      "entry_price": 90.02400207519531,
+      "exit_price": 89.88899993896484,
+      "direction": "LONG",
+      "pnl_net": -0.18,
+      "spread_cost_pct": 0.0267,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -0.08818864908470986,
+    "total_pnl": -0.264810586085086,
     "wins": 0,
-    "losses": 1
+    "losses": 2
   }
 }
