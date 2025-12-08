@@ -99,7 +99,25 @@ def send_telegram_message(message):
 def get_clean_pair_name(ticker):
     return ticker.replace("=X", "")
 
-# --- DATA ENGINE (TV + YAHOO FALLBACK) ---
+# --- DATA ENGINE (TV + YAHOO FALLBACK + CACHE) ---
+CACHE_FILE = "market_cache.pkl"
+GLOBAL_CACHE = None
+
+def load_global_cache():
+    global GLOBAL_CACHE
+    if GLOBAL_CACHE is not None: return
+    
+    if os.path.exists(CACHE_FILE):
+        try:
+            import pickle
+            with open(CACHE_FILE, "rb") as f:
+                GLOBAL_CACHE = pickle.load(f)
+            # print(f"📦 Cache chargé ({len(GLOBAL_CACHE)} paires)")
+        except Exception:
+            GLOBAL_CACHE = {}
+    else:
+        GLOBAL_CACHE = {}
+
 def generate_session_id():
     return "cs_" + ''.join(random.choices(string.ascii_letters + string.digits, k=12))
 
@@ -199,15 +217,22 @@ def fetch_data_tv(pair_yahoo, interval_code, n_candles=300):
 
 def fetch_data_smart(pair_yahoo, interval_code, n_candles=300):
     """
-    Tente de récupérer les données via TV, sinon bascule sur Yahoo.
+    Priorité : Cache > TV > Yahoo
     """
-    # Tentative 1 : TradingView WebSocket
+    # 0. Cache Local
+    load_global_cache()
+    if GLOBAL_CACHE and pair_yahoo in GLOBAL_CACHE:
+        # Le cache stocke des dicts { "1h": df, "1d": df, ... }
+        cache_data = GLOBAL_CACHE[pair_yahoo]
+        if interval_code in cache_data:
+            return cache_data[interval_code]
+            
+    # 1. TradingView WebSocket
     df = fetch_data_tv(pair_yahoo, interval_code, n_candles)
     if df is not None and not df.empty:
         return df
     
-    # Tentative 2 : Yahoo Finance (Fallback)
-    # print(f"⚠️ Bascule Yahoo pour {pair_yahoo}")
+    # 2. Yahoo Finance (Fallback)
     return fetch_data_yahoo(pair_yahoo, interval_code, n_candles)
 
 def get_current_price_smart(pair_yahoo):

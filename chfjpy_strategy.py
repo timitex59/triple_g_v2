@@ -93,7 +93,24 @@ ALL_PAIRS = [
     "CHFJPY=X","CADJPY=X","CADCHF=X"
 ]
 
-# --- DATA ENGINE (TV + YAHOO FALLBACK) ---
+# --- DATA ENGINE (TV + YAHOO FALLBACK + CACHE) ---
+CACHE_FILE = "market_cache.pkl"
+GLOBAL_CACHE = None
+
+def load_global_cache():
+    global GLOBAL_CACHE
+    if GLOBAL_CACHE is not None: return
+    
+    if os.path.exists(CACHE_FILE):
+        try:
+            import pickle
+            with open(CACHE_FILE, "rb") as f:
+                GLOBAL_CACHE = pickle.load(f)
+        except Exception:
+            GLOBAL_CACHE = {}
+    else:
+        GLOBAL_CACHE = {}
+
 def generate_session_id():
     return "cs_" + ''.join(random.choices(string.ascii_letters + string.digits, k=12))
 
@@ -120,7 +137,6 @@ def fetch_pair_data_yahoo(pair_yahoo, debug=False):
         daily_open = df.iloc[-1]['Open']
         daily_close = df.iloc[-1]['Close'] # Close temporaire du jour
         
-        # Tentative de précision avec 1h si possible (optionnel, on reste sur daily pour simplicité ici)
         # Pour être iso avec TV qui donne le live price :
         current_price = daily_close
         
@@ -217,11 +233,36 @@ def fetch_pair_data_tv(pair_yahoo, debug=False):
 
 def fetch_pair_data_smart(pair_yahoo, debug=False):
     """
-    Tente de récupérer les données via TV, sinon bascule sur Yahoo.
+    Tente de récupérer les données via Cache > TV > Yahoo.
     """
+    clean_pair = pair_yahoo.replace("=X", "")
+    
+    # 0. Cache Local
+    load_global_cache()
+    if GLOBAL_CACHE and pair_yahoo in GLOBAL_CACHE:
+        cache_data = GLOBAL_CACHE[pair_yahoo]
+        if "1d" in cache_data:
+            df = cache_data["1d"]
+            if df is not None and not df.empty:
+                last = df.iloc[-1]
+                daily_open = last['Open']
+                current_price = last['Close']
+                if daily_open > 0:
+                    pct_change = ((current_price - daily_open) / daily_open) * 100
+                    return {
+                        "pair": clean_pair,
+                        "pct": pct_change,
+                        "close": current_price,
+                        "open": daily_open,
+                        "method": "Cache_Local"
+                    }
+
+    # 1. TradingView WebSocket
     res = fetch_pair_data_tv(pair_yahoo, debug)
     if res:
         return res
+        
+    # 2. Yahoo Finance
     return fetch_pair_data_yahoo(pair_yahoo, debug)
 
 def get_target_pairs():
