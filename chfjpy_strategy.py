@@ -382,13 +382,9 @@ def main():
         print(f"   {rank}. {emoji} {pair:<7} {pct:+.2f}%")
         msg_lines.append(line)
 
-    # Variables pour stocker les infos des duels et devises uniques
-    top_duel_pair = None
-    top_duel_pct = None
-    last_duel_pair = None
-    last_duel_pct = None
-    top_single_currency = None  # Devise forte ou intrue du TOP
-    last_single_currency = None  # Devise faible ou intrue du LAST
+    # Variables pour stocker les infos unifiées
+    final_top_strong = None
+    final_last_weak = None
 
     # Analyse Relative TOP 2
     if len(top_list) >= 2:
@@ -401,16 +397,16 @@ def main():
                 re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
                 print(f"   👉 Duel: {re} {info_value} {rp:+.2f}%")
                 msg_lines.append(f"👉 Duel: {re} {info_value} {rp:+.2f}%")
-                top_duel_pair = info_value
-                top_duel_pct = rp
-        elif info_type == "single":
-            print(f"   💪 Devise forte : {info_value}")
-            msg_lines.append(f"💪 Devise forte : <b>{info_value}</b>")
-            top_single_currency = info_value
-        elif info_type == "intrus":
-            print(f"   🎯 Devise intrue : {info_value}")
-            msg_lines.append(f"🎯 Devise intrue : <b>{info_value}</b>")
-            top_single_currency = info_value
+                
+                # Identification Devise Forte du TOP
+                if rp > 0: final_top_strong = info_value[:3] # Base is strong
+                else: final_top_strong = info_value[3:]      # Quote is strong
+
+        elif info_type in ["single", "intrus"]:
+            lbl = "Devise forte" if info_type == "single" else "Devise intrue"
+            print(f"   💪 {lbl} : {info_value}")
+            msg_lines.append(f"💪 {lbl} : <b>{info_value}</b>")
+            final_top_strong = info_value
 
     print("-" * 20)
     msg_lines.append("")
@@ -450,61 +446,24 @@ def main():
                 re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
                 print(f"   👉 Duel: {re} {info_value} {rp:+.2f}%")
                 msg_lines.append(f"👉 Duel: {re} {info_value} {rp:+.2f}%")
-                last_duel_pair = info_value
-                last_duel_pct = rp
-        elif info_type == "single":
-            print(f"   📉 Devise faible : {info_value}")
-            msg_lines.append(f"📉 Devise faible : <b>{info_value}</b>")
-            last_single_currency = info_value
-        elif info_type == "intrus":
-            print(f"   🎯 Devise intrue : {info_value}")
-            msg_lines.append(f"🎯 Devise intrue : <b>{info_value}</b>")
-            last_single_currency = info_value
+                
+                # Identification Devise Faible du LAST
+                # Note: LAST = Losers. 
+                # Si Duel LAST > 0 => Base > Quote => Quote est plus faible (car Base monte)
+                # Si Duel LAST < 0 => Base < Quote => Base est plus faible (car Base chute)
+                if rp < 0: final_last_weak = info_value[:3] 
+                else: final_last_weak = info_value[3:]
 
-    # --- DUEL & DUEL SECTION ---
-    if top_duel_pair and last_duel_pair and top_duel_pct is not None and last_duel_pct is not None:
-        # Extraire devise forte du TOP duel
-        if top_duel_pct < 0:
-            strong_currency = top_duel_pair[3:]  # Quote
-        else:
-            strong_currency = top_duel_pair[:3]  # Base
-        
-        # Extraire devise faible du LAST duel
-        if last_duel_pct < 0:
-            weak_currency = last_duel_pair[:3]  # Base
-        else:
-            weak_currency = last_duel_pair[3:]  # Quote
-        
-        # Former la paire DUEL & DUEL (si les devises sont différentes)
-        if strong_currency != weak_currency:
-            # Essayer de former la paire
-            candidate1 = f"{strong_currency}{weak_currency}"
-            candidate2 = f"{weak_currency}{strong_currency}"
-            clean_all = [p.replace("=X","") for p in ALL_PAIRS]
-            
-            final_pair = None
-            if candidate1 in clean_all: final_pair = candidate1
-            elif candidate2 in clean_all: final_pair = candidate2
-            
-            if final_pair:
-                print("-" * 20)
-                print("⚔️ DUEL & DUEL")
-                msg_lines.append("")
-                msg_lines.append("⚔️ <b>DUEL & DUEL</b>")
-                dd_data = fetch_pair_data_smart(f"{final_pair}=X")
-                if dd_data:
-                    dd_pct = dd_data['pct']
-                    dd_emoji = "🟢" if dd_pct > 0 else "🔴" if dd_pct < 0 else "⚪"
-                    print(f"   {dd_emoji} {final_pair} {dd_pct:+.2f}%")
-                    print(f"   (Fort: {strong_currency} vs Faible: {weak_currency})")
-                    msg_lines.append(f"{dd_emoji} <b>{final_pair}</b> {dd_pct:+.2f}%")
-                    msg_lines.append(f"(Fort: {strong_currency} vs Faible: {weak_currency})")
+        elif info_type in ["single", "intrus"]:
+            lbl = "Devise faible" if info_type == "single" else "Devise intrue"
+            print(f"   📉 {lbl} : {info_value}")
+            msg_lines.append(f"📉 {lbl} : <b>{info_value}</b>")
+            final_last_weak = info_value
 
-    # --- CROSS SECTION (pour devises uniques du TOP et LAST) ---
-    elif top_single_currency and last_single_currency and top_single_currency != last_single_currency:
-        # Former la paire entre les deux devises uniques
-        candidate1 = f"{top_single_currency}{last_single_currency}"
-        candidate2 = f"{last_single_currency}{top_single_currency}"
+    # --- DUEL & DUEL UNIFIE ---
+    if final_top_strong and final_last_weak and final_top_strong != final_last_weak:
+        candidate1 = f"{final_top_strong}{final_last_weak}"
+        candidate2 = f"{final_last_weak}{final_top_strong}"
         clean_all = [p.replace("=X","") for p in ALL_PAIRS]
         
         final_pair = None
@@ -513,17 +472,17 @@ def main():
         
         if final_pair:
             print("-" * 20)
-            print("🔀 CROSS")
+            print("⚔️ DUEL & DUEL")
             msg_lines.append("")
-            msg_lines.append("🔀 <b>CROSS</b>")
-            cross_data = fetch_pair_data_smart(f"{final_pair}=X")
-            if cross_data:
-                cross_pct = cross_data['pct']
-                cross_emoji = "🟢" if cross_pct > 0 else "🔴" if cross_pct < 0 else "⚪"
-                print(f"   {cross_emoji} {final_pair} {cross_pct:+.2f}%")
-                print(f"   ({top_single_currency} vs {last_single_currency})")
-                msg_lines.append(f"{cross_emoji} <b>{final_pair}</b> {cross_pct:+.2f}%")
-                msg_lines.append(f"({top_single_currency} vs {last_single_currency})")
+            msg_lines.append("⚔️ <b>DUEL & DUEL</b>")
+            dd_data = fetch_pair_data_smart(f"{final_pair}=X")
+            if dd_data:
+                dd_pct = dd_data['pct']
+                dd_emoji = "🟢" if dd_pct > 0 else "🔴" if dd_pct < 0 else "⚪"
+                print(f"   {dd_emoji} {final_pair} {dd_pct:+.2f}%")
+                print(f"   (Fort: {final_top_strong} vs Faible: {final_last_weak})")
+                msg_lines.append(f"{dd_emoji} <b>{final_pair}</b> {dd_pct:+.2f}%")
+                msg_lines.append(f"(Fort: {final_top_strong} vs Faible: {final_last_weak})")
 
     print("-" * 40)
     print(f"✅ Analyse terminée ({len(results)}/{len(target_pairs)} paires)")
