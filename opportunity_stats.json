@@ -1,30 +1,5 @@
 {
-  "active_trades": {
-    "AUDJPY": {
-      "entry_date": "2025-12-09 19:48",
-      "entry_price": 104.138,
-      "direction": "LONG",
-      "initial_runner": 0.8991376804573311
-    },
-    "CHFJPY": {
-      "entry_date": "2025-12-09 19:48",
-      "entry_price": 194.55,
-      "direction": "LONG",
-      "initial_runner": 0.7389073284901442
-    },
-    "NZDJPY": {
-      "entry_date": "2025-12-09 19:48",
-      "entry_price": 90.656,
-      "direction": "LONG",
-      "initial_runner": 0.6785496140818527
-    },
-    "CADJPY": {
-      "entry_date": "2025-12-09 19:48",
-      "entry_price": 113.265,
-      "direction": "LONG",
-      "initial_runner": 0.6728410424147662
-    }
-  },
+  "active_trades": {},
   "closed_trades": [
     {
       "pair": "GBPNZD",
@@ -113,11 +88,55 @@
       "pnl_net": 0.01,
       "spread_cost_pct": 0.0096,
       "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-09 19:48",
+      "exit_date": "2025-12-09 22:31",
+      "entry_price": 104.138,
+      "exit_price": 104.208,
+      "direction": "LONG",
+      "pnl_net": 0.05,
+      "spread_cost_pct": 0.0211,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "CHFJPY",
+      "entry_date": "2025-12-09 19:48",
+      "exit_date": "2025-12-09 22:31",
+      "entry_price": 194.55,
+      "exit_price": 194.686,
+      "direction": "LONG",
+      "pnl_net": 0.06,
+      "spread_cost_pct": 0.0123,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "NZDJPY",
+      "entry_date": "2025-12-09 19:48",
+      "exit_date": "2025-12-09 22:31",
+      "entry_price": 90.656,
+      "exit_price": 90.69,
+      "direction": "LONG",
+      "pnl_net": 0.01,
+      "spread_cost_pct": 0.0265,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-09 19:48",
+      "exit_date": "2025-12-09 22:31",
+      "entry_price": 113.265,
+      "exit_price": 113.307,
+      "direction": "LONG",
+      "pnl_net": 0.02,
+      "spread_cost_pct": 0.0194,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
     }
   ],
   "performance": {
-    "total_pnl": 0.04222162038988922,
-    "wins": 5,
+    "total_pnl": 0.17457146836685367,
+    "wins": 9,
     "losses": 3
   }
 }
