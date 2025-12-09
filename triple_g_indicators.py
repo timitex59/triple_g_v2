@@ -798,7 +798,7 @@ def main():
     for r in big3_runners:
         emoji = "🟢" if r['pct'] > 0 else "🔴"
         mark = "🔥" if r['pair'] in common_pairs else ""
-        msg_lines.append(f"{emoji}{mark}{r['pair']} ({r['pct']:+.1f}%)")
+        msg_lines.append(f"{emoji}{mark}{r['pair']} ({r['pct']:+.2f}%)")
     msg_lines.append("")
     
     msg_lines.append("⭐ CONFLUENCE")
@@ -806,7 +806,7 @@ def main():
         for r in confluence_runners:
             emoji = "🟢" if r['pct'] > 0 else "🔴"
             mark = "🔥" if r['pair'] in common_pairs else ""
-            msg_lines.append(f"{emoji}{mark}{r['pair']} ({r['pct']:+.1f}%)")
+            msg_lines.append(f"{emoji}{mark}{r['pair']} ({r['pct']:+.2f}%)")
     else:
         msg_lines.append("Aucune")
     
@@ -818,7 +818,7 @@ def main():
     msg_lines.append("")
     msg_lines.append("💰 PORTEFEUILLE")
     msg_lines.append("-------------------------")
-    msg_lines.append(f"   Capital : {int(perf['current_capital']):,} EUR ({perf['total_pnl_pct']:+.1f}%) {perf['capital_emoji']}")
+    msg_lines.append(f"   Capital : {int(perf['current_capital']):,} EUR ({perf['total_pnl_pct']:+.2f}%) {perf['capital_emoji']}")
     msg_lines.append("")
     msg_lines.append(f"   En cours : {int(perf['active_pnl_eur']):+} EUR ({perf['active_count']} pos)")
     msg_lines.append(f"   Fermées 24h : {int(perf['h24_pnl_eur']):+} EUR ({perf['h24_count']} trades)")
