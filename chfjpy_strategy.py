@@ -353,89 +353,47 @@ def main():
         return (None, None)
 
     # --- CONSTRUCTION RAPPORT TELEGRAM ---
-    msg_lines = ["🚀 <b>ANALYSE RUNNER CHF & JPY</b>", ""]
+    msg_lines = ["🚀 <b>ANALYSE RUNNER</b>", ""]
 
-    # --- TOP SECTION ---
-    print("🚀 TOP (Meilleure Performance)")
-    msg_lines.append("🚀 <b>TOP</b>")
-
-    top_list = results[:2]
-
-    # Calcul du rang de CHFJPY
-    chfjpy_rank = results.index(chfjpy_res) + 1 if chfjpy_res else None
-    mid_rank = len(results) // 2  # Milieu du classement
-
-    # Si CHFJPY n'est pas dans le Top 2 MAIS est dans la première moitié du classement, on l'ajoute
-    if chfjpy_res and chfjpy_res not in top_list and chfjpy_res not in results[:2] and chfjpy_rank and chfjpy_rank <= mid_rank:
-        top_list.append(chfjpy_res)
-
-    for i, res in enumerate(top_list, 1):
-        pair = res['pair']
-        pct = res['pct']
-        # On recalcule le rang réel si c'est CHFJPY ajouté manuellement
-        rank = i
-        if res == chfjpy_res and res not in results[:2]:
-             rank = results.index(res) + 1
-
+    # 1. CHFJPY LINE
+    if chfjpy_res:
+        pct = chfjpy_res['pct']
         emoji = "🟢" if pct > 0 else "🔴" if pct < 0 else "⚪"
-        line = f"{rank}. {emoji} <b>{pair}</b> {pct:+.2f}%"
-        print(f"   {rank}. {emoji} {pair:<7} {pct:+.2f}%")
-        msg_lines.append(line)
+        print(f"🟢 CHFJPY {pct:+.2f}%")
+        msg_lines.append(f"{emoji} <b>{chfjpy_res['pair']}</b> {pct:+.2f}%")
+    else:
+        msg_lines.append("⚠️ CHFJPY non trouvé")
 
     # Variables pour stocker les infos unifiées
     final_top_strong = None
     final_last_weak = None
 
-    # Analyse Relative TOP 2
+    # 2. TOP DUEL / INTRUE
+    top_list = results[:2]
     if len(top_list) >= 2:
         info_type, info_value = get_relative_info(top_list[0]['pair'], top_list[1]['pair'])
         if info_type == "pair":
-            # Appel fetch_pair_data_smart avec format yahoo
             rel_data = fetch_pair_data_smart(f"{info_value}=X")
             if rel_data:
                 rp = rel_data['pct']
                 re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
-                print(f"   👉 Duel: {re} {info_value} {rp:+.2f}%")
-                msg_lines.append(f"👉 Duel: {re} {info_value} {rp:+.2f}%")
+                print(f"🚀 Top Duel: {re} {info_value} {rp:+.2f}%")
+                msg_lines.append(f"🚀 Top Duel: {re} {info_value} {rp:+.2f}%")
                 
-                # Identification Devise Forte du TOP
-                if rp > 0: final_top_strong = info_value[:3] # Base is strong
-                else: final_top_strong = info_value[3:]      # Quote is strong
+                if rp > 0: final_top_strong = info_value[:3]
+                else: final_top_strong = info_value[3:]
 
         elif info_type in ["single", "intrus"]:
-            lbl = "Devise forte" if info_type == "single" else "Devise intrue"
-            print(f"   💪 {lbl} : {info_value}")
-            msg_lines.append(f"💪 {lbl} : <b>{info_value}</b>")
+            lbl = "Top Intrue"
+            print(f"🚀 {lbl}: {info_value}")
+            msg_lines.append(f"🚀 {lbl}: <b>{info_value}</b>")
             final_top_strong = info_value
 
-    print("-" * 20)
-    msg_lines.append("")
-
-    # --- BOTTOM SECTION ---
-    print("📉 LAST (Moins bonne Performance)")
-    msg_lines.append("📉 <b>LAST</b>")
-
-    # On prend les 2 derniers
+    # 3. LAST DUEL / INTRUE
     start_index = max(2, len(results) - 2)
     last_list = results[start_index:]
-
-    # Si CHFJPY n'est pas dans les Last 2 MAIS est dans la seconde moitié du classement, on l'ajoute
-    if chfjpy_res and chfjpy_res not in last_list and chfjpy_rank and chfjpy_rank > mid_rank:
-        last_list.insert(0, chfjpy_res)
-
-    for res in last_list:
-        pair = res['pair']
-        pct = res['pct']
-        # Rang réel
-        rank = results.index(res) + 1
-        emoji = "🟢" if pct > 0 else "🔴" if pct < 0 else "⚪"
-        line = f"{rank}. {emoji} <b>{pair}</b> {pct:+.2f}%"
-        print(f"   {rank}. {emoji} {pair:<7} {pct:+.2f}%")
-        msg_lines.append(line)
-
-    # Analyse Relative LAST 2 (Les 2 derniers de la liste affichée)
+    
     if len(last_list) >= 2:
-        # On compare les deux derniers éléments de la liste affichée (souvent les rangs 12 et 13)
         p1 = last_list[-2]['pair']
         p2 = last_list[-1]['pair']
         info_type, info_value = get_relative_info(p1, p2)
@@ -444,23 +402,19 @@ def main():
             if rel_data:
                 rp = rel_data['pct']
                 re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
-                print(f"   👉 Duel: {re} {info_value} {rp:+.2f}%")
-                msg_lines.append(f"👉 Duel: {re} {info_value} {rp:+.2f}%")
+                print(f"📉 Last Duel: {re} {info_value} {rp:+.2f}%")
+                msg_lines.append(f"📉 Last Duel: {re} {info_value} {rp:+.2f}%")
                 
-                # Identification Devise Faible du LAST
-                # Note: LAST = Losers. 
-                # Si Duel LAST > 0 => Base > Quote => Quote est plus faible (car Base monte)
-                # Si Duel LAST < 0 => Base < Quote => Base est plus faible (car Base chute)
                 if rp < 0: final_last_weak = info_value[:3] 
                 else: final_last_weak = info_value[3:]
 
         elif info_type in ["single", "intrus"]:
-            lbl = "Devise faible" if info_type == "single" else "Devise intrue"
-            print(f"   📉 {lbl} : {info_value}")
-            msg_lines.append(f"📉 {lbl} : <b>{info_value}</b>")
+            lbl = "Last Intrue"
+            print(f"📉 {lbl}: {info_value}")
+            msg_lines.append(f"📉 {lbl}: <b>{info_value}</b>")
             final_last_weak = info_value
 
-    # --- DUEL & DUEL UNIFIE ---
+    # 4. DUEL & DUEL
     if final_top_strong and final_last_weak and final_top_strong != final_last_weak:
         candidate1 = f"{final_top_strong}{final_last_weak}"
         candidate2 = f"{final_last_weak}{final_top_strong}"
@@ -471,19 +425,15 @@ def main():
         elif candidate2 in clean_all: final_pair = candidate2
         
         if final_pair:
-            print("-" * 20)
-            print("⚔️ DUEL & DUEL")
-            msg_lines.append("")
-            msg_lines.append("⚔️ <b>DUEL & DUEL</b>")
             dd_data = fetch_pair_data_smart(f"{final_pair}=X")
             if dd_data:
                 dd_pct = dd_data['pct']
                 dd_emoji = "🟢" if dd_pct > 0 else "🔴" if dd_pct < 0 else "⚪"
-                print(f"   {dd_emoji} {final_pair} {dd_pct:+.2f}%")
-                print(f"   (Fort: {final_top_strong} vs Faible: {final_last_weak})")
-                msg_lines.append(f"{dd_emoji} <b>{final_pair}</b> {dd_pct:+.2f}%")
-                msg_lines.append(f"(Fort: {final_top_strong} vs Faible: {final_last_weak})")
-
+                print(f"⚔️ Duel & Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}%")
+                msg_lines.append(f"⚔️ Duel & Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}%")
+    
+    # Time (handled by caller logic usually, but here it's inside main)
+    # The existing code prints "Analyse terminée" then sends.
     print("-" * 40)
     print(f"✅ Analyse terminée ({len(results)}/{len(target_pairs)} paires)")
     
