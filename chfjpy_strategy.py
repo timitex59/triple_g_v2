@@ -29,6 +29,7 @@ install_and_import("requests")
 install_and_import("python-dotenv", "dotenv")
 install_and_import("websocket-client", "websocket")
 install_and_import("yfinance")
+install_and_import("pytz")
 
 import time
 import json
@@ -38,6 +39,7 @@ import os
 import requests
 import pandas as pd
 import yfinance as yf
+import pytz
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from websocket import create_connection
 from dotenv import load_dotenv
@@ -434,6 +436,12 @@ def main():
     
     # Time (handled by caller logic usually, but here it's inside main)
     # The existing code prints "Analyse terminée" then sends.
+    from datetime import datetime
+    paris_tz = pytz.timezone('Europe/Paris')
+    now = datetime.now(paris_tz).strftime("%Y-%m-%d %H:%M:%S")
+    msg_lines.append("")
+    msg_lines.append(f"⏰ {now} Paris")
+    
     print("-" * 40)
     print(f"✅ Analyse terminée ({len(results)}/{len(target_pairs)} paires)")
     
