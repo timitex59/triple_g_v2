@@ -570,11 +570,11 @@ def analyze_pair(ticker):
     
     # Fetch Data via WebSocket TV (Single Shot)
     # H1 sur 500 bougies (~1 mois)
-    df_h1 = fetch_data_tv(ticker, "1h", n_candles=500)
+    df_h1 = fetch_data_smart(ticker, "1h", n_candles=500)
     # Daily sur 300 bougies (~1 an)
-    df_d = fetch_data_tv(ticker, "1d", n_candles=300)
+    df_d = fetch_data_smart(ticker, "1d", n_candles=300)
     # Weekly sur 150 bougies (~3 ans)
-    df_w = fetch_data_tv(ticker, "1wk", n_candles=150)
+    df_w = fetch_data_smart(ticker, "1wk", n_candles=150)
     
     # --- ANALYSE SHORT (H1 + D1) ---
     align_h1 = calculate_ema_aligned_status(df_h1)
@@ -584,22 +584,19 @@ def analyze_pair(ticker):
     align_d = calculate_ema_aligned_status(df_d)
     ema_w = calculate_ema_gap_status(df_w)
     
-    # Calcul Smart PCT (Variation Daily)
+    # Calcul Smart PCT (Variation Daily) - Méthode asian_scanner1.py
     pct = 0.0
     if df_d is not None and not df_d.empty:
-        last_idx = df_d.index[-1]
-        last_date = last_idx.strftime("%Y-%m-%d")
         daily_open = df_d['Open'].iloc[-1]
-        daily_close = df_d['Close'].iloc[-1]
         
-        # Smart Close (toujours utiliser la dernière H1 si dispo pour le jour même)
+        # Utiliser le dernier Close H1 comme prix actuel (comme asian_scanner1.py)
         if df_h1 is not None and not df_h1.empty:
-            day_1h_candles = df_h1[df_h1.index.strftime("%Y-%m-%d") == last_date]
-            if not day_1h_candles.empty:
-                daily_close = day_1h_candles['Close'].iloc[-1]
+            current_price = df_h1['Close'].iloc[-1]
+        else:
+            current_price = df_d['Close'].iloc[-1]
         
         if daily_open > 0:
-            pct = ((daily_close - daily_open) / daily_open) * 100.0
+            pct = ((current_price - daily_open) / daily_open) * 100.0
 
     return {
         "pair": pair_name,
@@ -661,7 +658,7 @@ def main():
     short_aligned_runners = []
     for r in results:
         if "NEUTRAL" in r['h1_align'] or "NEUTRAL" in r['d_ema']: continue
-        if abs(r['pct']) <= 0.2: continue
+        if abs(r['pct']) <= 0.2: continue  # Seuil 0.2% comme asian_scanner1.py
         
         h1 = r['h1_align'].split()[0]
         d1 = r['d_ema'].split()[0]
@@ -678,7 +675,7 @@ def main():
     large_aligned_runners = []
     for r in results:
         if "NEUTRAL" in r['d_align'] or "NEUTRAL" in r['w_ema']: continue
-        if abs(r['pct']) <= 0.2: continue
+        if abs(r['pct']) <= 0.2: continue  # Seuil 0.2% comme asian_scanner1.py
         
         d1 = r['d_align'].split()[0]
         w1 = r['w_ema'].split()[0]
