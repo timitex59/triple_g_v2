@@ -379,14 +379,14 @@ def main():
             if rel_data:
                 rp = rel_data['pct']
                 re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
-                print(f"🚀 Top Duel: {re} {info_value} {rp:+.2f}%")
-                msg_lines.append(f"🚀 Top Duel: {re} {info_value} {rp:+.2f}%")
+                print(f"🚀 Top: {re} {info_value} {rp:+.2f}%")
+                msg_lines.append(f"🚀 Top: {re} {info_value} {rp:+.2f}%")
                 
                 if rp > 0: final_top_strong = info_value[:3]
                 else: final_top_strong = info_value[3:]
 
         elif info_type in ["single", "intrus"]:
-            lbl = "Top Intrue"
+            lbl = "Top"
             print(f"🚀 {lbl}: {info_value}")
             msg_lines.append(f"🚀 {lbl}: <b>{info_value}</b>")
             final_top_strong = info_value
@@ -404,14 +404,14 @@ def main():
             if rel_data:
                 rp = rel_data['pct']
                 re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
-                print(f"📉 Last Duel: {re} {info_value} {rp:+.2f}%")
-                msg_lines.append(f"📉 Last Duel: {re} {info_value} {rp:+.2f}%")
+                print(f"📉 Last: {re} {info_value} {rp:+.2f}%")
+                msg_lines.append(f"📉 Last: {re} {info_value} {rp:+.2f}%")
                 
                 if rp < 0: final_last_weak = info_value[:3] 
                 else: final_last_weak = info_value[3:]
 
         elif info_type in ["single", "intrus"]:
-            lbl = "Last Intrue"
+            lbl = "Last"
             print(f"📉 {lbl}: {info_value}")
             msg_lines.append(f"📉 {lbl}: <b>{info_value}</b>")
             final_last_weak = info_value
@@ -431,8 +431,8 @@ def main():
             if dd_data:
                 dd_pct = dd_data['pct']
                 dd_emoji = "🟢" if dd_pct > 0 else "🔴" if dd_pct < 0 else "⚪"
-                print(f"⚔️ Duel & Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}%")
-                msg_lines.append(f"⚔️ Duel & Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}%")
+                print(f"⚔️ Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}%")
+                msg_lines.append(f"⚔️ Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}%")
     
     # Time (handled by caller logic usually, but here it's inside main)
     # The existing code prints "Analyse terminée" then sends.
