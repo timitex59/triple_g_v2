@@ -29,6 +29,7 @@ install_and_import("requests")
 install_and_import("python-dotenv", "dotenv")
 install_and_import("websocket-client", "websocket")
 install_and_import("yfinance")
+install_and_import("pytz")
 
 import pandas as pd
 import numpy as np
@@ -40,8 +41,9 @@ import random
 import string
 import yfinance as yf
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import pytz
 from dotenv import load_dotenv
 from websocket import create_connection
 
@@ -68,10 +70,6 @@ EMA_LENGTHS = [20, 25, 30, 35, 40, 45, 50, 55]
 EMA_RSI_LEN = 7
 EMA_EMA_LEN = 7
 
-# Runner History Settings
-RUNNER_HISTORY_FILE = Path(__file__).parent / "runner_history.json"
-RUNNER_HISTORY_MAX = 21  # Nombre max de points conservés par paire
-RUNNER_RSI_LEN = 7  # Période RSI pour le RUNNER
 
 # Telegram Settings
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -441,64 +439,6 @@ def update_performance_tracking(big3_pairs, confluence_pairs, top_5_short, top_5
     }
 
 
-def load_runner_history():
-    """
-    Charge l'historique RUNNER depuis le fichier JSON.
-    Réinitialise automatiquement si c'est un nouveau jour (nouvelle bougie daily).
-    """
-    from datetime import datetime
-    today = datetime.now().strftime("%Y-%m-%d")
-    
-    if RUNNER_HISTORY_FILE.exists():
-        try:
-            with open(RUNNER_HISTORY_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            last_date = data.get("_last_date", "")
-            if last_date != today:
-                print(f"🔄 Nouvelle bougie daily détectée ({last_date} → {today}). Réinitialisation de l'historique RUNNER.")
-                return {"_last_date": today}
-            
-            return data
-        except:
-            return {"_last_date": today}
-    return {"_last_date": today}
-
-def save_runner_history(history):
-    """Sauvegarde l'historique RUNNER."""
-    from datetime import datetime
-    history["_last_date"] = datetime.now().strftime("%Y-%m-%d")
-    
-    for pair in history:
-        if pair.startswith("_"): continue
-        if len(history[pair]) > RUNNER_HISTORY_MAX:
-            history[pair] = history[pair][-RUNNER_HISTORY_MAX:]
-    
-    with open(RUNNER_HISTORY_FILE, 'w', encoding='utf-8') as f:
-        json.dump(history, f, indent=2)
-
-def calculate_runner_rsi_from_list(values, period=7):
-    """Calcule le RSI sur une liste de valeurs RUNNER."""
-    if len(values) < period + 1:
-        return None
-    
-    series = pd.Series(values)
-    delta = series.diff()
-    
-    up = delta.copy()
-    down = delta.copy()
-    up[up < 0] = 0
-    down[down > 0] = 0
-    down = abs(down)
-    
-    alpha = 1.0 / period
-    roll_up = up.ewm(alpha=alpha, adjust=False).mean()
-    roll_down = down.ewm(alpha=alpha, adjust=False).mean()
-    
-    rs = roll_up / roll_down
-    rsi = 100.0 - (100.0 / (1.0 + rs))
-    
-    return rsi.iloc[-1] if not pd.isna(rsi.iloc[-1]) else None
 
 # --- INDICATEURS TECHNIQUES ---
 
@@ -565,6 +505,84 @@ def calculate_ema_aligned_status(df):
         
     return "NEUTRAL ⚪"
 
+def calculate_price_vs_emas(df):
+    """Vérifie si le prix est au-dessus ou en-dessous des 8 EMAs."""
+    if df is None or len(df) < max(EMA_LENGTHS):
+        return "NEUTRAL ⚪"
+    
+    close = df['Close']
+    current_price = close.iloc[-1]
+    emas = [close.ewm(span=l, adjust=False).mean().iloc[-1] for l in EMA_LENGTHS]
+    
+    # Prix au-dessus de toutes les EMAs
+    if all(current_price > ema for ema in emas):
+        return "BULLISH 🟢"
+    
+    # Prix en-dessous de toutes les EMAs
+    if all(current_price < ema for ema in emas):
+        return "BEARISH 🔴"
+    
+    return "NEUTRAL ⚪"
+
+def is_dst(dt=None, timezone="Europe/Paris"):
+    """Vérifie si on est en heure d'été."""
+    if dt is None:
+        dt = datetime.now(pytz.UTC)
+    tz = pytz.timezone(timezone)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=pytz.UTC)
+    return dt.astimezone(tz).dst() != timedelta(0)
+
+def get_asian_hours(target_date_utc):
+    """Retourne les heures de la session asiatique (heure Paris)."""
+    dst = is_dst(target_date_utc)
+    if dst:
+        return 1, 6  # Summer: 01h-06h
+    else:
+        return 2, 7  # Winter: 02h-07h
+
+def calculate_asian_range(df_h1):
+    """
+    Calcule l'Asian High et Asian Low à partir des données H1.
+    Retourne (asian_high, asian_low, current_price) ou (None, None, None) si pas de données.
+    """
+    if df_h1 is None or df_h1.empty:
+        return None, None, None
+    
+    paris_tz = pytz.timezone("Europe/Paris")
+    
+    # Convertir l'index en timezone Paris
+    df_h1_paris = df_h1.copy()
+    df_h1_paris.index = df_h1_paris.index.tz_convert(paris_tz)
+    
+    last_dt = df_h1_paris.index[-1]
+    target_date = last_dt.date()
+    start_h, end_h = get_asian_hours(last_dt)
+    
+    # Session Mask pour aujourd'hui
+    session_mask = (df_h1_paris.index.date == target_date) & \
+                   (df_h1_paris.index.hour >= start_h) & \
+                   (df_h1_paris.index.hour < end_h)
+    
+    session_candles = df_h1_paris[session_mask]
+    
+    # Fallback sur la veille si session incomplète
+    if len(session_candles) < 3:
+        target_date = target_date - timedelta(days=1)
+        session_mask = (df_h1_paris.index.date == target_date) & \
+                       (df_h1_paris.index.hour >= start_h) & \
+                       (df_h1_paris.index.hour < end_h)
+        session_candles = df_h1_paris[session_mask]
+        
+        if len(session_candles) < 3:
+            return None, None, None
+    
+    asian_high = session_candles['High'].max()
+    asian_low = session_candles['Low'].min()
+    current_price = df_h1_paris['Close'].iloc[-1]
+    
+    return asian_high, asian_low, current_price
+
 def analyze_pair(ticker):
     pair_name = get_clean_pair_name(ticker)
     
@@ -583,6 +601,12 @@ def analyze_pair(ticker):
     # --- ANALYSE LARGE (D1 + W1) ---
     align_d = calculate_ema_aligned_status(df_d)
     ema_w = calculate_ema_gap_status(df_w)
+    
+    # --- PRICE VS EMAs (Daily) ---
+    price_vs_emas_d = calculate_price_vs_emas(df_d)
+    
+    # --- ASIAN RANGE (H1) ---
+    asian_high, asian_low, current_price_h1 = calculate_asian_range(df_h1)
     
     # Calcul Smart PCT (Variation Daily) - Méthode asian_scanner1.py
     pct = 0.0
@@ -606,6 +630,12 @@ def analyze_pair(ticker):
         # Large
         "d_align": align_d,
         "w_ema": ema_w,
+        # Price vs EMAs
+        "price_vs_emas_d": price_vs_emas_d,
+        # Asian Range
+        "asian_high": asian_high,
+        "asian_low": asian_low,
+        "current_price": current_price_h1,
         # Common
         "pct": pct
     }
@@ -614,7 +644,6 @@ def main():
     print(f"🚀 TRIPLE G INDICATORS SCAN (WebSocket TV Edition)")
     print(f"Lancement de l'analyse sur {len(PAIRS)} paires...\n")
     
-    runner_history = load_runner_history()
     start_time = time.time()
     results = []
     
@@ -630,28 +659,6 @@ def main():
                 # print(e)
                 print(f"x", end="", flush=True)
     
-    # Mise à jour et sauvegarde historique RUNNER
-    for r in results:
-        pair = r['pair']
-        if pair not in runner_history:
-            runner_history[pair] = []
-        runner_history[pair].append(r['pct'])
-    
-    save_runner_history(runner_history)
-    
-    # Calcul RSI RUNNER
-    rsi_runner_data = []
-    for r in results:
-        pair = r['pair']
-        history_values = runner_history.get(pair, [])
-        rsi_value = calculate_runner_rsi_from_list(history_values, RUNNER_RSI_LEN)
-        rsi_runner_data.append({
-            "pair": pair,
-            "pct": r['pct'],
-            "rsi_runner": rsi_value,
-            "history_len": len(history_values)
-        })
-                
     results.sort(key=lambda x: abs(x['pct']), reverse=True)
     
     # --- FILTRAGE SHORT VIEW ---
@@ -688,33 +695,74 @@ def main():
             
     top_5_large = large_aligned_runners[:5]
     
-    # --- RSI Runner Aligned ---
-    aligned_pairs = set(r['pair'] for r in short_aligned_runners + large_aligned_runners)
-    rsi_runner_aligned = [r for r in rsi_runner_data 
-                          if r['pair'] in aligned_pairs 
-                          and r['rsi_runner'] is not None 
-                          and r['rsi_runner'] > 55]
+    print(f"\n\n⏱️ Terminé en {time.time() - start_time:.2f}s\n")
     
-    rsi_runner_aligned.sort(key=lambda x: -x['rsi_runner'])
-    top_5_rsi_runner = rsi_runner_aligned[:5]
+    # --- FULL ALIGNMENT DAILY (D1 Align = D1 Gap) ---
+    full_aligned_daily = []
     
-    print(f"\n\n⏱️ Terminé en {time.time() - start_time:.2f}s")
+    for r in results:
+        d1_align = r['d_align'].split()[0]
+        d1_gap = r['d_ema'].split()[0]
+        if d1_align != "NEUTRAL" and d1_gap != "NEUTRAL" and d1_align == d1_gap:
+            # Filtre: RUNNER doit confirmer la tendance et > 0.2%
+            if abs(r['pct']) <= 0.2: continue
+            if d1_align == "BULLISH" and r['pct'] <= 0: continue
+            if d1_align == "BEARISH" and r['pct'] >= 0: continue
+            full_aligned_daily.append({**r, 'direction': d1_align})
     
-    # --- AFFICHAGE ---
-    print(f"\n📊 TOP 5 RSI RUNNER")
-    print(f"{'PAIRE':<10} | {'RUNNER':<10} | {'RSI_7':<8}")
-    print("-" * 35)
-    has_rsi = any(x['rsi_runner'] is not None for x in rsi_runner_data)
-    if not top_5_rsi_runner:
-        if not has_rsi:
-            print(f"⏳ Pas assez de données (min {RUNNER_RSI_LEN + 1} exécutions requises)")
-        else:
-            print("Aucune paire alignée avec RSI > 55.")
+    full_aligned_daily.sort(key=lambda x: abs(x['pct']), reverse=True)
+    
+    # --- PRICE ABOVE/BELOW ALL EMAs (Daily) + ASIAN FILTER ---
+    price_emas_daily = []
+    
+    for r in results:
+        price_pos = r['price_vs_emas_d'].split()[0]
+        if price_pos == "NEUTRAL": continue
+        # Filtre: RUNNER doit confirmer la tendance et > 0.2%
+        if abs(r['pct']) <= 0.2: continue
+        if price_pos == "BULLISH" and r['pct'] <= 0: continue
+        if price_pos == "BEARISH" and r['pct'] >= 0: continue
+        
+        # Filtre Asian: BULLISH > Asian High, BEARISH < Asian Low
+        asian_high = r.get('asian_high')
+        asian_low = r.get('asian_low')
+        current_price = r.get('current_price')
+        
+        if asian_high is None or asian_low is None or current_price is None:
+            continue  # Pas de données Asian disponibles
+        
+        if price_pos == "BULLISH" and current_price <= asian_high:
+            continue  # Prix doit être > Asian High pour BULLISH
+        if price_pos == "BEARISH" and current_price >= asian_low:
+            continue  # Prix doit être < Asian Low pour BEARISH
+        
+        price_emas_daily.append({**r, 'direction': price_pos})
+    
+    price_emas_daily.sort(key=lambda x: abs(x['pct']), reverse=True)
+    
+    print(f"💹 PRICE vs 8 EMAs DAILY")
+    print(f"{'PAIRE':<12} | {'DIRECTION':<10} | {'RUNNER':<10}")
+    print("-" * 40)
+    if not price_emas_daily:
+        print("Aucune paire.")
     else:
-        for r in top_5_rsi_runner:
+        for r in price_emas_daily:
             pct_str = f"{r['pct']:+.2f}%"
-            rsi_str = f"{r['rsi_runner']:.1f}" if r['rsi_runner'] is not None else "N/A"
-            print(f"{r['pair']:<10} | {pct_str:<10} | {rsi_str:<8}")
+            emoji = "🟢" if r['direction'] == "BULLISH" else "🔴"
+            print(f"{emoji} {r['pair']:<10} | {r['direction']:<10} | {pct_str:<10}")
+    
+    print("\n")
+    
+    print(f"🎯 FULL ALIGNED DAILY (D1 Align = D1 Gap)")
+    print(f"{'PAIRE':<12} | {'DIRECTION':<10} | {'RUNNER':<10}")
+    print("-" * 40)
+    if not full_aligned_daily:
+        print("Aucune paire.")
+    else:
+        for r in full_aligned_daily:
+            pct_str = f"{r['pct']:+.2f}%"
+            emoji = "🟢" if r['direction'] == "BULLISH" else "🔴"
+            print(f"{emoji} {r['pair']:<10} | {r['direction']:<10} | {pct_str:<10}")
     
     print("\n")
     
@@ -789,6 +837,26 @@ def main():
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     
     msg_lines = ["🚀 TRIPLE G SCAN 🚀", ""]
+    
+    # PRICE vs 8 EMAs DAILY
+    msg_lines.append("💹 PRICE vs 8 EMAs")
+    if price_emas_daily:
+        for r in price_emas_daily:
+            emoji = "🟢" if r['direction'] == "BULLISH" else "🔴"
+            msg_lines.append(f"{emoji} {r['pair']} ({r['pct']:+.2f}%)")
+    else:
+        msg_lines.append("Aucune")
+    msg_lines.append("")
+    
+    # FULL ALIGNED DAILY
+    msg_lines.append("🎯 FULL ALIGNED DAILY")
+    if full_aligned_daily:
+        for r in full_aligned_daily:
+            emoji = "🟢" if r['direction'] == "BULLISH" else "🔴"
+            msg_lines.append(f"{emoji} {r['pair']} ({r['pct']:+.2f}%)")
+    else:
+        msg_lines.append("Aucune")
+    msg_lines.append("")
     
     big3_pairs_set = set(r['pair'] for r in big3_runners)
     confluence_pairs_set = set(r['pair'] for r in confluence_runners)
