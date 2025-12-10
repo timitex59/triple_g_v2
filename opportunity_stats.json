@@ -1,12 +1,5 @@
 {
-  "active_trades": {
-    "CHFJPY": {
-      "entry_date": "2025-12-10 14:07",
-      "entry_price": 194.919,
-      "direction": "LONG",
-      "initial_runner": 0.2870946331825938
-    }
-  },
+  "active_trades": {},
   "closed_trades": [
     {
       "pair": "GBPNZD",
@@ -172,11 +165,22 @@
       "pnl_net": -0.1,
       "spread_cost_pct": 0.0123,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CHFJPY",
+      "entry_date": "2025-12-10 14:07",
+      "exit_date": "2025-12-10 17:46",
+      "entry_price": 194.919,
+      "exit_price": 194.716,
+      "direction": "LONG",
+      "pnl_net": -0.12,
+      "spread_cost_pct": 0.0123,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -0.053802121810761244,
+    "total_pnl": -0.1702607533448872,
     "wins": 9,
-    "losses": 6
+    "losses": 7
   }
 }
