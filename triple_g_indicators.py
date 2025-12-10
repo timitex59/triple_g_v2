@@ -849,7 +849,7 @@ def main():
     msg_lines.append("")
     
     # FULL ALIGNED DAILY
-    msg_lines.append("🎯 FULL ALIGNED DAILY")
+    msg_lines.append("🎯 FULL ALIGNED")
     if full_aligned_daily:
         for r in full_aligned_daily:
             emoji = "🟢" if r['direction'] == "BULLISH" else "🔴"
