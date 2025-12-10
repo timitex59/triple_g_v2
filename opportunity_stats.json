@@ -11,12 +11,6 @@
       "entry_price": 194.783,
       "direction": "LONG",
       "initial_runner": 0.21712174767571532
-    },
-    "AUDUSD": {
-      "entry_date": "2025-12-10 09:45",
-      "entry_price": 0.66512,
-      "direction": "LONG",
-      "initial_runner": 0.20791273691506432
     }
   },
   "closed_trades": [
@@ -151,11 +145,22 @@
       "pnl_net": 0.02,
       "spread_cost_pct": 0.0194,
       "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "AUDUSD",
+      "entry_date": "2025-12-10 09:45",
+      "exit_date": "2025-12-10 10:39",
+      "entry_price": 0.66512,
+      "exit_price": 0.66472,
+      "direction": "LONG",
+      "pnl_net": -0.08,
+      "spread_cost_pct": 0.0195,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": 0.17457146836685367,
+    "total_pnl": 0.09488659947100525,
     "wins": 9,
-    "losses": 3
+    "losses": 4
   }
 }
