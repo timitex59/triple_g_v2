@@ -1,18 +1,5 @@
 {
-  "active_trades": {
-    "AUDCAD": {
-      "entry_date": "2025-12-10 09:45",
-      "entry_price": 0.92109,
-      "direction": "LONG",
-      "initial_runner": 0.21869695782738785
-    },
-    "CHFJPY": {
-      "entry_date": "2025-12-10 09:45",
-      "entry_price": 194.783,
-      "direction": "LONG",
-      "initial_runner": 0.21712174767571532
-    }
-  },
+  "active_trades": {},
   "closed_trades": [
     {
       "pair": "GBPNZD",
@@ -156,11 +143,33 @@
       "pnl_net": -0.08,
       "spread_cost_pct": 0.0195,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDCAD",
+      "entry_date": "2025-12-10 09:45",
+      "exit_date": "2025-12-10 11:44",
+      "entry_price": 0.92109,
+      "exit_price": 0.92084,
+      "direction": "LONG",
+      "pnl_net": -0.05,
+      "spread_cost_pct": 0.0261,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CHFJPY",
+      "entry_date": "2025-12-10 09:45",
+      "exit_date": "2025-12-10 11:44",
+      "entry_price": 194.783,
+      "exit_price": 194.621,
+      "direction": "LONG",
+      "pnl_net": -0.1,
+      "spread_cost_pct": 0.0123,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": 0.09488659947100525,
+    "total_pnl": -0.053802121810761244,
     "wins": 9,
-    "losses": 4
+    "losses": 6
   }
 }
