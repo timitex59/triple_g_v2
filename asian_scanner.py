@@ -255,6 +255,13 @@ def check_daily_trend(df, pair_name="Unknown", debug=False):
         trend = "BULLISH"
     elif all_below and is_aligned_bear and is_open_bear:
         trend = "BEARISH"
+    
+    # Relaxed trend (only Close vs EMAs, no alignment/open filter)
+    relaxed_trend = "NEUTRAL"
+    if all_above:
+        relaxed_trend = "BULLISH"
+    elif all_below:
+        relaxed_trend = "BEARISH"
 
     if debug:
         try:
@@ -270,6 +277,7 @@ def check_daily_trend(df, pair_name="Unknown", debug=False):
         
     return {
         "trend": trend,
+        "relaxed_trend": relaxed_trend,
         "open": open_price,
         "ema20": ema_20
     }
@@ -292,10 +300,11 @@ def analyze_pair(pair, debug_mode=False):
     debug_this = debug_mode and (pair == debug_mode or debug_mode == "ALL")
     trend_data = check_daily_trend(df_d, pair, debug_this)
     trend = trend_data["trend"]
+    relaxed_trend = trend_data["relaxed_trend"]
     open_price = trend_data["open"]
     ema_20 = trend_data["ema20"]
     
-    if trend == "NEUTRAL":
+    if trend == "NEUTRAL" and relaxed_trend == "NEUTRAL":
         return None 
     
     # 2. H1 Analysis (via TradingView Socket + Fallback)
@@ -350,16 +359,19 @@ def analyze_pair(pair, debug_mode=False):
     current_price_check = df_h1['Close'].iloc[-1]
     range_progress_pct = 0.0
     
-    if trend == "BULLISH":
+    # Use relaxed_trend for progress calculation if trend is NEUTRAL
+    active_trend = trend if trend != "NEUTRAL" else relaxed_trend
+    
+    if active_trend == "BULLISH":
         if asian_low_val > 0:
             range_progress_pct = ((current_price_check - asian_low_val) / asian_low_val) * 100.0
-        if range_progress_pct < 0.2:
+        if trend != "NEUTRAL" and range_progress_pct < 0.2:
             return None
             
-    elif trend == "BEARISH":
+    elif active_trend == "BEARISH":
         if asian_high_val > 0:
             range_progress_pct = ((asian_high_val - current_price_check) / asian_high_val) * 100.0
-        if range_progress_pct < 0.2:
+        if trend != "NEUTRAL" and range_progress_pct < 0.2:
             return None
     # ---------------------------------------------------------------------
     
@@ -438,6 +450,154 @@ def analyze_pair(pair, debug_mode=False):
             "current_price": current_price,
             "runner_pct": runner_pct
         }
+    
+    # --- ALREADY CHECK: Asian Range entirely above/below EMA35 with perfect H1 alignment ---
+    # Get EMA values at the candle where Asian High/Low occurred
+    ema35_at_high = candle_high['EMA_35']
+    ema35_at_low = candle_low['EMA_35']
+    
+    # Get current H1 EMAs for alignment check
+    current_candle = df_h1.iloc[-1]
+    emas_h1 = [current_candle[f'EMA_{l}'] for l in EMA_LENGTHS]
+    
+    # Check perfect H1 alignment
+    is_h1_aligned_bull = all(emas_h1[i] > emas_h1[i+1] for i in range(len(emas_h1)-1))
+    is_h1_aligned_bear = all(emas_h1[i] < emas_h1[i+1] for i in range(len(emas_h1)-1))
+    
+    already_valid = False
+    already_type = ""
+    trigger_level = 0.0
+    stop_loss = 0.0
+    
+    if trend == "BULLISH":
+        # Asian Low must be above EMA35 + Perfect H1 Bull Alignment
+        if asian_low_val > ema35_at_low and is_h1_aligned_bull:
+            already_valid = True
+            already_type = "BUY STOP"
+            trigger_level = asian_high_val
+            stop_loss = asian_low_val
+            
+    elif trend == "BEARISH":
+        # Asian High must be below EMA35 + Perfect H1 Bear Alignment
+        if asian_high_val < ema35_at_high and is_h1_aligned_bear:
+            already_valid = True
+            already_type = "SELL STOP"
+            trigger_level = asian_low_val
+            stop_loss = asian_high_val
+    
+    if already_valid:
+        current_price = df_h1['Close'].iloc[-1]
+        current_open = df_h1['Open'].iloc[-1]
+        
+        # Calculate 50% Fibonacci level of Asian Range
+        fibo_50 = asian_low_val + (asian_high_val - asian_low_val) * 0.5
+        
+        # Determine ALREADY status
+        status = "ALREADY"
+        
+        if trend == "BULLISH":
+            if current_open > fibo_50:  # H1 Open above 50% Fibo
+                status = "ALREADY_TRIGGERED"
+            elif current_price < asian_low_val:
+                status = "ALREADY_INVALIDATED"
+                
+        elif trend == "BEARISH":
+            if current_open < fibo_50:  # H1 Open below 50% Fibo
+                status = "ALREADY_TRIGGERED"
+            elif current_price > asian_high_val:
+                status = "ALREADY_INVALIDATED"
+        
+        return {
+            "pair": pair.replace("=X", ""),
+            "trend": trend,
+            "date": target_date.strftime("%Y-%m-%d"),
+            "session": f"{start_h}h-{end_h}h",
+            "type": already_type,
+            "trigger": trigger_level,
+            "sl": stop_loss,
+            "asian_high": asian_high_val,
+            "asian_low": asian_low_val,
+            "status": status,
+            "daily_open": open_price,
+            "daily_ema20": ema_20,
+            "current_price": current_price,
+            "runner_pct": runner_pct
+        }
+    
+    # --- ALREADY LIGHT CHECK: Relaxed Daily (only Close vs EMAs) + H1 alignment ---
+    # Only check if strict trend is NEUTRAL but relaxed trend is valid
+    if trend == "NEUTRAL" and relaxed_trend != "NEUTRAL":
+        # Get EMA values at the candle where Asian High/Low occurred
+        ema35_at_high = candle_high['EMA_35']
+        ema35_at_low = candle_low['EMA_35']
+        
+        # Get current H1 EMAs for alignment check
+        current_candle = df_h1.iloc[-1]
+        emas_h1 = [current_candle[f'EMA_{l}'] for l in EMA_LENGTHS]
+        
+        # Check perfect H1 alignment
+        is_h1_aligned_bull = all(emas_h1[i] > emas_h1[i+1] for i in range(len(emas_h1)-1))
+        is_h1_aligned_bear = all(emas_h1[i] < emas_h1[i+1] for i in range(len(emas_h1)-1))
+        
+        already_light_valid = False
+        already_light_type = ""
+        trigger_level = 0.0
+        stop_loss = 0.0
+        
+        if relaxed_trend == "BULLISH":
+            # Asian Low must be above EMA35 + Perfect H1 Bull Alignment
+            if asian_low_val > ema35_at_low and is_h1_aligned_bull:
+                already_light_valid = True
+                already_light_type = "BUY STOP"
+                trigger_level = asian_high_val
+                stop_loss = asian_low_val
+                
+        elif relaxed_trend == "BEARISH":
+            # Asian High must be below EMA35 + Perfect H1 Bear Alignment
+            if asian_high_val < ema35_at_high and is_h1_aligned_bear:
+                already_light_valid = True
+                already_light_type = "SELL STOP"
+                trigger_level = asian_low_val
+                stop_loss = asian_high_val
+        
+        if already_light_valid:
+            current_price = df_h1['Close'].iloc[-1]
+            current_open = df_h1['Open'].iloc[-1]
+            
+            # Calculate 50% Fibonacci level of Asian Range
+            fibo_50 = asian_low_val + (asian_high_val - asian_low_val) * 0.5
+            
+            # Determine ALREADY LIGHT status
+            status = "ALREADY_LIGHT"
+            
+            if relaxed_trend == "BULLISH":
+                if current_open > fibo_50:  # H1 Open above 50% Fibo
+                    status = "ALREADY_LIGHT_TRIGGERED"
+                elif current_price < asian_low_val:
+                    status = "ALREADY_LIGHT_INVALIDATED"
+                    
+            elif relaxed_trend == "BEARISH":
+                if current_open < fibo_50:  # H1 Open below 50% Fibo
+                    status = "ALREADY_LIGHT_TRIGGERED"
+                elif current_price > asian_high_val:
+                    status = "ALREADY_LIGHT_INVALIDATED"
+            
+            return {
+                "pair": pair.replace("=X", ""),
+                "trend": relaxed_trend,  # Use relaxed trend
+                "date": target_date.strftime("%Y-%m-%d"),
+                "session": f"{start_h}h-{end_h}h",
+                "type": already_light_type,
+                "trigger": trigger_level,
+                "sl": stop_loss,
+                "asian_high": asian_high_val,
+                "asian_low": asian_low_val,
+                "status": status,
+                "daily_open": open_price,
+                "daily_ema20": ema_20,
+                "current_price": current_price,
+                "runner_pct": runner_pct
+            }
         
     return None
 
@@ -459,21 +619,54 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"⚠️ Error sending Telegram message: {e}")
 
+def is_within_active_hours():
+    """
+    Check if current time is within active trading hours.
+    Active hours: 1 hour after Asian session end until 22h00 (Paris time)
+    - Summer: 07h00 - 22h00
+    - Winter: 08h00 - 22h00
+    """
+    paris_tz = pytz.timezone("Europe/Paris")
+    now_paris = datetime.datetime.now(paris_tz)
+    current_hour = now_paris.hour
+    
+    # Determine start hour based on DST
+    dst = is_dst(now_paris)
+    if dst:
+        start_hour = 7   # Summer: Asian ends at 6h, active from 7h
+    else:
+        start_hour = 8   # Winter: Asian ends at 7h, active from 8h
+    
+    end_hour = 22
+    
+    return start_hour <= current_hour < end_hour, start_hour, end_hour, current_hour
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", type=str, help="Pair to debug (e.g. NZDCAD=X)")
+    parser.add_argument("--force", action="store_true", help="Force scan even outside active hours")
     args = parser.parse_args()
+    
+    print("ASIAN STRATEGY SCANNER")
+    print("======================")
+    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print(f"Time: {current_time}")
+    
+    # Check if within active hours
+    is_active, start_h, end_h, current_h = is_within_active_hours()
+    
+    if not is_active and not args.force:
+        print(f"\n💤 Scanner dormant - Outside active hours")
+        print(f"   Current hour: {current_h}h (Paris)")
+        print(f"   Active hours: {start_h}h - {end_h}h")
+        print(f"\n   Use --force to run anyway.")
+        return
     
     # If debug, clean log file
     if args.debug:
         try: os.remove("e:/asian_strategy/debug_log.txt")
         except: pass
         print(f"DEBUG MODE for {args.debug} (Check debug_log.txt)")
-    
-    print("ASIAN STRATEGY SCANNER")
-    print("======================")
-    current_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    print(f"Time: {current_time}")
     
     debug_target = args.debug if args.debug else False
     scan_list = [debug_target] if debug_target else PAIRS
@@ -502,11 +695,17 @@ def main():
         # 2. Absolute Runner PCT (Descending) - High volatility first
         
         def sort_key(x):
-            # Primary: Status (3=Triggered, 2=Pending, 1=Invalid)
+            # Primary: Status Rank
             s_rank = 0
-            if x['status'] == "TRIGGERED": s_rank = 3
-            elif x['status'] == "PENDING": s_rank = 2
-            else: s_rank = 1
+            if x['status'] == "TRIGGERED": s_rank = 9
+            elif x['status'] == "ALREADY_TRIGGERED": s_rank = 8
+            elif x['status'] == "ALREADY_LIGHT_TRIGGERED": s_rank = 7
+            elif x['status'] == "PENDING": s_rank = 6
+            elif x['status'] == "ALREADY": s_rank = 5
+            elif x['status'] == "ALREADY_LIGHT": s_rank = 4
+            elif x['status'] == "INVALIDATED": s_rank = 3
+            elif x['status'] == "ALREADY_INVALIDATED": s_rank = 2
+            elif x['status'] == "ALREADY_LIGHT_INVALIDATED": s_rank = 1
             
             # Secondary: Absolute PCT
             return (s_rank, abs(x['runner_pct']))
@@ -517,6 +716,12 @@ def main():
         triggered = [r for r in results if r['status'] == "TRIGGERED"]
         pending = [r for r in results if r['status'] == "PENDING"]
         invalidated = [r for r in results if r['status'] == "INVALIDATED"]
+        already = [r for r in results if r['status'] == "ALREADY"]
+        already_triggered = [r for r in results if r['status'] == "ALREADY_TRIGGERED"]
+        already_invalidated = [r for r in results if r['status'] == "ALREADY_INVALIDATED"]
+        already_light = [r for r in results if r['status'] == "ALREADY_LIGHT"]
+        already_light_triggered = [r for r in results if r['status'] == "ALREADY_LIGHT_TRIGGERED"]
+        already_light_invalidated = [r for r in results if r['status'] == "ALREADY_LIGHT_INVALIDATED"]
         
         # Helper for Emoji
         def get_emoji(trend):
@@ -579,6 +784,122 @@ def main():
                 print(f"   Current : {r['current_price']:.5f}")
                 print("-------------------------------------------")
                 # Telegram (Compact)
+                tg_lines.append(f"{emoji} *{r['pair']}* {pct_str}")
+        
+        # 4. ALREADY (Trend continuation - no deep retracement)
+        if already:
+            print("\n ALREADY (TREND CONTINUATION)")
+            print("=" * 40)
+            tg_lines.append("\n📈 *ALREADY*")
+            
+            for r in already:
+                emoji = get_emoji(r['trend'])
+                pct_str = f"({r['runner_pct']:+.2f}%)"
+                
+                # Console
+                print(f"{emoji} {r['pair']} [{r['date']}] ALREADY {pct_str}")
+                print(f"   Signal  : {r['type']} @ {r['trigger']:.5f}")
+                print(f"   StopLoss: {r['sl']:.5f}")
+                print(f"   Current : {r['current_price']:.5f}")
+                print(f"   Note    : Asian range above/below EMA35 + H1 aligned")
+                print("-------------------------------------------")
+                # Telegram
+                tg_lines.append(f"{emoji} *{r['pair']}* {pct_str}")
+        
+        # 5. ALREADY_TRIGGERED
+        if already_triggered:
+            print("\n ALREADY TRIGGERED (CONTINUATION ACTIVE)")
+            print("=" * 40)
+            tg_lines.append("\n🔥 *ALREADY ACTIVE*")
+            
+            for r in already_triggered:
+                emoji = get_emoji(r['trend'])
+                pct_str = f"({r['runner_pct']:+.2f}%)"
+                
+                # Console
+                print(f"{emoji} {r['pair']} [{r['date']}] ALREADY_TRIGGERED {pct_str}")
+                print(f"   Signal  : {r['type']} @ {r['trigger']:.5f}")
+                print(f"   StopLoss: {r['sl']:.5f}")
+                print(f"   Note    : Level {r['trigger']:.5f} broken (continuation)!")
+                print("-------------------------------------------")
+                # Telegram
+                tg_lines.append(f"{emoji} *{r['pair']}* {pct_str}")
+        
+        # 6. ALREADY_INVALIDATED
+        if already_invalidated:
+            print("\n ALREADY INVALIDATED")
+            print("=" * 40)
+            tg_lines.append("\n💨 *ALREADY INVALID*")
+            
+            for r in already_invalidated:
+                emoji = get_emoji(r['trend'])
+                pct_str = f"({r['runner_pct']:+.2f}%)"
+                
+                # Console
+                print(f"{emoji} {r['pair']} [{r['date']}] ALREADY_INVALIDATED {pct_str}")
+                print(f"   Signal  : {r['type']} @ {r['trigger']:.5f}")
+                print(f"   StopLoss: {r['sl']:.5f} (Price beyond SL)")
+                print(f"   Current : {r['current_price']:.5f}")
+                print("-------------------------------------------")
+                # Telegram
+                tg_lines.append(f"{emoji} *{r['pair']}* {pct_str}")
+        
+        # 7. ALREADY_LIGHT (Relaxed Daily - trend continuation)
+        if already_light:
+            print("\n ALREADY LIGHT (RELAXED DAILY)")
+            print("=" * 40)
+            tg_lines.append("\n📊 *ALREADY LIGHT*")
+            
+            for r in already_light:
+                emoji = get_emoji(r['trend'])
+                pct_str = f"({r['runner_pct']:+.2f}%)"
+                
+                # Console
+                print(f"{emoji} {r['pair']} [{r['date']}] ALREADY_LIGHT {pct_str}")
+                print(f"   Signal  : {r['type']} @ {r['trigger']:.5f}")
+                print(f"   StopLoss: {r['sl']:.5f}")
+                print(f"   Current : {r['current_price']:.5f}")
+                print(f"   Note    : Relaxed Daily (Close only) + H1 aligned")
+                print("-------------------------------------------")
+                # Telegram
+                tg_lines.append(f"{emoji} *{r['pair']}* {pct_str}")
+        
+        # 8. ALREADY_LIGHT_TRIGGERED
+        if already_light_triggered:
+            print("\n ALREADY LIGHT TRIGGERED")
+            print("=" * 40)
+            tg_lines.append("\n✨ *ALREADY LIGHT ACTIVE*")
+            
+            for r in already_light_triggered:
+                emoji = get_emoji(r['trend'])
+                pct_str = f"({r['runner_pct']:+.2f}%)"
+                
+                # Console
+                print(f"{emoji} {r['pair']} [{r['date']}] ALREADY_LIGHT_TRIGGERED {pct_str}")
+                print(f"   Signal  : {r['type']} @ {r['trigger']:.5f}")
+                print(f"   StopLoss: {r['sl']:.5f}")
+                print(f"   Note    : Level {r['trigger']:.5f} broken (light)!")
+                print("-------------------------------------------")
+                # Telegram
+                tg_lines.append(f"{emoji} *{r['pair']}* {pct_str}")
+        
+        # 9. ALREADY_LIGHT_INVALIDATED
+        if already_light_invalidated:
+            print("\n ALREADY LIGHT INVALIDATED")
+            print("=" * 40)
+            tg_lines.append("\n💤 *ALREADY LIGHT INVALID*")
+            
+            for r in already_light_invalidated:
+                emoji = get_emoji(r['trend'])
+                pct_str = f"({r['runner_pct']:+.2f}%)"
+                
+                # Console
+                print(f"{emoji} {r['pair']} [{r['date']}] ALREADY_LIGHT_INVALIDATED {pct_str}")
+                print(f"   Signal  : {r['type']} @ {r['trigger']:.5f}")
+                print(f"   StopLoss: {r['sl']:.5f} (Price beyond SL)")
+                print(f"   Current : {r['current_price']:.5f}")
+                print("-------------------------------------------")
+                # Telegram
                 tg_lines.append(f"{emoji} *{r['pair']}* {pct_str}")
 
     # Footer with Time
