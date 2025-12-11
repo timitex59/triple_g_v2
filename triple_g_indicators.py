@@ -793,14 +793,30 @@ def main():
     print("\n")
 
     # --- CONFLUENCE ---
+    # Source 1: SHORT ∩ LARGE
     short_pairs = set(r['pair'] for r in top_5_short)
     large_pairs = set(r['pair'] for r in top_5_large)
-    confluence_pairs = short_pairs & large_pairs
+    confluence_short_large = short_pairs & large_pairs
+    
+    # Source 2: PRICE vs 8 EMAs ∩ BIG 3
+    price_emas_pairs = set(r['pair'] for r in price_emas_daily)
+    
+    # Calculate BIG 3 pairs here (needed for confluence)
+    all_aligned_pairs_temp = {r['pair']: r for r in top_5_short}
+    for r in top_5_large:
+        if r['pair'] not in all_aligned_pairs_temp:
+            all_aligned_pairs_temp[r['pair']] = r
+    big3_pairs_temp = set(r['pair'] for r in sorted(all_aligned_pairs_temp.values(), key=lambda x: abs(x['pct']), reverse=True)[:3])
+    
+    confluence_price_big3 = price_emas_pairs & big3_pairs_temp
+    
+    # Combined CONFLUENCE = (SHORT ∩ LARGE) ∪ (PRICE vs EMAs ∩ BIG 3)
+    confluence_pairs = confluence_short_large | confluence_price_big3
     
     confluence_runners = [r for r in results if r['pair'] in confluence_pairs]
     confluence_runners.sort(key=lambda x: abs(x['pct']), reverse=True)
     
-    print(f"⭐ CONFLUENCE (SHORT ∩ LARGE)")
+    print(f"⭐ CONFLUENCE")
     print(f"{'PAIRE':<12} | {'RUNNER':<10}")
     print("-" * 27)
     if not confluence_runners:
