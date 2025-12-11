@@ -1,11 +1,5 @@
 {
   "active_trades": {
-    "AUDNZD": {
-      "entry_date": "2025-12-11 06:40",
-      "entry_price": 1.14472,
-      "direction": "SHORT",
-      "initial_runner": -0.2909255613818198
-    },
     "USDCHF": {
       "entry_date": "2025-12-11 10:40",
       "entry_price": 0.79809,
@@ -278,11 +272,22 @@
       "pnl_net": -0.02,
       "spread_cost_pct": 0.0214,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDNZD",
+      "entry_date": "2025-12-11 06:40",
+      "exit_date": "2025-12-11 16:41",
+      "entry_price": 1.14472,
+      "exit_price": 1.14515,
+      "direction": "SHORT",
+      "pnl_net": -0.06,
+      "spread_cost_pct": 0.0271,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": 0.4743743312395375,
+    "total_pnl": 0.40972970198522807,
     "wins": 13,
-    "losses": 10
+    "losses": 11
   }
 }
