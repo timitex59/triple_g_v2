@@ -11,18 +11,6 @@
       "entry_price": 0.79809,
       "direction": "SHORT",
       "initial_runner": -0.21879375875175402
-    },
-    "CHFJPY": {
-      "entry_date": "2025-12-11 11:43",
-      "entry_price": 195.385,
-      "direction": "LONG",
-      "initial_runner": 0.2056579001353865
-    },
-    "EURCHF": {
-      "entry_date": "2025-12-11 12:31",
-      "entry_price": 0.93317,
-      "direction": "SHORT",
-      "initial_runner": -0.23840068419926813
     }
   },
   "closed_trades": [
@@ -256,11 +244,33 @@
       "pnl_net": -0.13,
       "spread_cost_pct": 0.0309,
       "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "CHFJPY",
+      "entry_date": "2025-12-11 11:43",
+      "exit_date": "2025-12-11 14:08",
+      "entry_price": 195.385,
+      "exit_price": 195.248,
+      "direction": "LONG",
+      "pnl_net": -0.08,
+      "spread_cost_pct": 0.0123,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURCHF",
+      "entry_date": "2025-12-11 12:31",
+      "exit_date": "2025-12-11 14:08",
+      "entry_price": 0.93317,
+      "exit_price": 0.9332,
+      "direction": "SHORT",
+      "pnl_net": -0.02,
+      "spread_cost_pct": 0.0214,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": 0.5814229142328562,
+    "total_pnl": 0.4743743312395375,
     "wins": 13,
-    "losses": 8
+    "losses": 10
   }
 }
