@@ -23,12 +23,6 @@
       "entry_price": 195.617,
       "direction": "LONG",
       "initial_runner": 0.32464202190948044
-    },
-    "EURJPY": {
-      "entry_date": "2025-12-11 20:32",
-      "entry_price": 182.717,
-      "direction": "LONG",
-      "initial_runner": 0.20071181402899568
     }
   },
   "closed_trades": [
@@ -295,11 +289,22 @@
       "pnl_net": -0.06,
       "spread_cost_pct": 0.0271,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURJPY",
+      "entry_date": "2025-12-11 20:32",
+      "exit_date": "2025-12-11 20:50",
+      "entry_price": 182.717,
+      "exit_price": 182.672,
+      "direction": "LONG",
+      "pnl_net": -0.04,
+      "spread_cost_pct": 0.0109,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": 0.40972970198522807,
+    "total_pnl": 0.37415556274256545,
     "wins": 13,
-    "losses": 11
+    "losses": 12
   }
 }
