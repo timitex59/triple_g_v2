@@ -1,12 +1,5 @@
 {
-  "active_trades": {
-    "AUDCAD": {
-      "entry_date": "2025-12-12 20:12",
-      "entry_price": 0.9159,
-      "direction": "SHORT",
-      "initial_runner": -0.22114976087500965
-    }
-  },
+  "active_trades": {},
   "closed_trades": [
     {
       "pair": "GBPNZD",
@@ -535,11 +528,22 @@
       "pnl_net": -0.02,
       "spread_cost_pct": 0.0109,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDCAD",
+      "entry_date": "2025-12-12 20:12",
+      "exit_date": "2025-12-12 22:31",
+      "entry_price": 0.9159,
+      "exit_price": 0.91576,
+      "direction": "SHORT",
+      "pnl_net": -0.01,
+      "spread_cost_pct": 0.0262,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
     }
   ],
   "performance": {
-    "total_pnl": -1.3691388333386503,
+    "total_pnl": -1.380057055852022,
     "wins": 16,
-    "losses": 32
+    "losses": 33
   }
 }
