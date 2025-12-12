@@ -368,25 +368,36 @@ def main():
         ema_emoji = ema_status.split()[-1] if ema_status else "⚪"
         align_emoji = ema_aligned.split()[-1] if ema_aligned else "⚪"
         return ema_emoji, align_emoji
+    
+    # --- HELPER: CHECK EMA COHERENCE ---
+    def is_ema_coherent(runner_emoji, ema_e, align_e):
+        """Check if runner direction is coherent with EMA indicators.
+        🟢 runner → EMA must be 🟢 or ⚪ (not 🔴)
+        🔴 runner → EMA must be 🔴 or ⚪ (not 🟢)
+        """
+        if runner_emoji == "🟢":
+            return ema_e != "🔴" and align_e != "🔴"
+        elif runner_emoji == "🔴":
+            return ema_e != "🟢" and align_e != "🟢"
+        return True  # ⚪ is always coherent
 
     # --- CONSTRUCTION RAPPORT TELEGRAM ---
     msg_lines = ["🚀 <b>ANALYSE RUNNER</b>", ""]
 
-    # 1. CHFJPY LINE
+    # 1. CHFJPY LINE (only if coherent)
     if chfjpy_res:
         pct = chfjpy_res['pct']
         emoji = "🟢" if pct > 0 else "🔴" if pct < 0 else "⚪"
         ema_e, align_e = get_ema_indicators_for_pair("CHFJPY=X")
         print(f"🟢 CHFJPY {pct:+.2f}%")
-        msg_lines.append(f"{emoji} <b>{chfjpy_res['pair']}</b> {pct:+.2f}% | {ema_e}{align_e}")
-    else:
-        msg_lines.append("⚠️ CHFJPY non trouvé")
+        if is_ema_coherent(emoji, ema_e, align_e):
+            msg_lines.append(f"{emoji} <b>{chfjpy_res['pair']}</b> {pct:+.2f}% | {ema_e}{align_e}")
 
     # Variables pour stocker les infos unifiées
     final_top_strong = None
     final_last_weak = None
 
-    # 2. TOP DUEL / INTRUE
+    # 2. TOP DUEL / INTRUE (keep logic for Duel calculation, but don't add to Telegram)
     top_list = results[:2]
     if len(top_list) >= 2:
         info_type, info_value = get_relative_info(top_list[0]['pair'], top_list[1]['pair'])
@@ -394,21 +405,15 @@ def main():
             rel_data = fetch_pair_data_smart(f"{info_value}=X")
             if rel_data:
                 rp = rel_data['pct']
-                re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
-                ema_e, align_e = get_ema_indicators_for_pair(f"{info_value}=X")
-                print(f"🚀 Top: {re} {info_value} {rp:+.2f}%")
-                msg_lines.append(f"🚀 Top: {re} {info_value} {rp:+.2f}% | {ema_e}{align_e}")
-                
+                print(f"🚀 Top: {'🟢' if rp > 0 else '🔴'} {info_value} {rp:+.2f}%")
                 if rp > 0: final_top_strong = info_value[:3]
                 else: final_top_strong = info_value[3:]
 
         elif info_type in ["single", "intrus"]:
-            lbl = "Top"
-            print(f"🚀 {lbl}: {info_value}")
-            msg_lines.append(f"🚀 {lbl}: <b>{info_value}</b>")
+            print(f"🚀 Top: {info_value}")
             final_top_strong = info_value
 
-    # 3. LAST DUEL / INTRUE
+    # 3. LAST DUEL / INTRUE (keep logic for Duel calculation, but don't add to Telegram)
     start_index = max(2, len(results) - 2)
     last_list = results[start_index:]
     
@@ -420,21 +425,15 @@ def main():
             rel_data = fetch_pair_data_smart(f"{info_value}=X")
             if rel_data:
                 rp = rel_data['pct']
-                re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
-                ema_e, align_e = get_ema_indicators_for_pair(f"{info_value}=X")
-                print(f"📉 Last: {re} {info_value} {rp:+.2f}%")
-                msg_lines.append(f"📉 Last: {re} {info_value} {rp:+.2f}% | {ema_e}{align_e}")
-                
+                print(f"📉 Last: {'🟢' if rp > 0 else '🔴'} {info_value} {rp:+.2f}%")
                 if rp < 0: final_last_weak = info_value[:3] 
                 else: final_last_weak = info_value[3:]
 
         elif info_type in ["single", "intrus"]:
-            lbl = "Last"
-            print(f"📉 {lbl}: {info_value}")
-            msg_lines.append(f"📉 {lbl}: <b>{info_value}</b>")
+            print(f"📉 Last: {info_value}")
             final_last_weak = info_value
 
-    # 4. DUEL & DUEL
+    # 4. DUEL & DUEL (only add to Telegram if coherent)
     if final_top_strong and final_last_weak and final_top_strong != final_last_weak:
         candidate1 = f"{final_top_strong}{final_last_weak}"
         candidate2 = f"{final_last_weak}{final_top_strong}"
@@ -451,7 +450,8 @@ def main():
                 dd_emoji = "🟢" if dd_pct > 0 else "🔴" if dd_pct < 0 else "⚪"
                 ema_e, align_e = get_ema_indicators_for_pair(f"{final_pair}=X")
                 print(f"⚔️ Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}%")
-                msg_lines.append(f"⚔️ Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}% | {ema_e}{align_e}")
+                if is_ema_coherent(dd_emoji, ema_e, align_e):
+                    msg_lines.append(f"⚔️ Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}% | {ema_e}{align_e}")
     
     # Time (handled by caller logic usually, but here it's inside main)
     # The existing code prints "Analyse terminée" then sends.
