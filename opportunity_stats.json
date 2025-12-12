@@ -1,28 +1,10 @@
 {
   "active_trades": {
-    "EURGBP": {
-      "entry_date": "2025-12-12 19:48",
-      "entry_price": 0.8787,
-      "direction": "LONG",
-      "initial_runner": 0.23613154922829657
-    },
-    "GBPCAD": {
-      "entry_date": "2025-12-12 19:48",
-      "entry_price": 1.83998,
-      "direction": "SHORT",
-      "initial_runner": -0.21421637480816083
-    },
     "AUDCAD": {
       "entry_date": "2025-12-12 20:12",
       "entry_price": 0.9159,
       "direction": "SHORT",
       "initial_runner": -0.22114976087500965
-    },
-    "EURJPY": {
-      "entry_date": "2025-12-12 20:29",
-      "entry_price": 182.998,
-      "direction": "LONG",
-      "initial_runner": 0.20040299618904978
     }
   },
   "closed_trades": [
@@ -520,11 +502,44 @@
       "pnl_net": -0.03,
       "spread_cost_pct": 0.0262,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURGBP",
+      "entry_date": "2025-12-12 19:48",
+      "exit_date": "2025-12-12 21:36",
+      "entry_price": 0.8787,
+      "exit_price": 0.87832,
+      "direction": "LONG",
+      "pnl_net": -0.06,
+      "spread_cost_pct": 0.0205,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCAD",
+      "entry_date": "2025-12-12 19:48",
+      "exit_date": "2025-12-12 21:36",
+      "entry_price": 1.83998,
+      "exit_price": 1.84068,
+      "direction": "SHORT",
+      "pnl_net": -0.05,
+      "spread_cost_pct": 0.0168,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURJPY",
+      "entry_date": "2025-12-12 20:29",
+      "exit_date": "2025-12-12 21:36",
+      "entry_price": 182.998,
+      "exit_price": 182.974,
+      "direction": "LONG",
+      "pnl_net": -0.02,
+      "spread_cost_pct": 0.0109,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -1.2264724427348628,
+    "total_pnl": -1.3691388333386503,
     "wins": 16,
-    "losses": 29
+    "losses": 32
   }
 }
