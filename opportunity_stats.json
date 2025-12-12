@@ -24,11 +24,11 @@
       "direction": "LONG",
       "initial_runner": 0.2217480171228027
     },
-    "GBPCAD": {
-      "entry_date": "2025-12-12 11:41",
-      "entry_price": 1.84016,
-      "direction": "SHORT",
-      "initial_runner": -0.20445461595613992
+    "AUDJPY": {
+      "entry_date": "2025-12-12 14:05",
+      "entry_price": 103.998,
+      "direction": "LONG",
+      "initial_runner": 0.2864003240084582
     }
   },
   "closed_trades": [
@@ -372,11 +372,22 @@
       "pnl_net": -0.07,
       "spread_cost_pct": 0.0212,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCAD",
+      "entry_date": "2025-12-12 11:41",
+      "exit_date": "2025-12-12 14:05",
+      "entry_price": 1.84016,
+      "exit_price": 1.84086,
+      "direction": "SHORT",
+      "pnl_net": -0.05,
+      "spread_cost_pct": 0.0168,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": 0.3759100725004806,
+    "total_pnl": 0.32102354089453744,
     "wins": 16,
-    "losses": 15
+    "losses": 16
   }
 }
