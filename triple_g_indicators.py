@@ -99,6 +99,7 @@ def get_clean_pair_name(ticker):
 
 # --- DATA ENGINE (TV + YAHOO FALLBACK + CACHE) ---
 CACHE_FILE = "market_cache.pkl"
+CACHE_MAX_AGE_SECONDS = 300  # 5 minutes max
 GLOBAL_CACHE = None
 
 def load_global_cache():
@@ -109,8 +110,21 @@ def load_global_cache():
         try:
             import pickle
             with open(CACHE_FILE, "rb") as f:
-                GLOBAL_CACHE = pickle.load(f)
-            # print(f"📦 Cache chargé ({len(GLOBAL_CACHE)} paires)")
+                cache_data = pickle.load(f)
+            
+            # Check if new format with timestamp
+            if isinstance(cache_data, dict) and "timestamp" in cache_data:
+                cache_age = time.time() - cache_data["timestamp"]
+                if cache_age > CACHE_MAX_AGE_SECONDS:
+                    print(f"⚠️ Cache périmé ({cache_age:.0f}s > {CACHE_MAX_AGE_SECONDS}s) - Données fraîches requises")
+                    GLOBAL_CACHE = {}
+                else:
+                    GLOBAL_CACHE = cache_data["data"]
+                    print(f"📦 Cache valide ({cache_age:.0f}s) - {len(GLOBAL_CACHE)} paires")
+            else:
+                # Old format without timestamp - accept but warn
+                GLOBAL_CACHE = cache_data
+                print(f"⚠️ Cache ancien format (sans timestamp) - {len(GLOBAL_CACHE)} paires")
         except Exception:
             GLOBAL_CACHE = {}
     else:

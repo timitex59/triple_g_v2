@@ -165,11 +165,15 @@ def main():
             else:
                 print(f"❌ {future_to_pair[future]}")
 
-    # Sauvegarde Pickle
+    # Sauvegarde Pickle avec timestamp
     print(f"\nSauvegarde du cache ({len(global_cache)} paires)...")
     try:
+        cache_with_meta = {
+            "timestamp": time.time(),
+            "data": global_cache
+        }
         with open(CACHE_FILE, "wb") as f:
-            pickle.dump(global_cache, f)
+            pickle.dump(cache_with_meta, f)
         print(f"✅ Cache sauvegardé avec succès ({os.path.getsize(CACHE_FILE) / 1024:.1f} KB)")
     except Exception as e:
         print(f"⚠️ Erreur sauvegarde cache: {e}")
