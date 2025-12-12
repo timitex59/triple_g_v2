@@ -854,12 +854,22 @@ def main():
     
     msg_lines = ["🚀 TRIPLE G SCAN 🚀", ""]
     
+    # Helper to get EMA indicators
+    def get_ema_short(r):
+        """Get EMA gap and aligned emojis from result."""
+        d_ema = r.get('d_ema', 'NEUTRAL ⚪')
+        d_align = r.get('d_align', 'NEUTRAL ⚪')
+        ema_emoji = d_ema.split()[-1] if d_ema else "⚪"
+        align_emoji = d_align.split()[-1] if d_align else "⚪"
+        return ema_emoji, align_emoji
+    
     # PRICE vs 8 EMAs DAILY
     msg_lines.append("💹 PRICE vs 8 EMAs")
     if price_emas_daily:
         for r in price_emas_daily:
             emoji = "🟢" if r['direction'] == "BULLISH" else "🔴"
-            msg_lines.append(f"{emoji} {r['pair']} ({r['pct']:+.2f}%)")
+            ema_e, align_e = get_ema_short(r)
+            msg_lines.append(f"{emoji} {r['pair']} ({r['pct']:+.2f}%) | {ema_e}{align_e}")
     else:
         msg_lines.append("Aucune")
     msg_lines.append("")
@@ -869,7 +879,8 @@ def main():
     if full_aligned_daily:
         for r in full_aligned_daily:
             emoji = "🟢" if r['direction'] == "BULLISH" else "🔴"
-            msg_lines.append(f"{emoji} {r['pair']} ({r['pct']:+.2f}%)")
+            ema_e, align_e = get_ema_short(r)
+            msg_lines.append(f"{emoji} {r['pair']} ({r['pct']:+.2f}%) | {ema_e}{align_e}")
     else:
         msg_lines.append("Aucune")
     msg_lines.append("")
@@ -882,7 +893,8 @@ def main():
     for r in big3_runners:
         emoji = "🟢" if r['pct'] > 0 else "🔴"
         mark = "🔥" if r['pair'] in common_pairs else ""
-        msg_lines.append(f"{emoji}{mark}{r['pair']} ({r['pct']:+.2f}%)")
+        ema_e, align_e = get_ema_short(r)
+        msg_lines.append(f"{emoji}{mark}{r['pair']} ({r['pct']:+.2f}%) | {ema_e}{align_e}")
     msg_lines.append("")
     
     msg_lines.append("⭐️ CONFLUENCE")
@@ -890,7 +902,8 @@ def main():
         for r in confluence_runners:
             emoji = "🟢" if r['pct'] > 0 else "🔴"
             mark = "🔥" if r['pair'] in common_pairs else ""
-            msg_lines.append(f"{emoji}{mark}{r['pair']} ({r['pct']:+.2f}%)")
+            ema_e, align_e = get_ema_short(r)
+            msg_lines.append(f"{emoji}{mark}{r['pair']} ({r['pct']:+.2f}%) | {ema_e}{align_e}")
     else:
         msg_lines.append("Aucune")
     

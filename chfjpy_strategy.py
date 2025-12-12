@@ -44,6 +44,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from websocket import create_connection
 from dotenv import load_dotenv
 
+# Import EMA indicators from triple_g_indicators
+from triple_g_indicators import calculate_ema_gap_status, calculate_ema_aligned_status, fetch_data_smart
+
 # Charger les variables d'environnement
 load_dotenv()
 
@@ -354,6 +357,18 @@ def main():
             return ("pair", final_pair)
         return (None, None)
 
+    # --- HELPER: GET EMA INDICATORS ---
+    def get_ema_indicators_for_pair(pair_yahoo):
+        """Fetch daily data and calculate EMA indicators."""
+        df_d = fetch_data_smart(pair_yahoo, "1d", n_candles=300)
+        if df_d is None or df_d.empty:
+            return "⚪", "⚪"
+        ema_status = calculate_ema_gap_status(df_d)
+        ema_aligned = calculate_ema_aligned_status(df_d)
+        ema_emoji = ema_status.split()[-1] if ema_status else "⚪"
+        align_emoji = ema_aligned.split()[-1] if ema_aligned else "⚪"
+        return ema_emoji, align_emoji
+
     # --- CONSTRUCTION RAPPORT TELEGRAM ---
     msg_lines = ["🚀 <b>ANALYSE RUNNER</b>", ""]
 
@@ -361,8 +376,9 @@ def main():
     if chfjpy_res:
         pct = chfjpy_res['pct']
         emoji = "🟢" if pct > 0 else "🔴" if pct < 0 else "⚪"
+        ema_e, align_e = get_ema_indicators_for_pair("CHFJPY=X")
         print(f"🟢 CHFJPY {pct:+.2f}%")
-        msg_lines.append(f"{emoji} <b>{chfjpy_res['pair']}</b> {pct:+.2f}%")
+        msg_lines.append(f"{emoji} <b>{chfjpy_res['pair']}</b> {pct:+.2f}% | {ema_e}{align_e}")
     else:
         msg_lines.append("⚠️ CHFJPY non trouvé")
 
@@ -379,8 +395,9 @@ def main():
             if rel_data:
                 rp = rel_data['pct']
                 re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
+                ema_e, align_e = get_ema_indicators_for_pair(f"{info_value}=X")
                 print(f"🚀 Top: {re} {info_value} {rp:+.2f}%")
-                msg_lines.append(f"🚀 Top: {re} {info_value} {rp:+.2f}%")
+                msg_lines.append(f"🚀 Top: {re} {info_value} {rp:+.2f}% | {ema_e}{align_e}")
                 
                 if rp > 0: final_top_strong = info_value[:3]
                 else: final_top_strong = info_value[3:]
@@ -404,8 +421,9 @@ def main():
             if rel_data:
                 rp = rel_data['pct']
                 re = "🟢" if rp > 0 else "🔴" if rp < 0 else "⚪"
+                ema_e, align_e = get_ema_indicators_for_pair(f"{info_value}=X")
                 print(f"📉 Last: {re} {info_value} {rp:+.2f}%")
-                msg_lines.append(f"📉 Last: {re} {info_value} {rp:+.2f}%")
+                msg_lines.append(f"📉 Last: {re} {info_value} {rp:+.2f}% | {ema_e}{align_e}")
                 
                 if rp < 0: final_last_weak = info_value[:3] 
                 else: final_last_weak = info_value[3:]
@@ -431,8 +449,9 @@ def main():
             if dd_data:
                 dd_pct = dd_data['pct']
                 dd_emoji = "🟢" if dd_pct > 0 else "🔴" if dd_pct < 0 else "⚪"
+                ema_e, align_e = get_ema_indicators_for_pair(f"{final_pair}=X")
                 print(f"⚔️ Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}%")
-                msg_lines.append(f"⚔️ Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}%")
+                msg_lines.append(f"⚔️ Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}% | {ema_e}{align_e}")
     
     # Time (handled by caller logic usually, but here it's inside main)
     # The existing code prints "Analyse terminée" then sends.
