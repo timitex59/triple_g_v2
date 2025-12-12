@@ -5,18 +5,6 @@
       "entry_price": 0.91543,
       "direction": "SHORT",
       "initial_runner": -0.2723519222598736
-    },
-    "GBPCHF": {
-      "entry_date": "2025-12-12 16:36",
-      "entry_price": 1.06271,
-      "direction": "SHORT",
-      "initial_runner": -0.25810448069378766
-    },
-    "EURGBP": {
-      "entry_date": "2025-12-12 17:42",
-      "entry_price": 0.87876,
-      "direction": "LONG",
-      "initial_runner": 0.24297594195954567
     }
   },
   "closed_trades": [
@@ -426,11 +414,33 @@
       "pnl_net": -0.08,
       "spread_cost_pct": 0.0096,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCHF",
+      "entry_date": "2025-12-12 16:36",
+      "exit_date": "2025-12-12 18:27",
+      "entry_price": 1.06271,
+      "exit_price": 1.06348,
+      "direction": "SHORT",
+      "pnl_net": -0.1,
+      "spread_cost_pct": 0.0263,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURGBP",
+      "entry_date": "2025-12-12 17:42",
+      "exit_date": "2025-12-12 18:27",
+      "entry_price": 0.87876,
+      "exit_price": 0.87849,
+      "direction": "LONG",
+      "pnl_net": -0.05,
+      "spread_cost_pct": 0.0205,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -0.7671172204120997,
+    "total_pnl": -0.9171297426015527,
     "wins": 16,
-    "losses": 21
+    "losses": 23
   }
 }
