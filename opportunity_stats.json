@@ -1,22 +1,16 @@
 {
   "active_trades": {
-    "AUDCAD": {
-      "entry_date": "2025-12-12 16:36",
-      "entry_price": 0.91543,
-      "direction": "SHORT",
-      "initial_runner": -0.2723519222598736
-    },
-    "EURGBP": {
-      "entry_date": "2025-12-12 18:35",
-      "entry_price": 0.87865,
+    "CADJPY": {
+      "entry_date": "2025-12-12 19:17",
+      "entry_price": 113.207,
       "direction": "LONG",
-      "initial_runner": 0.2304278886189181
+      "initial_runner": 0.20624214421016326
     },
-    "GBPCAD": {
-      "entry_date": "2025-12-12 18:35",
-      "entry_price": 1.84022,
-      "direction": "SHORT",
-      "initial_runner": -0.2012006963388036
+    "EURJPY": {
+      "entry_date": "2025-12-12 19:17",
+      "entry_price": 182.998,
+      "direction": "LONG",
+      "initial_runner": 0.20040299618904978
     }
   },
   "closed_trades": [
@@ -448,11 +442,44 @@
       "pnl_net": -0.05,
       "spread_cost_pct": 0.0205,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDCAD",
+      "entry_date": "2025-12-12 16:36",
+      "exit_date": "2025-12-12 19:17",
+      "entry_price": 0.91543,
+      "exit_price": 0.91611,
+      "direction": "SHORT",
+      "pnl_net": -0.1,
+      "spread_cost_pct": 0.0262,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURGBP",
+      "entry_date": "2025-12-12 18:35",
+      "exit_date": "2025-12-12 19:17",
+      "entry_price": 0.87865,
+      "exit_price": 0.87832,
+      "direction": "LONG",
+      "pnl_net": -0.06,
+      "spread_cost_pct": 0.0205,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCAD",
+      "entry_date": "2025-12-12 18:35",
+      "exit_date": "2025-12-12 19:17",
+      "entry_price": 1.84022,
+      "exit_price": 1.8404,
+      "direction": "SHORT",
+      "pnl_net": -0.03,
+      "spread_cost_pct": 0.0168,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -0.9171297426015527,
+    "total_pnl": -1.1022998022350734,
     "wins": 16,
-    "losses": 23
+    "losses": 26
   }
 }
