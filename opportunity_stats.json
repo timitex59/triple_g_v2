@@ -1,22 +1,10 @@
 {
   "active_trades": {
-    "NZDJPY": {
-      "entry_date": "2025-12-12 09:47",
-      "entry_price": 90.597,
-      "direction": "LONG",
-      "initial_runner": 0.25784604488512003
-    },
     "CHFJPY": {
       "entry_date": "2025-12-12 10:38",
       "entry_price": 196.07,
       "direction": "LONG",
       "initial_runner": 0.27104428761378807
-    },
-    "CADJPY": {
-      "entry_date": "2025-12-12 10:38",
-      "entry_price": 113.272,
-      "direction": "LONG",
-      "initial_runner": 0.2637775063288914
     },
     "USDJPY": {
       "entry_date": "2025-12-12 11:41",
@@ -24,11 +12,17 @@
       "direction": "LONG",
       "initial_runner": 0.2217480171228027
     },
-    "AUDJPY": {
-      "entry_date": "2025-12-12 14:05",
-      "entry_price": 103.998,
-      "direction": "LONG",
-      "initial_runner": 0.2864003240084582
+    "AUDCAD": {
+      "entry_date": "2025-12-12 16:36",
+      "entry_price": 0.91543,
+      "direction": "SHORT",
+      "initial_runner": -0.2723519222598736
+    },
+    "GBPCHF": {
+      "entry_date": "2025-12-12 16:36",
+      "entry_price": 1.06271,
+      "direction": "SHORT",
+      "initial_runner": -0.25810448069378766
     }
   },
   "closed_trades": [
@@ -383,11 +377,44 @@
       "pnl_net": -0.05,
       "spread_cost_pct": 0.0168,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "NZDJPY",
+      "entry_date": "2025-12-12 09:47",
+      "exit_date": "2025-12-12 16:36",
+      "entry_price": 90.597,
+      "exit_price": 90.366,
+      "direction": "LONG",
+      "pnl_net": -0.28,
+      "spread_cost_pct": 0.0265,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-12 10:38",
+      "exit_date": "2025-12-12 16:36",
+      "entry_price": 113.272,
+      "exit_price": 113.174,
+      "direction": "LONG",
+      "pnl_net": -0.11,
+      "spread_cost_pct": 0.0194,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-12 14:05",
+      "exit_date": "2025-12-12 16:36",
+      "entry_price": 103.998,
+      "exit_price": 103.597,
+      "direction": "LONG",
+      "pnl_net": -0.41,
+      "spread_cost_pct": 0.0212,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": 0.32102354089453744,
+    "total_pnl": -0.47312100895589415,
     "wins": 16,
-    "losses": 16
+    "losses": 19
   }
 }
