@@ -466,7 +466,9 @@ def main():
                 ema_e, align_e = get_ema_indicators_for_pair(f"{final_pair}=X")
                 print(f"⚔️ Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}%")
                 if is_ema_coherent(dd_emoji, ema_e, align_e):
-                    msg_lines.append(f"⚔️ Duel : {dd_emoji} {final_pair} {dd_pct:+.2f}% | {ema_e}{align_e}")
+                    msg_lines.append("")
+                    msg_lines.append("⚔️ Duel :")
+                    msg_lines.append(f"{dd_emoji} {final_pair} {dd_pct:+.2f}% | {ema_e}{align_e}")
     
     # Time (handled by caller logic usually, but here it's inside main)
     # The existing code prints "Analyse terminée" then sends.
