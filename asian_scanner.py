@@ -733,23 +733,12 @@ def main():
         def get_emoji(trend):
             return "🟢" if trend == "BULLISH" else "🔴"
         
-        # Helper to check trend/runner coherence
-        def is_runner_coherent(r):
-            """Returns True if runner direction matches trend direction."""
-            trend = r.get('trend', 'NEUTRAL')
-            runner = r.get('runner_pct', 0)
-            if trend == "BULLISH" and runner <= 0:
-                return False
-            if trend == "BEARISH" and runner >= 0:
-                return False
-            return True
-        
         # Helper for EMA indicators
         def get_ema_indicators(r):
             """Get EMA status and aligned status from daily dataframe."""
             df_d = r.get('df_d')
             if df_d is None or df_d.empty:
-                return "N/A", "N/A"
+                return "⚪", "⚪"
             
             ema_status = calculate_ema_gap_status(df_d)
             ema_aligned = calculate_ema_aligned_status(df_d)
@@ -759,6 +748,29 @@ def main():
             ema_aligned_short = ema_aligned.split()[-1] if ema_aligned else "⚪"
             
             return ema_status_short, ema_aligned_short
+        
+        # Helper to check full coherence (runner + EMA)
+        def is_fully_coherent(r):
+            """Returns True if runner direction matches trend AND EMA indicators.
+            🟢 BULLISH → runner > 0 AND EMA not 🔴
+            🔴 BEARISH → runner < 0 AND EMA not 🟢
+            """
+            trend = r.get('trend', 'NEUTRAL')
+            runner = r.get('runner_pct', 0)
+            
+            # Check runner coherence first
+            if trend == "BULLISH" and runner <= 0:
+                return False
+            if trend == "BEARISH" and runner >= 0:
+                return False
+            
+            # Check EMA coherence
+            ema_st, ema_al = get_ema_indicators(r)
+            if trend == "BULLISH":
+                return ema_st != "🔴" and ema_al != "🔴"
+            elif trend == "BEARISH":
+                return ema_st != "🟢" and ema_al != "🟢"
+            return True
 
         # 1. TRIGGERED
         if triggered:
@@ -778,7 +790,7 @@ def main():
                 print(f"   Conf    : Open {r['daily_open']:.5f} / EMA20 {r['daily_ema20']:.5f}")
                 print("-------------------------------------------")
                 # Telegram Output (Compact) with EMA indicators - only if coherent
-                if is_runner_coherent(r):
+                if is_fully_coherent(r):
                     ema_st, ema_al = get_ema_indicators(r)
                     tg_lines.append(f"{emoji} *{r['pair']}* {pct_str} | {ema_st}{ema_al}")
 
@@ -800,7 +812,7 @@ def main():
                 print(f"   Conf    : Open {r['daily_open']:.5f} / EMA20 {r['daily_ema20']:.5f}")
                 print("-------------------------------------------")
                 # Telegram with EMA indicators - only if coherent
-                if is_runner_coherent(r):
+                if is_fully_coherent(r):
                     ema_st, ema_al = get_ema_indicators(r)
                     tg_lines.append(f"{emoji} *{r['pair']}* {pct_str} | {ema_st}{ema_al}")
 
@@ -821,7 +833,7 @@ def main():
                 print(f"   Current : {r['current_price']:.5f}")
                 print("-------------------------------------------")
                 # Telegram with EMA indicators - only if coherent
-                if is_runner_coherent(r):
+                if is_fully_coherent(r):
                     ema_st, ema_al = get_ema_indicators(r)
                     tg_lines.append(f"{emoji} *{r['pair']}* {pct_str} | {ema_st}{ema_al}")
         
@@ -843,7 +855,7 @@ def main():
                 print(f"   Note    : Asian range above/below EMA35 + H1 aligned")
                 print("-------------------------------------------")
                 # Telegram with EMA indicators - only if coherent
-                if is_runner_coherent(r):
+                if is_fully_coherent(r):
                     ema_st, ema_al = get_ema_indicators(r)
                     tg_lines.append(f"{emoji} *{r['pair']}* {pct_str} | {ema_st}{ema_al}")
         
@@ -864,7 +876,7 @@ def main():
                 print(f"   Note    : Level {r['trigger']:.5f} broken (continuation)!")
                 print("-------------------------------------------")
                 # Telegram with EMA indicators - only if coherent
-                if is_runner_coherent(r):
+                if is_fully_coherent(r):
                     ema_st, ema_al = get_ema_indicators(r)
                     tg_lines.append(f"{emoji} *{r['pair']}* {pct_str} | {ema_st}{ema_al}")
         
@@ -885,7 +897,7 @@ def main():
                 print(f"   Current : {r['current_price']:.5f}")
                 print("-------------------------------------------")
                 # Telegram with EMA indicators - only if coherent
-                if is_runner_coherent(r):
+                if is_fully_coherent(r):
                     ema_st, ema_al = get_ema_indicators(r)
                     tg_lines.append(f"{emoji} *{r['pair']}* {pct_str} | {ema_st}{ema_al}")
         
@@ -907,7 +919,7 @@ def main():
                 print(f"   Note    : Relaxed Daily (Close only) + H1 aligned")
                 print("-------------------------------------------")
                 # Telegram with EMA indicators - only if coherent
-                if is_runner_coherent(r):
+                if is_fully_coherent(r):
                     ema_st, ema_al = get_ema_indicators(r)
                     tg_lines.append(f"{emoji} *{r['pair']}* {pct_str} | {ema_st}{ema_al}")
         
@@ -928,7 +940,7 @@ def main():
                 print(f"   Note    : Level {r['trigger']:.5f} broken (light)!")
                 print("-------------------------------------------")
                 # Telegram with EMA indicators - only if coherent
-                if is_runner_coherent(r):
+                if is_fully_coherent(r):
                     ema_st, ema_al = get_ema_indicators(r)
                     tg_lines.append(f"{emoji} *{r['pair']}* {pct_str} | {ema_st}{ema_al}")
         
@@ -949,7 +961,7 @@ def main():
                 print(f"   Current : {r['current_price']:.5f}")
                 print("-------------------------------------------")
                 # Telegram with EMA indicators - only if coherent
-                if is_runner_coherent(r):
+                if is_fully_coherent(r):
                     ema_st, ema_al = get_ema_indicators(r)
                     tg_lines.append(f"{emoji} *{r['pair']}* {pct_str} | {ema_st}{ema_al}")
 
