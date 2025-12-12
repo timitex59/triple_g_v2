@@ -863,40 +863,12 @@ def main():
         align_emoji = d_align.split()[-1] if d_align else "⚪"
         return ema_emoji, align_emoji
     
-    # PRICE vs 8 EMAs DAILY
-    msg_lines.append("💹 PRICE vs 8 EMAs")
-    if price_emas_daily:
-        for r in price_emas_daily:
-            emoji = "🟢" if r['direction'] == "BULLISH" else "🔴"
-            ema_e, align_e = get_ema_short(r)
-            msg_lines.append(f"{emoji} {r['pair']} ({r['pct']:+.2f}%) | {ema_e}{align_e}")
-    else:
-        msg_lines.append("Aucune")
-    msg_lines.append("")
-    
-    # FULL ALIGNED DAILY
-    msg_lines.append("🎯 FULL ALIGNED")
-    if full_aligned_daily:
-        for r in full_aligned_daily:
-            emoji = "🟢" if r['direction'] == "BULLISH" else "🔴"
-            ema_e, align_e = get_ema_short(r)
-            msg_lines.append(f"{emoji} {r['pair']} ({r['pct']:+.2f}%) | {ema_e}{align_e}")
-    else:
-        msg_lines.append("Aucune")
-    msg_lines.append("")
-    
+    # Get common pairs for 🔥 marker
     big3_pairs_set = set(r['pair'] for r in big3_runners)
     confluence_pairs_set = set(r['pair'] for r in confluence_runners)
     common_pairs = big3_pairs_set.intersection(confluence_pairs_set)
-
-    msg_lines.append("✅ BIG 3")
-    for r in big3_runners:
-        emoji = "🟢" if r['pct'] > 0 else "🔴"
-        mark = "🔥" if r['pair'] in common_pairs else ""
-        ema_e, align_e = get_ema_short(r)
-        msg_lines.append(f"{emoji}{mark}{r['pair']} ({r['pct']:+.2f}%) | {ema_e}{align_e}")
-    msg_lines.append("")
     
+    # CONFLUENCE section only in Telegram
     msg_lines.append("⭐️ CONFLUENCE")
     if confluence_runners:
         for r in confluence_runners:
