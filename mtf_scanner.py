@@ -194,9 +194,8 @@ def main():
     print("-" * 75)
     
     # Buffer for Telegram
-    tg_lines = []
-    tg_lines.append(f"📡 <b>MTF SCANNER</b>")
-    tg_lines.append("")
+    tg_header = [f"📡 <b>MTF SCANNER</b>", ""]
+    tg_signals = []  # List of (pct, formatted_line) for sorting
     
     count_buy = 0
     count_sell = 0
@@ -278,13 +277,20 @@ def main():
             # Ball color based on Signal Direction
             ball = "🟢" if is_buy else "🔴"
             
-            tg_lines.append(f"{ball} <b>{clean_pair}</b> ({pct_str_clean}) ✅")
+            # Store with pct for sorting later
+            tg_signals.append((abs(pct_change), f"{ball} <b>{clean_pair}</b> ({pct_str_clean}) ✅"))
         
     print("-" * 75)
     print(f"SUMMARY: {Fore.GREEN}{count_buy} BUYS{Style.RESET_ALL} | {Fore.RED}{count_sell} SELLS{Style.RESET_ALL}")
     
-    # Check if we actually added any signals (lines > 2 header lines)
-    if len(tg_lines) > 2:
+    # Check if we actually added any signals
+    if tg_signals:
+        # Sort by |pct| descending
+        tg_signals.sort(key=lambda x: x[0], reverse=True)
+        
+        # Build final message
+        tg_lines = tg_header + [line for _, line in tg_signals]
+        
         # Add Date footer
         import datetime
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
