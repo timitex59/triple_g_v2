@@ -25,9 +25,14 @@ yf = install_and_import("yfinance")
 pd = install_and_import("pandas")
 colorama = install_and_import("colorama")
 websocket = install_and_import("websocket-client", "websocket")
+install_and_import("python-dotenv", "dotenv")
 from websocket import create_connection
 from colorama import Fore, Style, init
+from dotenv import load_dotenv
 init(autoreset=True)
+
+# Charger les variables d'environnement
+load_dotenv()
 
 # --- CONFIGURATION ---
 PAIRS = [
@@ -150,22 +155,8 @@ def calculate_signal(df, lookback):
     return signal, close, mid
 
 # --- TELEGRAM ---
-TELEGRAM_BOT_TOKEN = None
-TELEGRAM_CHAT_ID = None
-
-def load_env_manual():
-    global TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
-    env_path = os.path.join("E:\\TRADINGVIEW", ".env")
-    if os.path.exists(env_path):
-        try:
-            with open(env_path, "r") as f:
-                for line in f:
-                    if line.strip() and not line.startswith("#") and "=" in line:
-                        key, value = line.strip().split("=", 1)
-                        if key == "TELEGRAM_BOT_TOKEN": TELEGRAM_BOT_TOKEN = value.strip()
-                        if key == "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID = value.strip()
-        except Exception as e:
-            print(f"Error loading .env: {e}")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 def send_telegram_message(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -189,7 +180,12 @@ def send_telegram_message(message):
         print(f"⚠️ Error sending Telegram message: {e}")
 
 def main():
-    load_env_manual()
+    global TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+    # Refresh env vars in case they were set after module load
+    if not TELEGRAM_BOT_TOKEN:
+        TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not TELEGRAM_CHAT_ID:
+        TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
     
     # console output
     print(f"{Style.BRIGHT}MTF RANGE CENTER SCANNER (Lookback: {LOOKBACK}){Style.RESET_ALL}")
