@@ -38,6 +38,7 @@ jobs:
           python triple_g_indicators.py
           python asian_scanner.py
           python chfjpy_strategy.py
+          python mtf_scanner.py
 
       - name: Commit and Push History
         run: |
