@@ -18,12 +18,6 @@
       "direction": "SHORT",
       "initial_runner": -0.5048852620976835
     },
-    "NZDCAD": {
-      "entry_date": "2025-12-15 06:43",
-      "entry_price": 0.79561,
-      "direction": "SHORT",
-      "initial_runner": -0.39934902353529234
-    },
     "AUDCHF": {
       "entry_date": "2025-12-15 09:49",
       "entry_price": 0.53006,
@@ -576,11 +570,22 @@
       "pnl_net": -0.01,
       "spread_cost_pct": 0.0262,
       "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "NZDCAD",
+      "entry_date": "2025-12-15 06:43",
+      "exit_date": "2025-12-15 12:33",
+      "entry_price": 0.79561,
+      "exit_price": 0.79737,
+      "direction": "SHORT",
+      "pnl_net": -0.26,
+      "spread_cost_pct": 0.0352,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -1.380057055852022,
+    "total_pnl": -1.6364640894488827,
     "wins": 16,
-    "losses": 33
+    "losses": 34
   }
 }
