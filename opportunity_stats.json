@@ -1,42 +1,5 @@
 {
-  "active_trades": {
-    "GBPJPY": {
-      "entry_date": "2025-12-15 06:43",
-      "entry_price": 207.234,
-      "direction": "SHORT",
-      "initial_runner": -0.6195870059369103
-    },
-    "USDJPY": {
-      "entry_date": "2025-12-15 06:43",
-      "entry_price": 155.09,
-      "direction": "SHORT",
-      "initial_runner": -0.5048852620976835
-    },
-    "AUDJPY": {
-      "entry_date": "2025-12-15 11:46",
-      "entry_price": 103.065,
-      "direction": "SHORT",
-      "initial_runner": -0.4818276621219683
-    },
-    "AUDCHF": {
-      "entry_date": "2025-12-15 18:40",
-      "entry_price": 0.52903,
-      "direction": "LONG",
-      "initial_runner": 0.35473101145762925
-    },
-    "NZDJPY": {
-      "entry_date": "2025-12-15 21:38",
-      "entry_price": 89.8,
-      "direction": "SHORT",
-      "initial_runner": -0.6911805363560962
-    },
-    "NZDCAD": {
-      "entry_date": "2025-12-15 21:52",
-      "entry_price": 0.79664,
-      "direction": "SHORT",
-      "initial_runner": -0.2704056084126114
-    }
-  },
+  "active_trades": {},
   "closed_trades": [
     {
       "pair": "GBPNZD",
@@ -653,11 +616,77 @@
       "pnl_net": -0.07,
       "spread_cost_pct": 0.0267,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPJPY",
+      "entry_date": "2025-12-15 06:43",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 207.234,
+      "exit_price": 207.616,
+      "direction": "SHORT",
+      "pnl_net": -0.2,
+      "spread_cost_pct": 0.0125,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "USDJPY",
+      "entry_date": "2025-12-15 06:43",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 155.09,
+      "exit_price": 155.229,
+      "direction": "SHORT",
+      "pnl_net": -0.1,
+      "spread_cost_pct": 0.0097,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-15 11:46",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 103.065,
+      "exit_price": 103.058,
+      "direction": "SHORT",
+      "pnl_net": -0.01,
+      "spread_cost_pct": 0.0213,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "AUDCHF",
+      "entry_date": "2025-12-15 18:40",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 0.52903,
+      "exit_price": 0.52885,
+      "direction": "LONG",
+      "pnl_net": -0.08,
+      "spread_cost_pct": 0.0454,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "NZDJPY",
+      "entry_date": "2025-12-15 21:38",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 89.8,
+      "exit_price": 89.776,
+      "direction": "SHORT",
+      "pnl_net": 0.0,
+      "spread_cost_pct": 0.0267,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "NZDCAD",
+      "entry_date": "2025-12-15 21:52",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 0.79664,
+      "exit_price": 0.79646,
+      "direction": "SHORT",
+      "pnl_net": -0.01,
+      "spread_cost_pct": 0.0351,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
     }
   ],
   "performance": {
-    "total_pnl": -2.9311582653366193,
-    "wins": 16,
-    "losses": 40
+    "total_pnl": -3.3338315646241656,
+    "wins": 17,
+    "losses": 45
   }
 }
