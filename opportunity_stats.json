@@ -12,11 +12,11 @@
       "direction": "SHORT",
       "initial_runner": -0.3536292770352997
     },
-    "NZDJPY": {
-      "entry_date": "2025-12-16 06:39",
-      "entry_price": 89.416,
+    "CHFJPY": {
+      "entry_date": "2025-12-16 07:51",
+      "entry_price": 194.395,
       "direction": "SHORT",
-      "initial_runner": -0.33549940368046405
+      "initial_runner": -0.27445749756322607
     }
   },
   "closed_trades": [
@@ -701,11 +701,22 @@
       "pnl_net": -0.01,
       "spread_cost_pct": 0.0351,
       "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "NZDJPY",
+      "entry_date": "2025-12-16 06:39",
+      "exit_date": "2025-12-16 07:51",
+      "entry_price": 89.416,
+      "exit_price": 89.545,
+      "direction": "SHORT",
+      "pnl_net": -0.17,
+      "spread_cost_pct": 0.0268,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -3.3338315646241656,
+    "total_pnl": -3.504941880451316,
     "wins": 17,
-    "losses": 45
+    "losses": 46
   }
 }
