@@ -1,11 +1,5 @@
 {
   "active_trades": {
-    "CADJPY": {
-      "entry_date": "2025-12-16 09:48",
-      "entry_price": 112.444,
-      "direction": "SHORT",
-      "initial_runner": -0.2483943082218526
-    },
     "GBPAUD": {
       "entry_date": "2025-12-16 10:41",
       "entry_price": 2.02028,
@@ -768,11 +762,22 @@
       "pnl_net": -0.07,
       "spread_cost_pct": 0.011,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-16 09:48",
+      "exit_date": "2025-12-16 14:07",
+      "entry_price": 112.444,
+      "exit_price": 112.337,
+      "direction": "SHORT",
+      "pnl_net": 0.08,
+      "spread_cost_pct": 0.0196,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -4.0842268182394745,
-    "wins": 17,
+    "total_pnl": -4.008633634076692,
+    "wins": 18,
     "losses": 50
   }
 }
