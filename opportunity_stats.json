@@ -1,30 +1,5 @@
 {
-  "active_trades": {
-    "GBPAUD": {
-      "entry_date": "2025-12-16 10:41",
-      "entry_price": 2.02028,
-      "direction": "LONG",
-      "initial_runner": 0.33573046207635765
-    },
-    "AUDJPY": {
-      "entry_date": "2025-12-16 16:37",
-      "entry_price": 102.488,
-      "direction": "SHORT",
-      "initial_runner": -0.5878130638058419
-    },
-    "GBPUSD": {
-      "entry_date": "2025-12-16 17:48",
-      "entry_price": 1.34246,
-      "direction": "LONG",
-      "initial_runner": 0.3911069898222496
-    },
-    "EURJPY": {
-      "entry_date": "2025-12-16 20:31",
-      "entry_price": 181.776,
-      "direction": "SHORT",
-      "initial_runner": -0.36395527296644775
-    }
-  },
+  "active_trades": {},
   "closed_trades": [
     {
       "pair": "GBPNZD",
@@ -817,11 +792,55 @@
       "pnl_net": -0.09,
       "spread_cost_pct": 0.0097,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPAUD",
+      "entry_date": "2025-12-16 10:41",
+      "exit_date": "2025-12-16 22:33",
+      "entry_price": 2.02028,
+      "exit_price": 2.02438,
+      "direction": "LONG",
+      "pnl_net": 0.19,
+      "spread_cost_pct": 0.0153,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-16 16:37",
+      "exit_date": "2025-12-16 22:33",
+      "entry_price": 102.488,
+      "exit_price": 102.592,
+      "direction": "SHORT",
+      "pnl_net": -0.12,
+      "spread_cost_pct": 0.0215,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "GBPUSD",
+      "entry_date": "2025-12-16 17:48",
+      "exit_date": "2025-12-16 22:33",
+      "entry_price": 1.34246,
+      "exit_price": 1.34238,
+      "direction": "LONG",
+      "pnl_net": -0.02,
+      "spread_cost_pct": 0.0112,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "EURJPY",
+      "entry_date": "2025-12-16 20:31",
+      "exit_date": "2025-12-16 22:33",
+      "entry_price": 181.776,
+      "exit_price": 181.776,
+      "direction": "SHORT",
+      "pnl_net": -0.01,
+      "spread_cost_pct": 0.011,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
     }
   ],
   "performance": {
-    "total_pnl": -4.447768344480567,
-    "wins": 18,
-    "losses": 54
+    "total_pnl": -4.411247087220478,
+    "wins": 19,
+    "losses": 57
   }
 }
