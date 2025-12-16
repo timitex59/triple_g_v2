@@ -1,22 +1,28 @@
 {
   "active_trades": {
-    "CHFJPY": {
-      "entry_date": "2025-12-16 07:51",
-      "entry_price": 194.395,
-      "direction": "SHORT",
-      "initial_runner": -0.27445749756322607
-    },
-    "EURJPY": {
-      "entry_date": "2025-12-16 09:48",
-      "entry_price": 181.948,
-      "direction": "SHORT",
-      "initial_runner": -0.26967770225827137
-    },
     "CADJPY": {
       "entry_date": "2025-12-16 09:48",
       "entry_price": 112.444,
       "direction": "SHORT",
       "initial_runner": -0.2483943082218526
+    },
+    "GBPAUD": {
+      "entry_date": "2025-12-16 10:41",
+      "entry_price": 2.02028,
+      "direction": "LONG",
+      "initial_runner": 0.33573046207635765
+    },
+    "AUDJPY": {
+      "entry_date": "2025-12-16 10:41",
+      "entry_price": 102.776,
+      "direction": "SHORT",
+      "initial_runner": -0.3084563602149474
+    },
+    "GBPUSD": {
+      "entry_date": "2025-12-16 10:41",
+      "entry_price": 1.34124,
+      "direction": "LONG",
+      "initial_runner": 0.2998736193474622
     }
   },
   "closed_trades": [
@@ -734,11 +740,33 @@
       "pnl_net": -0.18,
       "spread_cost_pct": 0.0126,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CHFJPY",
+      "entry_date": "2025-12-16 07:51",
+      "exit_date": "2025-12-16 10:41",
+      "entry_price": 194.395,
+      "exit_price": 194.528,
+      "direction": "SHORT",
+      "pnl_net": -0.08,
+      "spread_cost_pct": 0.0123,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURJPY",
+      "entry_date": "2025-12-16 09:48",
+      "exit_date": "2025-12-16 10:41",
+      "entry_price": 181.948,
+      "exit_price": 182.056,
+      "direction": "SHORT",
+      "pnl_net": -0.07,
+      "spread_cost_pct": 0.011,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -3.933113653855231,
+    "total_pnl": -4.0842268182394745,
     "wins": 17,
-    "losses": 48
+    "losses": 50
   }
 }
