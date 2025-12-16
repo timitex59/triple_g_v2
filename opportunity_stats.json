@@ -6,23 +6,17 @@
       "direction": "LONG",
       "initial_runner": 0.33573046207635765
     },
-    "AUDJPY": {
-      "entry_date": "2025-12-16 10:41",
-      "entry_price": 102.776,
-      "direction": "SHORT",
-      "initial_runner": -0.3084563602149474
-    },
     "GBPUSD": {
       "entry_date": "2025-12-16 10:41",
       "entry_price": 1.34124,
       "direction": "LONG",
       "initial_runner": 0.2998736193474622
     },
-    "GBPNZD": {
-      "entry_date": "2025-12-16 11:44",
-      "entry_price": 2.31993,
-      "direction": "LONG",
-      "initial_runner": 0.29180608512955375
+    "USDJPY": {
+      "entry_date": "2025-12-16 15:44",
+      "entry_price": 154.708,
+      "direction": "SHORT",
+      "initial_runner": -0.3279279975775943
     }
   },
   "closed_trades": [
@@ -773,11 +767,33 @@
       "pnl_net": 0.08,
       "spread_cost_pct": 0.0196,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-16 10:41",
+      "exit_date": "2025-12-16 15:44",
+      "entry_price": 102.776,
+      "exit_price": 102.911,
+      "direction": "SHORT",
+      "pnl_net": -0.15,
+      "spread_cost_pct": 0.0214,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPNZD",
+      "entry_date": "2025-12-16 11:44",
+      "exit_date": "2025-12-16 15:44",
+      "entry_price": 2.31993,
+      "exit_price": 2.31621,
+      "direction": "LONG",
+      "pnl_net": -0.18,
+      "spread_cost_pct": 0.0172,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -4.008633634076692,
+    "total_pnl": -4.338984598420938,
     "wins": 18,
-    "losses": 50
+    "losses": 52
   }
 }
