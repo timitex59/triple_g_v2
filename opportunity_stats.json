@@ -12,12 +12,6 @@
       "direction": "LONG",
       "initial_runner": 0.28839704896044016
     },
-    "GBPCHF": {
-      "entry_date": "2025-12-17 14:07",
-      "entry_price": 1.06204,
-      "direction": "SHORT",
-      "initial_runner": -0.46672039886787353
-    },
     "EURJPY": {
       "entry_date": "2025-12-17 15:42",
       "entry_price": 182.572,
@@ -900,11 +894,22 @@
       "pnl_net": -0.37,
       "spread_cost_pct": 0.0169,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCHF",
+      "entry_date": "2025-12-17 14:07",
+      "exit_date": "2025-12-17 18:38",
+      "entry_price": 1.06204,
+      "exit_price": 1.06455,
+      "direction": "SHORT",
+      "pnl_net": -0.26,
+      "spread_cost_pct": 0.0264,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -4.979708212440058,
+    "total_pnl": -5.242410182234041,
     "wins": 19,
-    "losses": 60
+    "losses": 61
   }
 }
