@@ -18,17 +18,17 @@
       "direction": "SHORT",
       "initial_runner": -0.5101653975715684
     },
-    "GBPAUD": {
-      "entry_date": "2025-12-17 08:34",
-      "entry_price": 2.0147,
-      "direction": "SHORT",
-      "initial_runner": -0.46391217781819144
-    },
     "GBPCHF": {
       "entry_date": "2025-12-17 14:07",
       "entry_price": 1.06204,
       "direction": "SHORT",
       "initial_runner": -0.46672039886787353
+    },
+    "EURJPY": {
+      "entry_date": "2025-12-17 15:42",
+      "entry_price": 182.572,
+      "direction": "LONG",
+      "initial_runner": 0.44784823776669686
     }
   },
   "closed_trades": [
@@ -878,11 +878,22 @@
       "pnl_net": -0.03,
       "spread_cost_pct": 0.0195,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPAUD",
+      "entry_date": "2025-12-17 08:34",
+      "exit_date": "2025-12-17 15:42",
+      "entry_price": 2.0147,
+      "exit_price": 2.0179,
+      "direction": "SHORT",
+      "pnl_net": -0.17,
+      "spread_cost_pct": 0.0154,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -4.436961094260788,
+    "total_pnl": -4.611180581033016,
     "wins": 19,
-    "losses": 58
+    "losses": 59
   }
 }
