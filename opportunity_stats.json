@@ -12,12 +12,6 @@
       "direction": "LONG",
       "initial_runner": 0.28839704896044016
     },
-    "GBPCAD": {
-      "entry_date": "2025-12-17 08:34",
-      "entry_price": 1.83704,
-      "direction": "SHORT",
-      "initial_runner": -0.5101653975715684
-    },
     "GBPCHF": {
       "entry_date": "2025-12-17 14:07",
       "entry_price": 1.06204,
@@ -29,6 +23,12 @@
       "entry_price": 182.572,
       "direction": "LONG",
       "initial_runner": 0.44784823776669686
+    },
+    "CHFJPY": {
+      "entry_date": "2025-12-17 16:39",
+      "entry_price": 195.788,
+      "direction": "LONG",
+      "initial_runner": 0.5872228929589769
     }
   },
   "closed_trades": [
@@ -889,11 +889,22 @@
       "pnl_net": -0.17,
       "spread_cost_pct": 0.0154,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCAD",
+      "entry_date": "2025-12-17 08:34",
+      "exit_date": "2025-12-17 16:39",
+      "entry_price": 1.83704,
+      "exit_price": 1.8435,
+      "direction": "SHORT",
+      "pnl_net": -0.37,
+      "spread_cost_pct": 0.0169,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -4.611180581033016,
+    "total_pnl": -4.979708212440058,
     "wins": 19,
-    "losses": 59
+    "losses": 60
   }
 }
