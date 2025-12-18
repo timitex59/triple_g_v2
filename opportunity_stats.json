@@ -6,17 +6,17 @@
       "direction": "SHORT",
       "initial_runner": -0.23973257999526898
     },
-    "EURGBP": {
-      "entry_date": "2025-12-18 16:38",
-      "entry_price": 0.87532,
-      "direction": "SHORT",
-      "initial_runner": -0.276844203930509
-    },
     "EURCAD": {
       "entry_date": "2025-12-18 16:38",
       "entry_price": 1.61448,
       "direction": "SHORT",
       "initial_runner": -0.2372831084087242
+    },
+    "EURCHF": {
+      "entry_date": "2025-12-18 17:47",
+      "entry_price": 0.93136,
+      "direction": "SHORT",
+      "initial_runner": -0.2271071688734639
     }
   },
   "closed_trades": [
@@ -1075,11 +1075,22 @@
       "pnl_net": -0.21,
       "spread_cost_pct": 0.0168,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURGBP",
+      "entry_date": "2025-12-18 16:38",
+      "exit_date": "2025-12-18 17:47",
+      "entry_price": 0.87532,
+      "exit_price": 0.8762,
+      "direction": "SHORT",
+      "pnl_net": -0.12,
+      "spread_cost_pct": 0.0206,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -6.4833061856511,
+    "total_pnl": -6.6044047553170495,
     "wins": 22,
-    "losses": 74
+    "losses": 75
   }
 }
