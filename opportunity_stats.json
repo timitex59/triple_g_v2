@@ -6,17 +6,17 @@
       "direction": "SHORT",
       "initial_runner": -0.21109240318649192
     },
-    "EURNZD": {
-      "entry_date": "2025-12-18 07:50",
-      "entry_price": 2.0385,
-      "direction": "LONG",
-      "initial_runner": 0.25376965977161
-    },
     "CADJPY": {
       "entry_date": "2025-12-18 07:50",
       "entry_price": 113.196,
       "direction": "LONG",
       "initial_runner": 0.24974759551516773
+    },
+    "AUDJPY": {
+      "entry_date": "2025-12-18 08:34",
+      "entry_price": 103.048,
+      "direction": "LONG",
+      "initial_runner": 0.2022559315441447
     }
   },
   "closed_trades": [
@@ -943,11 +943,22 @@
       "pnl_net": -0.05,
       "spread_cost_pct": 0.0123,
       "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "EURNZD",
+      "entry_date": "2025-12-18 07:50",
+      "exit_date": "2025-12-18 08:34",
+      "entry_price": 2.0385,
+      "exit_price": 2.0373,
+      "direction": "LONG",
+      "pnl_net": -0.07,
+      "spread_cost_pct": 0.0157,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -4.566419869800084,
+    "total_pnl": -4.640984500656099,
     "wins": 22,
-    "losses": 62
+    "losses": 63
   }
 }
