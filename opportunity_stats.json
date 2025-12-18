@@ -5,18 +5,6 @@
       "entry_price": 0.79418,
       "direction": "SHORT",
       "initial_runner": -0.21109240318649192
-    },
-    "CADJPY": {
-      "entry_date": "2025-12-18 07:50",
-      "entry_price": 113.196,
-      "direction": "LONG",
-      "initial_runner": 0.24974759551516773
-    },
-    "AUDJPY": {
-      "entry_date": "2025-12-18 08:34",
-      "entry_price": 103.048,
-      "direction": "LONG",
-      "initial_runner": 0.2022559315441447
     }
   },
   "closed_trades": [
@@ -954,11 +942,33 @@
       "pnl_net": -0.07,
       "spread_cost_pct": 0.0157,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-18 07:50",
+      "exit_date": "2025-12-18 09:46",
+      "entry_price": 113.196,
+      "exit_price": 113.105,
+      "direction": "LONG",
+      "pnl_net": -0.1,
+      "spread_cost_pct": 0.0194,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-18 08:34",
+      "exit_date": "2025-12-18 09:46",
+      "entry_price": 103.048,
+      "exit_price": 102.954,
+      "direction": "LONG",
+      "pnl_net": -0.11,
+      "spread_cost_pct": 0.0213,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -4.640984500656099,
+    "total_pnl": -4.853380249591497,
     "wins": 22,
-    "losses": 63
+    "losses": 65
   }
 }
