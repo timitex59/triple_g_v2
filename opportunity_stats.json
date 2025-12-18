@@ -6,17 +6,23 @@
       "direction": "LONG",
       "initial_runner": 0.33840363265941625
     },
-    "GBPJPY": {
-      "entry_date": "2025-12-18 14:05",
-      "entry_price": 208.735,
-      "direction": "LONG",
-      "initial_runner": 0.2593722231561855
-    },
     "AUDUSD": {
       "entry_date": "2025-12-18 14:50",
       "entry_price": 0.66256,
       "direction": "LONG",
       "initial_runner": 0.2800018162279999
+    },
+    "EURAUD": {
+      "entry_date": "2025-12-18 15:42",
+      "entry_price": 1.77272,
+      "direction": "SHORT",
+      "initial_runner": -0.23973257999526898
+    },
+    "GBPCAD": {
+      "entry_date": "2025-12-18 15:42",
+      "entry_price": 1.84816,
+      "direction": "LONG",
+      "initial_runner": 0.23973011379045261
     }
   },
   "closed_trades": [
@@ -1031,11 +1037,22 @@
       "pnl_net": -0.11,
       "spread_cost_pct": 0.0215,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPJPY",
+      "entry_date": "2025-12-18 14:05",
+      "exit_date": "2025-12-18 15:42",
+      "entry_price": 208.735,
+      "exit_price": 208.43,
+      "direction": "LONG",
+      "pnl_net": -0.16,
+      "spread_cost_pct": 0.0125,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -5.714121923141088,
+    "total_pnl": -5.872696191950825,
     "wins": 22,
-    "losses": 70
+    "losses": 71
   }
 }
