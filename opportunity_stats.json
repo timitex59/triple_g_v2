@@ -1,18 +1,5 @@
 {
-  "active_trades": {
-    "EURAUD": {
-      "entry_date": "2025-12-18 15:42",
-      "entry_price": 1.77272,
-      "direction": "SHORT",
-      "initial_runner": -0.23973257999526898
-    },
-    "EURCHF": {
-      "entry_date": "2025-12-18 17:47",
-      "entry_price": 0.93136,
-      "direction": "SHORT",
-      "initial_runner": -0.2271071688734639
-    }
-  },
+  "active_trades": {},
   "closed_trades": [
     {
       "pair": "GBPNZD",
@@ -1091,11 +1078,33 @@
       "pnl_net": -0.08,
       "spread_cost_pct": 0.0149,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURAUD",
+      "entry_date": "2025-12-18 15:42",
+      "exit_date": "2025-12-18 22:29",
+      "entry_price": 1.77272,
+      "exit_price": 1.77308,
+      "direction": "SHORT",
+      "pnl_net": -0.03,
+      "spread_cost_pct": 0.0141,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "EURCHF",
+      "entry_date": "2025-12-18 17:47",
+      "exit_date": "2025-12-18 22:29",
+      "entry_price": 0.93136,
+      "exit_price": 0.93088,
+      "direction": "SHORT",
+      "pnl_net": 0.03,
+      "spread_cost_pct": 0.0215,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
     }
   ],
   "performance": {
-    "total_pnl": -6.68120967083165,
-    "wins": 22,
-    "losses": 76
+    "total_pnl": -6.68555650545108,
+    "wins": 23,
+    "losses": 77
   }
 }
