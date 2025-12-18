@@ -1,22 +1,10 @@
 {
   "active_trades": {
-    "NZDCAD": {
-      "entry_date": "2025-12-18 06:39",
-      "entry_price": 0.79418,
+    "GBPCHF": {
+      "entry_date": "2025-12-18 12:31",
+      "entry_price": 1.06142,
       "direction": "SHORT",
-      "initial_runner": -0.21109240318649192
-    },
-    "GBPCAD": {
-      "entry_date": "2025-12-18 10:41",
-      "entry_price": 1.83901,
-      "direction": "SHORT",
-      "initial_runner": -0.25654376430515696
-    },
-    "CADJPY": {
-      "entry_date": "2025-12-18 10:41",
-      "entry_price": 113.17,
-      "direction": "LONG",
-      "initial_runner": 0.22672122146058082
+      "initial_runner": -0.20965543176796447
     }
   },
   "closed_trades": [
@@ -976,11 +964,44 @@
       "pnl_net": -0.11,
       "spread_cost_pct": 0.0213,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "NZDCAD",
+      "entry_date": "2025-12-18 06:39",
+      "exit_date": "2025-12-18 12:31",
+      "entry_price": 0.79418,
+      "exit_price": 0.79493,
+      "direction": "SHORT",
+      "pnl_net": -0.13,
+      "spread_cost_pct": 0.0353,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCAD",
+      "entry_date": "2025-12-18 10:41",
+      "exit_date": "2025-12-18 12:31",
+      "entry_price": 1.83901,
+      "exit_price": 1.84038,
+      "direction": "SHORT",
+      "pnl_net": -0.09,
+      "spread_cost_pct": 0.0169,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-18 10:41",
+      "exit_date": "2025-12-18 12:31",
+      "entry_price": 113.17,
+      "exit_price": 113.055,
+      "direction": "LONG",
+      "pnl_net": -0.12,
+      "spread_cost_pct": 0.0194,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -4.853380249591497,
+    "total_pnl": -5.195484087110779,
     "wins": 22,
-    "losses": 65
+    "losses": 68
   }
 }
