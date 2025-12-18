@@ -12,11 +12,11 @@
       "direction": "LONG",
       "initial_runner": 0.2593722231561855
     },
-    "EURCHF": {
-      "entry_date": "2025-12-18 14:05",
-      "entry_price": 0.9316,
-      "direction": "SHORT",
-      "initial_runner": -0.20139692334061715
+    "AUDUSD": {
+      "entry_date": "2025-12-18 14:50",
+      "entry_price": 0.66256,
+      "direction": "LONG",
+      "initial_runner": 0.2800018162279999
     }
   },
   "closed_trades": [
@@ -1020,11 +1020,22 @@
       "pnl_net": -0.41,
       "spread_cost_pct": 0.0264,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURCHF",
+      "entry_date": "2025-12-18 14:05",
+      "exit_date": "2025-12-18 14:50",
+      "entry_price": 0.9316,
+      "exit_price": 0.93244,
+      "direction": "SHORT",
+      "pnl_net": -0.11,
+      "spread_cost_pct": 0.0215,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -5.602486027907075,
+    "total_pnl": -5.714121923141088,
     "wins": 22,
-    "losses": 69
+    "losses": 70
   }
 }
