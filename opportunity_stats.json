@@ -1,28 +1,22 @@
 {
   "active_trades": {
-    "GBPNZD": {
-      "entry_date": "2025-12-18 14:05",
-      "entry_price": 2.3246,
-      "direction": "LONG",
-      "initial_runner": 0.33840363265941625
-    },
-    "AUDUSD": {
-      "entry_date": "2025-12-18 14:50",
-      "entry_price": 0.66256,
-      "direction": "LONG",
-      "initial_runner": 0.2800018162279999
-    },
     "EURAUD": {
       "entry_date": "2025-12-18 15:42",
       "entry_price": 1.77272,
       "direction": "SHORT",
       "initial_runner": -0.23973257999526898
     },
-    "GBPCAD": {
-      "entry_date": "2025-12-18 15:42",
-      "entry_price": 1.84816,
-      "direction": "LONG",
-      "initial_runner": 0.23973011379045261
+    "EURGBP": {
+      "entry_date": "2025-12-18 16:38",
+      "entry_price": 0.87532,
+      "direction": "SHORT",
+      "initial_runner": -0.276844203930509
+    },
+    "EURCAD": {
+      "entry_date": "2025-12-18 16:38",
+      "entry_price": 1.61448,
+      "direction": "SHORT",
+      "initial_runner": -0.2372831084087242
     }
   },
   "closed_trades": [
@@ -1048,11 +1042,44 @@
       "pnl_net": -0.16,
       "spread_cost_pct": 0.0125,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPNZD",
+      "entry_date": "2025-12-18 14:05",
+      "exit_date": "2025-12-18 16:38",
+      "entry_price": 2.3246,
+      "exit_price": 2.31936,
+      "direction": "LONG",
+      "pnl_net": -0.24,
+      "spread_cost_pct": 0.0172,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDUSD",
+      "entry_date": "2025-12-18 14:50",
+      "exit_date": "2025-12-18 16:38",
+      "entry_price": 0.66256,
+      "exit_price": 0.66165,
+      "direction": "LONG",
+      "pnl_net": -0.16,
+      "spread_cost_pct": 0.0196,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCAD",
+      "entry_date": "2025-12-18 15:42",
+      "exit_date": "2025-12-18 16:38",
+      "entry_price": 1.84816,
+      "exit_price": 1.84457,
+      "direction": "LONG",
+      "pnl_net": -0.21,
+      "spread_cost_pct": 0.0168,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -5.872696191950825,
+    "total_pnl": -6.4833061856511,
     "wins": 22,
-    "losses": 71
+    "losses": 74
   }
 }
