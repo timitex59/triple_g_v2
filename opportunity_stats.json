@@ -6,12 +6,6 @@
       "direction": "SHORT",
       "initial_runner": -0.23973257999526898
     },
-    "EURCAD": {
-      "entry_date": "2025-12-18 16:38",
-      "entry_price": 1.61448,
-      "direction": "SHORT",
-      "initial_runner": -0.2372831084087242
-    },
     "EURCHF": {
       "entry_date": "2025-12-18 17:47",
       "entry_price": 0.93136,
@@ -1086,11 +1080,22 @@
       "pnl_net": -0.12,
       "spread_cost_pct": 0.0206,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURCAD",
+      "entry_date": "2025-12-18 16:38",
+      "exit_date": "2025-12-18 21:33",
+      "entry_price": 1.61448,
+      "exit_price": 1.61548,
+      "direction": "SHORT",
+      "pnl_net": -0.08,
+      "spread_cost_pct": 0.0149,
+      "reason": "Signal technique (Sortie screener global)"
     }
   ],
   "performance": {
-    "total_pnl": -6.6044047553170495,
+    "total_pnl": -6.68120967083165,
     "wins": 22,
-    "losses": 75
+    "losses": 76
   }
 }
