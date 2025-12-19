@@ -1,42 +1,5 @@
 {
-  "active_trades": {
-    "USDJPY": {
-      "entry_date": "2025-12-19 06:37",
-      "entry_price": 155.936,
-      "direction": "LONG",
-      "initial_runner": 0.2603982485806695
-    },
-    "EURJPY": {
-      "entry_date": "2025-12-19 06:37",
-      "entry_price": 182.724,
-      "direction": "LONG",
-      "initial_runner": 0.2408316647008766
-    },
-    "GBPJPY": {
-      "entry_date": "2025-12-19 06:37",
-      "entry_price": 208.525,
-      "direction": "LONG",
-      "initial_runner": 0.20133970188269973
-    },
-    "CHFJPY": {
-      "entry_date": "2025-12-19 07:49",
-      "entry_price": 196.404,
-      "direction": "LONG",
-      "initial_runner": 0.32794924449075713
-    },
-    "AUDJPY": {
-      "entry_date": "2025-12-19 09:46",
-      "entry_price": 103.634,
-      "direction": "LONG",
-      "initial_runner": 0.7897142634844658
-    },
-    "CADJPY": {
-      "entry_date": "2025-12-19 09:46",
-      "entry_price": 113.768,
-      "direction": "LONG",
-      "initial_runner": 0.7598972633070623
-    }
-  },
+  "active_trades": {},
   "closed_trades": [
     {
       "pair": "GBPNZD",
@@ -1137,11 +1100,77 @@
       "pnl_net": 0.03,
       "spread_cost_pct": 0.0215,
       "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "USDJPY",
+      "entry_date": "2025-12-19 06:37",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 155.936,
+      "exit_price": 157.738,
+      "direction": "LONG",
+      "pnl_net": 1.15,
+      "spread_cost_pct": 0.0096,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "EURJPY",
+      "entry_date": "2025-12-19 06:37",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 182.724,
+      "exit_price": 184.746,
+      "direction": "LONG",
+      "pnl_net": 1.1,
+      "spread_cost_pct": 0.0109,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "GBPJPY",
+      "entry_date": "2025-12-19 06:37",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 208.525,
+      "exit_price": 211.008,
+      "direction": "LONG",
+      "pnl_net": 1.18,
+      "spread_cost_pct": 0.0125,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "CHFJPY",
+      "entry_date": "2025-12-19 07:49",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 196.404,
+      "exit_price": 198.299,
+      "direction": "LONG",
+      "pnl_net": 0.95,
+      "spread_cost_pct": 0.0122,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-19 09:46",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 103.634,
+      "exit_price": 104.272,
+      "direction": "LONG",
+      "pnl_net": 0.59,
+      "spread_cost_pct": 0.0212,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-19 09:46",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 113.768,
+      "exit_price": 114.342,
+      "direction": "LONG",
+      "pnl_net": 0.49,
+      "spread_cost_pct": 0.0193,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
     }
   ],
   "performance": {
-    "total_pnl": -6.68555650545108,
-    "wins": 23,
+    "total_pnl": -1.233430313874872,
+    "wins": 29,
     "losses": 77
   }
 }
