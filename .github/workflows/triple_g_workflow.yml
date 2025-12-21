@@ -39,6 +39,8 @@ jobs:
           python asian_scanner.py
           python chfjpy_strategy.py
           python mtf_scanner.py
+          python ema_aligned.py
+          python simple_scanner.py
 
       - name: Commit and Push History
         run: |
