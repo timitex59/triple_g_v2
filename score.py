@@ -346,7 +346,7 @@ def main():
             ratio = f"{r['ratio_gap']:.2f}"
             print(f"{r['pair']:<10} | {r['total']:+5d} | {runner:<7} | {avg_d1:<6} | {ratio:<5}")
 
-        msg_lines = ["<b>TRIPLE COMBINED V4</b>", ""]
+        msg_lines = ["<b>SCORE ANALYSIS</b>", ""]
         for r in top_setups_sorted:
             emoji = "🟢" if r["runner_pct"] is not None and r["runner_pct"] > 0 else "🔴"
             runner = "NA"
