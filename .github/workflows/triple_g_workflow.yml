@@ -35,10 +35,6 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python data_fetcher.py
-          python triple_g_indicators.py
-          python asian_scanner.py
-          python chfjpy_strategy.py
-          python mtf_scanner.py
           python ema_aligned.py
           python simple_scanner.py
 
