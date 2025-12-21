@@ -1,36 +1,5 @@
 {
-  "active_trades": {
-    "GBPJPY": {
-      "entry_date": "2025-12-15 06:43",
-      "entry_price": 207.234,
-      "direction": "SHORT",
-      "initial_runner": -0.6195870059369103
-    },
-    "USDJPY": {
-      "entry_date": "2025-12-15 06:43",
-      "entry_price": 155.09,
-      "direction": "SHORT",
-      "initial_runner": -0.5048852620976835
-    },
-    "AUDJPY": {
-      "entry_date": "2025-12-15 11:46",
-      "entry_price": 103.065,
-      "direction": "SHORT",
-      "initial_runner": -0.4818276621219683
-    },
-    "AUDCHF": {
-      "entry_date": "2025-12-15 18:40",
-      "entry_price": 0.52903,
-      "direction": "LONG",
-      "initial_runner": 0.35473101145762925
-    },
-    "NZDJPY": {
-      "entry_date": "2025-12-15 21:38",
-      "entry_price": 89.8,
-      "direction": "SHORT",
-      "initial_runner": -0.6911805363560962
-    }
-  },
+  "active_trades": {},
   "closed_trades": [
     {
       "pair": "GBPNZD",
@@ -647,11 +616,561 @@
       "pnl_net": -0.07,
       "spread_cost_pct": 0.0267,
       "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPJPY",
+      "entry_date": "2025-12-15 06:43",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 207.234,
+      "exit_price": 207.616,
+      "direction": "SHORT",
+      "pnl_net": -0.2,
+      "spread_cost_pct": 0.0125,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "USDJPY",
+      "entry_date": "2025-12-15 06:43",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 155.09,
+      "exit_price": 155.229,
+      "direction": "SHORT",
+      "pnl_net": -0.1,
+      "spread_cost_pct": 0.0097,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-15 11:46",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 103.065,
+      "exit_price": 103.058,
+      "direction": "SHORT",
+      "pnl_net": -0.01,
+      "spread_cost_pct": 0.0213,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "AUDCHF",
+      "entry_date": "2025-12-15 18:40",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 0.52903,
+      "exit_price": 0.52885,
+      "direction": "LONG",
+      "pnl_net": -0.08,
+      "spread_cost_pct": 0.0454,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "NZDJPY",
+      "entry_date": "2025-12-15 21:38",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 89.8,
+      "exit_price": 89.776,
+      "direction": "SHORT",
+      "pnl_net": 0.0,
+      "spread_cost_pct": 0.0267,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "NZDCAD",
+      "entry_date": "2025-12-15 21:52",
+      "exit_date": "2025-12-15 22:15",
+      "entry_price": 0.79664,
+      "exit_price": 0.79646,
+      "direction": "SHORT",
+      "pnl_net": -0.01,
+      "spread_cost_pct": 0.0351,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "NZDJPY",
+      "entry_date": "2025-12-16 06:39",
+      "exit_date": "2025-12-16 07:51",
+      "entry_price": 89.416,
+      "exit_price": 89.545,
+      "direction": "SHORT",
+      "pnl_net": -0.17,
+      "spread_cost_pct": 0.0268,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-16 06:39",
+      "exit_date": "2025-12-16 08:35",
+      "entry_price": 102.679,
+      "exit_price": 102.907,
+      "direction": "SHORT",
+      "pnl_net": -0.24,
+      "spread_cost_pct": 0.0214,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPJPY",
+      "entry_date": "2025-12-16 06:39",
+      "exit_date": "2025-12-16 08:35",
+      "entry_price": 206.828,
+      "exit_price": 207.184,
+      "direction": "SHORT",
+      "pnl_net": -0.18,
+      "spread_cost_pct": 0.0126,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CHFJPY",
+      "entry_date": "2025-12-16 07:51",
+      "exit_date": "2025-12-16 10:41",
+      "entry_price": 194.395,
+      "exit_price": 194.528,
+      "direction": "SHORT",
+      "pnl_net": -0.08,
+      "spread_cost_pct": 0.0123,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURJPY",
+      "entry_date": "2025-12-16 09:48",
+      "exit_date": "2025-12-16 10:41",
+      "entry_price": 181.948,
+      "exit_price": 182.056,
+      "direction": "SHORT",
+      "pnl_net": -0.07,
+      "spread_cost_pct": 0.011,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-16 09:48",
+      "exit_date": "2025-12-16 14:07",
+      "entry_price": 112.444,
+      "exit_price": 112.337,
+      "direction": "SHORT",
+      "pnl_net": 0.08,
+      "spread_cost_pct": 0.0196,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-16 10:41",
+      "exit_date": "2025-12-16 15:44",
+      "entry_price": 102.776,
+      "exit_price": 102.911,
+      "direction": "SHORT",
+      "pnl_net": -0.15,
+      "spread_cost_pct": 0.0214,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPNZD",
+      "entry_date": "2025-12-16 11:44",
+      "exit_date": "2025-12-16 15:44",
+      "entry_price": 2.31993,
+      "exit_price": 2.31621,
+      "direction": "LONG",
+      "pnl_net": -0.18,
+      "spread_cost_pct": 0.0172,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPUSD",
+      "entry_date": "2025-12-16 10:41",
+      "exit_date": "2025-12-16 16:37",
+      "entry_price": 1.34124,
+      "exit_price": 1.34111,
+      "direction": "LONG",
+      "pnl_net": -0.02,
+      "spread_cost_pct": 0.0112,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "USDJPY",
+      "entry_date": "2025-12-16 15:44",
+      "exit_date": "2025-12-16 17:48",
+      "entry_price": 154.708,
+      "exit_price": 154.829,
+      "direction": "SHORT",
+      "pnl_net": -0.09,
+      "spread_cost_pct": 0.0097,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPAUD",
+      "entry_date": "2025-12-16 10:41",
+      "exit_date": "2025-12-16 22:33",
+      "entry_price": 2.02028,
+      "exit_price": 2.02438,
+      "direction": "LONG",
+      "pnl_net": 0.19,
+      "spread_cost_pct": 0.0153,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-16 16:37",
+      "exit_date": "2025-12-16 22:33",
+      "entry_price": 102.488,
+      "exit_price": 102.592,
+      "direction": "SHORT",
+      "pnl_net": -0.12,
+      "spread_cost_pct": 0.0215,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "GBPUSD",
+      "entry_date": "2025-12-16 17:48",
+      "exit_date": "2025-12-16 22:33",
+      "entry_price": 1.34246,
+      "exit_price": 1.34238,
+      "direction": "LONG",
+      "pnl_net": -0.02,
+      "spread_cost_pct": 0.0112,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "EURJPY",
+      "entry_date": "2025-12-16 20:31",
+      "exit_date": "2025-12-16 22:33",
+      "entry_price": 181.776,
+      "exit_price": 181.776,
+      "direction": "SHORT",
+      "pnl_net": -0.01,
+      "spread_cost_pct": 0.011,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-17 07:50",
+      "exit_date": "2025-12-17 12:32",
+      "entry_price": 112.779,
+      "exit_price": 112.772,
+      "direction": "LONG",
+      "pnl_net": -0.03,
+      "spread_cost_pct": 0.0195,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPAUD",
+      "entry_date": "2025-12-17 08:34",
+      "exit_date": "2025-12-17 15:42",
+      "entry_price": 2.0147,
+      "exit_price": 2.0179,
+      "direction": "SHORT",
+      "pnl_net": -0.17,
+      "spread_cost_pct": 0.0154,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCAD",
+      "entry_date": "2025-12-17 08:34",
+      "exit_date": "2025-12-17 16:39",
+      "entry_price": 1.83704,
+      "exit_price": 1.8435,
+      "direction": "SHORT",
+      "pnl_net": -0.37,
+      "spread_cost_pct": 0.0169,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCHF",
+      "entry_date": "2025-12-17 14:07",
+      "exit_date": "2025-12-17 18:38",
+      "entry_price": 1.06204,
+      "exit_price": 1.06455,
+      "direction": "SHORT",
+      "pnl_net": -0.26,
+      "spread_cost_pct": 0.0264,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "USDJPY",
+      "entry_date": "2025-12-17 06:39",
+      "exit_date": "2025-12-17 22:34",
+      "entry_price": 155.115,
+      "exit_price": 155.728,
+      "direction": "LONG",
+      "pnl_net": 0.39,
+      "spread_cost_pct": 0.0097,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "NZDJPY",
+      "entry_date": "2025-12-17 07:50",
+      "exit_date": "2025-12-17 22:34",
+      "entry_price": 89.718,
+      "exit_price": 89.926,
+      "direction": "LONG",
+      "pnl_net": 0.21,
+      "spread_cost_pct": 0.0268,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "EURJPY",
+      "entry_date": "2025-12-17 15:42",
+      "exit_date": "2025-12-17 22:34",
+      "entry_price": 182.572,
+      "exit_price": 182.843,
+      "direction": "LONG",
+      "pnl_net": 0.14,
+      "spread_cost_pct": 0.011,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "CHFJPY",
+      "entry_date": "2025-12-17 16:39",
+      "exit_date": "2025-12-17 22:34",
+      "entry_price": 195.788,
+      "exit_price": 195.71,
+      "direction": "LONG",
+      "pnl_net": -0.05,
+      "spread_cost_pct": 0.0123,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "EURNZD",
+      "entry_date": "2025-12-18 07:50",
+      "exit_date": "2025-12-18 08:34",
+      "entry_price": 2.0385,
+      "exit_price": 2.0373,
+      "direction": "LONG",
+      "pnl_net": -0.07,
+      "spread_cost_pct": 0.0157,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-18 07:50",
+      "exit_date": "2025-12-18 09:46",
+      "entry_price": 113.196,
+      "exit_price": 113.105,
+      "direction": "LONG",
+      "pnl_net": -0.1,
+      "spread_cost_pct": 0.0194,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-18 08:34",
+      "exit_date": "2025-12-18 09:46",
+      "entry_price": 103.048,
+      "exit_price": 102.954,
+      "direction": "LONG",
+      "pnl_net": -0.11,
+      "spread_cost_pct": 0.0213,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "NZDCAD",
+      "entry_date": "2025-12-18 06:39",
+      "exit_date": "2025-12-18 12:31",
+      "entry_price": 0.79418,
+      "exit_price": 0.79493,
+      "direction": "SHORT",
+      "pnl_net": -0.13,
+      "spread_cost_pct": 0.0353,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCAD",
+      "entry_date": "2025-12-18 10:41",
+      "exit_date": "2025-12-18 12:31",
+      "entry_price": 1.83901,
+      "exit_price": 1.84038,
+      "direction": "SHORT",
+      "pnl_net": -0.09,
+      "spread_cost_pct": 0.0169,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-18 10:41",
+      "exit_date": "2025-12-18 12:31",
+      "entry_price": 113.17,
+      "exit_price": 113.055,
+      "direction": "LONG",
+      "pnl_net": -0.12,
+      "spread_cost_pct": 0.0194,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCHF",
+      "entry_date": "2025-12-18 12:31",
+      "exit_date": "2025-12-18 14:05",
+      "entry_price": 1.06142,
+      "exit_price": 1.06546,
+      "direction": "SHORT",
+      "pnl_net": -0.41,
+      "spread_cost_pct": 0.0264,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURCHF",
+      "entry_date": "2025-12-18 14:05",
+      "exit_date": "2025-12-18 14:50",
+      "entry_price": 0.9316,
+      "exit_price": 0.93244,
+      "direction": "SHORT",
+      "pnl_net": -0.11,
+      "spread_cost_pct": 0.0215,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPJPY",
+      "entry_date": "2025-12-18 14:05",
+      "exit_date": "2025-12-18 15:42",
+      "entry_price": 208.735,
+      "exit_price": 208.43,
+      "direction": "LONG",
+      "pnl_net": -0.16,
+      "spread_cost_pct": 0.0125,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPNZD",
+      "entry_date": "2025-12-18 14:05",
+      "exit_date": "2025-12-18 16:38",
+      "entry_price": 2.3246,
+      "exit_price": 2.31936,
+      "direction": "LONG",
+      "pnl_net": -0.24,
+      "spread_cost_pct": 0.0172,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "AUDUSD",
+      "entry_date": "2025-12-18 14:50",
+      "exit_date": "2025-12-18 16:38",
+      "entry_price": 0.66256,
+      "exit_price": 0.66165,
+      "direction": "LONG",
+      "pnl_net": -0.16,
+      "spread_cost_pct": 0.0196,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "GBPCAD",
+      "entry_date": "2025-12-18 15:42",
+      "exit_date": "2025-12-18 16:38",
+      "entry_price": 1.84816,
+      "exit_price": 1.84457,
+      "direction": "LONG",
+      "pnl_net": -0.21,
+      "spread_cost_pct": 0.0168,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURGBP",
+      "entry_date": "2025-12-18 16:38",
+      "exit_date": "2025-12-18 17:47",
+      "entry_price": 0.87532,
+      "exit_price": 0.8762,
+      "direction": "SHORT",
+      "pnl_net": -0.12,
+      "spread_cost_pct": 0.0206,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURCAD",
+      "entry_date": "2025-12-18 16:38",
+      "exit_date": "2025-12-18 21:33",
+      "entry_price": 1.61448,
+      "exit_price": 1.61548,
+      "direction": "SHORT",
+      "pnl_net": -0.08,
+      "spread_cost_pct": 0.0149,
+      "reason": "Signal technique (Sortie screener global)"
+    },
+    {
+      "pair": "EURAUD",
+      "entry_date": "2025-12-18 15:42",
+      "exit_date": "2025-12-18 22:29",
+      "entry_price": 1.77272,
+      "exit_price": 1.77308,
+      "direction": "SHORT",
+      "pnl_net": -0.03,
+      "spread_cost_pct": 0.0141,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "EURCHF",
+      "entry_date": "2025-12-18 17:47",
+      "exit_date": "2025-12-18 22:29",
+      "entry_price": 0.93136,
+      "exit_price": 0.93088,
+      "direction": "SHORT",
+      "pnl_net": 0.03,
+      "spread_cost_pct": 0.0215,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "USDJPY",
+      "entry_date": "2025-12-19 06:37",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 155.936,
+      "exit_price": 157.738,
+      "direction": "LONG",
+      "pnl_net": 1.15,
+      "spread_cost_pct": 0.0096,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "EURJPY",
+      "entry_date": "2025-12-19 06:37",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 182.724,
+      "exit_price": 184.746,
+      "direction": "LONG",
+      "pnl_net": 1.1,
+      "spread_cost_pct": 0.0109,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "GBPJPY",
+      "entry_date": "2025-12-19 06:37",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 208.525,
+      "exit_price": 211.008,
+      "direction": "LONG",
+      "pnl_net": 1.18,
+      "spread_cost_pct": 0.0125,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "CHFJPY",
+      "entry_date": "2025-12-19 07:49",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 196.404,
+      "exit_price": 198.299,
+      "direction": "LONG",
+      "pnl_net": 0.95,
+      "spread_cost_pct": 0.0122,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "AUDJPY",
+      "entry_date": "2025-12-19 09:46",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 103.634,
+      "exit_price": 104.272,
+      "direction": "LONG",
+      "pnl_net": 0.59,
+      "spread_cost_pct": 0.0212,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
+    },
+    {
+      "pair": "CADJPY",
+      "entry_date": "2025-12-19 09:46",
+      "exit_date": "2025-12-19 22:31",
+      "entry_price": 113.768,
+      "exit_price": 114.342,
+      "direction": "LONG",
+      "pnl_net": 0.49,
+      "spread_cost_pct": 0.0193,
+      "reason": "Cl\u00f4ture journali\u00e8re (22h)"
     }
   ],
   "performance": {
-    "total_pnl": -2.9311582653366193,
-    "wins": 16,
-    "losses": 40
+    "total_pnl": -1.233430313874872,
+    "wins": 29,
+    "losses": 77
   }
 }
