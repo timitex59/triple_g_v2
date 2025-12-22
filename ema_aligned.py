@@ -37,13 +37,7 @@ load_dotenv()
 
 # --- CONFIGURATION ---
 PAIRS = [
-    "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "NZDUSD=X", "USDCAD=X", "USDCHF=X",
-    "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
-    "EURAUD=X", "EURCAD=X", "EURNZD=X", "EURCHF=X",
-    "GBPAUD=X", "GBPCAD=X", "GBPNZD=X", "GBPCHF=X",
-    "AUDNZD=X", "AUDCAD=X", "AUDCHF=X",
-    "NZDCAD=X", "NZDCHF=X",
-    "CADCHF=X"
+    "USDJPY=X", "GBPJPY=X", "EURJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X"
 ]
 
 EMA_LENGTHS = [20, 25, 30, 35, 40, 45, 50, 55]
@@ -296,7 +290,7 @@ def send_telegram_message(message):
         print(f"⚠️ Error sending Telegram message: {e}")
 
 def main():
-    print(f"\n{Style.BRIGHT}📊 DAILY/HOURLY EMA ALIGNMENT SCANNER V2{Style.RESET_ALL}")
+    print(f"\n{Style.BRIGHT}📊 DAILY/HOURLY EMA ALIGNMENT SCANNER V2 JPY{Style.RESET_ALL}")
     print(f"Optimal score range: {SCORE_MIN}-{SCORE_MAX} (based on backtest)")
     print(f"Filters: EMAs aligned + Price above/below EMAs")
     print("-" * 80)
@@ -344,7 +338,7 @@ def main():
     print(f"{'PAIR':<10} {'SCORE':<10} {'TREND':<8} {'%RUNNER':<12} {'QUALITY':<15}")
     print("-" * 60)
     
-    tg_lines = ["📊 <b>EMA ALIGNMENT V2</b>", ""]
+    tg_lines = ["📊 <b>EMA ALIGNMENT V2 JPY</b>", ""]
     
     if not optimal_signals:
         print("No optimal signals found.")
@@ -373,8 +367,14 @@ def main():
         print(f"{clean_pair:<10} {score:<10.1f} {trend_color}{trend_d:<8}{Style.RESET_ALL} {runner_color}{pct_runner:+.2f}%{Style.RESET_ALL}      {quality_color}{quality}{Style.RESET_ALL}")
         
         # Telegram
-        emoji = "🟢" if trend_d == "BULL" else "🔴"
-        tg_lines.append(f"{emoji} {clean_pair} ({pct_runner:+.2f}%)")
+        trend_emoji = "🟢" if trend_d == "BULL" else "🔴"
+        if pct_runner > 0:
+            runner_emoji = "🟢"
+        elif pct_runner < 0:
+            runner_emoji = "🔴"
+        else:
+            runner_emoji = "⚪"
+        tg_lines.append(f"{trend_emoji}{runner_emoji} {clean_pair} ({pct_runner:+.2f}%)")
     
     # Show other signals if any
     if other_signals:
