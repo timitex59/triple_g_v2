@@ -66,6 +66,9 @@ SHORT_RATIO_MAX = 0.5
 # Telegram Settings
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+COMBINED_ENV_FLAG = "TG_COMBINED"
+TG_MARKER_START = "__TG_MESSAGE_START__"
+TG_MARKER_END = "__TG_MESSAGE_END__"
 
 
 def send_telegram_message(message):
@@ -84,6 +87,18 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"Telegram error: {e}")
         return False
+
+
+def emit_combined_message(message):
+    payload = f"{TG_MARKER_START}\n{message}\n{TG_MARKER_END}\n"
+    out = payload.encode("utf-8", errors="replace")
+    stream = sys.__stdout__
+    if hasattr(stream, "buffer"):
+        stream.buffer.write(out)
+        stream.buffer.flush()
+    else:
+        stream.write(payload)
+        stream.flush()
 
 
 # ----------------------------
@@ -384,6 +399,12 @@ def main():
         total_emoji = "🟢" if r["l_total"] > 0 else "🔴"
         runner_emoji = "🟢" if r["s_runner"] > 0 else "🔴"
         msg_lines.append(f"{total_emoji}{runner_emoji} {r['pair']} ({r['s_runner']:+.2f}%)")
+    message = "\n".join(msg_lines)
+    combined_mode = os.getenv(COMBINED_ENV_FLAG) == "1"
+    if combined_mode:
+        emit_combined_message(message)
+        return
+
     msg_lines.append("")
     msg_lines.append(f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')} Paris")
 

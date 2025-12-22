@@ -268,6 +268,9 @@ def process_pair(pair):
 # --- TELEGRAM ---
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+COMBINED_ENV_FLAG = "TG_COMBINED"
+TG_MARKER_START = "__TG_MESSAGE_START__"
+TG_MARKER_END = "__TG_MESSAGE_END__"
 
 def send_telegram_message(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
@@ -289,7 +292,22 @@ def send_telegram_message(message):
     except Exception as e:
         print(f"⚠️ Error sending Telegram message: {e}")
 
+def emit_combined_message(message):
+    payload = f"{TG_MARKER_START}\n{message}\n{TG_MARKER_END}\n"
+    out = payload.encode("utf-8", errors="replace")
+    stream = sys.__stdout__
+    if hasattr(stream, "buffer"):
+        stream.buffer.write(out)
+        stream.buffer.flush()
+    else:
+        stream.write(payload)
+        stream.flush()
+
 def main():
+    combined_mode = os.getenv(COMBINED_ENV_FLAG) == "1"
+    if combined_mode:
+        import builtins
+        builtins.print = lambda *args, **kwargs: None
     print(f"\n{Style.BRIGHT}📊 DAILY/HOURLY EMA ALIGNMENT SCANNER V2 JPY{Style.RESET_ALL}")
     print(f"Optimal score range: {SCORE_MIN}-{SCORE_MAX} (based on backtest)")
     print(f"Filters: EMAs aligned + Price above/below EMAs")
@@ -397,6 +415,11 @@ def main():
     print(f"Total aligned: {len(aligned_results)} | Optimal: {len(optimal_signals)} | Other: {len(other_signals)}")
     print(f"⏱️ Done in {time.time() - start_time:.2f}s")
     
+    if combined_mode:
+        if optimal_signals:
+            emit_combined_message("\n".join(tg_lines))
+        return
+
     # Send Telegram only if optimal signals exist
     if optimal_signals:
         now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
