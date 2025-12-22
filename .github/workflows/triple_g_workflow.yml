@@ -37,7 +37,7 @@ jobs:
           python data_fetcher.py
           python ema_aligned.py
           python simple_scanner.py
-          python score.py
+          python scrore_combined.py
 
       - name: Commit and Push History
         run: |
