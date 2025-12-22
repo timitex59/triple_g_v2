@@ -344,6 +344,11 @@ def analyze_short(pair):
 
 
 def main():
+    combined_mode = os.getenv(COMBINED_ENV_FLAG) == "1"
+    if combined_mode:
+        import builtins
+        builtins.print = lambda *args, **kwargs: None
+
     long_candidates = []
     for pair in PAIRS:
         try:
