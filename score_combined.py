@@ -40,18 +40,13 @@ import requests
 from dotenv import load_dotenv
 from websocket import create_connection
 
-load_dotenv(dotenv_path=r"E:\TRADINGVIEW\.env")
+load_dotenv()
 
 # ----------------------------
 # CONFIG
 # ----------------------------
 PAIRS = [
-    "EURUSD=X", "EURGBP=X", "EURJPY=X", "EURCHF=X", "EURAUD=X", "EURCAD=X", "EURNZD=X",
-    "GBPCHF=X", "GBPAUD=X", "GBPCAD=X", "GBPNZD=X", "GBPUSD=X", "GBPJPY=X",
-    "NZDCHF=X", "NZDCAD=X", "NZDUSD=X", "NZDJPY=X",
-    "USDCHF=X", "USDJPY=X", "USDCAD=X",
-    "AUDCHF=X", "AUDCAD=X", "AUDUSD=X", "AUDJPY=X", "AUDNZD=X",
-    "CHFJPY=X", "CADJPY=X", "CADCHF=X"
+    "USDJPY=X", "GBPJPY=X", "EURJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X"
 ]
 
 EMA_LENGTHS = [20, 25, 30, 35, 40, 45, 50, 55]
