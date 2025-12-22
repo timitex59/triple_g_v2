@@ -101,8 +101,8 @@ def send_telegram_message(message):
 def main():
     load_env()
 
-    code_a, out_a = run_script_capture("daily_hourly_ema_aligned_jpy.py")
-    code_b, out_b = run_script_capture("scrore_combined_jpy.py")
+    code_a, out_a = run_script_capture("ema_aligned.py")
+    code_b, out_b = run_script_capture("score_combined.py")
 
     msg_a = strip_timestamp(extract_message(out_a))
     msg_b = strip_timestamp(extract_message(out_b))
