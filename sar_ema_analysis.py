@@ -283,7 +283,7 @@ def format_alignment_ball(item, main_signal):
 def build_telegram_message(bull_results, bear_results, new_flags):
     new_bull = set(new_flags.get("bullish", []))
     new_bear = set(new_flags.get("bearish", []))
-    stats_lines = format_currency_stats([item["pair"] for item in bull_results + bear_results])
+    stats_lines = format_currency_strength_stats(bull_results, bear_results)
     lines = []
     if bull_results:
         lines.append("BULLISH W+D")
@@ -366,39 +366,50 @@ def save_tracking_state(path, bull_results, bear_results):
     return data
 
 
-def format_currency_stats(pairs):
-    total = len(pairs)
-    if total == 0:
+def format_currency_strength_stats(bull_results, bear_results):
+    total_pairs = len(bull_results) + len(bear_results)
+    if total_pairs == 0:
         return []
 
-    base_counts = {}
-    quote_counts = {}
-    for pair in pairs:
+    strong_counts = {}
+    weak_counts = {}
+
+    for item in bull_results:
+        pair = item["pair"]
         if len(pair) < 6:
             continue
         base = pair[:3]
         quote = pair[3:]
-        base_counts[base] = base_counts.get(base, 0) + 1
-        quote_counts[quote] = quote_counts.get(quote, 0) + 1
+        strong_counts[base] = strong_counts.get(base, 0) + 1
+        weak_counts[quote] = weak_counts.get(quote, 0) + 1
+
+    for item in bear_results:
+        pair = item["pair"]
+        if len(pair) < 6:
+            continue
+        base = pair[:3]
+        quote = pair[3:]
+        strong_counts[quote] = strong_counts.get(quote, 0) + 1
+        weak_counts[base] = weak_counts.get(base, 0) + 1
 
     def top_stats(counts):
         if not counts:
             return [], 0, 0.0
         max_count = max(counts.values())
         top = sorted([k for k, v in counts.items() if v == max_count])
-        pct = (max_count / total) * 100.0
+        pct = (max_count / total_pairs) * 100.0
         return top, max_count, pct
 
-    top_base, base_count, base_pct = top_stats(base_counts)
-    top_quote, quote_count, quote_pct = top_stats(quote_counts)
+    top_strong, strong_count, strong_pct = top_stats(strong_counts)
+    top_weak, weak_count, weak_pct = top_stats(weak_counts)
 
-    base_str = ", ".join(top_base) if top_base else "NA"
-    quote_str = ", ".join(top_quote) if top_quote else "NA"
+    strong_str = ", ".join(top_strong) if top_strong else "NA"
+    weak_str = ", ".join(top_weak) if top_weak else "NA"
 
     return [
         "STATS",
-        f"Top BASE: {base_str} ({base_pct:.1f}%, {base_count}/{total})",
-        f"Top QUOTE: {quote_str} ({quote_pct:.1f}%, {quote_count}/{total})",
+        f"Strongest: {strong_str} ({strong_pct:.1f}%, {strong_count}/{total_pairs})",
+        f"Weakest: {weak_str} ({weak_pct:.1f}%, {weak_count}/{total_pairs})",
     ]
 
 
