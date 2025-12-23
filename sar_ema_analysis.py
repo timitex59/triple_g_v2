@@ -55,6 +55,7 @@ PSAR_MAXIMUM = 0.2
 
 TV_CANDLES = 200
 MAX_WORKERS = 8
+TRACKING_FILE = "trend_follower.json"
 
 dotenv.load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -296,6 +297,61 @@ def build_telegram_message(bull_results, bear_results):
     return "\n".join(lines)
 
 
+def load_tracking_state(path):
+    if not os.path.exists(path):
+        return {"current": {"bullish": [], "bearish": []}}
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        if "current" not in data:
+            data["current"] = {"bullish": [], "bearish": []}
+        return data
+    except Exception:
+        return {"current": {"bullish": [], "bearish": []}}
+
+
+def save_tracking_state(path, bull_results, bear_results):
+    previous = load_tracking_state(path).get("current", {})
+    prev_bull = set(previous.get("bullish", []))
+    prev_bear = set(previous.get("bearish", []))
+
+    curr_bull = [item["pair"] for item in bull_results]
+    curr_bear = [item["pair"] for item in bear_results]
+    curr_bull_set = set(curr_bull)
+    curr_bear_set = set(curr_bear)
+
+    new_bull = sorted(curr_bull_set - prev_bull)
+    new_bear = sorted(curr_bear_set - prev_bear)
+    exit_bull = sorted(prev_bull - curr_bull_set)
+    exit_bear = sorted(prev_bear - curr_bear_set)
+
+    def with_new_flag(pairs, new_set):
+        return [{"pair": pair, "new": pair in new_set} for pair in pairs]
+
+    data = {
+        "updated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "current": {
+            "bullish": curr_bull,
+            "bearish": curr_bear,
+        },
+        "current_with_flags": {
+            "bullish": with_new_flag(curr_bull, set(new_bull)),
+            "bearish": with_new_flag(curr_bear, set(new_bear)),
+        },
+        "new_entries": {
+            "bullish": new_bull,
+            "bearish": new_bear,
+        },
+        "exits": {
+            "bullish": exit_bull,
+            "bearish": exit_bear,
+        },
+    }
+
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, ensure_ascii=False, indent=2)
+
+
 def evaluate_conditions(df):
     if df is None or df.empty:
         return None
@@ -455,6 +511,7 @@ def main():
     tg_message = build_telegram_message(bull_results, bear_results)
     if tg_message:
         send_telegram_message(tg_message)
+    save_tracking_state(TRACKING_FILE, bull_results, bear_results)
 
 
 if __name__ == "__main__":
