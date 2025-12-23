@@ -260,16 +260,16 @@ def send_telegram_message(message):
 
 def trend_ball(signal):
     if signal == "BULL":
-        return "??"
+        return "🟢"
     if signal == "BEAR":
-        return "??"
-    return "?"
+        return "🔴"
+    return "⚪"
 
 
 def runner_ball(value):
     if value is None or value == 0:
-        return "?"
-    return "??" if value > 0 else "??"
+        return "⚪"
+    return "🟢" if value > 0 else "🔴"
 
 
 def format_alignment_ball(item, main_signal):
@@ -350,8 +350,10 @@ def analyze_pair(pair):
 
     if weekly is None or daily is None or hourly is None:
         return None
+    if daily_runner is None or daily_runner == 0:
+        return None
 
-    if weekly["signal"] == "BULL" and daily["signal"] == "BULL":
+    if weekly["signal"] == "BULL" and daily["signal"] == "BULL" and daily_runner > 0:
         return {
             "pair": pair.replace("=X", ""),
             "source": f"{source_w}/{source_d}/{source_h}",
@@ -362,7 +364,7 @@ def analyze_pair(pair):
             "daily_runner": daily_runner,
         }
 
-    if weekly["signal"] == "BEAR" and daily["signal"] == "BEAR":
+    if weekly["signal"] == "BEAR" and daily["signal"] == "BEAR" and daily_runner < 0:
         return {
             "pair": pair.replace("=X", ""),
             "source": f"{source_w}/{source_d}/{source_h}",
