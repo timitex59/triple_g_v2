@@ -15,6 +15,7 @@ import random
 import string
 import importlib
 import subprocess
+import pickle
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -56,6 +57,8 @@ PSAR_MAXIMUM = 0.2
 TV_CANDLES = 200
 MAX_WORKERS = 8
 TRACKING_FILE = "trend_follower.json"
+CACHE_FILE = "market_cache.pkl"
+CACHE_MAX_AGE_SECONDS = 6 * 60 * 60
 
 dotenv.load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -165,6 +168,10 @@ def fetch_data_yahoo(pair_yahoo, interval_code, period):
 
 
 def fetch_data_smart(pair, interval, n_candles, yahoo_period):
+    df = fetch_data_cache(pair, interval, n_candles)
+    if df is not None and not df.empty:
+        return df, "CACHE"
+
     df = fetch_data_tv(pair, interval, n_candles=n_candles)
     if df is not None and not df.empty:
         return df, "TV"
@@ -308,6 +315,47 @@ def build_telegram_message(bull_results, bear_results, new_flags):
 
 def tracking_file_path():
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), TRACKING_FILE)
+
+
+def cache_file_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), CACHE_FILE)
+
+
+_CACHE_DATA = None
+
+
+def load_market_cache():
+    global _CACHE_DATA
+    if _CACHE_DATA is not None:
+        return _CACHE_DATA
+    path = cache_file_path()
+    if not os.path.exists(path):
+        _CACHE_DATA = {}
+        return _CACHE_DATA
+    try:
+        with open(path, "rb") as handle:
+            payload = pickle.load(handle)
+        timestamp = payload.get("timestamp") if isinstance(payload, dict) else None
+        if timestamp and (time.time() - timestamp) > CACHE_MAX_AGE_SECONDS:
+            _CACHE_DATA = {}
+            return _CACHE_DATA
+        _CACHE_DATA = payload.get("data", {}) if isinstance(payload, dict) else {}
+    except Exception:
+        _CACHE_DATA = {}
+    return _CACHE_DATA
+
+
+def fetch_data_cache(pair, interval_code, n_candles):
+    cache = load_market_cache()
+    pair_data = cache.get(pair)
+    if not pair_data:
+        return None
+    df = pair_data.get(interval_code)
+    if df is None or df.empty:
+        return None
+    if n_candles and len(df) > n_candles:
+        return df.tail(n_candles)
+    return df
 
 
 def load_tracking_state(path):
