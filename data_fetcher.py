@@ -42,7 +42,13 @@ CACHE_FILE = "market_cache.pkl"
 
 # Liste complète des paires (Union des besoins des 3 scripts)
 PAIRS = [
-     "USDJPY=X", "GBPJPY=X", "EURJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X"
+    "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "NZDUSD=X", "USDCAD=X", "USDCHF=X",
+    "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
+    "EURAUD=X", "EURCAD=X", "EURNZD=X", "EURCHF=X",
+    "GBPAUD=X", "GBPCAD=X", "GBPNZD=X", "GBPCHF=X",
+    "AUDNZD=X", "AUDCAD=X", "AUDCHF=X",
+    "NZDCAD=X", "NZDCHF=X",
+    "CADCHF=X",
 ]
 
 # --- TRADINGVIEW ENGINE ---
