@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2025-12-23T19:24:25Z",
+  "updated_at_utc": "2025-12-23T19:31:34Z",
   "current": {
     "bullish": [
       "AUDJPY",
@@ -10,6 +10,7 @@
     ],
     "bearish": [
       "EURCHF",
+      "GBPAUD",
       "USDCAD",
       "USDCHF"
     ]
@@ -43,6 +44,10 @@
         "new": false
       },
       {
+        "pair": "GBPAUD",
+        "new": true
+      },
+      {
         "pair": "USDCAD",
         "new": false
       },
@@ -54,7 +59,9 @@
   },
   "new_entries": {
     "bullish": [],
-    "bearish": []
+    "bearish": [
+      "GBPAUD"
+    ]
   },
   "exits": {
     "bullish": [],
