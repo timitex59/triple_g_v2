@@ -301,6 +301,10 @@ def build_telegram_message(bull_results, bear_results, new_flags):
     return "\n".join(lines)
 
 
+def tracking_file_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), TRACKING_FILE)
+
+
 def load_tracking_state(path):
     if not os.path.exists(path):
         return {"current": {"bullish": [], "bearish": []}}
@@ -354,6 +358,7 @@ def save_tracking_state(path, bull_results, bear_results):
 
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(data, handle, ensure_ascii=False, indent=2)
+    return data
 
 
 def evaluate_conditions(df):
@@ -512,12 +517,12 @@ def main():
     else:
         print("Bearish W+D: none")
 
-    tracking_state = load_tracking_state(TRACKING_FILE)
-    new_flags = tracking_state.get("new_entries", {})
+    tracking_path = tracking_file_path()
+    tracking_data = save_tracking_state(tracking_path, bull_results, bear_results)
+    new_flags = tracking_data.get("new_entries", {})
     tg_message = build_telegram_message(bull_results, bear_results, new_flags)
     if tg_message:
         send_telegram_message(tg_message)
-    save_tracking_state(TRACKING_FILE, bull_results, bear_results)
 
 
 if __name__ == "__main__":
