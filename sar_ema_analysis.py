@@ -274,9 +274,8 @@ def runner_ball(value):
 
 def format_alignment_ball(item, main_signal):
     main_ball = trend_ball(main_signal)
-    aligned = item["hourly_signal"] == main_signal
-    other_ball = main_ball if aligned else trend_ball("BEAR" if main_signal == "BULL" else "BULL")
-    return main_ball + runner_ball(item.get("daily_runner")) + other_ball
+    hourly_ball = trend_ball(item["hourly_signal"])
+    return main_ball + hourly_ball
 
 
 
