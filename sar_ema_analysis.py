@@ -283,7 +283,7 @@ def format_alignment_ball(item, main_signal):
 def build_telegram_message(bull_results, bear_results, new_flags):
     new_bull = set(new_flags.get("bullish", []))
     new_bear = set(new_flags.get("bearish", []))
-    stats_lines = format_currency_strength_stats(bull_results, bear_results)
+    best_trade_lines = build_best_trade_lines(bull_results, bear_results)
     lines = []
     if bull_results:
         lines.append("BULLISH W+D")
@@ -299,10 +299,10 @@ def build_telegram_message(bull_results, bear_results, new_flags):
             balls = format_alignment_ball(item, "BEAR")
             check = " ✅" if item["pair"] in new_bear else ""
             lines.append(f"{balls} {item['pair']}{check}")
-    if stats_lines:
+    if best_trade_lines:
         if lines:
             lines.append("")
-        lines.extend(stats_lines)
+        lines.extend(best_trade_lines)
     return "\n".join(lines)
 
 
@@ -366,10 +366,10 @@ def save_tracking_state(path, bull_results, bear_results):
     return data
 
 
-def format_currency_strength_stats(bull_results, bear_results):
+def get_strength_sets(bull_results, bear_results):
     total_pairs = len(bull_results) + len(bear_results)
     if total_pairs == 0:
-        return []
+        return set(), set(), 0
 
     strong_counts = {}
     weak_counts = {}
@@ -392,25 +392,37 @@ def format_currency_strength_stats(bull_results, bear_results):
         strong_counts[quote] = strong_counts.get(quote, 0) + 1
         weak_counts[base] = weak_counts.get(base, 0) + 1
 
-    def top_stats(counts):
-        if not counts:
-            return [], 0, 0.0
-        max_count = max(counts.values())
-        top = sorted([k for k, v in counts.items() if v == max_count])
-        pct = (max_count / total_pairs) * 100.0
-        return top, max_count, pct
+    max_strong = max(strong_counts.values()) if strong_counts else 0
+    max_weak = max(weak_counts.values()) if weak_counts else 0
+    strongest = {k for k, v in strong_counts.items() if v == max_strong} if max_strong else set()
+    weakest = {k for k, v in weak_counts.items() if v == max_weak} if max_weak else set()
 
-    top_strong, strong_count, strong_pct = top_stats(strong_counts)
-    top_weak, weak_count, weak_pct = top_stats(weak_counts)
+    return strongest, weakest, total_pairs
 
-    strong_str = ", ".join(top_strong) if top_strong else "NA"
-    weak_str = ", ".join(top_weak) if top_weak else "NA"
 
-    return [
-        "STATS",
-        f"Strongest: {strong_str} ({strong_pct:.1f}%, {strong_count}/{total_pairs})",
-        f"Weakest: {weak_str} ({weak_pct:.1f}%, {weak_count}/{total_pairs})",
-    ]
+def build_best_trade_lines(bull_results, bear_results):
+    strongest, weakest, _ = get_strength_sets(bull_results, bear_results)
+    if not strongest or not weakest:
+        return []
+
+    best_pairs = []
+    for item in bull_results + bear_results:
+        pair = item["pair"]
+        if len(pair) < 6:
+            continue
+        base = pair[:3]
+        quote = pair[3:]
+        if (base in strongest and quote in weakest) or (base in weakest and quote in strongest):
+            best_pairs.append(item)
+
+    if not best_pairs:
+        return []
+
+    lines = ["BEST TRADE"]
+    for item in sorted(best_pairs, key=lambda x: x["pair"]):
+        balls = format_alignment_ball(item, item["signal"])
+        lines.append(f"{balls} {item['pair']}")
+    return lines
 
 
 def evaluate_conditions(df):
