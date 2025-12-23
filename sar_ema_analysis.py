@@ -283,6 +283,7 @@ def format_alignment_ball(item, main_signal):
 def build_telegram_message(bull_results, bear_results, new_flags):
     new_bull = set(new_flags.get("bullish", []))
     new_bear = set(new_flags.get("bearish", []))
+    stats_lines = format_currency_stats([item["pair"] for item in bull_results + bear_results])
     lines = []
     if bull_results:
         lines.append("BULLISH W+D")
@@ -298,6 +299,10 @@ def build_telegram_message(bull_results, bear_results, new_flags):
             balls = format_alignment_ball(item, "BEAR")
             check = " ✅" if item["pair"] in new_bear else ""
             lines.append(f"{balls} {item['pair']}{check}")
+    if stats_lines:
+        if lines:
+            lines.append("")
+        lines.extend(stats_lines)
     return "\n".join(lines)
 
 
@@ -359,6 +364,42 @@ def save_tracking_state(path, bull_results, bear_results):
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(data, handle, ensure_ascii=False, indent=2)
     return data
+
+
+def format_currency_stats(pairs):
+    total = len(pairs)
+    if total == 0:
+        return []
+
+    base_counts = {}
+    quote_counts = {}
+    for pair in pairs:
+        if len(pair) < 6:
+            continue
+        base = pair[:3]
+        quote = pair[3:]
+        base_counts[base] = base_counts.get(base, 0) + 1
+        quote_counts[quote] = quote_counts.get(quote, 0) + 1
+
+    def top_stats(counts):
+        if not counts:
+            return [], 0, 0.0
+        max_count = max(counts.values())
+        top = sorted([k for k, v in counts.items() if v == max_count])
+        pct = (max_count / total) * 100.0
+        return top, max_count, pct
+
+    top_base, base_count, base_pct = top_stats(base_counts)
+    top_quote, quote_count, quote_pct = top_stats(quote_counts)
+
+    base_str = ", ".join(top_base) if top_base else "NA"
+    quote_str = ", ".join(top_quote) if top_quote else "NA"
+
+    return [
+        "STATS",
+        f"Top BASE: {base_str} ({base_pct:.1f}%, {base_count}/{total})",
+        f"Top QUOTE: {quote_str} ({quote_pct:.1f}%, {quote_count}/{total})",
+    ]
 
 
 def evaluate_conditions(df):
