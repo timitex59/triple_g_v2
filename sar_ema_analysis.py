@@ -258,13 +258,26 @@ def send_telegram_message(message):
         return False
 
 
+def trend_ball(signal):
+    if signal == "BULL":
+        return "??"
+    if signal == "BEAR":
+        return "??"
+    return "?"
+
+
+def runner_ball(value):
+    if value is None or value == 0:
+        return "?"
+    return "??" if value > 0 else "??"
+
+
 def format_alignment_ball(item, main_signal):
-    main_ball = "🟢" if main_signal == "BULL" else "🔴"
+    main_ball = trend_ball(main_signal)
     aligned = item["hourly_signal"] == main_signal
-    if aligned:
-        return main_ball + main_ball
-    inverse_ball = "🔴" if main_ball == "🟢" else "🟢"
-    return main_ball + inverse_ball
+    other_ball = main_ball if aligned else trend_ball("BEAR" if main_signal == "BULL" else "BULL")
+    return main_ball + runner_ball(item.get("daily_runner")) + other_ball
+
 
 
 def build_telegram_message(bull_results, bear_results):
