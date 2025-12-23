@@ -287,10 +287,12 @@ def format_alignment_ball(item, main_signal):
 
 
 
-def build_telegram_message(bull_results, bear_results, new_flags):
+def build_telegram_message(bull_results, bear_results, new_flags, exits):
     new_bull = set(new_flags.get("bullish", []))
     new_bear = set(new_flags.get("bearish", []))
     best_trade_lines = build_best_trade_lines(bull_results, bear_results)
+    exit_bull = exits.get("bullish", [])
+    exit_bear = exits.get("bearish", [])
     lines = []
     if bull_results:
         lines.append("BULLISH W+D")
@@ -306,6 +308,14 @@ def build_telegram_message(bull_results, bear_results, new_flags):
             balls = format_alignment_ball(item, "BEAR")
             check = " ✅" if item["pair"] in new_bear else ""
             lines.append(f"{balls} {item['pair']}{check}")
+    if exit_bull or exit_bear:
+        if lines:
+            lines.append("")
+        lines.append("EXITS")
+        if exit_bull:
+            lines.append(f"Exit BULL: {', '.join(sorted(exit_bull))}")
+        if exit_bear:
+            lines.append(f"Exit BEAR: {', '.join(sorted(exit_bear))}")
     if best_trade_lines:
         if lines:
             lines.append("")
@@ -638,7 +648,8 @@ def main():
     tracking_path = tracking_file_path()
     tracking_data = save_tracking_state(tracking_path, bull_results, bear_results)
     new_flags = tracking_data.get("new_entries", {})
-    tg_message = build_telegram_message(bull_results, bear_results, new_flags)
+    exits = tracking_data.get("exits", {})
+    tg_message = build_telegram_message(bull_results, bear_results, new_flags, exits)
     if tg_message:
         send_telegram_message(tg_message)
 
