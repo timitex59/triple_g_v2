@@ -280,20 +280,24 @@ def format_alignment_ball(item, main_signal):
 
 
 
-def build_telegram_message(bull_results, bear_results):
+def build_telegram_message(bull_results, bear_results, new_flags):
+    new_bull = set(new_flags.get("bullish", []))
+    new_bear = set(new_flags.get("bearish", []))
     lines = []
     if bull_results:
         lines.append("BULLISH W+D")
         for item in sorted(bull_results, key=lambda x: x["pair"]):
             balls = format_alignment_ball(item, "BULL")
-            lines.append(f"{balls} {item['pair']}")
+            check = " ✅" if item["pair"] in new_bull else ""
+            lines.append(f"{balls} {item['pair']}{check}")
     if bear_results:
         if lines:
             lines.append("")
         lines.append("BEARISH W+D")
         for item in sorted(bear_results, key=lambda x: x["pair"]):
             balls = format_alignment_ball(item, "BEAR")
-            lines.append(f"{balls} {item['pair']}")
+            check = " ✅" if item["pair"] in new_bear else ""
+            lines.append(f"{balls} {item['pair']}{check}")
     return "\n".join(lines)
 
 
@@ -508,7 +512,9 @@ def main():
     else:
         print("Bearish W+D: none")
 
-    tg_message = build_telegram_message(bull_results, bear_results)
+    tracking_state = load_tracking_state(TRACKING_FILE)
+    new_flags = tracking_state.get("new_entries", {})
+    tg_message = build_telegram_message(bull_results, bear_results, new_flags)
     if tg_message:
         send_telegram_message(tg_message)
     save_tracking_state(TRACKING_FILE, bull_results, bear_results)
