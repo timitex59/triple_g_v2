@@ -405,23 +405,29 @@ def build_best_trade_lines(bull_results, bear_results):
     if not strongest or not weakest:
         return []
 
+    results_by_pair = {item["pair"]: item for item in (bull_results + bear_results)}
+    available_pairs = [p.replace("=X", "") for p in PAIRS]
+
     best_pairs = []
-    for item in bull_results + bear_results:
-        pair = item["pair"]
+    for pair in available_pairs:
         if len(pair) < 6:
             continue
         base = pair[:3]
         quote = pair[3:]
         if (base in strongest and quote in weakest) or (base in weakest and quote in strongest):
-            best_pairs.append(item)
+            best_pairs.append(pair)
 
     if not best_pairs:
         return []
 
     lines = ["BEST TRADE"]
-    for item in sorted(best_pairs, key=lambda x: x["pair"]):
-        balls = format_alignment_ball(item, item["signal"])
-        lines.append(f"{balls} {item['pair']}")
+    for pair in sorted(best_pairs):
+        item = results_by_pair.get(pair)
+        if item:
+            balls = format_alignment_ball(item, item["signal"])
+        else:
+            balls = "⚪⚪"
+        lines.append(f"{balls} {pair}")
     return lines
 
 
