@@ -35,7 +35,6 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python data_fetcher.py
-          python combined_analysis.py
           python sar_ema_analysis.py
 
       - name: Commit and Push History
