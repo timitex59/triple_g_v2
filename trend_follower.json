@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2025-12-23T23:19:28Z",
+  "updated_at_utc": "2025-12-24T04:50:49Z",
   "current": {
     "bullish": [
       "AUDUSD",
@@ -7,7 +7,6 @@
       "GBPUSD"
     ],
     "bearish": [
-      "CADCHF",
       "EURCHF",
       "GBPAUD",
       "USDCAD",
@@ -31,20 +30,16 @@
     ],
     "bearish": [
       {
-        "pair": "CADCHF",
-        "new": true
-      },
-      {
         "pair": "EURCHF",
         "new": false
       },
       {
         "pair": "GBPAUD",
-        "new": true
+        "new": false
       },
       {
         "pair": "USDCAD",
-        "new": true
+        "new": false
       },
       {
         "pair": "USDCHF",
@@ -54,17 +49,12 @@
   },
   "new_entries": {
     "bullish": [],
-    "bearish": [
-      "CADCHF",
-      "GBPAUD",
-      "USDCAD"
-    ]
+    "bearish": []
   },
   "exits": {
-    "bullish": [
-      "AUDJPY",
-      "CHFJPY"
-    ],
-    "bearish": []
+    "bullish": [],
+    "bearish": [
+      "CADCHF"
+    ]
   }
 }
