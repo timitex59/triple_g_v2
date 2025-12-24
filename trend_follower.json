@@ -1,9 +1,8 @@
 {
-  "updated_at_utc": "2025-12-24T06:51:22Z",
+  "updated_at_utc": "2025-12-24T07:36:20Z",
   "current": {
     "bullish": [
       "AUDUSD",
-      "EURUSD",
       "GBPUSD"
     ],
     "bearish": [
@@ -17,10 +16,6 @@
     "bullish": [
       {
         "pair": "AUDUSD",
-        "new": false
-      },
-      {
-        "pair": "EURUSD",
         "new": false
       },
       {
@@ -52,7 +47,9 @@
     "bearish": []
   },
   "exits": {
-    "bullish": [],
+    "bullish": [
+      "EURUSD"
+    ],
     "bearish": []
   }
 }
