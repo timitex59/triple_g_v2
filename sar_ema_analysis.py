@@ -59,6 +59,7 @@ MAX_WORKERS = 8
 TRACKING_FILE = "trend_follower.json"
 CACHE_FILE = "market_cache.pkl"
 CACHE_MAX_AGE_SECONDS = 6 * 60 * 60
+TELEGRAM_MIN_ABS_RUNNER = 0.15
 
 dotenv.load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -287,9 +288,19 @@ def format_alignment_ball(item, main_signal):
 
 
 
+def filter_for_telegram(items):
+    return [
+        item
+        for item in items
+        if item.get("daily_runner") is not None and abs(item["daily_runner"]) > TELEGRAM_MIN_ABS_RUNNER
+    ]
+
+
 def build_telegram_message(bull_results, bear_results, new_flags, exits):
     new_bull = set(new_flags.get("bullish", []))
     new_bear = set(new_flags.get("bearish", []))
+    bull_results = filter_for_telegram(bull_results)
+    bear_results = filter_for_telegram(bear_results)
     best_trade_lines = build_best_trade_lines(bull_results, bear_results)
     exit_bull = exits.get("bullish", [])
     exit_bear = exits.get("bearish", [])
