@@ -298,7 +298,6 @@ def build_telegram_message(bull_results, bear_results, new_flags, exits):
     new_bear = set(new_flags.get("bearish", []))
     bull_results = filter_for_telegram(bull_results)
     bear_results = filter_for_telegram(bear_results)
-    best_trade_lines = build_best_trade_lines(bull_results, bear_results)
     exit_bull = exits.get("bullish", [])
     exit_bear = exits.get("bearish", [])
     lines = []
@@ -324,10 +323,6 @@ def build_telegram_message(bull_results, bear_results, new_flags, exits):
             lines.append(f"Exit BULL: {', '.join(sorted(exit_bull))}")
         if exit_bear:
             lines.append(f"Exit BEAR: {', '.join(sorted(exit_bear))}")
-    if best_trade_lines:
-        if lines:
-            lines.append("")
-        lines.extend(best_trade_lines)
     return "\n".join(lines)
 
 
