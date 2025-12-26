@@ -1,28 +1,57 @@
 {
-  "updated_at_utc": "2025-12-24T18:22:56Z",
+  "updated_at_utc": "2025-12-26T13:03:01Z",
   "current": {
     "bullish": [
-      "AUDUSD"
+      "AUDJPY",
+      "AUDUSD",
+      "CADJPY",
+      "CHFJPY",
+      "EURJPY",
+      "EURUSD",
+      "GBPJPY",
+      "NZDJPY"
     ],
     "bearish": [
-      "EURCHF",
       "GBPAUD",
-      "USDCAD",
-      "USDCHF"
+      "USDCAD"
     ]
   },
   "current_with_flags": {
     "bullish": [
       {
+        "pair": "AUDJPY",
+        "new": false
+      },
+      {
         "pair": "AUDUSD",
         "new": false
+      },
+      {
+        "pair": "CADJPY",
+        "new": false
+      },
+      {
+        "pair": "CHFJPY",
+        "new": true
+      },
+      {
+        "pair": "EURJPY",
+        "new": false
+      },
+      {
+        "pair": "EURUSD",
+        "new": true
+      },
+      {
+        "pair": "GBPJPY",
+        "new": false
+      },
+      {
+        "pair": "NZDJPY",
+        "new": true
       }
     ],
     "bearish": [
-      {
-        "pair": "EURCHF",
-        "new": true
-      },
       {
         "pair": "GBPAUD",
         "new": false
@@ -30,18 +59,16 @@
       {
         "pair": "USDCAD",
         "new": false
-      },
-      {
-        "pair": "USDCHF",
-        "new": false
       }
     ]
   },
   "new_entries": {
-    "bullish": [],
-    "bearish": [
-      "EURCHF"
-    ]
+    "bullish": [
+      "CHFJPY",
+      "EURUSD",
+      "NZDJPY"
+    ],
+    "bearish": []
   },
   "exits": {
     "bullish": [],
