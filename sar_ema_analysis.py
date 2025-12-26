@@ -39,8 +39,11 @@ dotenv = install_and_import("python-dotenv", "dotenv")
 
 
 PAIRS = [
-    "USDJPY=X","USDCHF=X","EURJPY=X","GBPJPY=X","AUDJPY=X","NZDJPY=X","CADJPY=X", "CHFJPY=X", "EURCHF=X","GBPCHF=X","AUDCHF=X","NZDCHF=X","CADCHF=X",
+    "USDJPY=X", "USDCHF=X",
+    "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
+    "EURCHF=X", "GBPCHF=X", "AUDCHF=X", "NZDCHF=X", "CADCHF=X",
 ]
+
 
 EMA_LENGTHS = [20, 25, 30, 35, 40, 45, 50, 55]
 
