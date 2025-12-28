@@ -62,15 +62,10 @@ USE_CACHE = True
 MARKET_CACHE = None
 MARKET_CACHE_TIMESTAMP = None
 REFRESH_CACHE = True
-REFRESH_MODE = "incremental"
 CACHE_H1_CANDLES = 500
 CACHE_D1_CANDLES = 300
 CACHE_W1_CANDLES = 150
-H1_REFRESH_CANDLES = 24
-D1_REFRESH_CANDLES = 5
-W1_REFRESH_CANDLES = 4
 CACHE_MAX_WORKERS = 5
-REFRESH_MIN_SECONDS = 600
 
 dotenv.load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -229,127 +224,35 @@ def get_cached_df(pair, interval):
     return df
 
 
-def fetch_tv_batch(pair_yahoo, h1_candles, d1_candles, w1_candles):
+def fetch_tv_batch(pair_yahoo):
     data_map = {}
-    if h1_candles and h1_candles > 0:
-        df_h1 = fetch_data_tv(pair_yahoo, "1h", n_candles=h1_candles)
-        if df_h1 is not None:
-            data_map["1h"] = df_h1
+    df_h1 = fetch_data_tv(pair_yahoo, "1h", n_candles=CACHE_H1_CANDLES)
+    if df_h1 is not None:
+        data_map["1h"] = df_h1
 
-    if d1_candles and d1_candles > 0:
-        df_d1 = fetch_data_tv(pair_yahoo, "1d", n_candles=d1_candles)
-        if df_d1 is not None:
-            data_map["1d"] = df_d1
+    df_d1 = fetch_data_tv(pair_yahoo, "1d", n_candles=CACHE_D1_CANDLES)
+    if df_d1 is not None:
+        data_map["1d"] = df_d1
 
-    if w1_candles and w1_candles > 0:
-        df_w1 = fetch_data_tv(pair_yahoo, "1wk", n_candles=w1_candles)
-        if df_w1 is not None:
-            data_map["1wk"] = df_w1
+    df_w1 = fetch_data_tv(pair_yahoo, "1wk", n_candles=CACHE_W1_CANDLES)
+    if df_w1 is not None:
+        data_map["1wk"] = df_w1
 
     if data_map:
         return pair_yahoo, data_map
     return None
 
 
-def normalize_timestamp(ts):
-    if ts is None:
-        return None
-    if ts.tzinfo is None:
-        return ts.tz_localize("UTC")
-    return ts.tz_convert("UTC")
-
-
-def should_refresh(last_index, interval_code):
-    if last_index is None:
-        return True
-    last_index = normalize_timestamp(last_index)
-    now = pd.Timestamp.now(tz="UTC")
-
-    if interval_code == "1h":
-        return (now - last_index) >= pd.Timedelta(hours=1)
-    if interval_code == "1d":
-        return now.date() > last_index.date()
-    if interval_code == "1wk":
-        now_iso = now.isocalendar()
-        last_iso = last_index.isocalendar()
-        return (now_iso.year, now_iso.week) != (last_iso.year, last_iso.week)
-    return True
-
-
-def merge_frames(existing, new_df, max_candles):
-    if new_df is None or new_df.empty:
-        return existing
-    if existing is None or existing.empty:
-        merged = new_df
-    else:
-        merged = pd.concat([existing, new_df])
-        merged = merged[~merged.index.duplicated(keep="last")]
-        merged.sort_index(inplace=True)
-    if max_candles and len(merged) > max_candles:
-        merged = merged.iloc[-max_candles:]
-    return merged
-
-
 def refresh_market_cache():
     cache_data = {}
     start_time = time.time()
-    existing_cache = load_market_cache() or {}
-    incremental = REFRESH_MODE == "incremental"
-    if incremental and MARKET_CACHE_TIMESTAMP:
-        if (time.time() - MARKET_CACHE_TIMESTAMP) < REFRESH_MIN_SECONDS:
-            return 0.0, True
-
-    fetch_specs = {}
-    for pair in PAIRS:
-        if not incremental or pair not in existing_cache:
-            fetch_specs[pair] = (CACHE_H1_CANDLES, CACHE_D1_CANDLES, CACHE_W1_CANDLES)
-            continue
-
-        pair_cache = existing_cache.get(pair, {})
-        h1_last = pair_cache.get("1h")
-        d1_last = pair_cache.get("1d")
-        w1_last = pair_cache.get("1wk")
-        h1_last_idx = h1_last.index[-1] if h1_last is not None and not h1_last.empty else None
-        d1_last_idx = d1_last.index[-1] if d1_last is not None and not d1_last.empty else None
-        w1_last_idx = w1_last.index[-1] if w1_last is not None and not w1_last.empty else None
-
-        h1_need = H1_REFRESH_CANDLES if should_refresh(h1_last_idx, "1h") else 0
-        d1_need = D1_REFRESH_CANDLES if should_refresh(d1_last_idx, "1d") else 0
-        w1_need = W1_REFRESH_CANDLES if should_refresh(w1_last_idx, "1wk") else 0
-        fetch_specs[pair] = (h1_need, d1_need, w1_need)
-
     with ThreadPoolExecutor(max_workers=CACHE_MAX_WORKERS) as executor:
-        future_to_pair = {}
-        for pair, (h1_candles, d1_candles, w1_candles) in fetch_specs.items():
-            if h1_candles == 0 and d1_candles == 0 and w1_candles == 0:
-                if pair in existing_cache:
-                    cache_data[pair] = existing_cache[pair]
-                continue
-            future_to_pair[
-                executor.submit(fetch_tv_batch, pair, h1_candles, d1_candles, w1_candles)
-            ] = pair
-
+        future_to_pair = {executor.submit(fetch_tv_batch, pair): pair for pair in PAIRS}
         for future in as_completed(future_to_pair):
-            pair = future_to_pair[future]
             result = future.result()
             if result:
-                _, data = result
-                if incremental and pair in existing_cache:
-                    merged = {}
-                    merged["1h"] = merge_frames(
-                        existing_cache[pair].get("1h"), data.get("1h"), CACHE_H1_CANDLES
-                    )
-                    merged["1d"] = merge_frames(
-                        existing_cache[pair].get("1d"), data.get("1d"), CACHE_D1_CANDLES
-                    )
-                    merged["1wk"] = merge_frames(
-                        existing_cache[pair].get("1wk"), data.get("1wk"), CACHE_W1_CANDLES
-                    )
-                    cache_data[pair] = merged
-                else:
-                    cache_data[pair] = data
-            elif incremental and pair in existing_cache:
-                cache_data[pair] = existing_cache[pair]
+                pair, data = result
+                cache_data[pair] = data
 
     cache_with_meta = {
         "timestamp": time.time(),
@@ -357,7 +260,7 @@ def refresh_market_cache():
     }
     with open(CACHE_FILE, "wb") as f:
         pickle.dump(cache_with_meta, f)
-    return time.time() - start_time, False
+    return time.time() - start_time
 
 
 def calculate_psar_series(df, start, increment, maximum):
@@ -727,18 +630,11 @@ def analyze_pair(pair):
 
 
 def main():
-    overall_start = time.time()
     if REFRESH_CACHE:
-        refresh_start = time.time()
-        elapsed, skipped = refresh_market_cache()
-        refresh_elapsed = time.time() - refresh_start
-        if skipped:
-            print(f"Cache refresh skipped (recent cache < {REFRESH_MIN_SECONDS}s)")
-        else:
-            print(f"Cache refreshed in {elapsed:.2f}s (wall {refresh_elapsed:.2f}s)")
+        elapsed = refresh_market_cache()
+        print(f"Cache refreshed in {elapsed:.2f}s")
         print("-" * 64)
 
-    analysis_start = time.time()
     all_results = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         futures = {executor.submit(analyze_pair, pair): pair for pair in PAIRS}
@@ -747,7 +643,6 @@ def main():
             if result:
                 if result["status"] == "ACTIVE":
                     all_results.append(result)
-    analysis_elapsed = time.time() - analysis_start
 
     all_results.sort(key=lambda x: x["pair"])
 
@@ -776,9 +671,6 @@ def main():
     tg_message = build_telegram_message(bull_active, bear_active)
     if tg_message:
         send_telegram_message(tg_message)
-    overall_elapsed = time.time() - overall_start
-    print("-" * 64)
-    print(f"Timing: analysis={analysis_elapsed:.2f}s | total={overall_elapsed:.2f}s")
 
 
 if __name__ == "__main__":
