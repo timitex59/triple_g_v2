@@ -36,6 +36,7 @@ jobs:
         run: |
           python data_fetcher.py
           python sar_ema_analysis.py
+          python sar_ema_analysis_V3.py
 
       - name: Commit and Push History
         run: |
