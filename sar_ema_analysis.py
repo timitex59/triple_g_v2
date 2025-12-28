@@ -57,16 +57,6 @@ TRACKING_FILE = "trend_follower.json"
 CACHE_FILE = "market_cache.pkl"
 CACHE_MAX_AGE_SECONDS = 6 * 60 * 60
 TELEGRAM_MIN_ABS_RUNNER = 0.15
-REFRESH_CACHE = True
-REFRESH_MODE = "incremental"
-CACHE_H1_CANDLES = 500
-CACHE_D1_CANDLES = 300
-CACHE_W1_CANDLES = 150
-H1_REFRESH_CANDLES = 24
-D1_REFRESH_CANDLES = 5
-W1_REFRESH_CANDLES = 4
-CACHE_MAX_WORKERS = 5
-REFRESH_MIN_SECONDS = 600
 
 dotenv.load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -345,12 +335,10 @@ def cache_file_path():
 
 
 _CACHE_DATA = None
-_CACHE_TIMESTAMP = None
 
 
 def load_market_cache():
     global _CACHE_DATA
-    global _CACHE_TIMESTAMP
     if _CACHE_DATA is not None:
         return _CACHE_DATA
     path = cache_file_path()
@@ -361,7 +349,6 @@ def load_market_cache():
         with open(path, "rb") as handle:
             payload = pickle.load(handle)
         timestamp = payload.get("timestamp") if isinstance(payload, dict) else None
-        _CACHE_TIMESTAMP = timestamp
         if timestamp and (time.time() - timestamp) > CACHE_MAX_AGE_SECONDS:
             _CACHE_DATA = {}
             return _CACHE_DATA
@@ -382,136 +369,6 @@ def fetch_data_cache(pair, interval_code, n_candles):
     if n_candles and len(df) > n_candles:
         return df.tail(n_candles)
     return df
-
-
-def normalize_timestamp(ts):
-    if ts is None:
-        return None
-    if ts.tzinfo is None:
-        return ts.tz_localize("UTC")
-    return ts.tz_convert("UTC")
-
-
-def should_refresh(last_index, interval_code):
-    if last_index is None:
-        return True
-    last_index = normalize_timestamp(last_index)
-    now = pd.Timestamp.now(tz="UTC")
-    if interval_code == "1h":
-        return (now - last_index) >= pd.Timedelta(hours=1)
-    if interval_code == "1d":
-        return now.date() > last_index.date()
-    if interval_code == "1wk":
-        now_iso = now.isocalendar()
-        last_iso = last_index.isocalendar()
-        return (now_iso.year, now_iso.week) != (last_iso.year, last_iso.week)
-    return True
-
-
-def merge_frames(existing, new_df, max_candles):
-    if new_df is None or new_df.empty:
-        return existing
-    if existing is None or existing.empty:
-        merged = new_df
-    else:
-        merged = pd.concat([existing, new_df])
-        merged = merged[~merged.index.duplicated(keep="last")]
-        merged.sort_index(inplace=True)
-    if max_candles and len(merged) > max_candles:
-        merged = merged.iloc[-max_candles:]
-    return merged
-
-
-def fetch_tv_batch(pair_yahoo, h1_candles, d1_candles, w1_candles):
-    data_map = {}
-    if h1_candles and h1_candles > 0:
-        df_h1 = fetch_data_tv(pair_yahoo, "1h", n_candles=h1_candles)
-        if df_h1 is not None:
-            data_map["1h"] = df_h1
-
-    if d1_candles and d1_candles > 0:
-        df_d1 = fetch_data_tv(pair_yahoo, "1d", n_candles=d1_candles)
-        if df_d1 is not None:
-            data_map["1d"] = df_d1
-
-    if w1_candles and w1_candles > 0:
-        df_w1 = fetch_data_tv(pair_yahoo, "1wk", n_candles=w1_candles)
-        if df_w1 is not None:
-            data_map["1wk"] = df_w1
-
-    if data_map:
-        return pair_yahoo, data_map
-    return None
-
-
-def refresh_market_cache():
-    start_time = time.time()
-    existing_cache = load_market_cache() or {}
-    if REFRESH_MODE == "incremental" and _CACHE_TIMESTAMP:
-        if (time.time() - _CACHE_TIMESTAMP) < REFRESH_MIN_SECONDS:
-            return 0.0, True
-
-    cache_data = {}
-    incremental = REFRESH_MODE == "incremental"
-    fetch_specs = {}
-    for pair in PAIRS:
-        if not incremental or pair not in existing_cache:
-            fetch_specs[pair] = (CACHE_H1_CANDLES, CACHE_D1_CANDLES, CACHE_W1_CANDLES)
-            continue
-
-        pair_cache = existing_cache.get(pair, {})
-        h1_last = pair_cache.get("1h")
-        d1_last = pair_cache.get("1d")
-        w1_last = pair_cache.get("1wk")
-        h1_last_idx = h1_last.index[-1] if h1_last is not None and not h1_last.empty else None
-        d1_last_idx = d1_last.index[-1] if d1_last is not None and not d1_last.empty else None
-        w1_last_idx = w1_last.index[-1] if w1_last is not None and not w1_last.empty else None
-
-        h1_need = H1_REFRESH_CANDLES if should_refresh(h1_last_idx, "1h") else 0
-        d1_need = D1_REFRESH_CANDLES if should_refresh(d1_last_idx, "1d") else 0
-        w1_need = W1_REFRESH_CANDLES if should_refresh(w1_last_idx, "1wk") else 0
-        fetch_specs[pair] = (h1_need, d1_need, w1_need)
-
-    with ThreadPoolExecutor(max_workers=CACHE_MAX_WORKERS) as executor:
-        future_to_pair = {}
-        for pair, (h1_candles, d1_candles, w1_candles) in fetch_specs.items():
-            if h1_candles == 0 and d1_candles == 0 and w1_candles == 0:
-                if pair in existing_cache:
-                    cache_data[pair] = existing_cache[pair]
-                continue
-            future_to_pair[
-                executor.submit(fetch_tv_batch, pair, h1_candles, d1_candles, w1_candles)
-            ] = pair
-
-        for future in as_completed(future_to_pair):
-            pair = future_to_pair[future]
-            result = future.result()
-            if result:
-                _, data = result
-                if incremental and pair in existing_cache:
-                    merged = {}
-                    merged["1h"] = merge_frames(
-                        existing_cache[pair].get("1h"), data.get("1h"), CACHE_H1_CANDLES
-                    )
-                    merged["1d"] = merge_frames(
-                        existing_cache[pair].get("1d"), data.get("1d"), CACHE_D1_CANDLES
-                    )
-                    merged["1wk"] = merge_frames(
-                        existing_cache[pair].get("1wk"), data.get("1wk"), CACHE_W1_CANDLES
-                    )
-                    cache_data[pair] = merged
-                else:
-                    cache_data[pair] = data
-            elif incremental and pair in existing_cache:
-                cache_data[pair] = existing_cache[pair]
-
-    cache_with_meta = {
-        "timestamp": time.time(),
-        "data": cache_data,
-    }
-    with open(cache_file_path(), "wb") as handle:
-        pickle.dump(cache_with_meta, handle)
-    return time.time() - start_time, False
 
 
 def load_tracking_state(path):
@@ -717,14 +574,6 @@ def analyze_pair(pair):
 
 
 def main():
-    if REFRESH_CACHE:
-        elapsed, skipped = refresh_market_cache()
-        if skipped:
-            print(f"Cache refresh skipped (recent cache < {REFRESH_MIN_SECONDS}s)")
-        else:
-            print(f"Cache refreshed in {elapsed:.2f}s")
-        print("-" * 64)
-
     bull_results = []
     bear_results = []
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
