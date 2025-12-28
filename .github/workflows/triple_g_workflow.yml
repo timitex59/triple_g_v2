@@ -41,7 +41,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python data_fetcher.py
           python sar_ema_analysis.py
           python sar_ema_analysis_V3.py
 
