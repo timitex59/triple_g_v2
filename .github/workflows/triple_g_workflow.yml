@@ -18,6 +18,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Download market cache
+        uses: actions/download-artifact@v4
+        with:
+          name: market-cache
+          path: .
+        continue-on-error: true
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -37,6 +44,12 @@ jobs:
           python data_fetcher.py
           python sar_ema_analysis.py
           python sar_ema_analysis_V3.py
+
+      - name: Upload market cache
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-cache
+          path: market_cache.pkl
 
       - name: Commit and Push History
         run: |
