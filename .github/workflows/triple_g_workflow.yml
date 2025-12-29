@@ -45,6 +45,7 @@ jobs:
           python sar_ema_analysis.py
           python sar_ema_analysis_V3.py
           python sar_ema_analysis_V4_smart_cache.py
+          python sar_ema_analysis_V3_smart_cache.py
 
       - name: Upload market cache
         uses: actions/upload-artifact@v4
