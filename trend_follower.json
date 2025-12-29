@@ -1,9 +1,8 @@
 {
-  "updated_at_utc": "2025-12-29T09:45:23Z",
+  "updated_at_utc": "2025-12-29T10:43:20Z",
   "current": {
     "bullish": [],
     "bearish": [
-      "EURCHF",
       "NZDCHF",
       "USDCHF"
     ]
@@ -12,12 +11,8 @@
     "bullish": [],
     "bearish": [
       {
-        "pair": "EURCHF",
-        "new": true
-      },
-      {
         "pair": "NZDCHF",
-        "new": true
+        "new": false
       },
       {
         "pair": "USDCHF",
@@ -27,13 +22,12 @@
   },
   "new_entries": {
     "bullish": [],
-    "bearish": [
-      "EURCHF",
-      "NZDCHF"
-    ]
+    "bearish": []
   },
   "exits": {
     "bullish": [],
-    "bearish": []
+    "bearish": [
+      "EURCHF"
+    ]
   }
 }
