@@ -565,7 +565,7 @@ def analyze_pair(pair):
     daily = evaluate_conditions(df_d, use_psar=False)
     hourly = evaluate_conditions(df_h, use_psar=True)
     daily_runner = calculate_pct_runner_daily(df_d)
-    if weekly is None or daily is None or hourly is None:
+    if weekly is None or daily is None or hourly is None or daily_runner is None or abs(daily_runner) <= 0.1:
         return None
     if weekly["signal"] not in ("BULL", "BEAR"):
         return None
