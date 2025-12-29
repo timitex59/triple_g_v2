@@ -1,14 +1,31 @@
 {
-  "updated_at_utc": "2025-12-29T13:56:42Z",
+  "updated_at_utc": "2025-12-29T14:00:13Z",
   "current": {
-    "bullish": [],
+    "bullish": [
+      "AUDNZD",
+      "GBPNZD"
+    ],
     "bearish": [
+      "NZDCAD",
       "NZDCHF"
     ]
   },
   "current_with_flags": {
-    "bullish": [],
+    "bullish": [
+      {
+        "pair": "AUDNZD",
+        "new": true
+      },
+      {
+        "pair": "GBPNZD",
+        "new": true
+      }
+    ],
     "bearish": [
+      {
+        "pair": "NZDCAD",
+        "new": true
+      },
       {
         "pair": "NZDCHF",
         "new": false
@@ -16,13 +33,16 @@
     ]
   },
   "new_entries": {
-    "bullish": [],
-    "bearish": []
+    "bullish": [
+      "AUDNZD",
+      "GBPNZD"
+    ],
+    "bearish": [
+      "NZDCAD"
+    ]
   },
   "exits": {
     "bullish": [],
-    "bearish": [
-      "USDCHF"
-    ]
+    "bearish": []
   }
 }
