@@ -43,6 +43,7 @@ jobs:
         run: |
           python sar_ema_analysis_V4_smart_cache.py
           python sar_ema_analysis_V3_smart_cache.py
+          python rubbeon_V1.py
 
       - name: Upload market cache
         uses: actions/upload-artifact@v4
