@@ -1,9 +1,8 @@
 {
-  "updated_at_utc": "2025-12-30T21:32:50Z",
+  "updated_at_utc": "2025-12-30T22:36:03Z",
   "current": {
     "bullish": [
-      "AUDJPY",
-      "AUDNZD"
+      "AUDJPY"
     ],
     "bearish": [
       "NZDCAD"
@@ -13,10 +12,6 @@
     "bullish": [
       {
         "pair": "AUDJPY",
-        "new": false
-      },
-      {
-        "pair": "AUDNZD",
         "new": false
       }
     ],
@@ -32,7 +27,9 @@
     "bearish": []
   },
   "exits": {
-    "bullish": [],
+    "bullish": [
+      "AUDNZD"
+    ],
     "bearish": []
   }
 }
