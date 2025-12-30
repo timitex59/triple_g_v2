@@ -1,7 +1,8 @@
 {
-  "updated_at_utc": "2025-12-30T11:32:05Z",
+  "updated_at_utc": "2025-12-30T13:06:34Z",
   "current": {
     "bullish": [
+      "AUDJPY",
       "AUDNZD",
       "AUDUSD"
     ],
@@ -9,6 +10,10 @@
   },
   "current_with_flags": {
     "bullish": [
+      {
+        "pair": "AUDJPY",
+        "new": true
+      },
       {
         "pair": "AUDNZD",
         "new": false
@@ -21,18 +26,13 @@
     "bearish": []
   },
   "new_entries": {
-    "bullish": [],
+    "bullish": [
+      "AUDJPY"
+    ],
     "bearish": []
   },
   "exits": {
-    "bullish": [
-      "AUDJPY",
-      "GBPNZD",
-      "GBPUSD"
-    ],
-    "bearish": [
-      "EURCHF",
-      "USDCHF"
-    ]
+    "bullish": [],
+    "bearish": []
   }
 }
