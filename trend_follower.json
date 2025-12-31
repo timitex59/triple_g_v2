@@ -1,10 +1,12 @@
 {
-  "updated_at_utc": "2025-12-31T13:46:21Z",
+  "updated_at_utc": "2025-12-31T14:36:41Z",
   "current": {
     "bullish": [
       "AUDNZD",
+      "CADJPY",
       "EURNZD",
-      "GBPNZD"
+      "GBPNZD",
+      "USDJPY"
     ],
     "bearish": [
       "NZDCAD",
@@ -18,12 +20,20 @@
         "new": false
       },
       {
+        "pair": "CADJPY",
+        "new": true
+      },
+      {
         "pair": "EURNZD",
         "new": false
       },
       {
         "pair": "GBPNZD",
         "new": false
+      },
+      {
+        "pair": "USDJPY",
+        "new": true
       }
     ],
     "bearish": [
@@ -38,7 +48,10 @@
     ]
   },
   "new_entries": {
-    "bullish": [],
+    "bullish": [
+      "CADJPY",
+      "USDJPY"
+    ],
     "bearish": []
   },
   "exits": {
