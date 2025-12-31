@@ -491,7 +491,7 @@ def main():
     print(f"Elapsed: {time.time() - start:.2f}s")
     aligned = [r for r in results if r["aligned_state"]]
     if aligned:
-        print("Aligned (BG + MOM + Daily %):")
+        print("Aligned (BG + MOM + Daily % + ASIA):")
         for item in aligned:
             print(f"- {item['pair']}: {item['aligned_state']}")
         tg_message = build_telegram_message(aligned)
