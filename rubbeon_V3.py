@@ -472,6 +472,9 @@ def main():
     parser.add_argument("--workers", type=int, default=6, help="Max workers for multi-pair mode")
     args = parser.parse_args()
 
+    if os.getenv("GITHUB_ACTIONS", "").lower() == "true":
+        args.workers = min(args.workers, 2)
+
     pairs = [args.pair] if args.pair else PAIRS
     results = []
     errors = []
