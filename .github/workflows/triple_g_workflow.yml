@@ -41,9 +41,6 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python sar_ema_analysis_V4_smart_cache.py
-          python sar_ema_analysis_V3_smart_cache.py
-          python rubbeon_V1.py
           python rubbeon_V3.py
 
       - name: Upload market cache
