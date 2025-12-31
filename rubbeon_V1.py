@@ -56,6 +56,9 @@ PAIRS = [
 dotenv.load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+ASIAN_TZ = "Asia/Tokyo"
+ASIAN_SESSION_START_HOUR = 9
+ASIAN_SESSION_END_HOUR = 15
 
 
 def generate_session_id():
@@ -248,6 +251,34 @@ def compute_valuewhen_series(closes, psar):
     return bull_vw, bear_vw
 
 
+def compute_asian_session_state(df_h1):
+    if df_h1 is None or df_h1.empty:
+        return "NONE", np.nan, np.nan, np.nan, None
+    try:
+        local_index = df_h1.index.tz_convert(ASIAN_TZ)
+    except Exception:
+        local_index = df_h1.index.tz_localize("UTC").tz_convert(ASIAN_TZ)
+    hours = local_index.hour
+    session_mask = (hours >= ASIAN_SESSION_START_HOUR) & (hours < ASIAN_SESSION_END_HOUR)
+    session_df = df_h1.loc[session_mask].copy()
+    if session_df.empty:
+        return "NONE", np.nan, np.nan, np.nan, None
+    session_df["local_date"] = local_index[session_mask].date
+    last_date = session_df["local_date"].iloc[-1]
+    last_session = session_df[session_df["local_date"] == last_date]
+    asian_high = last_session["High"].max()
+    asian_low = last_session["Low"].min()
+    asian_mid = (asian_high + asian_low) / 2.0
+    close_now = df_h1["Close"].iloc[-1]
+    if close_now > asian_mid:
+        asia_state = "BULL"
+    elif close_now < asian_mid:
+        asia_state = "BEAR"
+    else:
+        asia_state = "NEUTRE"
+    return asia_state, asian_mid, asian_high, asian_low, last_date
+
+
 def analyze_pair(pair, h1_candles=H1_CANDLES_DEFAULT, d1_candles=D1_CANDLES_DEFAULT, use_cache=True):
     df_h1, source_h1 = fetch_data_smart(pair, "1h", n_candles=h1_candles, yahoo_period="2mo", use_cache=use_cache)
     df_d, source_d = fetch_data_smart(pair, "1d", n_candles=d1_candles, yahoo_period="2y", use_cache=use_cache)
@@ -358,12 +389,14 @@ def analyze_pair(pair, h1_candles=H1_CANDLES_DEFAULT, d1_candles=D1_CANDLES_DEFA
     elif last_bg_state == 1 and not np.isnan(bull_max_since):
         mom_state = "BULL" if close_now > bull_max_since else "BEAR"
 
+    asia_state, asian_mid, asian_high, asian_low, asian_date = compute_asian_session_state(df_h1)
+
     aligned_state = None
     daily_change_last = daily_on_h1["daily_change_pct"].iloc[-1]
     runner_ok = np.isfinite(daily_change_last) and abs(daily_change_last) > 0.1
-    if bool(bull_bg[-1]) and mom_state == "BULL" and daily_change_last > 0 and runner_ok:
+    if bool(bull_bg[-1]) and mom_state == "BULL" and daily_change_last > 0 and runner_ok and asia_state == "BULL":
         aligned_state = "BULL"
-    elif bool(bear_bg[-1]) and mom_state == "BEAR" and daily_change_last < 0 and runner_ok:
+    elif bool(bear_bg[-1]) and mom_state == "BEAR" and daily_change_last < 0 and runner_ok and asia_state == "BEAR":
         aligned_state = "BEAR"
 
     return {
@@ -383,6 +416,11 @@ def analyze_pair(pair, h1_candles=H1_CANDLES_DEFAULT, d1_candles=D1_CANDLES_DEFA
         "bear_min_since": bear_min_since,
         "bull_max_since": bull_max_since,
         "mom_state": mom_state,
+        "asia_state": asia_state,
+        "asian_mid": asian_mid,
+        "asian_high": asian_high,
+        "asian_low": asian_low,
+        "asian_date": asian_date,
         "aligned_state": aligned_state,
     }
 
@@ -404,6 +442,7 @@ def print_result(result):
     print(f"bear_min_since: {result['bear_min_since']}")
     print(f"bull_max_since: {result['bull_max_since']}")
     print(f"MOM: {result['mom_state']}")
+    print(f"ASIA: {result['asia_state']} (mid={result['asian_mid']}, high={result['asian_high']}, low={result['asian_low']})")
     print("=" * 60)
 
 
