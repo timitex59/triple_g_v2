@@ -187,10 +187,12 @@ def find_best_trade_pair(strength, pairs):
     ordered = sorted(strength.items(), key=lambda x: x[1], reverse=True)
     top_ccy = ordered[0][0]
     weak_ccy = ordered[-1][0]
-    candidate = f"{weak_ccy}{top_ccy}=X"
-    if candidate in pairs:
-        direction = "BEAR"
-        return candidate, direction
+    candidate_weak_top = f"{weak_ccy}{top_ccy}=X"
+    if candidate_weak_top in pairs:
+        return candidate_weak_top, "BEAR"
+    candidate_top_weak = f"{top_ccy}{weak_ccy}=X"
+    if candidate_top_weak in pairs:
+        return candidate_top_weak, "BULL"
     return None, None
 
 
