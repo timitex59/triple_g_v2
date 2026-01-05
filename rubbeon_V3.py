@@ -642,8 +642,21 @@ def main():
             else:
                 print("Telegram: not sent (missing token/chat id or error).")
         
-        # 6. Save NEW Top 5 for next time
-        save_tracking_state(top_5_items)
+        # 6. Save NEW Top 5 + Best Trade for next time
+        items_to_track = list(top_5_items)
+        # Check if Best Trade exists and add it if not already in Top 5
+        if strength_all:
+            best_pair_name, _ = find_best_trade_pair(strength_all, PAIRS)
+            if best_pair_name:
+                # Find the result object in the full results list
+                best_trade_item = next((r for r in results if r["pair"] == best_pair_name), None)
+                if best_trade_item:
+                    # Avoid duplicates
+                    already_tracked = any(item["pair"] == best_pair_name for item in items_to_track)
+                    if not already_tracked:
+                        items_to_track.append(best_trade_item)
+
+        save_tracking_state(items_to_track)
             
     else:
         # Even if no pairs are aligned top 5, we should probably check if any old watched pairs 
