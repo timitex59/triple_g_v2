@@ -36,6 +36,9 @@ dotenv = install_and_import("python-dotenv", "dotenv")
 
 EMA_LENGTHS = [20, 25, 30, 35, 40, 45, 50, 55]
 PSAR_START, PSAR_INCREMENT, PSAR_MAXIMUM = 0.1, 0.1, 0.2
+ICON_BULL = "🟢"
+ICON_BEAR = "🔴"
+ICON_ALERT = "⚠️"
 H1_CANDLES_DEFAULT = 2000
 D1_CANDLES_DEFAULT = 500
 H1_CANDLES_MAX = 5000
@@ -194,10 +197,10 @@ def check_runner_changes(previous_state, current_results):
         # Logic: Sign flip detection
         # From + to -
         if old_runner > 0 and new_runner < 0:
-            alerts.append(f"REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% -> {new_runner:+.2f}%")
+            alerts.append(f"{ICON_ALERT} REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% -> {new_runner:+.2f}%")
         # From - to +
         elif old_runner < 0 and new_runner > 0:
-            alerts.append(f"REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% -> {new_runner:+.2f}%")
+            alerts.append(f"{ICON_ALERT} REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% -> {new_runner:+.2f}%")
             
     return alerts
 
@@ -220,7 +223,7 @@ def format_pair_name(pair):
 def build_telegram_message(aligned_items):
     lines = ["RUBBEON"]
     for item in aligned_items:
-        icon = "BULL" if item["aligned_state"] == "BULL" else "BEAR"
+        icon = ICON_BULL if item["aligned_state"] == "BULL" else ICON_BEAR
         runner = item.get("daily_change_pct")
         runner_text = "NA" if runner is None or not np.isfinite(runner) else f"{runner:+.2f}%"
         lines.append(f"{icon} {format_pair_name(item['pair'])} ({runner_text})")
@@ -603,7 +606,7 @@ def main():
             print(f"- {ccy}: {score:+.2f}")
         best_pair, best_dir = find_best_trade_pair(strength_all, PAIRS)
         if best_pair:
-            best_icon = "BEAR" if best_dir == "BEAR" else "BULL"
+            best_icon = ICON_BEAR if best_dir == "BEAR" else ICON_BULL
             print(f"BEST TRADE: {best_icon} {format_pair_name(best_pair)}")
     if aligned:
         print("Aligned (BG + MOM + Daily % + ASIA):")
@@ -620,7 +623,7 @@ def main():
         if strength_all:
             best_pair, best_dir = find_best_trade_pair(strength_all, PAIRS)
             if best_pair:
-                best_icon = "BEAR" if best_dir == "BEAR" else "BULL"
+                best_icon = ICON_BEAR if best_dir == "BEAR" else ICON_BULL
                 best_pct = find_pair_daily_pct(results, best_pair)
                 best_pct_text = ""
                 if best_pct is not None:
