@@ -194,10 +194,10 @@ def check_runner_changes(previous_state, current_results):
         # Logic: Sign flip detection
         # From + to -
         if old_runner > 0 and new_runner < 0:
-            alerts.append(f"⚠️ REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% ➔ {new_runner:+.2f}%")
+            alerts.append(f"REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% -> {new_runner:+.2f}%")
         # From - to +
         elif old_runner < 0 and new_runner > 0:
-            alerts.append(f"⚠️ REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% ➔ {new_runner:+.2f}%")
+            alerts.append(f"REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% -> {new_runner:+.2f}%")
             
     return alerts
 
@@ -220,7 +220,7 @@ def format_pair_name(pair):
 def build_telegram_message(aligned_items):
     lines = ["RUBBEON"]
     for item in aligned_items:
-        icon = "🟢" if item["aligned_state"] == "BULL" else "🔴"
+        icon = "BULL" if item["aligned_state"] == "BULL" else "BEAR"
         runner = item.get("daily_change_pct")
         runner_text = "NA" if runner is None or not np.isfinite(runner) else f"{runner:+.2f}%"
         lines.append(f"{icon} {format_pair_name(item['pair'])} ({runner_text})")
@@ -603,7 +603,7 @@ def main():
             print(f"- {ccy}: {score:+.2f}")
         best_pair, best_dir = find_best_trade_pair(strength_all, PAIRS)
         if best_pair:
-            best_icon = "🔴" if best_dir == "BEAR" else "🟢"
+            best_icon = "BEAR" if best_dir == "BEAR" else "BULL"
             print(f"BEST TRADE: {best_icon} {format_pair_name(best_pair)}")
     if aligned:
         print("Aligned (BG + MOM + Daily % + ASIA):")
@@ -620,7 +620,7 @@ def main():
         if strength_all:
             best_pair, best_dir = find_best_trade_pair(strength_all, PAIRS)
             if best_pair:
-                best_icon = "🔴" if best_dir == "BEAR" else "🟢"
+                best_icon = "BEAR" if best_dir == "BEAR" else "BULL"
                 best_pct = find_pair_daily_pct(results, best_pair)
                 best_pct_text = ""
                 if best_pct is not None:
