@@ -125,7 +125,7 @@ def fetch_data_tv(pair_yahoo, interval_code, n_candles=200):
 
 
 
-TRACKING_FILE = "rubbeon_state.json"
+TRACKING_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "rubbeon_state.json")
 
 
 def load_tracking_state():
@@ -159,8 +159,9 @@ def save_tracking_state(top5_items):
     try:
         with open(TRACKING_FILE, "w") as f:
             json.dump(state, f, indent=4)
-    except Exception:
-        pass
+        print(f"Tracking state saved to {TRACKING_FILE}")
+    except Exception as e:
+        print(f"Error saving tracking state: {e}")
 
 
 def check_runner_changes(previous_state, current_results):
