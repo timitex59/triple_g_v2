@@ -13,6 +13,8 @@ import time
 import json
 import random
 import string
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
@@ -71,6 +73,8 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 ASIAN_TZ = "Asia/Tokyo"
 ASIAN_SESSION_START_HOUR = 9
 ASIAN_SESSION_END_HOUR = 15
+REVERSAL_RESET_HOUR = int(os.getenv("REVERSAL_RESET_HOUR", "22"))
+REVERSAL_TZ = os.getenv("REVERSAL_TZ", "UTC")
 
 
 def generate_session_id():
@@ -141,7 +145,7 @@ def load_tracking_state():
         return {}
 
 
-def save_tracking_state(top5_items):
+def save_tracking_state(top5_items, reversal_pairs=None, reversal_day=None):
     """
     Saves the list of dictionaries (the TOP 5 items) to JSON.
     We only need 'pair', 'aligned_state', 'daily_change_pct'.
@@ -158,6 +162,8 @@ def save_tracking_state(top5_items):
             "daily_change_pct": item.get("daily_change_pct", 0.0)
         }
     state["pairs"] = pairs_data
+    state["reversal_pairs"] = sorted(reversal_pairs) if reversal_pairs else []
+    state["reversal_day"] = reversal_day
     
     try:
         with open(TRACKING_FILE, "w") as f:
@@ -170,11 +176,12 @@ def save_tracking_state(top5_items):
 def check_runner_changes(previous_state, current_results):
     """
     Compare current results with previous state.
-    Returns a list of strings (alert messages).
+    Returns (alerts, new_reversal_pairs).
     """
     alerts = []
+    new_reversals = set()
     if not previous_state or "pairs" not in previous_state:
-        return alerts
+        return alerts, new_reversals
 
     watched_pairs = previous_state["pairs"]
     
@@ -198,11 +205,37 @@ def check_runner_changes(previous_state, current_results):
         # From + to -
         if old_runner > 0 and new_runner < 0:
             alerts.append(f"{ICON_ALERT} REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% -> {new_runner:+.2f}%")
+            new_reversals.add(pair)
         # From - to +
         elif old_runner < 0 and new_runner > 0:
             alerts.append(f"{ICON_ALERT} REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% -> {new_runner:+.2f}%")
+            new_reversals.add(pair)
             
-    return alerts
+    return alerts, new_reversals
+
+
+def get_reversal_day(now_ts):
+    try:
+        tz = ZoneInfo(REVERSAL_TZ)
+    except Exception:
+        tz = ZoneInfo("UTC")
+    local_dt = datetime.fromtimestamp(now_ts, tz=tz)
+    if local_dt.hour < REVERSAL_RESET_HOUR:
+        local_dt = local_dt - timedelta(days=1)
+    return local_dt.date().isoformat()
+
+
+def build_reversal_section(reversal_pairs, results):
+    if not reversal_pairs:
+        return ""
+    current_map = {res["pair"]: res for res in results}
+    lines = ["REVERSAL (persisted)"]
+    for pair in sorted(reversal_pairs):
+        item = current_map.get(pair)
+        pct = item.get("daily_change_pct") if item else None
+        pct_text = "NA" if pct is None or not np.isfinite(pct) else f"{pct:+.2f}%"
+        lines.append(f"{ICON_ALERT} {format_pair_name(pair)} ({pct_text})")
+    return "\n".join(lines)
 
 
 def send_telegram_message(message):
@@ -599,6 +632,16 @@ def main():
         key=lambda x: abs(x["daily_change_pct"]) if np.isfinite(x.get("daily_change_pct")) else -1,
         reverse=True,
     )
+    now_ts = time.time()
+    reversal_day = get_reversal_day(now_ts)
+    previous_reversal_day = previous_state.get("reversal_day")
+    persisted_reversals = set(previous_state.get("reversal_pairs", []))
+    if previous_reversal_day != reversal_day:
+        persisted_reversals = set()
+
+    tracking_alerts, new_reversals = check_runner_changes(previous_state, results)
+    persisted_reversals |= new_reversals
+
     strength_all = compute_currency_strength(results)
     if strength_all:
         print("Strength (all pairs):")
@@ -608,6 +651,7 @@ def main():
         if best_pair:
             best_icon = ICON_BEAR if best_dir == "BEAR" else ICON_BULL
             print(f"BEST TRADE: {best_icon} {format_pair_name(best_pair)}")
+    tg_message = None
     if aligned:
         print("Aligned (BG + MOM + Daily % + ASIA):")
         for item in aligned:
@@ -615,6 +659,8 @@ def main():
             
         # 1. Identify TOP 5
         top_5_items = aligned[:5]
+        top5_pairs = {item["pair"] for item in top_5_items}
+        persisted_reversals -= top5_pairs
         
         # 2. Build Standard Message (TOP 5)
         tg_message = build_telegram_message(top_5_items)
@@ -630,13 +676,14 @@ def main():
                     best_pct_text = f" ({best_pct:+.2f}%)"
                 tg_message = f"{tg_message}\n\nBEST TRADE\n{best_icon} {format_pair_name(best_pair)}{best_pct_text}"
         
-        # 4. Tracking / Reversal Logic
-        # Compare "Previous Top 5" (from disk) vs "Current Results"
-        tracking_alerts = check_runner_changes(previous_state, results)
         if tracking_alerts:
             alert_section = "\n\nTRACKING ALERTS\n" + "\n".join(tracking_alerts)
             tg_message += alert_section
             print("Tracking Alerts generated.")
+
+        reversal_section = build_reversal_section(persisted_reversals, results)
+        if reversal_section:
+            tg_message = f"{tg_message}\n\n{reversal_section}"
 
         # 5. Send Telegram
         if tg_message:
@@ -660,18 +707,25 @@ def main():
                     if not already_tracked:
                         items_to_track.append(best_trade_item)
 
-        save_tracking_state(items_to_track)
+        save_tracking_state(items_to_track, persisted_reversals, reversal_day)
             
     else:
-        # Even if no pairs are aligned top 5, we should probably check if any old watched pairs 
-        # have merely flipped sign? (Though if they aren't aligned, they might not be interesting).
-        # But broadly, if "aligned" is empty, we can't save a new Top 5.
-        # We might want to keep the old state? OR clear it?
-        # Let's decide to clear it if market is flat, or Keep it?
-        # User requirement: "follow evolution of TOP5 sent by telegram".
-        # If we send nothing, we track nothing?
-        # Let's save empty state if nothing is aligned.
-        save_tracking_state([])
+        if tracking_alerts:
+            alert_section = "TRACKING ALERTS\n" + "\n".join(tracking_alerts)
+            tg_message = f"RUBBEON\n\n{alert_section}"
+        reversal_section = build_reversal_section(persisted_reversals, results)
+        if reversal_section:
+            if tg_message:
+                tg_message = f"{tg_message}\n\n{reversal_section}"
+            else:
+                tg_message = f"RUBBEON\n\n{reversal_section}"
+        if tg_message:
+            sent = send_telegram_message(tg_message)
+            if sent:
+                print("Telegram: message sent.")
+            else:
+                print("Telegram: not sent (missing token/chat id or error).")
+        save_tracking_state([], persisted_reversals, reversal_day)
     if errors:
         print("Errors:")
         for pair, message in errors:
