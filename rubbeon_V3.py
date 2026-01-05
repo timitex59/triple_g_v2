@@ -124,6 +124,83 @@ def fetch_data_tv(pair_yahoo, interval_code, n_candles=200):
         return None
 
 
+
+TRACKING_FILE = "rubbeon_state.json"
+
+
+def load_tracking_state():
+    if not os.path.exists(TRACKING_FILE):
+        return {}
+    try:
+        with open(TRACKING_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_tracking_state(top5_items):
+    """
+    Saves the list of dictionaries (the TOP 5 items) to JSON.
+    We only need 'pair', 'aligned_state', 'daily_change_pct'.
+    """
+    state = {}
+    timestamp = time.time()
+    state["timestamp"] = timestamp
+    
+    # Store minimal info needed for comparison
+    pairs_data = {}
+    for item in top5_items:
+        pairs_data[item["pair"]] = {
+            "aligned_state": item["aligned_state"],
+            "daily_change_pct": item.get("daily_change_pct", 0.0)
+        }
+    state["pairs"] = pairs_data
+    
+    try:
+        with open(TRACKING_FILE, "w") as f:
+            json.dump(state, f, indent=4)
+    except Exception:
+        pass
+
+
+def check_runner_changes(previous_state, current_results):
+    """
+    Compare current results with previous state.
+    Returns a list of strings (alert messages).
+    """
+    alerts = []
+    if not previous_state or "pairs" not in previous_state:
+        return alerts
+
+    watched_pairs = previous_state["pairs"]
+    
+    # Map current results for easy lookup
+    current_map = {res["pair"]: res for res in current_results}
+
+    for pair, old_data in watched_pairs.items():
+        if pair not in current_map:
+            continue
+            
+        new_res = current_map[pair]
+        old_runner = old_data.get("daily_change_pct", 0.0)
+        new_runner = new_res.get("daily_change_pct", 0.0)
+        
+        # Check for sign change
+        # We only care if it was significantly positive/negative and flipped
+        if not np.isfinite(old_runner) or not np.isfinite(new_runner):
+            continue
+            
+        # Logic: Sign flip detection
+        # From + to -
+        if old_runner > 0 and new_runner < 0:
+            alerts.append(f"⚠️ REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% ➔ {new_runner:+.2f}%")
+        # From - to +
+        elif old_runner < 0 and new_runner > 0:
+            alerts.append(f"⚠️ REVERSAL {format_pair_name(pair)}: {old_runner:+.2f}% ➔ {new_runner:+.2f}%")
+            
+    return alerts
+
+
 def send_telegram_message(message):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         return False
@@ -480,6 +557,10 @@ def main():
     pairs = [args.pair] if args.pair else PAIRS
     results = []
     errors = []
+    
+    # Load previous tracking state
+    previous_state = load_tracking_state()
+    
     start = time.time()
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         future_map = {
@@ -527,7 +608,14 @@ def main():
         print("Aligned (BG + MOM + Daily % + ASIA):")
         for item in aligned:
             print(f"- {item['pair']}: {item['aligned_state']}")
-        tg_message = build_telegram_message(aligned[:5])
+            
+        # 1. Identify TOP 5
+        top_5_items = aligned[:5]
+        
+        # 2. Build Standard Message (TOP 5)
+        tg_message = build_telegram_message(top_5_items)
+        
+        # 3. Add Best Trade Section
         if strength_all:
             best_pair, best_dir = find_best_trade_pair(strength_all, PAIRS)
             if best_pair:
@@ -537,12 +625,36 @@ def main():
                 if best_pct is not None:
                     best_pct_text = f" ({best_pct:+.2f}%)"
                 tg_message = f"{tg_message}\n\nBEST TRADE\n{best_icon} {format_pair_name(best_pair)}{best_pct_text}"
+        
+        # 4. Tracking / Reversal Logic
+        # Compare "Previous Top 5" (from disk) vs "Current Results"
+        tracking_alerts = check_runner_changes(previous_state, results)
+        if tracking_alerts:
+            alert_section = "\n\nTRACKING ALERTS\n" + "\n".join(tracking_alerts)
+            tg_message += alert_section
+            print("Tracking Alerts generated.")
+
+        # 5. Send Telegram
         if tg_message:
             sent = send_telegram_message(tg_message)
             if sent:
                 print("Telegram: message sent.")
             else:
                 print("Telegram: not sent (missing token/chat id or error).")
+        
+        # 6. Save NEW Top 5 for next time
+        save_tracking_state(top_5_items)
+            
+    else:
+        # Even if no pairs are aligned top 5, we should probably check if any old watched pairs 
+        # have merely flipped sign? (Though if they aren't aligned, they might not be interesting).
+        # But broadly, if "aligned" is empty, we can't save a new Top 5.
+        # We might want to keep the old state? OR clear it?
+        # Let's decide to clear it if market is flat, or Keep it?
+        # User requirement: "follow evolution of TOP5 sent by telegram".
+        # If we send nothing, we track nothing?
+        # Let's save empty state if nothing is aligned.
+        save_tracking_state([])
     if errors:
         print("Errors:")
         for pair, message in errors:
