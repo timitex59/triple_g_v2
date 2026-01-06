@@ -239,7 +239,7 @@ def get_reversal_day(now_ts):
     return local_dt.date().isoformat()
 
 
-def build_top5_persistence_section(top5_counts, run_count, results):
+def build_top5_persistence_section(top5_counts, run_count, results, best_pair=None):
     if not top5_counts or run_count <= 0:
         return ""
     current_map = {res["pair"]: res for res in results}
@@ -262,8 +262,8 @@ def build_top5_persistence_section(top5_counts, run_count, results):
         else:
             icon = ICON_BULL if runner > 0 else ICON_BEAR
             runner_text = f"{runner:+.2f}%"
-        pct = (count * 100.0) / run_count
-        lines.append(f"{icon} {format_pair_name(pair)} ({runner_text}) {count}/{run_count} ({pct:.0f}%)")
+        best_marker = " 🔥" if best_pair and pair == best_pair else ""
+        lines.append(f"{icon} {format_pair_name(pair)} ({runner_text}){best_marker}")
     return "\n".join(lines)
 
 
@@ -711,6 +711,7 @@ def main():
     persisted_reversals |= new_reversals
 
     strength_all = compute_currency_strength(results)
+    best_pair = None
     if strength_all:
         print("Strength (all pairs):")
         for ccy, score in sorted(strength_all.items(), key=lambda x: x[1], reverse=True):
@@ -767,7 +768,12 @@ def main():
         if exited_top5_section:
             tg_message = f"{tg_message}\n\n{exited_top5_section}"
 
-        top5_persistence_section = build_top5_persistence_section(top5_counts, run_count, results)
+        top5_persistence_section = build_top5_persistence_section(
+            top5_counts,
+            run_count,
+            results,
+            best_pair,
+        )
         if top5_persistence_section:
             tg_message = f"{top5_persistence_section}\n\n{tg_message}"
 
@@ -826,7 +832,12 @@ def main():
                 tg_message = f"{tg_message}\n\n{exited_top5_section}"
             else:
                 tg_message = f"RUBBEON\n\n{exited_top5_section}"
-        top5_persistence_section = build_top5_persistence_section(top5_counts, run_count, results)
+        top5_persistence_section = build_top5_persistence_section(
+            top5_counts,
+            run_count,
+            results,
+            best_pair,
+        )
         if top5_persistence_section:
             if tg_message:
                 tg_message = f"{top5_persistence_section}\n\n{tg_message}"
