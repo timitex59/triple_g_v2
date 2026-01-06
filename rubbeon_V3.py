@@ -74,7 +74,7 @@ ASIAN_TZ = "Asia/Tokyo"
 ASIAN_SESSION_START_HOUR = 9
 ASIAN_SESSION_END_HOUR = 15
 REVERSAL_RESET_HOUR = int(os.getenv("REVERSAL_RESET_HOUR", "22"))
-REVERSAL_TZ = os.getenv("REVERSAL_TZ", "UTC")
+REVERSAL_TZ = os.getenv("REVERSAL_TZ", "Europe/Paris")
 
 
 def generate_session_id():
