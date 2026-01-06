@@ -759,7 +759,7 @@ def main():
 
         top5_persistence_section = build_top5_persistence_section(top5_counts, run_count)
         if top5_persistence_section:
-            tg_message = f"{tg_message}\n\n{top5_persistence_section}"
+            tg_message = f"{top5_persistence_section}\n\n{tg_message}"
 
         # 5. Send Telegram
         if tg_message:
@@ -819,9 +819,9 @@ def main():
         top5_persistence_section = build_top5_persistence_section(top5_counts, run_count)
         if top5_persistence_section:
             if tg_message:
-                tg_message = f"{tg_message}\n\n{top5_persistence_section}"
+                tg_message = f"{top5_persistence_section}\n\n{tg_message}"
             else:
-                tg_message = f"RUBBEON\n\n{top5_persistence_section}"
+                tg_message = top5_persistence_section
         if tg_message:
             sent = send_telegram_message(tg_message)
             if sent:
