@@ -1,27 +1,30 @@
 {
-    "timestamp": 1767646818.8589635,
+    "timestamp": 1767721176.251054,
     "pairs": {
-        "GBPCAD=X": {
+        "AUDCHF=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.8385903026499371
+            "daily_change_pct": 0.814813420899107
         },
-        "GBPUSD=X": {
-            "aligned_state": "BULL",
-            "daily_change_pct": 0.6196044635295177
-        },
-        "EURGBP=X": {
+        "GBPAUD=X": {
             "aligned_state": "BEAR",
-            "daily_change_pct": -0.5765211199669148
+            "daily_change_pct": -0.589011076184721
+        },
+        "EURAUD=X": {
+            "aligned_state": "BEAR",
+            "daily_change_pct": -0.5367382126674859
+        },
+        "AUDJPY=X": {
+            "aligned_state": "BULL",
+            "daily_change_pct": 0.5113409129863511
         },
         "AUDCAD=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.5286286112078061
-        },
-        "GBPCHF=X": {
-            "aligned_state": "BULL",
-            "daily_change_pct": 0.5082044069385824
+            "daily_change_pct": 0.44984644664560985
         }
     },
-    "reversal_pairs": [],
+    "reversal_pairs": [
+        "GBPCAD=X",
+        "GBPUSD=X"
+    ],
     "reversal_day": "2026-01-05"
 }
