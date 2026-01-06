@@ -152,6 +152,8 @@ def save_tracking_state(
     top5_counts=None,
     run_count=None,
     persistence_day=None,
+    exited_top5_pairs=None,
+    top5_last=None,
 ):
     """
     Saves the list of dictionaries (the TOP 5 items) to JSON.
@@ -174,6 +176,8 @@ def save_tracking_state(
     state["top5_counts"] = top5_counts or {}
     state["run_count"] = run_count or 0
     state["persistence_day"] = persistence_day
+    state["exited_top5_pairs"] = sorted(exited_top5_pairs) if exited_top5_pairs else []
+    state["top5_last"] = sorted(top5_last) if top5_last else []
     
     try:
         with open(TRACKING_FILE, "w") as f:
@@ -263,6 +267,19 @@ def build_reversal_section(reversal_pairs, results):
         pct = item.get("daily_change_pct") if item else None
         pct_text = "NA" if pct is None or not np.isfinite(pct) else f"{pct:+.2f}%"
         lines.append(f"{ICON_ALERT} {format_pair_name(pair)} ({pct_text})")
+    return "\n".join(lines)
+
+
+def build_exited_top5_section(exited_pairs, results):
+    if not exited_pairs:
+        return ""
+    current_map = {res["pair"]: res for res in results}
+    lines = ["TOP5 EXIT (no reversal)"]
+    for pair in sorted(exited_pairs):
+        item = current_map.get(pair)
+        pct = item.get("daily_change_pct") if item else None
+        pct_text = "NA" if pct is None or not np.isfinite(pct) else f"{pct:+.2f}%"
+        lines.append(f"{format_pair_name(pair)} ({pct_text})")
     return "\n".join(lines)
 
 
@@ -671,9 +688,13 @@ def main():
     previous_persistence_day = previous_state.get("persistence_day")
     top5_counts = dict(previous_state.get("top5_counts", {}))
     run_count = int(previous_state.get("run_count", 0) or 0)
+    exited_top5_pairs = set(previous_state.get("exited_top5_pairs", []))
+    previous_top5 = set(previous_state.get("top5_last", []))
     if previous_persistence_day != persistence_day:
         top5_counts = {}
         run_count = 0
+        exited_top5_pairs = set()
+        previous_top5 = set()
     run_count += 1
 
     tracking_alerts, new_reversals = check_runner_changes(previous_state, results)
@@ -689,6 +710,7 @@ def main():
             best_icon = ICON_BEAR if best_dir == "BEAR" else ICON_BULL
             print(f"BEST TRADE: {best_icon} {format_pair_name(best_pair)}")
     tg_message = None
+    top5_pairs = set()
     if aligned:
         print("Aligned (BG + MOM + Daily % + ASIA):")
         for item in aligned:
@@ -700,6 +722,13 @@ def main():
         for pair in top5_pairs:
             top5_counts[pair] = top5_counts.get(pair, 0) + 1
         persisted_reversals -= top5_pairs
+        exited_top5_pairs -= top5_pairs
+        exited_top5_pairs -= persisted_reversals
+        exited_top5_pairs -= new_reversals
+        newly_exited = previous_top5 - top5_pairs
+        newly_exited -= persisted_reversals
+        newly_exited -= new_reversals
+        exited_top5_pairs |= newly_exited
         
         # 2. Build Standard Message (TOP 5)
         tg_message = build_telegram_message(top_5_items)
@@ -723,6 +752,10 @@ def main():
         reversal_section = build_reversal_section(persisted_reversals, results)
         if reversal_section:
             tg_message = f"{tg_message}\n\n{reversal_section}"
+
+        exited_top5_section = build_exited_top5_section(exited_top5_pairs, results)
+        if exited_top5_section:
+            tg_message = f"{tg_message}\n\n{exited_top5_section}"
 
         top5_persistence_section = build_top5_persistence_section(top5_counts, run_count)
         if top5_persistence_section:
@@ -757,9 +790,17 @@ def main():
             top5_counts,
             run_count,
             persistence_day,
+            exited_top5_pairs,
+            top5_pairs,
         )
             
     else:
+        exited_top5_pairs -= persisted_reversals
+        exited_top5_pairs -= new_reversals
+        newly_exited = previous_top5 - top5_pairs
+        newly_exited -= persisted_reversals
+        newly_exited -= new_reversals
+        exited_top5_pairs |= newly_exited
         if tracking_alerts:
             alert_section = "TRACKING ALERTS\n" + "\n".join(tracking_alerts)
             tg_message = f"RUBBEON\n\n{alert_section}"
@@ -769,6 +810,12 @@ def main():
                 tg_message = f"{tg_message}\n\n{reversal_section}"
             else:
                 tg_message = f"RUBBEON\n\n{reversal_section}"
+        exited_top5_section = build_exited_top5_section(exited_top5_pairs, results)
+        if exited_top5_section:
+            if tg_message:
+                tg_message = f"{tg_message}\n\n{exited_top5_section}"
+            else:
+                tg_message = f"RUBBEON\n\n{exited_top5_section}"
         top5_persistence_section = build_top5_persistence_section(top5_counts, run_count)
         if top5_persistence_section:
             if tg_message:
@@ -788,6 +835,8 @@ def main():
             top5_counts,
             run_count,
             persistence_day,
+            exited_top5_pairs,
+            top5_pairs,
         )
     if errors:
         print("Errors:")
