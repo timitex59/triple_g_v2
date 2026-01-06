@@ -239,21 +239,31 @@ def get_reversal_day(now_ts):
     return local_dt.date().isoformat()
 
 
-def build_top5_persistence_section(top5_counts, run_count):
+def build_top5_persistence_section(top5_counts, run_count, results):
     if not top5_counts or run_count <= 0:
         return ""
+    current_map = {res["pair"]: res for res in results}
     items = []
     for pair, count in top5_counts.items():
         if count <= 0:
             continue
-        pct = (count * 100.0) / run_count
-        items.append((pct, count, pair))
+        res = current_map.get(pair, {})
+        runner = res.get("daily_change_pct")
+        abs_runner = abs(runner) if runner is not None and np.isfinite(runner) else -1.0
+        items.append((abs_runner, runner, count, pair))
     if not items:
         return ""
-    items.sort(key=lambda x: (-x[0], x[2]))
+    items.sort(key=lambda x: (-x[0], x[3]))
     lines = ["TOP5 PERSISTENCE"]
-    for pct, count, pair in items:
-        lines.append(f"{format_pair_name(pair)}: {count}/{run_count} ({pct:.0f}%)")
+    for abs_runner, runner, count, pair in items:
+        if runner is None or not np.isfinite(runner):
+            icon = "⚪"
+            runner_text = "NA"
+        else:
+            icon = ICON_BULL if runner > 0 else ICON_BEAR
+            runner_text = f"{runner:+.2f}%"
+        pct = (count * 100.0) / run_count
+        lines.append(f"{icon} {format_pair_name(pair)} ({runner_text}) {count}/{run_count} ({pct:.0f}%)")
     return "\n".join(lines)
 
 
@@ -757,7 +767,7 @@ def main():
         if exited_top5_section:
             tg_message = f"{tg_message}\n\n{exited_top5_section}"
 
-        top5_persistence_section = build_top5_persistence_section(top5_counts, run_count)
+        top5_persistence_section = build_top5_persistence_section(top5_counts, run_count, results)
         if top5_persistence_section:
             tg_message = f"{top5_persistence_section}\n\n{tg_message}"
 
@@ -816,7 +826,7 @@ def main():
                 tg_message = f"{tg_message}\n\n{exited_top5_section}"
             else:
                 tg_message = f"RUBBEON\n\n{exited_top5_section}"
-        top5_persistence_section = build_top5_persistence_section(top5_counts, run_count)
+        top5_persistence_section = build_top5_persistence_section(top5_counts, run_count, results)
         if top5_persistence_section:
             if tg_message:
                 tg_message = f"{top5_persistence_section}\n\n{tg_message}"
