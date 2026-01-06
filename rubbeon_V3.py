@@ -75,6 +75,7 @@ ASIAN_SESSION_START_HOUR = 9
 ASIAN_SESSION_END_HOUR = 15
 REVERSAL_RESET_HOUR = int(os.getenv("REVERSAL_RESET_HOUR", "22"))
 REVERSAL_TZ = os.getenv("REVERSAL_TZ", "Europe/Paris")
+PERSISTENCE_MIN_RUNNER = float(os.getenv("PERSISTENCE_MIN_RUNNER", "0.2"))
 
 
 def generate_session_id():
@@ -239,7 +240,7 @@ def get_reversal_day(now_ts):
     return local_dt.date().isoformat()
 
 
-def build_top5_persistence_section(top5_counts, run_count, results, best_pair=None):
+def build_top5_persistence_section(top5_counts, run_count, results, best_pair=None, min_abs_runner=PERSISTENCE_MIN_RUNNER):
     if not top5_counts or run_count <= 0:
         return ""
     current_map = {res["pair"]: res for res in results}
@@ -250,6 +251,8 @@ def build_top5_persistence_section(top5_counts, run_count, results, best_pair=No
         res = current_map.get(pair, {})
         runner = res.get("daily_change_pct")
         abs_runner = abs(runner) if runner is not None and np.isfinite(runner) else -1.0
+        if abs_runner < min_abs_runner:
+            continue
         items.append((abs_runner, runner, count, pair))
     if not items:
         return ""
