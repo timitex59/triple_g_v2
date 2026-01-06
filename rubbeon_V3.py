@@ -823,12 +823,6 @@ def main():
         if tracking_alerts:
             alert_section = "TRACKING ALERTS\n" + "\n".join(tracking_alerts)
             tg_message = f"RUBBEON\n\n{alert_section}"
-        reversal_section = build_reversal_section(persisted_reversals, results)
-        if reversal_section:
-            if tg_message:
-                tg_message = f"{tg_message}\n\n{reversal_section}"
-            else:
-                tg_message = f"RUBBEON\n\n{reversal_section}"
         exited_top5_section = build_exited_top5_section(exited_top5_pairs, results)
         if exited_top5_section:
             if tg_message:
