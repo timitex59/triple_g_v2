@@ -1,30 +1,47 @@
 {
-    "timestamp": 1767721176.251054,
+    "timestamp": 1767724357.2358227,
     "pairs": {
         "AUDCHF=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.814813420899107
+            "daily_change_pct": 0.7922319866016702
         },
         "GBPAUD=X": {
             "aligned_state": "BEAR",
-            "daily_change_pct": -0.589011076184721
+            "daily_change_pct": -0.5840530704929201
         },
         "EURAUD=X": {
             "aligned_state": "BEAR",
-            "daily_change_pct": -0.5367382126674859
+            "daily_change_pct": -0.5424664753426984
         },
         "AUDJPY=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.5113409129863511
+            "daily_change_pct": 0.5161020015616385
         },
         "AUDCAD=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.44984644664560985
+            "daily_change_pct": 0.4736364029585989
         }
     },
     "reversal_pairs": [
         "GBPCAD=X",
         "GBPUSD=X"
     ],
-    "reversal_day": "2026-01-05"
+    "reversal_day": "2026-01-05",
+    "top5_counts": {
+        "AUDCHF=X": 1,
+        "AUDCAD=X": 1,
+        "AUDJPY=X": 1,
+        "GBPAUD=X": 1,
+        "EURAUD=X": 1
+    },
+    "run_count": 1,
+    "persistence_day": "2026-01-05",
+    "exited_top5_pairs": [],
+    "top5_last": [
+        "AUDCAD=X",
+        "AUDCHF=X",
+        "AUDJPY=X",
+        "EURAUD=X",
+        "GBPAUD=X"
+    ]
 }
