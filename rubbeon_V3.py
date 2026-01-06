@@ -145,7 +145,14 @@ def load_tracking_state():
         return {}
 
 
-def save_tracking_state(top5_items, reversal_pairs=None, reversal_day=None):
+def save_tracking_state(
+    top5_items,
+    reversal_pairs=None,
+    reversal_day=None,
+    top5_counts=None,
+    run_count=None,
+    persistence_day=None,
+):
     """
     Saves the list of dictionaries (the TOP 5 items) to JSON.
     We only need 'pair', 'aligned_state', 'daily_change_pct'.
@@ -164,6 +171,9 @@ def save_tracking_state(top5_items, reversal_pairs=None, reversal_day=None):
     state["pairs"] = pairs_data
     state["reversal_pairs"] = sorted(reversal_pairs) if reversal_pairs else []
     state["reversal_day"] = reversal_day
+    state["top5_counts"] = top5_counts or {}
+    state["run_count"] = run_count or 0
+    state["persistence_day"] = persistence_day
     
     try:
         with open(TRACKING_FILE, "w") as f:
@@ -223,6 +233,24 @@ def get_reversal_day(now_ts):
     if local_dt.hour < REVERSAL_RESET_HOUR:
         local_dt = local_dt - timedelta(days=1)
     return local_dt.date().isoformat()
+
+
+def build_top5_persistence_section(top5_counts, run_count):
+    if not top5_counts or run_count <= 0:
+        return ""
+    items = []
+    for pair, count in top5_counts.items():
+        if count <= 0:
+            continue
+        pct = (count * 100.0) / run_count
+        items.append((pct, count, pair))
+    if not items:
+        return ""
+    items.sort(key=lambda x: (-x[0], x[2]))
+    lines = ["TOP5 PERSISTENCE"]
+    for pct, count, pair in items:
+        lines.append(f"{format_pair_name(pair)}: {count}/{run_count} ({pct:.0f}%)")
+    return "\n".join(lines)
 
 
 def build_reversal_section(reversal_pairs, results):
@@ -634,10 +662,19 @@ def main():
     )
     now_ts = time.time()
     reversal_day = get_reversal_day(now_ts)
+    persistence_day = reversal_day
     previous_reversal_day = previous_state.get("reversal_day")
     persisted_reversals = set(previous_state.get("reversal_pairs", []))
     if previous_reversal_day != reversal_day:
         persisted_reversals = set()
+
+    previous_persistence_day = previous_state.get("persistence_day")
+    top5_counts = dict(previous_state.get("top5_counts", {}))
+    run_count = int(previous_state.get("run_count", 0) or 0)
+    if previous_persistence_day != persistence_day:
+        top5_counts = {}
+        run_count = 0
+    run_count += 1
 
     tracking_alerts, new_reversals = check_runner_changes(previous_state, results)
     persisted_reversals |= new_reversals
@@ -660,6 +697,8 @@ def main():
         # 1. Identify TOP 5
         top_5_items = aligned[:5]
         top5_pairs = {item["pair"] for item in top_5_items}
+        for pair in top5_pairs:
+            top5_counts[pair] = top5_counts.get(pair, 0) + 1
         persisted_reversals -= top5_pairs
         
         # 2. Build Standard Message (TOP 5)
@@ -685,6 +724,10 @@ def main():
         if reversal_section:
             tg_message = f"{tg_message}\n\n{reversal_section}"
 
+        top5_persistence_section = build_top5_persistence_section(top5_counts, run_count)
+        if top5_persistence_section:
+            tg_message = f"{tg_message}\n\n{top5_persistence_section}"
+
         # 5. Send Telegram
         if tg_message:
             sent = send_telegram_message(tg_message)
@@ -707,7 +750,14 @@ def main():
                     if not already_tracked:
                         items_to_track.append(best_trade_item)
 
-        save_tracking_state(items_to_track, persisted_reversals, reversal_day)
+        save_tracking_state(
+            items_to_track,
+            persisted_reversals,
+            reversal_day,
+            top5_counts,
+            run_count,
+            persistence_day,
+        )
             
     else:
         if tracking_alerts:
@@ -719,13 +769,26 @@ def main():
                 tg_message = f"{tg_message}\n\n{reversal_section}"
             else:
                 tg_message = f"RUBBEON\n\n{reversal_section}"
+        top5_persistence_section = build_top5_persistence_section(top5_counts, run_count)
+        if top5_persistence_section:
+            if tg_message:
+                tg_message = f"{tg_message}\n\n{top5_persistence_section}"
+            else:
+                tg_message = f"RUBBEON\n\n{top5_persistence_section}"
         if tg_message:
             sent = send_telegram_message(tg_message)
             if sent:
                 print("Telegram: message sent.")
             else:
                 print("Telegram: not sent (missing token/chat id or error).")
-        save_tracking_state([], persisted_reversals, reversal_day)
+        save_tracking_state(
+            [],
+            persisted_reversals,
+            reversal_day,
+            top5_counts,
+            run_count,
+            persistence_day,
+        )
     if errors:
         print("Errors:")
         for pair, message in errors:
