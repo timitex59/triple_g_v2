@@ -1,13 +1,17 @@
 {
-    "timestamp": 1767793902.5946283,
+    "timestamp": 1767797024.2403662,
     "pairs": {
+        "GBPAUD=X": {
+            "aligned_state": "BEAR",
+            "daily_change_pct": -0.12276919391544538
+        },
         "NZDUSD=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.10199671536001027
+            "daily_change_pct": 0.10545423113492945
         },
-        "GBPJPY=X": {
+        "GBPCAD=X": {
             "aligned_state": null,
-            "daily_change_pct": -0.21841699681356508
+            "daily_change_pct": -0.15976838944885174
         }
     },
     "reversal_pairs": [
@@ -20,27 +24,27 @@
     "top5_counts": {
         "EURAUD=X": 3,
         "AUDCAD=X": 4,
-        "GBPAUD=X": 4,
+        "GBPAUD=X": 5,
         "AUDJPY=X": 1,
         "AUDCHF=X": 1,
         "AUDUSD=X": 3,
         "AUDNZD=X": 4,
         "CADCHF=X": 1,
         "GBPNZD=X": 1,
-        "NZDUSD=X": 2,
+        "NZDUSD=X": 3,
         "EURNZD=X": 1
     },
-    "run_count": 17,
+    "run_count": 18,
     "persistence_day": "2026-01-06",
     "exited_top5_pairs": [
         "AUDCAD=X",
         "AUDUSD=X",
         "CADCHF=X",
         "EURAUD=X",
-        "EURNZD=X",
-        "GBPAUD=X"
+        "EURNZD=X"
     ],
     "top5_last": [
+        "GBPAUD=X",
         "NZDUSD=X"
     ]
 }
