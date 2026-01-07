@@ -390,6 +390,21 @@ def find_best_trade_pair(strength, pairs):
     return None, None
 
 
+def find_best_trade_pair_with_bg(strength, pairs, results):
+    pair, direction = find_best_trade_pair(strength, pairs)
+    if not pair:
+        return None, None
+    result_map = {res["pair"]: res for res in results}
+    res = result_map.get(pair)
+    if not res:
+        return None, None
+    if direction == "BULL" and res.get("bull_bg"):
+        return pair, direction
+    if direction == "BEAR" and res.get("bear_bg"):
+        return pair, direction
+    return None, None
+
+
 def find_pair_daily_pct(results, pair):
     for item in results:
         if item.get("pair") == pair:
@@ -745,7 +760,7 @@ def main():
         print("Strength (all pairs):")
         for ccy, score in sorted(strength_all.items(), key=lambda x: x[1], reverse=True):
             print(f"- {ccy}: {score:+.2f}")
-        best_pair, best_dir = find_best_trade_pair(strength_all, PAIRS)
+        best_pair, best_dir = find_best_trade_pair_with_bg(strength_all, PAIRS, results)
         if best_pair:
             best_icon = ICON_BEAR if best_dir == "BEAR" else ICON_BULL
             print(f"BEST TRADE: {best_icon} {format_pair_name(best_pair)}")
@@ -775,7 +790,7 @@ def main():
         
         # 3. Add Best Trade Section
         if strength_all:
-            best_pair, best_dir = find_best_trade_pair(strength_all, PAIRS)
+            best_pair, best_dir = find_best_trade_pair_with_bg(strength_all, PAIRS, results)
             if best_pair:
                 best_icon = ICON_BEAR if best_dir == "BEAR" else ICON_BULL
                 best_pct = find_pair_daily_pct(results, best_pair)
@@ -824,7 +839,7 @@ def main():
         items_to_track = list(top_5_items)
         # Check if Best Trade exists and add it if not already in Top 5
         if strength_all:
-            best_pair_name, _ = find_best_trade_pair(strength_all, PAIRS)
+            best_pair_name, _ = find_best_trade_pair_with_bg(strength_all, PAIRS, results)
             if best_pair_name:
                 # Find the result object in the full results list
                 best_trade_item = next((r for r in results if r["pair"] == best_pair_name), None)
