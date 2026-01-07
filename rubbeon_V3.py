@@ -814,38 +814,20 @@ def main():
         )
             
     else:
-        exited_top5_pairs -= persisted_reversals
-        exited_top5_pairs -= new_reversals
-        newly_exited = previous_top5 - top5_pairs
-        newly_exited -= persisted_reversals
-        newly_exited -= new_reversals
-        exited_top5_pairs |= newly_exited
-        if tracking_alerts:
-            alert_section = "TRACKING ALERTS\n" + "\n".join(tracking_alerts)
-            tg_message = f"RUBBEON\n\n{alert_section}"
-        exited_top5_section = build_exited_top5_section(exited_top5_pairs, results)
-        if exited_top5_section:
-            if tg_message:
-                tg_message = f"{tg_message}\n\n{exited_top5_section}"
-            else:
-                tg_message = f"RUBBEON\n\n{exited_top5_section}"
-        top5_persistence_section = build_top5_persistence_section(
-            top5_counts,
-            run_count,
-            results,
-            best_pair,
-        )
-        if top5_persistence_section:
-            if tg_message:
-                tg_message = f"{top5_persistence_section}\n\n{tg_message}"
-            else:
-                tg_message = top5_persistence_section
-        if tg_message:
-            sent = send_telegram_message(tg_message)
-            if sent:
-                print("Telegram: message sent.")
-            else:
-                print("Telegram: not sent (missing token/chat id or error).")
+        # RUBBEON is empty: reset all tracking state and hide other sections.
+        persisted_reversals = set()
+        top5_counts = {}
+        run_count = 0
+        exited_top5_pairs = set()
+        previous_top5 = set()
+        top5_pairs = set()
+
+        tg_message = "RUBBEON"
+        sent = send_telegram_message(tg_message)
+        if sent:
+            print("Telegram: message sent.")
+        else:
+            print("Telegram: not sent (missing token/chat id or error).")
         save_tracking_state(
             [],
             persisted_reversals,
