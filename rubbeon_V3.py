@@ -240,13 +240,34 @@ def get_reversal_day(now_ts):
     return local_dt.date().isoformat()
 
 
-def build_top5_persistence_section(top5_counts, run_count, results, best_pair=None, min_abs_runner=PERSISTENCE_MIN_RUNNER):
+def get_top5_persistence_pairs(top5_counts, results, allowed_pairs=None, min_abs_runner=PERSISTENCE_MIN_RUNNER):
+    if not top5_counts:
+        return set()
+    current_map = {res["pair"]: res for res in results}
+    pairs = set()
+    for pair, count in top5_counts.items():
+        if count <= 0:
+            continue
+        if allowed_pairs is not None and pair not in allowed_pairs:
+            continue
+        res = current_map.get(pair, {})
+        runner = res.get("daily_change_pct")
+        abs_runner = abs(runner) if runner is not None and np.isfinite(runner) else -1.0
+        if abs_runner < min_abs_runner:
+            continue
+        pairs.add(pair)
+    return pairs
+
+
+def build_top5_persistence_section(top5_counts, run_count, results, allowed_pairs=None, best_pair=None, min_abs_runner=PERSISTENCE_MIN_RUNNER):
     if not top5_counts or run_count <= 0:
         return ""
     current_map = {res["pair"]: res for res in results}
     items = []
     for pair, count in top5_counts.items():
         if count <= 0:
+            continue
+        if allowed_pairs is not None and pair not in allowed_pairs:
             continue
         res = current_map.get(pair, {})
         runner = res.get("daily_change_pct")
@@ -690,6 +711,7 @@ def main():
         key=lambda x: abs(x["daily_change_pct"]) if np.isfinite(x.get("daily_change_pct")) else -1,
         reverse=True,
     )
+    aligned_pairs = {item["pair"] for item in aligned}
     now_ts = time.time()
     reversal_day = get_reversal_day(now_ts)
     persistence_day = reversal_day
@@ -763,7 +785,12 @@ def main():
             tg_message += alert_section
             print("Tracking Alerts generated.")
 
-        reversal_section = build_reversal_section(persisted_reversals, results)
+        persistence_pairs = get_top5_persistence_pairs(
+            top5_counts,
+            results,
+            aligned_pairs,
+        )
+        reversal_section = build_reversal_section(persisted_reversals - persistence_pairs, results)
         if reversal_section:
             tg_message = f"{tg_message}\n\n{reversal_section}"
 
@@ -775,6 +802,7 @@ def main():
             top5_counts,
             run_count,
             results,
+            aligned_pairs,
             best_pair,
         )
         if top5_persistence_section:
