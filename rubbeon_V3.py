@@ -76,6 +76,7 @@ ASIAN_SESSION_END_HOUR = 15
 REVERSAL_RESET_HOUR = int(os.getenv("REVERSAL_RESET_HOUR", "22"))
 REVERSAL_TZ = os.getenv("REVERSAL_TZ", "Europe/Paris")
 PERSISTENCE_MIN_RUNNER = float(os.getenv("PERSISTENCE_MIN_RUNNER", "0.2"))
+RUNNER_MIN_ABS = float(os.getenv("RUNNER_MIN_ABS", "0.3"))
 
 
 def generate_session_id():
@@ -593,7 +594,7 @@ def analyze_pair(pair, h1_candles=H1_CANDLES_DEFAULT, d1_candles=D1_CANDLES_DEFA
 
     aligned_state = None
     daily_change_last = daily_change_pct.iloc[-1]
-    runner_ok = np.isfinite(daily_change_last) and abs(daily_change_last) > 0.1
+    runner_ok = np.isfinite(daily_change_last) and abs(daily_change_last) > RUNNER_MIN_ABS
     if last_bg_state == 1:
         state_text = "BULL"
     elif last_bg_state == -1:
@@ -665,10 +666,13 @@ def main():
     parser.add_argument("--h1-candles", type=int, default=H1_CANDLES_DEFAULT, help="Number of H1 candles to fetch")
     parser.add_argument("--d1-candles", type=int, default=D1_CANDLES_DEFAULT, help="Number of D1 candles to fetch")
     parser.add_argument("--workers", type=int, default=6, help="Max workers for multi-pair mode")
+    parser.add_argument("--runner-min-abs", type=float, default=RUNNER_MIN_ABS, help="Min abs daily % change for alignment")
     args = parser.parse_args()
 
     if os.getenv("GITHUB_ACTIONS", "").lower() == "true":
         args.workers = min(args.workers, 2)
+    global RUNNER_MIN_ABS
+    RUNNER_MIN_ABS = args.runner_min_abs
 
     pairs = [args.pair] if args.pair else PAIRS
     results = []
