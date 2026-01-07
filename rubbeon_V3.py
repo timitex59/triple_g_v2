@@ -854,7 +854,7 @@ def main():
         previous_top5 = set()
         top5_pairs = set()
 
-        tg_message = "RUBBEON"
+        tg_message = "NO DEAL \U0001F61E"
         sent = send_telegram_message(tg_message)
         if sent:
             print("Telegram: message sent.")
