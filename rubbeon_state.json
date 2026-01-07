@@ -1,23 +1,36 @@
 {
-    "timestamp": 1767742310.087733,
+    "timestamp": 1767807815.1006126,
     "pairs": {},
     "reversal_pairs": [
-        "AUDCAD=X",
         "AUDCHF=X",
         "AUDJPY=X",
-        "EURAUD=X",
-        "GBPAUD=X"
+        "AUDNZD=X",
+        "GBPAUD=X",
+        "GBPNZD=X",
+        "NZDUSD=X"
     ],
     "reversal_day": "2026-01-06",
     "top5_counts": {
-        "EURAUD=X": 1,
-        "AUDCAD=X": 1,
-        "GBPAUD=X": 1,
+        "EURAUD=X": 3,
+        "AUDCAD=X": 4,
+        "GBPAUD=X": 5,
         "AUDJPY=X": 1,
-        "AUDCHF=X": 1
+        "AUDCHF=X": 1,
+        "AUDUSD=X": 3,
+        "AUDNZD=X": 4,
+        "CADCHF=X": 1,
+        "GBPNZD=X": 1,
+        "NZDUSD=X": 3,
+        "EURNZD=X": 1
     },
-    "run_count": 6,
+    "run_count": 21,
     "persistence_day": "2026-01-06",
-    "exited_top5_pairs": [],
+    "exited_top5_pairs": [
+        "AUDCAD=X",
+        "AUDUSD=X",
+        "CADCHF=X",
+        "EURAUD=X",
+        "EURNZD=X"
+    ],
     "top5_last": []
 }
