@@ -1,6 +1,15 @@
 {
-    "timestamp": 1767791298.1742055,
-    "pairs": {},
+    "timestamp": 1767793902.5946283,
+    "pairs": {
+        "NZDUSD=X": {
+            "aligned_state": "BULL",
+            "daily_change_pct": 0.10199671536001027
+        },
+        "GBPJPY=X": {
+            "aligned_state": null,
+            "daily_change_pct": -0.21841699681356508
+        }
+    },
     "reversal_pairs": [
         "AUDCHF=X",
         "AUDJPY=X",
@@ -18,10 +27,10 @@
         "AUDNZD=X": 4,
         "CADCHF=X": 1,
         "GBPNZD=X": 1,
-        "NZDUSD=X": 1,
+        "NZDUSD=X": 2,
         "EURNZD=X": 1
     },
-    "run_count": 16,
+    "run_count": 17,
     "persistence_day": "2026-01-06",
     "exited_top5_pairs": [
         "AUDCAD=X",
@@ -29,8 +38,9 @@
         "CADCHF=X",
         "EURAUD=X",
         "EURNZD=X",
-        "GBPAUD=X",
-        "NZDUSD=X"
+        "GBPAUD=X"
     ],
-    "top5_last": []
+    "top5_last": [
+        "NZDUSD=X"
+    ]
 }
