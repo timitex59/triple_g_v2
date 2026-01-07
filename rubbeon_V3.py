@@ -661,6 +661,7 @@ def print_result(result):
 
 
 def main():
+    global RUNNER_MIN_ABS
     parser = argparse.ArgumentParser(description="Rubbeon_V3 analysis (H1/D1) using TradingView socket only.")
     parser.add_argument("--pair", help="Yahoo pair symbol, e.g. EURUSD=X")
     parser.add_argument("--h1-candles", type=int, default=H1_CANDLES_DEFAULT, help="Number of H1 candles to fetch")
@@ -671,7 +672,6 @@ def main():
 
     if os.getenv("GITHUB_ACTIONS", "").lower() == "true":
         args.workers = min(args.workers, 2)
-    global RUNNER_MIN_ABS
     RUNNER_MIN_ABS = args.runner_min_abs
 
     pairs = [args.pair] if args.pair else PAIRS
