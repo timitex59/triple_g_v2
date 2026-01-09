@@ -1,20 +1,32 @@
 {
-    "timestamp": 1767941515.622317,
+    "timestamp": 1767944298.4418404,
     "pairs": {
         "USDJPY=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.32253540877857256
+            "daily_change_pct": 0.4111370329291963
+        },
+        "CADJPY=X": {
+            "aligned_state": "BULL",
+            "daily_change_pct": 0.3384558284214487
+        },
+        "NZDUSD=X": {
+            "aligned_state": "BEAR",
+            "daily_change_pct": -0.33728571925311257
         }
     },
     "reversal_pairs": [],
     "reversal_day": "2026-01-08",
     "top5_counts": {
-        "USDJPY=X": 1
+        "USDJPY=X": 2,
+        "CADJPY=X": 1,
+        "NZDUSD=X": 1
     },
-    "run_count": 1,
+    "run_count": 2,
     "persistence_day": "2026-01-08",
     "exited_top5_pairs": [],
     "top5_last": [
+        "CADJPY=X",
+        "NZDUSD=X",
         "USDJPY=X"
     ]
 }
