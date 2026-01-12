@@ -1,39 +1,47 @@
 {
-    "timestamp": 1768207810.3198206,
+    "timestamp": 1768211259.0123115,
     "pairs": {
         "CHFJPY=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.5225561621040248
+            "daily_change_pct": 0.5408202609736807
         },
         "GBPUSD=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.42157572320756864
+            "daily_change_pct": 0.408144992202721
         },
-        "CADCHF=X": {
-            "aligned_state": "BEAR",
-            "daily_change_pct": -0.3351276263240124
+        "EURJPY=X": {
+            "aligned_state": "BULL",
+            "daily_change_pct": 0.38743238978309724
+        },
+        "NZDJPY=X": {
+            "aligned_state": "BULL",
+            "daily_change_pct": 0.36452810180275524
+        },
+        "GBPJPY=X": {
+            "aligned_state": "BULL",
+            "daily_change_pct": 0.3600011338618392
         }
     },
     "reversal_pairs": [],
     "reversal_day": "2026-01-11",
     "top5_counts": {
-        "CHFJPY=X": 5,
-        "NZDJPY=X": 3,
-        "EURJPY=X": 2,
-        "GBPJPY=X": 1,
+        "CHFJPY=X": 6,
+        "NZDJPY=X": 4,
+        "EURJPY=X": 3,
+        "GBPJPY=X": 2,
         "CADCHF=X": 2,
-        "GBPUSD=X": 1
+        "GBPUSD=X": 2
     },
-    "run_count": 5,
+    "run_count": 6,
     "persistence_day": "2026-01-11",
     "exited_top5_pairs": [
-        "EURJPY=X",
-        "GBPJPY=X",
-        "NZDJPY=X"
+        "CADCHF=X"
     ],
     "top5_last": [
-        "CADCHF=X",
         "CHFJPY=X",
-        "GBPUSD=X"
+        "EURJPY=X",
+        "GBPJPY=X",
+        "GBPUSD=X",
+        "NZDJPY=X"
     ]
 }
