@@ -1,47 +1,49 @@
 {
-    "timestamp": 1768229249.852163,
+    "timestamp": 1768232597.94302,
     "pairs": {
-        "GBPJPY=X": {
+        "CHFJPY=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.5263008702389634
+            "daily_change_pct": 0.583943827749245
         },
         "GBPUSD=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.49171398512174186
+            "daily_change_pct": 0.5469292125860917
         },
-        "CHFJPY=X": {
+        "GBPJPY=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.4789252592487308
+            "daily_change_pct": 0.5461434524203254
         },
         "NZDJPY=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.4683633792859583
+            "daily_change_pct": 0.5213856486390887
         },
-        "EURJPY=X": {
+        "AUDJPY=X": {
             "aligned_state": "BULL",
-            "daily_change_pct": 0.3798143371750125
+            "daily_change_pct": 0.39014412605821097
         }
     },
     "reversal_pairs": [],
     "reversal_day": "2026-01-11",
     "top5_counts": {
-        "CHFJPY=X": 11,
-        "NZDJPY=X": 9,
+        "CHFJPY=X": 12,
+        "NZDJPY=X": 10,
         "EURJPY=X": 6,
-        "GBPJPY=X": 7,
+        "GBPJPY=X": 8,
         "CADCHF=X": 2,
-        "GBPUSD=X": 7,
-        "AUDUSD=X": 2
+        "GBPUSD=X": 8,
+        "AUDUSD=X": 2,
+        "AUDJPY=X": 1
     },
-    "run_count": 11,
+    "run_count": 12,
     "persistence_day": "2026-01-11",
     "exited_top5_pairs": [
         "AUDUSD=X",
-        "CADCHF=X"
+        "CADCHF=X",
+        "EURJPY=X"
     ],
     "top5_last": [
+        "AUDJPY=X",
         "CHFJPY=X",
-        "EURJPY=X",
         "GBPJPY=X",
         "GBPUSD=X",
         "NZDJPY=X"
