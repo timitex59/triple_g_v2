@@ -61,6 +61,39 @@ dotenv.load_dotenv()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(SCRIPT_DIR, "annual_data.json")
+
+
+def load_saved_data():
+    if not os.path.exists(DATA_FILE):
+        return {"year": datetime.now().year, "pairs": {}}
+    try:
+        with open(DATA_FILE, "r") as f:
+            data = json.load(f)
+        if data.get("year") != datetime.now().year:
+            return {"year": datetime.now().year, "pairs": {}}
+        return data
+    except Exception:
+        return {"year": datetime.now().year, "pairs": {}}
+
+
+def save_data(data):
+    try:
+        with open(DATA_FILE, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Erreur sauvegarde: {e}")
+
+
+def update_highest_pct(saved_data, pair, current_highest_pct):
+    pair_key = pair.replace("=X", "")
+    saved_highest = saved_data["pairs"].get(pair_key, {}).get("highest_pct_ytd", float("-inf"))
+    if current_highest_pct > saved_highest:
+        saved_data["pairs"][pair_key] = {"highest_pct_ytd": current_highest_pct}
+        return current_highest_pct
+    return saved_highest
+
 
 def generate_session_id():
     return "cs_" + "".join(random.choices(string.ascii_letters + string.digits, k=12))
@@ -198,6 +231,19 @@ def get_annual_open(df_d):
     return year_data["Open"].iloc[0]
 
 
+def compute_highest_pct_ytd(df_d, annual_open):
+    """Calcule le plus haut pourcentage de variation atteint depuis le debut de l'annee."""
+    if df_d is None or df_d.empty or np.isnan(annual_open):
+        return np.nan
+    current_year = datetime.now().year
+    year_data = df_d[df_d.index.year == current_year]
+    if year_data.empty:
+        return np.nan
+    highest_close = year_data["High"].max()
+    highest_pct = ((highest_close - annual_open) / annual_open) * 100
+    return highest_pct
+
+
 def compute_ytd_extremes(df_d, bull_vw, bear_vw):
     if df_d is None or df_d.empty:
         return np.nan, np.nan, np.nan, np.nan
@@ -231,7 +277,7 @@ def determine_state(close_now, annual_open, lowest_bull, lowest_bear, highest_bu
     return base_state, base_state
 
 
-def analyze_pair(pair, d1_candles=D1_CANDLES_DEFAULT):
+def analyze_pair(pair, d1_candles=D1_CANDLES_DEFAULT, saved_data=None):
     current_d1 = d1_candles
     while True:
         df_d = fetch_data_tv(pair, "1d", n_candles=current_d1)
@@ -250,6 +296,9 @@ def analyze_pair(pair, d1_candles=D1_CANDLES_DEFAULT):
         bull_vw, bear_vw = compute_valuewhen_series(df_d["Close"].values, psar_d)
         annual_open = get_annual_open(df_d)
         lowest_bull, lowest_bear, highest_bull, highest_bear = compute_ytd_extremes(df_d, bull_vw, bear_vw)
+        highest_pct_ytd = compute_highest_pct_ytd(df_d, annual_open)
+        if saved_data is not None and not np.isnan(highest_pct_ytd):
+            highest_pct_ytd = update_highest_pct(saved_data, pair, highest_pct_ytd)
         break
     close_now = df_d["Close"].iloc[-1]
     psar_now = psar_d[-1]
@@ -257,11 +306,18 @@ def analyze_pair(pair, d1_candles=D1_CANDLES_DEFAULT):
     bear_vw0_now = bear_vw[-1]
     base_state, final_state = determine_state(close_now, annual_open, lowest_bull, lowest_bear, highest_bull, highest_bear)
     annual_change_pct = ((close_now - annual_open) / annual_open * 100) if not np.isnan(annual_open) else np.nan
+    warning = False
+    if not np.isnan(highest_pct_ytd) and not np.isnan(annual_change_pct):
+        drawdown = highest_pct_ytd - annual_change_pct
+        if drawdown >= 0.5 or annual_change_pct < 0.5:
+            warning = True
     return {
         "pair": pair,
         "close_now": close_now,
         "annual_open": annual_open,
         "annual_change_pct": annual_change_pct,
+        "highest_pct_ytd": highest_pct_ytd,
+        "warning": warning,
         "psar": psar_now,
         "bull_vw0": bull_vw0_now,
         "bear_vw0": bear_vw0_now,
@@ -281,13 +337,18 @@ def get_state_icon(final_state):
 
 def print_result(result):
     icon = get_state_icon(result["final_state"])
+    warning_str = " ⚠️" if result.get("warning", False) else ""
     print("=" * 60)
-    print(f"[{icon}] Pair: {format_pair_name(result['pair'])}")
+    print(f"[{icon}] Pair: {format_pair_name(result['pair'])}{warning_str}")
     print(f"Close: {result['close_now']:.5f}")
     ao = result['annual_open']
     print(f"Annual Open: {ao:.5f}" if not np.isnan(ao) else "Annual Open: N/A")
     acp = result['annual_change_pct']
     print(f"Annual Change: {acp:+.2f}%" if not np.isnan(acp) else "Annual Change: N/A")
+    hpct = result.get('highest_pct_ytd', np.nan)
+    print(f"Highest Pct YTD: {hpct:+.2f}%" if not np.isnan(hpct) else "Highest Pct YTD: N/A")
+    if not np.isnan(hpct) and not np.isnan(acp):
+        print(f"Drawdown from High: {hpct - acp:.2f}%")
     print(f"Base State: {result['base_state']} | Final State: {result['final_state']}")
     print("=" * 60)
 
@@ -305,7 +366,8 @@ def build_telegram_message(results):
             icon = "🔴"
         else:
             icon = "⚪"
-        lines.append(f"{icon} {format_pair_name(r['pair'])} ({pct_str})")
+        warning_icon = " ⚠️" if r.get("warning", False) else ""
+        lines.append(f"{icon} {format_pair_name(r['pair'])} ({pct_str}){warning_icon}")
     return "\n".join(lines)
 
 
@@ -319,11 +381,12 @@ def main():
     if os.getenv("GITHUB_ACTIONS", "").lower() == "true":
         args.workers = min(args.workers, 2)
     pairs = [args.pair] if args.pair else PAIRS
+    saved_data = load_saved_data()
     results = []
     errors = []
     start = time.time()
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        future_map = {executor.submit(analyze_pair, pair, d1_candles=args.d1_candles): pair for pair in pairs}
+        future_map = {executor.submit(analyze_pair, pair, d1_candles=args.d1_candles, saved_data=saved_data): pair for pair in pairs}
         for future in as_completed(future_map):
             pair = future_map[future]
             try:
@@ -335,6 +398,7 @@ def main():
                 results.append(result)
             else:
                 errors.append((pair, "No data or insufficient history"))
+    save_data(saved_data)
     results.sort(key=lambda x: x["pair"])
     for result in results:
         print_result(result)
