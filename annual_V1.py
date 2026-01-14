@@ -39,22 +39,23 @@ dotenv = install_and_import("python-dotenv", "dotenv")
 PSAR_START, PSAR_INCREMENT, PSAR_MAXIMUM = 0.1, 0.1, 0.2
 D1_CANDLES_DEFAULT = 500
 D1_CANDLES_MAX = 900
-
-# PAIRS = [
-#     "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "NZDUSD=X", "USDCAD=X", "USDCHF=X",
-#     "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
-#     "EURAUD=X", "EURCAD=X", "EURNZD=X", "EURCHF=X",
-#     "GBPAUD=X", "GBPCAD=X", "GBPNZD=X", "GBPCHF=X",
-#     "AUDNZD=X", "AUDCAD=X", "AUDCHF=X",
-#     "NZDCAD=X", "NZDCHF=X",
-#     "CADCHF=X",
-# ]
-
-
+WARNING_RATIO_THRESHOLD = 75  # Warning si ratio < 75% (paire a perdu plus de 25% de sa meilleure perf)
 
 PAIRS = [
-    "USDJPY=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
+    "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "NZDUSD=X", "USDCAD=X", "USDCHF=X",
+    "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
+    "EURAUD=X", "EURCAD=X", "EURNZD=X", "EURCHF=X",
+    "GBPAUD=X", "GBPCAD=X", "GBPNZD=X", "GBPCHF=X",
+    "AUDNZD=X", "AUDCAD=X", "AUDCHF=X",
+    "NZDCAD=X", "NZDCHF=X",
+    "CADCHF=X",
 ]
+
+
+
+# PAIRS = [
+#     "USDJPY=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
+# ]
 
 
 dotenv.load_dotenv()
@@ -88,11 +89,37 @@ def save_data(data):
 
 def update_highest_pct(saved_data, pair, current_highest_pct):
     pair_key = pair.replace("=X", "")
-    saved_highest = saved_data["pairs"].get(pair_key, {}).get("highest_pct_ytd", float("-inf"))
+    pair_data = saved_data["pairs"].get(pair_key, {})
+    saved_highest = pair_data.get("highest_pct_ytd", float("-inf"))
     if current_highest_pct > saved_highest:
-        saved_data["pairs"][pair_key] = {"highest_pct_ytd": current_highest_pct}
+        pair_data["highest_pct_ytd"] = current_highest_pct
+        saved_data["pairs"][pair_key] = pair_data
         return current_highest_pct
     return saved_highest
+
+
+def update_lowest_pct(saved_data, pair, current_lowest_pct):
+    pair_key = pair.replace("=X", "")
+    pair_data = saved_data["pairs"].get(pair_key, {})
+    saved_lowest = pair_data.get("lowest_pct_ytd", float("inf"))
+    if current_lowest_pct < saved_lowest:
+        pair_data["lowest_pct_ytd"] = current_lowest_pct
+        saved_data["pairs"][pair_key] = pair_data
+        return current_lowest_pct
+    return saved_lowest
+
+
+def update_direction(saved_data, pair, is_bullish):
+    """Met a jour la direction et detecte les changements de tendance."""
+    pair_key = pair.replace("=X", "")
+    pair_data = saved_data["pairs"].get(pair_key, {})
+    was_bullish = pair_data.get("was_bullish", None)
+    direction_changed = False
+    if was_bullish is not None and was_bullish != is_bullish:
+        direction_changed = True
+    pair_data["was_bullish"] = is_bullish
+    saved_data["pairs"][pair_key] = pair_data
+    return direction_changed
 
 
 def generate_session_id():
@@ -244,6 +271,19 @@ def compute_highest_pct_ytd(df_d, annual_open):
     return highest_pct
 
 
+def compute_lowest_pct_ytd(df_d, annual_open):
+    """Calcule le plus bas pourcentage de variation atteint depuis le debut de l'annee."""
+    if df_d is None or df_d.empty or np.isnan(annual_open):
+        return np.nan
+    current_year = datetime.now().year
+    year_data = df_d[df_d.index.year == current_year]
+    if year_data.empty:
+        return np.nan
+    lowest_close = year_data["Low"].min()
+    lowest_pct = ((lowest_close - annual_open) / annual_open) * 100
+    return lowest_pct
+
+
 def compute_ytd_extremes(df_d, bull_vw, bear_vw):
     if df_d is None or df_d.empty:
         return np.nan, np.nan, np.nan, np.nan
@@ -297,8 +337,11 @@ def analyze_pair(pair, d1_candles=D1_CANDLES_DEFAULT, saved_data=None):
         annual_open = get_annual_open(df_d)
         lowest_bull, lowest_bear, highest_bull, highest_bear = compute_ytd_extremes(df_d, bull_vw, bear_vw)
         highest_pct_ytd = compute_highest_pct_ytd(df_d, annual_open)
+        lowest_pct_ytd = compute_lowest_pct_ytd(df_d, annual_open)
         if saved_data is not None and not np.isnan(highest_pct_ytd):
             highest_pct_ytd = update_highest_pct(saved_data, pair, highest_pct_ytd)
+        if saved_data is not None and not np.isnan(lowest_pct_ytd):
+            lowest_pct_ytd = update_lowest_pct(saved_data, pair, lowest_pct_ytd)
         break
     close_now = df_d["Close"].iloc[-1]
     psar_now = psar_d[-1]
@@ -307,17 +350,34 @@ def analyze_pair(pair, d1_candles=D1_CANDLES_DEFAULT, saved_data=None):
     base_state, final_state = determine_state(close_now, annual_open, lowest_bull, lowest_bear, highest_bull, highest_bear)
     annual_change_pct = ((close_now - annual_open) / annual_open * 100) if not np.isnan(annual_open) else np.nan
     warning = False
-    if not np.isnan(highest_pct_ytd) and not np.isnan(annual_change_pct):
-        drawdown = highest_pct_ytd - annual_change_pct
-        if drawdown >= 0.5 or annual_change_pct < 0.5:
-            warning = True
+    ratio = np.nan
+    is_bullish = annual_change_pct >= 0 if not np.isnan(annual_change_pct) else True
+    direction_changed = False
+    if saved_data is not None:
+        direction_changed = update_direction(saved_data, pair, is_bullish)
+    if is_bullish:
+        if not np.isnan(highest_pct_ytd) and not np.isnan(annual_change_pct) and highest_pct_ytd > 0:
+            ratio = (annual_change_pct / highest_pct_ytd) * 100
+            if ratio < WARNING_RATIO_THRESHOLD:
+                warning = True
+        extreme_pct = highest_pct_ytd
+    else:
+        if not np.isnan(lowest_pct_ytd) and not np.isnan(annual_change_pct) and lowest_pct_ytd < 0:
+            ratio = (annual_change_pct / lowest_pct_ytd) * 100
+            if ratio < WARNING_RATIO_THRESHOLD:
+                warning = True
+        extreme_pct = lowest_pct_ytd
     return {
         "pair": pair,
         "close_now": close_now,
         "annual_open": annual_open,
         "annual_change_pct": annual_change_pct,
         "highest_pct_ytd": highest_pct_ytd,
+        "lowest_pct_ytd": lowest_pct_ytd,
+        "extreme_pct": extreme_pct,
+        "ratio": ratio,
         "warning": warning,
+        "direction_changed": direction_changed,
         "psar": psar_now,
         "bull_vw0": bull_vw0_now,
         "bear_vw0": bear_vw0_now,
@@ -338,27 +398,33 @@ def get_state_icon(final_state):
 def print_result(result):
     icon = get_state_icon(result["final_state"])
     warning_str = " ⚠️" if result.get("warning", False) else ""
+    direction_str = " 🔄" if result.get("direction_changed", False) else ""
     print("=" * 60)
-    print(f"[{icon}] Pair: {format_pair_name(result['pair'])}{warning_str}")
+    print(f"[{icon}] Pair: {format_pair_name(result['pair'])}{warning_str}{direction_str}")
     print(f"Close: {result['close_now']:.5f}")
     ao = result['annual_open']
     print(f"Annual Open: {ao:.5f}" if not np.isnan(ao) else "Annual Open: N/A")
     acp = result['annual_change_pct']
     print(f"Annual Change: {acp:+.2f}%" if not np.isnan(acp) else "Annual Change: N/A")
     hpct = result.get('highest_pct_ytd', np.nan)
+    lpct = result.get('lowest_pct_ytd', np.nan)
     print(f"Highest Pct YTD: {hpct:+.2f}%" if not np.isnan(hpct) else "Highest Pct YTD: N/A")
-    if not np.isnan(hpct) and not np.isnan(acp):
-        print(f"Drawdown from High: {hpct - acp:.2f}%")
+    print(f"Lowest Pct YTD: {lpct:+.2f}%" if not np.isnan(lpct) else "Lowest Pct YTD: N/A")
+    ratio = result.get('ratio', np.nan)
+    print(f"Ratio: {ratio:.0f}% (threshold: {WARNING_RATIO_THRESHOLD}%)" if not np.isnan(ratio) else "Ratio: N/A")
+    if result.get("direction_changed", False):
+        print("Direction Changed: YES (trend reversal)")
     print(f"Base State: {result['base_state']} | Final State: {result['final_state']}")
     print("=" * 60)
 
 
 def build_telegram_message(results):
     lines = ["ANNUAL"]
-    sorted_results = sorted(results, key=lambda x: x["annual_change_pct"] if not np.isnan(x["annual_change_pct"]) else 0, reverse=True)
+    filtered = [r for r in results if not np.isnan(r.get("ratio", np.nan)) and r.get("ratio", 0) >= WARNING_RATIO_THRESHOLD]
+    sorted_results = sorted(filtered, key=lambda x: x.get("ratio", 0), reverse=True)
+    good_pairs = []
     for r in sorted_results:
-        pct = r["annual_change_pct"]
-        pct_str = f"{pct:+.2f}%" if not np.isnan(pct) else "N/A"
+        ratio = r.get("ratio", np.nan)
         final_state = r["final_state"]
         if final_state == "BULLISH":
             icon = "🟢"
@@ -366,10 +432,12 @@ def build_telegram_message(results):
             icon = "🔴"
         else:
             icon = "⚪"
-        warning_icon = " ⚠️" if r.get("warning", False) else ""
-        highest = r.get("highest_pct_ytd", np.nan)
-        highest_str = f"|{highest:+.2f}%" if not np.isnan(highest) else ""
-        lines.append(f"{icon} {format_pair_name(r['pair'])} ({pct_str}{highest_str}){warning_icon}")
+        direction_icon = " 🔄" if r.get("direction_changed", False) else ""
+        good_pairs.append(f"{icon} {format_pair_name(r['pair'])} ({ratio:.0f}%){direction_icon}")
+    if good_pairs:
+        lines.extend(good_pairs)
+    else:
+        lines.append("NO DEAL 😞")
     return "\n".join(lines)
 
 
