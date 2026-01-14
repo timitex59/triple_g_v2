@@ -41,21 +41,21 @@ D1_CANDLES_DEFAULT = 500
 D1_CANDLES_MAX = 900
 WARNING_RATIO_THRESHOLD = 75  # Warning si ratio < 75% (paire a perdu plus de 25% de sa meilleure perf)
 
-PAIRS = [
-    "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "NZDUSD=X", "USDCAD=X", "USDCHF=X",
-    "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
-    "EURAUD=X", "EURCAD=X", "EURNZD=X", "EURCHF=X",
-    "GBPAUD=X", "GBPCAD=X", "GBPNZD=X", "GBPCHF=X",
-    "AUDNZD=X", "AUDCAD=X", "AUDCHF=X",
-    "NZDCAD=X", "NZDCHF=X",
-    "CADCHF=X",
-]
-
-
-
 # PAIRS = [
-#     "USDJPY=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
+#     "EURUSD=X", "GBPUSD=X", "USDJPY=X", "AUDUSD=X", "NZDUSD=X", "USDCAD=X", "USDCHF=X",
+#     "EURGBP=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
+#     "EURAUD=X", "EURCAD=X", "EURNZD=X", "EURCHF=X",
+#     "GBPAUD=X", "GBPCAD=X", "GBPNZD=X", "GBPCHF=X",
+#     "AUDNZD=X", "AUDCAD=X", "AUDCHF=X",
+#     "NZDCAD=X", "NZDCHF=X",
+#     "CADCHF=X",
 # ]
+
+
+
+PAIRS = [
+    "USDJPY=X", "EURJPY=X", "GBPJPY=X", "AUDJPY=X", "NZDJPY=X", "CADJPY=X", "CHFJPY=X",
+]
 
 
 dotenv.load_dotenv()
