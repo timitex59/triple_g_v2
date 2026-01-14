@@ -367,7 +367,9 @@ def build_telegram_message(results):
         else:
             icon = "⚪"
         warning_icon = " ⚠️" if r.get("warning", False) else ""
-        lines.append(f"{icon} {format_pair_name(r['pair'])} ({pct_str}){warning_icon}")
+        highest = r.get("highest_pct_ytd", np.nan)
+        highest_str = f"|{highest:+.2f}%" if not np.isnan(highest) else ""
+        lines.append(f"{icon} {format_pair_name(r['pair'])} ({pct_str}{highest_str}){warning_icon}")
     return "\n".join(lines)
 
 
