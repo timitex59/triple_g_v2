@@ -44,6 +44,7 @@ jobs:
         run: |
           python rubbeon_V3.py
           python annual_V1.py
+          python annual_V2.py
 
       # - name: Upload market cache
       #   uses: actions/upload-artifact@v4
