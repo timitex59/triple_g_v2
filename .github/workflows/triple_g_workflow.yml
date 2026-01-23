@@ -44,6 +44,7 @@ jobs:
         run: |
           python annual_V2.py
           python annual_V1.py
+          python rubbeon_MTF_IMP.py
 
       # - name: Upload market cache
       #   uses: actions/upload-artifact@v4
