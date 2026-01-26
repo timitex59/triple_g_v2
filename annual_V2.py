@@ -102,10 +102,22 @@ def load_annual_data():
         return {"year": datetime.now().year, "pairs": {}}
 
 
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        if isinstance(obj, np.bool_):
+            return bool(obj)
+        return super(NpEncoder, self).default(obj)
+
 def save_annual_data(data):
     try:
         with open(ANNUAL_DATA_FILE, "w") as f:
-            json.dump(data, f, indent=2)
+            json.dump(data, f, indent=2, cls=NpEncoder)
     except Exception as e:
         print(f"Erreur sauvegarde annual data: {e}")
 
@@ -698,6 +710,8 @@ def print_result(result):
     print("=" * 60)
 
 
+
+def build_telegram_message(validated_items):
     """Build Telegram message for pairs that pass BOTH RUBBEON and ANNUAL filters."""
     lines = ["ANNUAL V2"]
     
