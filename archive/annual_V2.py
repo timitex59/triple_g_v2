@@ -698,18 +698,15 @@ def print_result(result):
     print("=" * 60)
 
 
+def build_telegram_message(validated_items):
     """Build Telegram message for pairs that pass BOTH RUBBEON and ANNUAL filters."""
     lines = ["ANNUAL V2"]
-    
-    # Filter for BULL signals only
-    bull_items = [item for item in validated_items if item.get("aligned_state") == "BULL"]
-    
-    if not bull_items:
+    if not validated_items:
         lines.append("NO DEAL 😞")
         return "\n".join(lines)
     
     # Sort by annual_ratio descending
-    sorted_items = sorted(bull_items, key=lambda x: x.get("annual_ratio", 0), reverse=True)
+    sorted_items = sorted(validated_items, key=lambda x: x.get("annual_ratio", 0), reverse=True)
     
     for item in sorted_items:
         aligned = item.get("aligned_state")
