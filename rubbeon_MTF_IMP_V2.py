@@ -410,7 +410,7 @@ def calculate_daily_change_state(df):
         return np.nan, False, "NEUTRE", "n/a"
 
     daily_change_pct = (close_d - close_prev_d) / close_prev_d * 100.0
-    chg_abs_ok = (not np.isnan(daily_change_pct)) and (abs(daily_change_pct) > 0.1)
+    chg_abs_ok = (not np.isnan(daily_change_pct)) and (abs(daily_change_pct) > 0.2)
 
     if (np.isnan(daily_change_pct)) or (not chg_abs_ok):
         chg_state = "NEUTRE"
