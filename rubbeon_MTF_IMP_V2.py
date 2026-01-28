@@ -623,9 +623,10 @@ def send_telegram_summary(results):
 
         prev_status = prev_statuses.get(pair)
         if alignment_status in ["BULL", "BEAR"] and status == alignment_status:
-            entry_marker = "*" if (not was_aligned_today or was_neutral) else ""
+            is_entry = (not was_aligned_today or was_neutral)
             composite = f"{status_icon(alignment_status)}{status_icon(status)}"
-            stable_lines.append(f"{composite} {pair}{entry_marker} ({pct_text})")
+            pair_text = f"*{pair}*" if is_entry else pair
+            stable_lines.append(f"{composite} {pair_text} ({pct_text})")
         elif prev_neutral_list.get(pair):
             composite = f"{status_icon(alignment_status)}{status_icon(chg_state)}"
             neutral_lines.append(f"{composite} {pair} ({pct_text})")
@@ -648,8 +649,24 @@ def send_telegram_summary(results):
 
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-        requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}, timeout=10)
-        print("Telegram notification sent.")
+        response = requests.post(
+            url,
+            json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"},
+            timeout=10,
+        )
+        ok = False
+        try:
+            payload = response.json()
+            ok = bool(payload.get("ok"))
+        except Exception:
+            payload = None
+        if ok:
+            print("Telegram notification sent.")
+        else:
+            detail = ""
+            if payload and isinstance(payload, dict):
+                detail = payload.get("description") or payload.get("error_code") or ""
+            print(f"Failed to send Telegram: {detail}".strip())
     except Exception as e:
         print(f"Failed to send Telegram: {e}")
     finally:
