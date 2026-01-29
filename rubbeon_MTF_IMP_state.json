@@ -1,11 +1,11 @@
 {
-  "updated_at_utc": "2026-01-29T14:59:44Z",
+  "updated_at_utc": "2026-01-29T15:54:16Z",
   "statuses": {
     "AUDCAD": "NEUTRE",
     "AUDCHF": "NEUTRE",
     "AUDJPY": "NEUTRE",
     "AUDNZD": "NEUTRE",
-    "AUDUSD": "BULL",
+    "AUDUSD": "NEUTRE",
     "CADCHF": "NEUTRE",
     "CADJPY": "NEUTRE",
     "CHFJPY": "NEUTRE",
@@ -27,7 +27,7 @@
     "NZDJPY": "NEUTRE",
     "NZDUSD": "NEUTRE",
     "USDCAD": "NEUTRE",
-    "USDCHF": "BEAR",
+    "USDCHF": "NEUTRE",
     "USDJPY": "NEUTRE"
   },
   "state_date_local": "2026-01-29",
@@ -48,6 +48,8 @@
   },
   "neutral_list": {
     "AUDCHF": true,
-    "NZDJPY": true
+    "NZDJPY": true,
+    "EURJPY": true,
+    "GBPNZD": true
   }
 }
