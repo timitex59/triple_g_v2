@@ -424,7 +424,11 @@ def main():
             if token and chat_id:
                 try:
                     url = f"https://api.telegram.org/bot{token}/sendMessage"
-                    requests.post(url, json={"chat_id": chat_id, "text": "NO DEAL 😞"}, timeout=10)
+                    requests.post(
+                        url,
+                        json={"chat_id": chat_id, "text": "INDEX_FX SCREENER\nNO DEAL 😞"},
+                        timeout=10,
+                    )
                 except Exception:
                     pass
             return
