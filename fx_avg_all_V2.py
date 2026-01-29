@@ -419,6 +419,14 @@ def main():
 
         if not filtered_rows:
             print("No pairs with |CHG% (D)| > 0.2")
+            token = os.getenv("TELEGRAM_BOT_TOKEN")
+            chat_id = os.getenv("TELEGRAM_CHAT_ID")
+            if token and chat_id:
+                try:
+                    url = f"https://api.telegram.org/bot{token}/sendMessage"
+                    requests.post(url, json={"chat_id": chat_id, "text": "NO DEAL 😞"}, timeout=10)
+                except Exception:
+                    pass
             return
 
         # Telegram send (dedup by pair)
