@@ -270,6 +270,28 @@ def main():
         d1 = data_cache.get((idx_sym, "D"))
         idx_bear[INDEX_MAP[cur]] = is_below_8_emas(h1, d1)
 
+    # Minority index status
+    bull_indices = [k for k, v in idx_bear.items() if v is False]
+    bear_indices = [k for k, v in idx_bear.items() if v is True]
+    index_to_ccy = {v: k for k, v in INDEX_MAP.items()}
+    if len(bull_indices) == 0 and len(bear_indices) == 0:
+        index_status_msg = "INDEX STATUS: NO DATA"
+    elif len(bull_indices) == 0:
+        index_status_msg = "INDEX STATUS: ALL INDEX BEAR"
+    elif len(bear_indices) == 0:
+        index_status_msg = "INDEX STATUS: ALL INDEX BULL"
+    else:
+        if len(bull_indices) < len(bear_indices):
+            ccy = ", ".join(sorted(index_to_ccy.get(i, i) for i in bull_indices))
+            index_status_msg = "MINOR 🟢 : " + ccy
+        elif len(bear_indices) < len(bull_indices):
+            ccy = ", ".join(sorted(index_to_ccy.get(i, i) for i in bear_indices))
+            index_status_msg = "MINOR 🔴 : " + ccy
+        else:
+            index_status_msg = "INDEX STATUS: NO MINORITY (MIXED)"
+
+    print(index_status_msg)
+
     screener_rows = []
 
     for cur in CURRENCIES:
@@ -414,7 +436,7 @@ def main():
         filtered_rows = [
             r
             for r in unique_rows
-            if r["chg_pct"] is not None and not pd.isna(r["chg_pct"]) and abs(r["chg_pct"]) > 0.2
+            if r["chg_pct"] is not None and not pd.isna(r["chg_pct"]) and abs(r["chg_pct"]) > 0.01
         ]
 
         if not filtered_rows:
@@ -439,7 +461,7 @@ def main():
         if token and chat_id and filtered_rows:
             mtf_pairs = mtf_aligned_pairs()
             pair_seen = set()
-            lines = ["SCREENER FX"]
+            lines = ["SCREENER FX", index_status_msg]
             for r in filtered_rows:
                 pair = r["pair"]
                 if pair in pair_seen:
