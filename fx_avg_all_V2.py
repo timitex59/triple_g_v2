@@ -436,7 +436,7 @@ def main():
         filtered_rows = [
             r
             for r in unique_rows
-            if r["chg_pct"] is not None and not pd.isna(r["chg_pct"]) and abs(r["chg_pct"]) > 0.01
+            if r["chg_pct"] is not None and not pd.isna(r["chg_pct"]) and abs(r["chg_pct"]) > 0.2
         ]
 
         if not filtered_rows:
