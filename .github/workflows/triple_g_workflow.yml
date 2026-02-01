@@ -46,6 +46,7 @@ jobs:
           python fx_avg_all_V2.py
           python index_power.py
           python sar_break_V3.py
+          python index_power1h.py
 
       # - name: Upload market cache
       #   uses: actions/upload-artifact@v4
