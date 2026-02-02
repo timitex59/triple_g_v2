@@ -164,6 +164,16 @@ def ema_series(close_series, length):
     return close_series.ewm(span=length, adjust=False).mean()
 
 
+def daily_chg_pct_close_close(df_d):
+    if df_d is None or df_d.empty or len(df_d) < 2:
+        return None
+    d_close = df_d["close"].iloc[-1]
+    d_prev = df_d["close"].iloc[-2]
+    if d_prev == 0:
+        return None
+    return (d_close - d_prev) / d_prev * 100.0
+
+
 def dist_from_ema20_h1(df_h1):
     if df_h1 is None or df_h1.empty:
         return None
@@ -219,11 +229,14 @@ def main():
     rows = []
     for name, sym in INDICES.items():
         h1 = fetch_tv_ohlc(sym, "60", h1_candles)
+        d1 = fetch_tv_ohlc(sym, "D", 200)
+        chg_cc_d = daily_chg_pct_close_close(d1)
         dist_h1 = dist_from_ema20_h1(h1)
         below8 = is_below_8_emas_h1(h1)
         rows.append(
             {
                 "INDEX": f"{name} ({INDEX_TO_CCY.get(name, name)})",
+                "CHG% (CC) DAILY": chg_cc_d,
                 "DIST% EMA20 H1": dist_h1,
                 "POWER": dist_h1,
                 "TREND": None if dist_h1 is None else dist_h1 * dist_h1,
@@ -245,6 +258,7 @@ def main():
     df["DEAL"] = df.apply(deal_value, axis=1)
     df_sorted = df.sort_values(by="DEAL", ascending=False)
     df_display = df_sorted.copy()
+    df_display["CHG% (CC) DAILY"] = df_display["CHG% (CC) DAILY"].apply(fmt_num)
     df_display["DIST% EMA20 H1"] = df_display["DIST% EMA20 H1"].apply(fmt_num)
     df_display["POWER"] = df_display["POWER"].apply(fmt_num)
     df_display["TREND"] = df_display["TREND"].apply(fmt_num)
@@ -266,6 +280,11 @@ def main():
     df_deal["CCY"] = df_deal["INDEX"].str.extract(r"\(([^)]+)\)")
     min_abs_dist = 0.1
     df_deal = df_deal[df_deal["DIST% EMA20 H1"].abs() > min_abs_dist]
+    df_deal = df_deal[df_deal["CHG% (CC) DAILY"].notna()]
+    df_deal = df_deal[
+        ((df_deal["DIST% EMA20 H1"] > 0) & (df_deal["CHG% (CC) DAILY"] > 0))
+        | ((df_deal["DIST% EMA20 H1"] < 0) & (df_deal["CHG% (CC) DAILY"] < 0))
+    ]
     top_pos = df_deal[df_deal["DEAL"] > 0].sort_values(by="DEAL", ascending=False).head(2)
     top_neg = df_deal[df_deal["DEAL"] < 0].sort_values(by="DEAL", ascending=True).head(2)
 
@@ -305,6 +324,10 @@ def main():
 
             combos.sort(key=combo_strength, reverse=True)
             for pair, strong, weak, direction in combos:
+                strong_dist = dist_map.get(strong)
+                weak_dist = dist_map.get(weak)
+                if pd.isna(strong_dist) or pd.isna(weak_dist):
+                    continue
                 chg_cc_d = fetch_pair_chg_cc_daily(pair)
                 if chg_cc_d is None:
                     dot = "na"
