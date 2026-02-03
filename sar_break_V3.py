@@ -315,6 +315,14 @@ def main():
         if not cross_times:
             continue
 
+        # Filter: at least 2 crossings required
+        if len(cross_times) < 2:
+            continue
+
+        # Filter: CHG% (CC) must be > 0.2 in absolute value
+        if abs(chg) <= 0.2:
+            continue
+
         results.append(
             {
                 "pair": pair,
