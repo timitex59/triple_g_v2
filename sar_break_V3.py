@@ -347,7 +347,9 @@ def main():
     print("SAR BREAK V3")
     lines = ["SAR BREAK V3"]
     results.sort(key=lambda r: abs(r["chg_cc"]), reverse=True)
-    for r in results:
+    # Limit to TOP 5 by CHG% (CC)
+    top_results = results[:5]
+    for r in top_results:
         cross_count = len(r.get("cross_times", []))
         flame = " 🔥" if abs(r["chg_cc"]) > 0.15 else ""
         print(f"{r['pair']} | CHG% (CC): {r['chg_cc']:+.2f}% | crosses: {cross_count}{flame}")
