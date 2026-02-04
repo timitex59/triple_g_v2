@@ -45,8 +45,7 @@ jobs:
           python annual_V2.py
           python fx_avg_all_V2.py
           python index_power.py
-          python sar_break_V3.py
-          python index_power1h.py
+          python sar_break_V4.py
 
       # - name: Upload market cache
       #   uses: actions/upload-artifact@v4
@@ -57,6 +56,8 @@ jobs:
       # python annual_V1.py
       #python rubbeon_MTF_IMP.py
       #python rubbeon_MTF_IMP_V2.py
+      #python sar_break_V3.py
+      #python index_power1h.py
 
       - name: Commit and Push History
         run: |
