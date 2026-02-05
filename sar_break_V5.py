@@ -324,6 +324,16 @@ def h1_best_trade_filter(pair, direction):
 
 def build_best_trade_lines(index_rows):
     lines = ["", "BEST TRADE"]
+    seen = set()
+
+    def add_trade(dot, pair, chg_txt):
+        key = (dot, pair)
+        if key in seen:
+            return False
+        seen.add(key)
+        lines.append(f"{dot} {pair} ({chg_txt})")
+        return True
+
     valid = [r for r in index_rows if r.get("chg") is not None]
     if len(valid) < 2:
         lines.append("NO DEAL")
@@ -337,8 +347,8 @@ def build_best_trade_lines(index_rows):
             chg = daily_chg_cc(fetch_pair_d1(pair))
             if chg is not None and chg > 0 and h1_best_trade_filter(pair, "LONG"):
                 chg_txt = f"{chg:+.2f}%"
-                lines.append(f"🟢 {pair} ({chg_txt})")
-                added_any = True
+                if add_trade("🟢", pair, chg_txt):
+                    added_any = True
     else:
         weakest = valid[-1]
         if weakest["ccy"] != "JPY":
@@ -347,8 +357,8 @@ def build_best_trade_lines(index_rows):
                 chg = daily_chg_cc(fetch_pair_d1(pair))
                 if chg is not None and chg < 0 and h1_best_trade_filter(pair, "SHORT"):
                     chg_txt = f"{chg:+.2f}%"
-                    lines.append(f"🔴 {pair} ({chg_txt})")
-                    added_any = True
+                    if add_trade("🔴", pair, chg_txt):
+                        added_any = True
 
     top2 = valid[:2]
     bottom2 = valid[-2:] if len(valid) >= 2 else []
@@ -371,8 +381,8 @@ def build_best_trade_lines(index_rows):
                     continue
                 dot = "🟢" if chg > 0 else "🔴"
                 chg_txt = f"{chg:+.2f}%"
-                lines.append(f"{dot} {pair} ({chg_txt})")
-                added = True
+                if add_trade(dot, pair, chg_txt):
+                    added = True
         if added:
             added_any = True
 
