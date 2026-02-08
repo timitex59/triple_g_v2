@@ -636,7 +636,11 @@ def main():
     if token and chat_id:
         lines = ["SCREENER"]
         if not pair_summary_df.empty:
-            top5 = pair_summary_df.head(5)
+            top5 = (
+                pair_summary_df.assign(_abs_chg=pair_summary_df["CHG_CC_DAILY_%"].abs())
+                .sort_values(by="_abs_chg", ascending=False, na_position="last")
+                .head(5)
+            )
             for _, row in top5.iterrows():
                 final_score = row.get("FINAL_SCORE")
                 chg_daily = row.get("CHG_CC_DAILY_%")
