@@ -44,6 +44,7 @@ jobs:
         run: |
           python annual_V2.py
           python sar_break_V5.py
+          python index_long_trend_V2.py
 
       # - name: Upload market cache
       #   uses: actions/upload-artifact@v4
