@@ -635,6 +635,12 @@ def main():
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
     if token and chat_id:
         lines = ["SCREENER"]
+        confirmed_pairs = set()
+        if not combo_df.empty:
+            try:
+                confirmed_pairs = set(combo_df.loc[combo_df["CONFIRMED"] == "YES", "PAIR"].tolist())
+            except Exception:
+                confirmed_pairs = set()
         if not pair_summary_df.empty:
             top5 = (
                 pair_summary_df.assign(_abs_chg=pair_summary_df["CHG_CC_DAILY_%"].abs())
@@ -646,9 +652,13 @@ def main():
                 chg_daily = row.get("CHG_CC_DAILY_%")
                 if pd.isna(final_score) or pd.isna(chg_daily):
                     continue
+                # Filter: keep only pairs where SCORE and CHG are aligned (same sign or zero).
+                if float(final_score) * float(chg_daily) < 0:
+                    continue
                 dot = "🟢" if float(final_score) >= 0 else "🔴"
                 chg_txt = f"{float(chg_daily):+.2f}%"
-                lines.append(f"{dot} {row['PAIR']} ({chg_txt})")
+                hot = " 🔥" if row.get("PAIR") in confirmed_pairs else ""
+                lines.append(f"{dot} {row['PAIR']} ({chg_txt}){hot}")
         if len(lines) == 2:
             lines.append("NO DEAL")
         try:
