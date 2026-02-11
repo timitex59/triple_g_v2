@@ -54,7 +54,6 @@ H1_CANDLES = 700
 
 TZ_NAME = "Europe/Paris"
 DEBUG_WEEKLY = False
-CHG_CC_STATE_PATH = os.path.join(os.path.dirname(__file__), "chg_cc_indices.json")
 
 PAIRS = [
     "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "NZDUSD", "USDCAD", "USDCHF",
@@ -291,92 +290,19 @@ def chg_dot(chg):
     return "🟢" if chg > 0 else "🔴" if chg < 0 else "⚪"
 
 
-def _today_key(tz_name=TZ_NAME):
-    try:
-        tz = ZoneInfo(tz_name)
-    except Exception:
-        tz = ZoneInfo("UTC")
-    return pd.Timestamp.now(tz=tz).strftime("%Y-%m-%d")
-
-
-def _load_chg_cc_state():
-    if not os.path.exists(CHG_CC_STATE_PATH):
-        return {}
-    try:
-        with open(CHG_CC_STATE_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
-
-
-def _save_chg_cc_state(state):
-    try:
-        with open(CHG_CC_STATE_PATH, "w", encoding="utf-8") as f:
-            json.dump(state, f, ensure_ascii=False)
-    except Exception:
-        pass
-
-
-def _append_chg_cc_state(state, date_key, idx_name, chg_daily, chg_h1):
-    day = state.get(date_key, {})
-    idx = day.get(idx_name, {"daily": [], "h1": []})
-    if chg_daily is not None:
-        idx["daily"].append(float(chg_daily))
-    if chg_h1 is not None:
-        idx["h1"].append(float(chg_h1))
-    day[idx_name] = idx
-    state[date_key] = day
-
-
-def _avg_from_state(state, date_key, idx_name, key):
-    day = state.get(date_key, {})
-    idx = day.get(idx_name, {})
-    vals = idx.get(key, [])
-    if not vals:
-        return None
-    return float(sum(vals) / len(vals))
-
-
 def collect_extra_chg_cc_sections():
-    date_key = _today_key()
-    state = _load_chg_cc_state()
     index_rows = []
     for idx, sym in INDEX_SYMBOLS.items():
-        df_idx_d = fetch_tv_ohlc(sym, "D", D1_CANDLES)
-        df_idx_h1 = fetch_tv_ohlc(sym, "60", H1_CANDLES)
-        chg = daily_chg_cc(df_idx_d)
-        chg_h1 = daily_chg_cc(df_idx_h1)
-        _append_chg_cc_state(state, date_key, idx, chg, chg_h1)
-        avg_d = _avg_from_state(state, date_key, idx, "daily")
-        avg_h1 = _avg_from_state(state, date_key, idx, "h1")
+        df_idx = fetch_tv_ohlc(sym, "D", D1_CANDLES)
+        chg = daily_chg_cc(df_idx)
         ccy = INDEX_TO_CCY.get(idx, idx)
-        index_rows.append(
-            {
-                "name": idx,
-                "ccy": ccy,
-                "chg": chg,
-                "chg_h1": chg_h1,
-                "avg_d": avg_d,
-                "avg_h1": avg_h1,
-            }
-        )
-    _save_chg_cc_state(state)
+        index_rows.append({"name": idx, "ccy": ccy, "chg": chg})
     index_rows.sort(key=lambda r: (r["chg"] is None, -(r["chg"] if r["chg"] is not None else float("-inf"))))
 
-    lines = ["", "CHG% CC DAILY / 1H", "Indices"]
+    lines = ["", "CHG% CC DAILY", "Indices"]
     for r in index_rows:
         chg_txt = "N/A" if r["chg"] is None else f"{r['chg']:+.2f}%"
-        daily_above = r["chg"] is not None and r["avg_d"] is not None and r["chg"] > r["avg_d"]
-        daily_below = r["chg"] is not None and r["avg_d"] is not None and r["chg"] < r["avg_d"]
-        h1_above = r["chg_h1"] is not None and r["avg_h1"] is not None and r["chg_h1"] > r["avg_h1"]
-        h1_below = r["chg_h1"] is not None and r["avg_h1"] is not None and r["chg_h1"] < r["avg_h1"]
-        flames = ""
-        if (daily_above and h1_above) or (daily_below and h1_below):
-            flames = " 🔥🔥"
-        elif daily_above or daily_below:
-            flames = " 🔥"
-        lines.append(f"{chg_dot(r['chg'])}{chg_dot(r['chg_h1'])} {r['name']} ({r['ccy']}) : {chg_txt}{flames}")
+        lines.append(f"{chg_dot(r['chg'])} {r['name']} ({r['ccy']}) : {chg_txt}")
 
     return lines, index_rows, []
 
@@ -623,13 +549,7 @@ def main():
         return
 
     print("SAR BREAK V5")
-    results.sort(
-        key=lambda r: (
-            r.get("chg_cc") is None,
-            -(abs(r.get("chg_cc")) if r.get("chg_cc") is not None else float("-inf")),
-        )
-    )
-    results = results[:3]
+    results.sort(key=lambda r: (r.get("chg_cc") is None, -(r.get("chg_cc") if r.get("chg_cc") is not None else float("-inf"))))
     lines = ["SAR BREAK V5"]
     for r in results:
         cross_count = len(r.get("cross_events", []))
