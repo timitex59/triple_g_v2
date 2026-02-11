@@ -531,11 +531,56 @@ def detect_cross_in_window(df_h1, psar, direction, start_local, end_local, tz_na
     return times
 
 
+def detect_recent_break(df_h1, psar, direction, ema_stack):
+    if df_h1 is None or psar is None or len(df_h1) < 2:
+        return None
+    close = df_h1["close"]
+    open_ = df_h1["open"]
+    if direction == "UP":
+        cross = (close > psar) & (close.shift(1) < psar.shift(1))
+    else:
+        cross = (close < psar) & (close.shift(1) > psar.shift(1))
+    cross_times = df_h1.index[cross.fillna(False)]
+    if len(cross_times) == 0:
+        return None
+    last_cross = cross_times[-1]
+    pos = df_h1.index.get_indexer([last_cross])[0]
+    if pos >= len(df_h1) - 2:
+        psar_i = psar.iloc[pos]
+        open_i = open_.iloc[pos]
+        emas_i = [ema.iloc[pos] for ema in ema_stack]
+        if direction == "UP":
+            fire = psar_i < min(emas_i) and open_i < min(emas_i)
+        else:
+            fire = psar_i > max(emas_i) and open_i > max(emas_i)
+        return {"time": last_cross, "fire": fire}
+    return None
+
+
+def _fmt_local_time(ts, tz_name=TZ_NAME):
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        tz = ZoneInfo("UTC")
+    local_ts = ts.tz_convert(tz) if ts.tzinfo else ts.tz_localize("UTC").tz_convert(tz)
+    return local_ts.strftime("%Y-%m-%d %H:%M")
+
+
+def _now_local_line(tz_name=TZ_NAME):
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        tz = ZoneInfo("UTC")
+    now_local = pd.Timestamp.now(tz=tz)
+    return f"⏰ {now_local.strftime('%Y-%m-%d %H:%M')} Paris"
+
+
 def main():
     if load_dotenv:
         load_dotenv()
 
     results = []
+    run_breaks = []
     for pair in PAIRS:
         df_w = fetch_pair_w1(pair)
         df_d = fetch_pair_d1(pair)
@@ -584,6 +629,16 @@ def main():
             continue
 
         ema_h1_stack = compute_ema_stack(df_h, EMA_STACK)
+        recent_break = detect_recent_break(df_h, psar_h, direction, ema_h1_stack)
+        if recent_break is not None:
+            run_breaks.append(
+                {
+                    "pair": pair,
+                    "signal": signal,
+                    "time": recent_break["time"],
+                    "fire": recent_break.get("fire", False),
+                }
+            )
         cross_events = detect_cross_since_23h(df_h, psar_h, direction, ema_h1_stack)
         if not cross_events:
             continue
@@ -606,22 +661,6 @@ def main():
             }
         )
 
-    if not results:
-        print("SAR BREAK V5")
-        lines = ["SAR BREAK V5", "NO DEAL 😞"]
-        extra_lines, index_rows, _ = collect_extra_chg_cc_sections()
-        lines.extend(extra_lines)
-        lines.extend(build_best_trade_lines(index_rows))
-        token = os.getenv("TELEGRAM_BOT_TOKEN")
-        chat_id = os.getenv("TELEGRAM_CHAT_ID")
-        if token and chat_id:
-            try:
-                url = f"https://api.telegram.org/bot{token}/sendMessage"
-                requests.post(url, json={"chat_id": chat_id, "text": "\n".join(lines)}, timeout=10)
-            except Exception:
-                pass
-        return
-
     print("SAR BREAK V5")
     results.sort(
         key=lambda r: (
@@ -631,19 +670,36 @@ def main():
     )
     results = results[:3]
     lines = ["SAR BREAK V5"]
-    for r in results:
-        cross_count = len(r.get("cross_events", []))
-        fire_count = r.get("fire_count", 0)
-        fire_tag = " 🔥" if fire_count > 0 else ""
-        chg_cc = r.get("chg_cc")
-        chg_text = f"{chg_cc:+.2f}%" if chg_cc is not None else "N/A"
-        print(f"{r['pair']} | {r['signal']} | CHG% (CC): {chg_text} | crosses: {cross_count}{fire_tag}")
-        dot = "🟢" if r["signal"] == "LONG" else "🔴"
-        lines.append(f"{dot} {r['pair']} ({chg_text}) : {cross_count}{fire_tag}")
+    if not results:
+        lines.append("NO DEAL 😞")
+    else:
+        for r in results:
+            cross_count = len(r.get("cross_events", []))
+            fire_count = r.get("fire_count", 0)
+            fire_tag = " 🔥" if fire_count > 0 else ""
+            chg_cc = r.get("chg_cc")
+            chg_text = f"{chg_cc:+.2f}%" if chg_cc is not None else "N/A"
+            print(f"{r['pair']} | {r['signal']} | CHG% (CC): {chg_text} | crosses: {cross_count}{fire_tag}")
+            dot = "🟢" if r["signal"] == "LONG" else "🔴"
+            lines.append(f"{dot} {r['pair']} ({chg_text}) : {cross_count}{fire_tag}")
+
+    lines.append("")
+    lines.append("RUN BREAK")
+    if not run_breaks:
+        lines.append("NO BREAK😞")
+    else:
+        run_breaks.sort(key=lambda r: r.get("time"), reverse=True)
+        for rb in run_breaks:
+            dot = "🟢" if rb["signal"] == "LONG" else "🔴"
+            time_txt = _fmt_local_time(rb["time"])
+            fire_tag = " 🔥" if rb.get("fire") else ""
+            lines.append(f"{dot} {rb['pair']} : {time_txt}{fire_tag}")
 
     extra_lines, index_rows, _ = collect_extra_chg_cc_sections()
     lines.extend(extra_lines)
     lines.extend(build_best_trade_lines(index_rows))
+    lines.append("")
+    lines.append(_now_local_line())
 
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
