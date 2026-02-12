@@ -1,11 +1,26 @@
 {
-    "timestamp": 1770908855.9324157,
-    "pairs": {},
+    "timestamp": 1770912590.2134566,
+    "pairs": {
+        "CADJPY=X": {
+            "aligned_state": "BEAR",
+            "daily_change_pct": -0.5872609546755103
+        },
+        "USDJPY=X": {
+            "aligned_state": "BEAR",
+            "daily_change_pct": -0.40712468193385765
+        }
+    },
     "reversal_pairs": [],
     "reversal_day": "2026-02-11",
-    "top5_counts": {},
-    "run_count": 10,
+    "top5_counts": {
+        "USDJPY=X": 1,
+        "CADJPY=X": 1
+    },
+    "run_count": 11,
     "persistence_day": "2026-02-11",
     "exited_top5_pairs": [],
-    "top5_last": []
+    "top5_last": [
+        "CADJPY=X",
+        "USDJPY=X"
+    ]
 }
