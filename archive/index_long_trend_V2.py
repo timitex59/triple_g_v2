@@ -236,40 +236,6 @@ def structure_state(ema_vals):
     return "NEUTRAL"
 
 
-def ema_alignment(values, direction):
-    if direction == "UP":
-        return all(values[i] > values[i + 1] for i in range(len(values) - 1))
-    return all(values[i] < values[i + 1] for i in range(len(values) - 1))
-
-
-def validate_pair_weekly_daily(pair):
-    df_w = fetch_tv_ohlc(f"OANDA:{pair}", "W", 220)
-    df_d = fetch_tv_ohlc(f"OANDA:{pair}", "D", N_CANDLES)
-    if df_w is None or df_d is None or df_w.empty or df_d.empty:
-        return None
-
-    psar_w = calculate_psar(df_w, PSAR_START, PSAR_INCREMENT, PSAR_MAXIMUM)
-    psar_d = calculate_psar(df_d, PSAR_START, PSAR_INCREMENT, PSAR_MAXIMUM)
-    if psar_w is None or psar_d is None or psar_w.empty or psar_d.empty:
-        return None
-
-    w_close = df_w["close"].iloc[-1]
-    w_psar = psar_w.iloc[-1]
-    if w_close > w_psar:
-        direction = "UP"
-    elif w_close < w_psar:
-        direction = "DOWN"
-    else:
-        return None
-
-    d_close = df_d["close"].iloc[-1]
-    d_psar = psar_d.iloc[-1]
-    d_emas = [ema_series(df_d["close"], l).iloc[-1] for l in EMA_LENGTHS]
-    if direction == "UP":
-        return "UP" if (d_close > d_psar and d_close > max(d_emas) and ema_alignment(d_emas, "UP")) else None
-    return "DOWN" if (d_close < d_psar and d_close < min(d_emas) and ema_alignment(d_emas, "DOWN")) else None
-
-
 def classify_state(score, structure):
     if structure == "BULLISH" and score >= 0.20:
         return "BULLISH"
@@ -684,16 +650,7 @@ def main():
             for _, row in top5.iterrows():
                 final_score = row.get("FINAL_SCORE")
                 chg_daily = row.get("CHG_CC_DAILY_%")
-                pair = row.get("PAIR")
                 if pd.isna(final_score) or pd.isna(chg_daily):
-                    continue
-                if not isinstance(pair, str):
-                    continue
-                wd_direction = validate_pair_weekly_daily(pair)
-                if wd_direction is None:
-                    continue
-                score_direction = "UP" if float(final_score) >= 0 else "DOWN"
-                if wd_direction != score_direction:
                     continue
                 # Filter: keep only pairs where SCORE and CHG are aligned (same sign or zero).
                 if float(final_score) * float(chg_daily) < 0:
