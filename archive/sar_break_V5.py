@@ -54,6 +54,7 @@ H1_CANDLES = 700
 
 TZ_NAME = "Europe/Paris"
 DEBUG_WEEKLY = False
+CHG_CC_STATE_PATH = os.path.join(os.path.dirname(__file__), "chg_cc_indices.json")
 
 PAIRS = [
     "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "NZDUSD", "USDCAD", "USDCHF",
@@ -290,19 +291,92 @@ def chg_dot(chg):
     return "🟢" if chg > 0 else "🔴" if chg < 0 else "⚪"
 
 
+def _today_key(tz_name=TZ_NAME):
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        tz = ZoneInfo("UTC")
+    return pd.Timestamp.now(tz=tz).strftime("%Y-%m-%d")
+
+
+def _load_chg_cc_state():
+    if not os.path.exists(CHG_CC_STATE_PATH):
+        return {}
+    try:
+        with open(CHG_CC_STATE_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_chg_cc_state(state):
+    try:
+        with open(CHG_CC_STATE_PATH, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def _append_chg_cc_state(state, date_key, idx_name, chg_daily, chg_h1):
+    day = state.get(date_key, {})
+    idx = day.get(idx_name, {"daily": [], "h1": []})
+    if chg_daily is not None:
+        idx["daily"].append(float(chg_daily))
+    if chg_h1 is not None:
+        idx["h1"].append(float(chg_h1))
+    day[idx_name] = idx
+    state[date_key] = day
+
+
+def _avg_from_state(state, date_key, idx_name, key):
+    day = state.get(date_key, {})
+    idx = day.get(idx_name, {})
+    vals = idx.get(key, [])
+    if not vals:
+        return None
+    return float(sum(vals) / len(vals))
+
+
 def collect_extra_chg_cc_sections():
+    date_key = _today_key()
+    state = _load_chg_cc_state()
     index_rows = []
     for idx, sym in INDEX_SYMBOLS.items():
-        df_idx = fetch_tv_ohlc(sym, "D", D1_CANDLES)
-        chg = daily_chg_cc(df_idx)
+        df_idx_d = fetch_tv_ohlc(sym, "D", D1_CANDLES)
+        df_idx_h1 = fetch_tv_ohlc(sym, "60", H1_CANDLES)
+        chg = daily_chg_cc(df_idx_d)
+        chg_h1 = daily_chg_cc(df_idx_h1)
+        _append_chg_cc_state(state, date_key, idx, chg, chg_h1)
+        avg_d = _avg_from_state(state, date_key, idx, "daily")
+        avg_h1 = _avg_from_state(state, date_key, idx, "h1")
         ccy = INDEX_TO_CCY.get(idx, idx)
-        index_rows.append({"name": idx, "ccy": ccy, "chg": chg})
+        index_rows.append(
+            {
+                "name": idx,
+                "ccy": ccy,
+                "chg": chg,
+                "chg_h1": chg_h1,
+                "avg_d": avg_d,
+                "avg_h1": avg_h1,
+            }
+        )
+    _save_chg_cc_state(state)
     index_rows.sort(key=lambda r: (r["chg"] is None, -(r["chg"] if r["chg"] is not None else float("-inf"))))
 
-    lines = ["", "CHG% CC DAILY", "Indices"]
+    lines = ["", "CHG% CC DAILY / 1H", "Indices"]
     for r in index_rows:
         chg_txt = "N/A" if r["chg"] is None else f"{r['chg']:+.2f}%"
-        lines.append(f"{chg_dot(r['chg'])} {r['name']} ({r['ccy']}) : {chg_txt}")
+        daily_above = r["chg"] is not None and r["avg_d"] is not None and r["chg"] > r["avg_d"]
+        daily_below = r["chg"] is not None and r["avg_d"] is not None and r["chg"] < r["avg_d"]
+        h1_above = r["chg_h1"] is not None and r["avg_h1"] is not None and r["chg_h1"] > r["avg_h1"]
+        h1_below = r["chg_h1"] is not None and r["avg_h1"] is not None and r["chg_h1"] < r["avg_h1"]
+        flames = ""
+        if (daily_above and h1_above) or (daily_below and h1_below):
+            flames = " 🔥🔥"
+        elif daily_above or daily_below:
+            flames = " 🔥"
+        lines.append(f"{chg_dot(r['chg'])}{chg_dot(r['chg_h1'])} {r['name']} ({r['ccy']}) : {chg_txt}{flames}")
 
     return lines, index_rows, []
 
@@ -457,11 +531,56 @@ def detect_cross_in_window(df_h1, psar, direction, start_local, end_local, tz_na
     return times
 
 
+def detect_recent_break(df_h1, psar, direction, ema_stack):
+    if df_h1 is None or psar is None or len(df_h1) < 2:
+        return None
+    close = df_h1["close"]
+    open_ = df_h1["open"]
+    if direction == "UP":
+        cross = (close > psar) & (close.shift(1) < psar.shift(1))
+    else:
+        cross = (close < psar) & (close.shift(1) > psar.shift(1))
+    cross_times = df_h1.index[cross.fillna(False)]
+    if len(cross_times) == 0:
+        return None
+    last_cross = cross_times[-1]
+    pos = df_h1.index.get_indexer([last_cross])[0]
+    if pos >= len(df_h1) - 2:
+        psar_i = psar.iloc[pos]
+        open_i = open_.iloc[pos]
+        emas_i = [ema.iloc[pos] for ema in ema_stack]
+        if direction == "UP":
+            fire = psar_i < min(emas_i) and open_i < min(emas_i)
+        else:
+            fire = psar_i > max(emas_i) and open_i > max(emas_i)
+        return {"time": last_cross, "fire": fire}
+    return None
+
+
+def _fmt_local_time(ts, tz_name=TZ_NAME):
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        tz = ZoneInfo("UTC")
+    local_ts = ts.tz_convert(tz) if ts.tzinfo else ts.tz_localize("UTC").tz_convert(tz)
+    return local_ts.strftime("%Y-%m-%d %H:%M")
+
+
+def _now_local_line(tz_name=TZ_NAME):
+    try:
+        tz = ZoneInfo(tz_name)
+    except Exception:
+        tz = ZoneInfo("UTC")
+    now_local = pd.Timestamp.now(tz=tz)
+    return f"⏰ {now_local.strftime('%Y-%m-%d %H:%M')} Paris"
+
+
 def main():
     if load_dotenv:
         load_dotenv()
 
     results = []
+    run_breaks = []
     for pair in PAIRS:
         df_w = fetch_pair_w1(pair)
         df_d = fetch_pair_d1(pair)
@@ -510,6 +629,16 @@ def main():
             continue
 
         ema_h1_stack = compute_ema_stack(df_h, EMA_STACK)
+        recent_break = detect_recent_break(df_h, psar_h, direction, ema_h1_stack)
+        if recent_break is not None:
+            run_breaks.append(
+                {
+                    "pair": pair,
+                    "signal": signal,
+                    "time": recent_break["time"],
+                    "fire": recent_break.get("fire", False),
+                }
+            )
         cross_events = detect_cross_since_23h(df_h, psar_h, direction, ema_h1_stack)
         if not cross_events:
             continue
@@ -532,38 +661,45 @@ def main():
             }
         )
 
-    if not results:
-        print("SAR BREAK V5")
-        lines = ["SAR BREAK V5", "NO DEAL 😞"]
-        extra_lines, index_rows, _ = collect_extra_chg_cc_sections()
-        lines.extend(extra_lines)
-        lines.extend(build_best_trade_lines(index_rows))
-        token = os.getenv("TELEGRAM_BOT_TOKEN")
-        chat_id = os.getenv("TELEGRAM_CHAT_ID")
-        if token and chat_id:
-            try:
-                url = f"https://api.telegram.org/bot{token}/sendMessage"
-                requests.post(url, json={"chat_id": chat_id, "text": "\n".join(lines)}, timeout=10)
-            except Exception:
-                pass
-        return
-
     print("SAR BREAK V5")
-    results.sort(key=lambda r: (r.get("chg_cc") is None, -(r.get("chg_cc") if r.get("chg_cc") is not None else float("-inf"))))
+    results.sort(
+        key=lambda r: (
+            r.get("chg_cc") is None,
+            -(abs(r.get("chg_cc")) if r.get("chg_cc") is not None else float("-inf")),
+        )
+    )
+    results = results[:3]
     lines = ["SAR BREAK V5"]
-    for r in results:
-        cross_count = len(r.get("cross_events", []))
-        fire_count = r.get("fire_count", 0)
-        fire_tag = " 🔥" if fire_count > 0 else ""
-        chg_cc = r.get("chg_cc")
-        chg_text = f"{chg_cc:+.2f}%" if chg_cc is not None else "N/A"
-        print(f"{r['pair']} | {r['signal']} | CHG% (CC): {chg_text} | crosses: {cross_count}{fire_tag}")
-        dot = "🟢" if r["signal"] == "LONG" else "🔴"
-        lines.append(f"{dot} {r['pair']} ({chg_text}) : {cross_count}{fire_tag}")
+    if not results:
+        lines.append("NO DEAL 😞")
+    else:
+        for r in results:
+            cross_count = len(r.get("cross_events", []))
+            fire_count = r.get("fire_count", 0)
+            fire_tag = " 🔥" if fire_count > 0 else ""
+            chg_cc = r.get("chg_cc")
+            chg_text = f"{chg_cc:+.2f}%" if chg_cc is not None else "N/A"
+            print(f"{r['pair']} | {r['signal']} | CHG% (CC): {chg_text} | crosses: {cross_count}{fire_tag}")
+            dot = "🟢" if r["signal"] == "LONG" else "🔴"
+            lines.append(f"{dot} {r['pair']} ({chg_text}) : {cross_count}{fire_tag}")
+
+    lines.append("")
+    lines.append("RUN BREAK")
+    if not run_breaks:
+        lines.append("NO BREAK😞")
+    else:
+        run_breaks.sort(key=lambda r: r.get("time"), reverse=True)
+        for rb in run_breaks:
+            dot = "🟢" if rb["signal"] == "LONG" else "🔴"
+            time_txt = _fmt_local_time(rb["time"])
+            fire_tag = " 🔥" if rb.get("fire") else ""
+            lines.append(f"{dot} {rb['pair']} : {time_txt}{fire_tag}")
 
     extra_lines, index_rows, _ = collect_extra_chg_cc_sections()
     lines.extend(extra_lines)
     lines.extend(build_best_trade_lines(index_rows))
+    lines.append("")
+    lines.append(_now_local_line())
 
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")

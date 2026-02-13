@@ -54,6 +54,7 @@ H1_CANDLES = 700
 
 TZ_NAME = "Europe/Paris"
 DEBUG_WEEKLY = False
+DEBUG_BEST_TRADE = str(os.getenv("BEST_TRADE_DEBUG", "0")).strip().lower() in ("1", "true", "yes", "on")
 CHG_CC_STATE_PATH = os.path.join(os.path.dirname(__file__), "chg_cc_indices.json")
 
 PAIRS = [
@@ -396,9 +397,21 @@ def h1_best_trade_filter(pair, direction):
     return h_close < h_psar and h_close < min(h_emas) and ema_alignment(h_emas, "DOWN")
 
 
-def build_best_trade_lines(index_rows):
+def daily_best_trade_filter(df_d, direction):
+    if df_d is None or df_d.empty:
+        return False
+    d_close = df_d["close"].iloc[-1]
+    d_emas = [ema_series(df_d["close"], l).iloc[-1] for l in EMA_STACK]
+    if direction == "LONG":
+        return d_close > max(d_emas)
+    return d_close < min(d_emas)
+
+
+def build_best_trade_lines(index_rows, debug_best_trade=DEBUG_BEST_TRADE):
     lines = ["", "BEST TRADE"]
     seen = set()
+    debug_lines = []
+    debug_seen = set()
 
     def add_trade(dot, pair, chg_txt):
         key = (dot, pair)
@@ -408,60 +421,114 @@ def build_best_trade_lines(index_rows):
         lines.append(f"{dot} {pair} ({chg_txt})")
         return True
 
+    def add_debug(pair, reason):
+        msg = f"- {pair}: {reason}"
+        if msg not in debug_seen:
+            debug_seen.add(msg)
+            debug_lines.append(msg)
+
+    def row_alignment(row):
+        d = row.get("chg")
+        h = row.get("chg_h1")
+        if d is None or h is None:
+            return "NONE"
+        if d > 0 and h > 0:
+            return "GG"
+        if d < 0 and h < 0:
+            return "RR"
+        return "MIXED"
+
+    def resolve_pair(ccy_a, ccy_b):
+        p1 = f"{ccy_a}{ccy_b}"
+        if p1 in PAIRS:
+            return p1
+        p2 = f"{ccy_b}{ccy_a}"
+        if p2 in PAIRS:
+            return p2
+        return None
+
     valid = [r for r in index_rows if r.get("chg") is not None]
     if len(valid) < 2:
         lines.append("NO DEAL")
+        lines.append("")
+        lines.append("BEST TRADE DEBUG")
+        lines.append("- Not enough valid indices (need >= 2 with non-null daily change)")
         return lines
 
     added_any = False
-    strongest = valid[0]
-    if strongest["ccy"] != "JPY":
-        pair = f"{strongest['ccy']}JPY"
-        if pair in PAIRS:
-            chg = daily_chg_cc(fetch_pair_d1(pair))
-            if chg is not None and chg > 0 and h1_best_trade_filter(pair, "LONG"):
-                chg_txt = f"{chg:+.2f}%"
-                if add_trade("🟢", pair, chg_txt):
-                    added_any = True
-    else:
-        weakest = valid[-1]
-        if weakest["ccy"] != "JPY":
-            pair = f"{weakest['ccy']}JPY"
-            if pair in PAIRS:
-                chg = daily_chg_cc(fetch_pair_d1(pair))
-                if chg is not None and chg < 0 and h1_best_trade_filter(pair, "SHORT"):
-                    chg_txt = f"{chg:+.2f}%"
-                    if add_trade("🔴", pair, chg_txt):
-                        added_any = True
-
     top2 = valid[:2]
     bottom2 = valid[-2:] if len(valid) >= 2 else []
-    if len(top2) == 2 and len(bottom2) == 2:
-        added = False
-        for hi in top2:
-            for lo in bottom2:
-                if hi["ccy"] == lo["ccy"]:
-                    continue
-                pair = f"{hi['ccy']}{lo['ccy']}"
-                if pair not in PAIRS:
-                    pair = f"{lo['ccy']}{hi['ccy']}"
-                if pair not in PAIRS:
-                    continue
-                chg = daily_chg_cc(fetch_pair_d1(pair))
-                if chg is None or chg == 0:
-                    continue
-                direction = "LONG" if chg > 0 else "SHORT"
-                if not h1_best_trade_filter(pair, direction):
-                    continue
-                dot = "🟢" if chg > 0 else "🔴"
-                chg_txt = f"{chg:+.2f}%"
-                if add_trade(dot, pair, chg_txt):
-                    added = True
-        if added:
+    if len(top2) < 2 or len(bottom2) < 2:
+        lines.append("NO DEAL 😞")
+        lines.append("")
+        lines.append("BEST TRADE DEBUG")
+        lines.append("- Need at least 2 currencies in top and bottom buckets")
+        return lines
+
+    aligned_green = [r for r in valid if row_alignment(r) == "GG"]
+    aligned_red = [r for r in valid if row_alignment(r) == "RR"]
+
+    candidate_pairs = []
+    for src in aligned_green:
+        for tgt in bottom2:
+            candidate_pairs.append((src, tgt, "GG->BOTTOM2"))
+    for src in aligned_red:
+        for tgt in top2:
+            candidate_pairs.append((src, tgt, "RR->TOP2"))
+
+    if not candidate_pairs:
+        add_debug("GLOBAL", "Rejected: no aligned currencies (GG or RR) to seed combinations")
+
+    for src, tgt, rule in candidate_pairs:
+        src_ccy = src["ccy"]
+        tgt_ccy = tgt["ccy"]
+        if src_ccy == tgt_ccy:
+            add_debug(f"{src_ccy}/{tgt_ccy}", f"Rejected ({rule}): same currency")
+            continue
+
+        src_align = row_alignment(src)
+        tgt_align = row_alignment(tgt)
+        if src_align in ("GG", "RR") and tgt_align == src_align:
+            add_debug(f"{src_ccy}/{tgt_ccy}", f"Rejected ({rule}): same aligned direction ({src_align})")
+            continue
+
+        pair = resolve_pair(src_ccy, tgt_ccy)
+        if not pair:
+            add_debug(f"{src_ccy}/{tgt_ccy}", f"Rejected ({rule}): no tradable pair in PAIRS list")
+            continue
+
+        df_d_pair = fetch_pair_d1(pair)
+        chg = daily_chg_cc(df_d_pair)
+        if chg is None:
+            add_debug(pair, f"Rejected ({rule}): CHG is None")
+            continue
+        if chg == 0:
+            add_debug(pair, f"Rejected ({rule}): CHG is 0")
+            continue
+
+        direction = "LONG" if chg > 0 else "SHORT"
+        if not daily_best_trade_filter(df_d_pair, direction):
+            add_debug(pair, f"Rejected ({rule}): Daily filter failed (price vs 8 EMA)")
+            continue
+        if not h1_best_trade_filter(pair, direction):
+            add_debug(pair, f"Rejected ({rule}): H1 filter failed (PSAR/EMA stack/price vs 8 EMA)")
+            continue
+
+        dot = "🟢" if chg > 0 else "🔴"
+        chg_txt = f"{chg:+.2f}%"
+        if add_trade(dot, pair, chg_txt):
             added_any = True
+        else:
+            add_debug(pair, f"Skipped ({rule}): duplicate trade")
 
     if not added_any:
         lines.append("NO DEAL 😞")
+    lines.append("")
+    lines.append("BEST TRADE DEBUG")
+    if debug_lines:
+        lines.extend(debug_lines)
+    else:
+        lines.append("- No rejection recorded")
 
     return lines
 
@@ -536,25 +603,48 @@ def detect_recent_break(df_h1, psar, direction, ema_stack):
         return None
     close = df_h1["close"]
     open_ = df_h1["open"]
+    up_cross = ((close > psar) & (close.shift(1) < psar.shift(1))).fillna(False)
+    down_cross = ((close < psar) & (close.shift(1) > psar.shift(1))).fillna(False)
+
+    up_times = df_h1.index[up_cross]
+    down_times = df_h1.index[down_cross]
+
+    last_up = up_times[-1] if len(up_times) else None
+    last_down = down_times[-1] if len(down_times) else None
+
     if direction == "UP":
-        cross = (close > psar) & (close.shift(1) < psar.shift(1))
+        if last_up is None:
+            return None
+        if last_down is not None and last_down >= last_up:
+            return None
+        last_cross = last_up
     else:
-        cross = (close < psar) & (close.shift(1) > psar.shift(1))
-    cross_times = df_h1.index[cross.fillna(False)]
-    if len(cross_times) == 0:
-        return None
-    last_cross = cross_times[-1]
+        if last_down is None:
+            return None
+        if last_up is not None and last_up >= last_down:
+            return None
+        last_cross = last_down
+
     pos = df_h1.index.get_indexer([last_cross])[0]
-    if pos >= len(df_h1) - 2:
-        psar_i = psar.iloc[pos]
-        open_i = open_.iloc[pos]
-        emas_i = [ema.iloc[pos] for ema in ema_stack]
-        if direction == "UP":
-            fire = psar_i < min(emas_i) and open_i < min(emas_i)
-        else:
-            fire = psar_i > max(emas_i) and open_i > max(emas_i)
-        return {"time": last_cross, "fire": fire}
-    return None
+    if pos < len(df_h1) - 2:
+        return None
+
+    # Keep break only if current H1 still confirms higher-timeframe direction.
+    curr_close = close.iloc[-1]
+    curr_psar = psar.iloc[-1]
+    if direction == "UP" and curr_close <= curr_psar:
+        return None
+    if direction == "DOWN" and curr_close >= curr_psar:
+        return None
+
+    psar_i = psar.iloc[pos]
+    open_i = open_.iloc[pos]
+    emas_i = [ema.iloc[pos] for ema in ema_stack]
+    if direction == "UP":
+        fire = psar_i < min(emas_i) and open_i < min(emas_i)
+    else:
+        fire = psar_i > max(emas_i) and open_i > max(emas_i)
+    return {"time": last_cross, "fire": fire}
 
 
 def _fmt_local_time(ts, tz_name=TZ_NAME):
@@ -573,6 +663,23 @@ def _now_local_line(tz_name=TZ_NAME):
         tz = ZoneInfo("UTC")
     now_local = pd.Timestamp.now(tz=tz)
     return f"⏰ {now_local.strftime('%Y-%m-%d %H:%M')} Paris"
+
+
+def _strip_debug_for_telegram(lines):
+    cleaned = []
+    in_best_trade_debug = False
+    for line in lines:
+        if line == "BEST TRADE DEBUG":
+            in_best_trade_debug = True
+            continue
+        if in_best_trade_debug:
+            if line.startswith("- "):
+                continue
+            if line == "":
+                continue
+            in_best_trade_debug = False
+        cleaned.append(line)
+    return cleaned
 
 
 def main():
@@ -629,6 +736,14 @@ def main():
             continue
 
         ema_h1_stack = compute_ema_stack(df_h, EMA_STACK)
+        h1_emas_last = [ema.iloc[-1] for ema in ema_h1_stack]
+        if direction == "UP":
+            if not ema_alignment(h1_emas_last, "UP"):
+                continue
+        else:
+            if not ema_alignment(h1_emas_last, "DOWN"):
+                continue
+
         recent_break = detect_recent_break(df_h, psar_h, direction, ema_h1_stack)
         if recent_break is not None:
             run_breaks.append(
@@ -706,7 +821,8 @@ def main():
     if token and chat_id:
         try:
             url = f"https://api.telegram.org/bot{token}/sendMessage"
-            requests.post(url, json={"chat_id": chat_id, "text": "\n".join(lines)}, timeout=10)
+            telegram_lines = _strip_debug_for_telegram(lines)
+            requests.post(url, json={"chat_id": chat_id, "text": "\n".join(telegram_lines)}, timeout=10)
         except Exception:
             pass
 
