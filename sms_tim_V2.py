@@ -859,7 +859,7 @@ def main():
     if filtered:
         telegram_lines = build_telegram_lines(filtered)
     else:
-        telegram_lines = ["SMS SCREENER", "AUCUN SIGNAL"]
+        telegram_lines = ["SMS SCREENER", "NO DEAL 😞"]
     sent = send_telegram_message(telegram_lines)
     print("=== TELEGRAM ===")
     print("sent" if sent else "not_sent (missing token/chat_id or request failed)")
