@@ -46,6 +46,16 @@ TV_WS_URL = "wss://prodata.tradingview.com/socket.io/websocket"
 EMA_LENGTHS = [20, 25, 30, 35, 40, 45, 50, 55]
 DEFAULT_BASE_TF = "5M"
 TF_TO_TV = {"1M": "1", "5M": "5", "15M": "15", "30M": "30", "1H": "60", "4H": "240", "1D": "1D"}
+CCY_TO_INDEX = {
+    "USD": "TVC:DXY",
+    "EUR": "TVC:EXY",
+    "GBP": "TVC:BXY",
+    "JPY": "TVC:JXY",
+    "CHF": "TVC:SXY",
+    "CAD": "TVC:CXY",
+    "AUD": "TVC:AXY",
+    "NZD": "TVC:ZXY",
+}
 
 # Original signal defaults from Pine inputs.
 MOMENTUM_THRESHOLD_BASE = 0.01
@@ -434,6 +444,45 @@ def daily_chg_cc(df_daily) -> float:
     return (d_close - d_prev) / d_prev * 100.0
 
 
+def _pair_ccy_from_symbol(symbol: str) -> Tuple[Optional[str], Optional[str]]:
+    # e.g. OANDA:GBPUSD -> ("GBP", "USD")
+    raw = symbol.split(":")[-1]
+    if len(raw) < 6:
+        return None, None
+    return raw[:3], raw[3:6]
+
+
+def fetch_index_chg_map(bars_d1: int = 300) -> Dict[str, Optional[float]]:
+    out: Dict[str, Optional[float]] = {}
+    for ccy, tv_symbol in CCY_TO_INDEX.items():
+        try:
+            df = fetch_tv_ohlc(symbol=tv_symbol, interval="1D", bars=bars_d1)
+            if df is None or df.empty:
+                out[ccy] = None
+                continue
+            chg = daily_chg_cc(df)
+            out[ccy] = None if math.isnan(chg) else float(chg)
+        except Exception:
+            out[ccy] = None
+    return out
+
+
+def index_cc_confirms_trade(symbol: str, trade: str, index_chg_map: Dict[str, Optional[float]]) -> Tuple[Optional[bool], Optional[float], Optional[float]]:
+    base_ccy, quote_ccy = _pair_ccy_from_symbol(symbol)
+    if not base_ccy or not quote_ccy:
+        return None, None, None
+    base_chg = index_chg_map.get(base_ccy)
+    quote_chg = index_chg_map.get(quote_ccy)
+    if base_chg is None or quote_chg is None:
+        return None, base_chg, quote_chg
+
+    if trade == "BUY":
+        return base_chg > quote_chg, base_chg, quote_chg
+    if trade == "SELL":
+        return base_chg < quote_chg, base_chg, quote_chg
+    return None, base_chg, quote_chg
+
+
 def compute_daily_slopes_deg(df_daily, short_period: int = 30, long_period: int = 100) -> Tuple[float, float]:
     """
     Reproduces Pine support/resistance anchor scan and slope angle from horizontal.
@@ -514,7 +563,64 @@ def trade_decision(regime_h1: str, regime_d1: str, sup_slope_deg: float, res_slo
     return "NEUTRAL"
 
 
-def compute_for_symbol(symbol: str, short_period: int, long_period: int, bars_h1: int, bars_d1: int) -> Dict:
+def alignment_metrics(
+    regime_h1: str,
+    regime_d1: str,
+    sup_slope_deg: float,
+    res_slope_deg: float,
+    chg_cc_daily: float,
+    last_original_signal: str,
+    index_base_chg: Optional[float],
+    index_quote_chg: Optional[float],
+) -> Tuple[str, float, int, int]:
+    # 7-key alignment blocks for BULL/BEAR side.
+    bull_count = 0
+    bear_count = 0
+
+    bull_count += 1 if regime_h1 == "BULL" else 0
+    bear_count += 1 if regime_h1 == "BEAR" else 0
+
+    bull_count += 1 if regime_d1 == "BULL" else 0
+    bear_count += 1 if regime_d1 == "BEAR" else 0
+
+    bull_count += 1 if sup_slope_deg > 0 else 0
+    bear_count += 1 if sup_slope_deg < 0 else 0
+
+    bull_count += 1 if res_slope_deg > 0 else 0
+    bear_count += 1 if res_slope_deg < 0 else 0
+
+    bull_count += 1 if chg_cc_daily > 0 else 0
+    bear_count += 1 if chg_cc_daily < 0 else 0
+
+    bull_count += 1 if last_original_signal == "BUY" else 0
+    bear_count += 1 if last_original_signal == "SELL" else 0
+
+    if index_base_chg is not None and index_quote_chg is not None:
+        bull_count += 1 if index_base_chg > index_quote_chg else 0
+        bear_count += 1 if index_base_chg < index_quote_chg else 0
+
+    if bull_count > bear_count:
+        global_trend = "BULL"
+        alignment_count = bull_count
+    elif bear_count > bull_count:
+        global_trend = "BEAR"
+        alignment_count = bear_count
+    else:
+        global_trend = "NEUTRAL"
+        alignment_count = bull_count
+
+    alignment_pct = round((alignment_count * 100.0) / 7.0, 2)
+    return global_trend, alignment_pct, bull_count, bear_count
+
+
+def compute_for_symbol(
+    symbol: str,
+    short_period: int,
+    long_period: int,
+    bars_h1: int,
+    bars_d1: int,
+    index_chg_map: Optional[Dict[str, Optional[float]]] = None,
+) -> Dict:
     # 1H regime
     df_h1 = fetch_tv_ohlc(symbol=symbol, interval="60", bars=bars_h1)
     if df_h1 is None or df_h1.empty:
@@ -544,6 +650,19 @@ def compute_for_symbol(symbol: str, short_period: int, long_period: int, bars_h1
         restrict_tf_choice="5M",
     )
     original_confirmed = (trade == "BUY" and last_original_signal == "BUY") or (trade == "SELL" and last_original_signal == "SELL")
+    if index_chg_map is None:
+        index_chg_map = fetch_index_chg_map(bars_d1=bars_d1)
+    index_cc_confirmed, index_base_chg, index_quote_chg = index_cc_confirms_trade(symbol, trade, index_chg_map)
+    global_trend, alignment_pct, bull_count, bear_count = alignment_metrics(
+        regime_h1=regime_h1,
+        regime_d1=regime_d1,
+        sup_slope_deg=sup_slope_deg,
+        res_slope_deg=res_slope_deg,
+        chg_cc_daily=chg_cc_daily,
+        last_original_signal=last_original_signal,
+        index_base_chg=index_base_chg,
+        index_quote_chg=index_quote_chg,
+    )
 
     result = {
         "symbol": symbol,
@@ -555,6 +674,14 @@ def compute_for_symbol(symbol: str, short_period: int, long_period: int, bars_h1
         "trade": trade,
         "last_original_signal": last_original_signal,
         "original_confirmed": original_confirmed,
+        "index_base_chg_daily": None if index_base_chg is None else round(index_base_chg, 4),
+        "index_quote_chg_daily": None if index_quote_chg is None else round(index_quote_chg, 4),
+        "index_cc_confirmed": index_cc_confirmed,
+        "global_trend": global_trend,
+        "alignment_pct": alignment_pct,
+        "alignment_count": max(bull_count, bear_count),
+        "bull_confirmations": bull_count,
+        "bear_confirmations": bear_count,
         "daily_bars_used": int(len(df_d1)),
         "h1_bars_used": int(len(df_h1)),
     }
@@ -563,7 +690,8 @@ def compute_for_symbol(symbol: str, short_period: int, long_period: int, bars_h1
 
 
 def run(symbol: str, short_period: int, long_period: int, bars_h1: int, bars_d1: int):
-    result = compute_for_symbol(symbol, short_period, long_period, bars_h1, bars_d1)
+    index_chg_map = fetch_index_chg_map(bars_d1=bars_d1)
+    result = compute_for_symbol(symbol, short_period, long_period, bars_h1, bars_d1, index_chg_map=index_chg_map)
     print(json.dumps(result, indent=2))
 
 
@@ -601,10 +729,10 @@ def build_telegram_lines(filtered_rows: List[Dict]) -> List[str]:
     lines = ["SMS SCREENER"]
     for row in filtered_rows:
         pair = row.get("pair", row.get("symbol", "")).replace("=X", "").replace("OANDA:", "")
-        chg = row.get("chg_cc_daily")
-        chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+        align = row.get("alignment_pct")
+        align_txt = "N/A" if align is None else f"{int(round(float(align)))}%"
         flame = " 🔥" if _flame_for_row(row) else ""
-        lines.append(f"{_trade_dot(row.get('trade'))} {pair} ({chg_txt}){flame}")
+        lines.append(f"{_trade_dot(row.get('trade'))} {pair} ({align_txt}){flame}")
     return lines
 
 
@@ -628,6 +756,7 @@ def main():
     parser.add_argument("--long-trend-period", type=int, default=100)
     parser.add_argument("--bars-h1", type=int, default=300)
     parser.add_argument("--bars-d1", type=int, default=300)
+    parser.add_argument("--debug-all", action="store_true", help="Show pair-by-pair diagnostics for all 28 pairs")
     args = parser.parse_args()
 
     if args.symbol:
@@ -642,6 +771,7 @@ def main():
 
     results = []
     errors = []
+    index_chg_map = fetch_index_chg_map(bars_d1=args.bars_d1)
     for pair in PAIRS:
         symbol = f"OANDA:{pair.replace('=X', '')}"
         try:
@@ -651,6 +781,7 @@ def main():
                 long_period=args.long_trend_period,
                 bars_h1=args.bars_h1,
                 bars_d1=args.bars_d1,
+                index_chg_map=index_chg_map,
             )
             result["pair"] = pair
             results.append(result)
@@ -687,6 +818,42 @@ def main():
     if errors:
         print("=== ERRORS ===")
         print(json.dumps(errors, indent=2))
+
+    if args.debug_all:
+        debug_rows = []
+        for r in results:
+            chg_ok = _chg_confirms_trade(r)
+            orig_ok = bool(r.get("original_confirmed"))
+            final_ok = r["trade"] in ("BUY", "SELL") and chg_ok and orig_ok
+            reason = None
+            if not final_ok:
+                if r["trade"] not in ("BUY", "SELL"):
+                    reason = "trade_neutral"
+                elif not chg_ok:
+                    reason = "chg_fail"
+                elif not orig_ok:
+                    reason = "original_fail"
+            debug_rows.append(
+                {
+                    "pair": r.get("pair", r.get("symbol")),
+                    "trade": r.get("trade"),
+                    "regime_1H": r.get("regime_1H"),
+                    "regime_1D": r.get("regime_1D"),
+                    "slope_sup_deg_daily": r.get("slope_sup_deg_daily"),
+                    "slope_res_deg_daily": r.get("slope_res_deg_daily"),
+                    "chg_cc_daily": r.get("chg_cc_daily"),
+                    "last_original_signal": r.get("last_original_signal"),
+                    "index_cc_confirmed": r.get("index_cc_confirmed"),
+                    "alignment_pct": r.get("alignment_pct"),
+                    "pass_chg": chg_ok,
+                    "pass_original": orig_ok,
+                    "pass_final": final_ok,
+                    "reject_reason": reason,
+                }
+            )
+        debug_rows.sort(key=lambda x: x["pair"] if x["pair"] is not None else "")
+        print("=== DEBUG ALL PAIRS ===")
+        print(json.dumps(debug_rows, indent=2))
 
     # Telegram summary in requested format.
     if filtered:
