@@ -46,6 +46,9 @@ TV_WS_URL = "wss://prodata.tradingview.com/socket.io/websocket"
 EMA_LENGTHS = [20, 25, 30, 35, 40, 45, 50, 55]
 DEFAULT_BASE_TF = "5M"
 TF_TO_TV = {"1M": "1", "5M": "5", "15M": "15", "30M": "30", "1H": "60", "4H": "240", "1D": "1D"}
+PSAR_BREAK_START = 0.1
+PSAR_BREAK_INCREMENT = 0.1
+PSAR_BREAK_MAX = 0.2
 CCY_TO_INDEX = {
     "USD": "TVC:DXY",
     "EUR": "TVC:EXY",
@@ -322,6 +325,209 @@ def _trend_series(df):
     trend = trend.mask((df["Close"] > ema20) & (df["Close"] > vwap), 1)
     trend = trend.mask((df["Close"] < ema20) & (df["Close"] < vwap), -1)
     return trend
+
+
+def _parabolic_sar(df, start: float = 0.02, increment: float = 0.02, max_af: float = 0.2):
+    """
+    Basic Parabolic SAR implementation.
+    Returns a series aligned with df.index.
+    """
+    if df is None or df.empty:
+        return pd.Series(dtype="float64")
+
+    highs = df["High"].astype(float).tolist()
+    lows = df["Low"].astype(float).tolist()
+    n = len(df)
+    if n == 1:
+        return pd.Series([lows[0]], index=df.index, dtype="float64")
+
+    sar = [0.0] * n
+    uptrend = highs[1] >= highs[0]
+    af = start
+    ep = highs[0] if uptrend else lows[0]
+    sar[0] = lows[0] if uptrend else highs[0]
+
+    for i in range(1, n):
+        prev_sar = sar[i - 1]
+        cur_sar = prev_sar + af * (ep - prev_sar)
+
+        if uptrend:
+            if i >= 2:
+                cur_sar = min(cur_sar, lows[i - 1], lows[i - 2])
+            else:
+                cur_sar = min(cur_sar, lows[i - 1])
+            if lows[i] < cur_sar:
+                uptrend = False
+                cur_sar = ep
+                ep = lows[i]
+                af = start
+            else:
+                if highs[i] > ep:
+                    ep = highs[i]
+                    af = min(af + increment, max_af)
+        else:
+            if i >= 2:
+                cur_sar = max(cur_sar, highs[i - 1], highs[i - 2])
+            else:
+                cur_sar = max(cur_sar, highs[i - 1])
+            if highs[i] > cur_sar:
+                uptrend = True
+                cur_sar = ep
+                ep = highs[i]
+                af = start
+            else:
+                if lows[i] < ep:
+                    ep = lows[i]
+                    af = min(af + increment, max_af)
+
+        sar[i] = cur_sar
+
+    return pd.Series(sar, index=df.index, dtype="float64")
+
+
+def weekly_price_structure(df_weekly) -> Tuple[bool, bool]:
+    """
+    Returns:
+    - weekly_bull_ok: last closed weekly candle fully above SAR and all 8 EMA
+    - weekly_bear_ok: last closed weekly candle fully below SAR and all 8 EMA
+    """
+    if df_weekly is None or df_weekly.empty or len(df_weekly) < max(EMA_LENGTHS):
+        return False, False
+
+    idx = -2 if len(df_weekly) >= 2 else -1  # Prefer last closed weekly candle.
+    sar_series = _parabolic_sar(df_weekly)
+    if sar_series.empty:
+        return False, False
+
+    sar_value = sar_series.iloc[idx]
+    if pd.isna(sar_value):
+        return False, False
+
+    close = df_weekly["Close"]
+    ema_values = [close.ewm(span=l, adjust=False).mean().iloc[idx] for l in EMA_LENGTHS]
+    if any(pd.isna(v) for v in ema_values):
+        return False, False
+
+    low_w = float(df_weekly["Low"].iloc[idx])
+    high_w = float(df_weekly["High"].iloc[idx])
+
+    weekly_bull_ok = low_w > float(sar_value) and all(low_w > float(v) for v in ema_values)
+    weekly_bear_ok = high_w < float(sar_value) and all(high_w < float(v) for v in ema_values)
+    return weekly_bull_ok, weekly_bear_ok
+
+
+def _ema_alignment(values: List[float], direction: str) -> bool:
+    if direction == "UP":
+        return all(values[i] > values[i + 1] for i in range(len(values) - 1))
+    return all(values[i] < values[i + 1] for i in range(len(values) - 1))
+
+
+def detect_recent_break_current_or_previous(df_h1, direction: str) -> Optional[Dict]:
+    """
+    RUN BREAK style condition:
+    - detect latest PSAR cross in trend direction on H1
+    - keep only if cross occurred on current or previous candle
+    - keep only if current candle still confirms direction vs PSAR
+    - require 8 EMA alignment at break candle
+    """
+    if df_h1 is None or df_h1.empty or len(df_h1) < 4:
+        return None
+
+    # Match RUN BREAK PSAR settings.
+    psar = _parabolic_sar(
+        df_h1,
+        start=PSAR_BREAK_START,
+        increment=PSAR_BREAK_INCREMENT,
+        max_af=PSAR_BREAK_MAX,
+    )
+    if psar is None or psar.empty:
+        return None
+
+    close = df_h1["Close"]
+    up_cross = ((close > psar) & (close.shift(1) < psar.shift(1))).fillna(False)
+    down_cross = ((close < psar) & (close.shift(1) > psar.shift(1))).fillna(False)
+
+    up_idx = list(df_h1.index[up_cross])
+    down_idx = list(df_h1.index[down_cross])
+    last_up = up_idx[-1] if up_idx else None
+    last_down = down_idx[-1] if down_idx else None
+
+    if direction == "UP":
+        if last_up is None:
+            return None
+        if last_down is not None and last_down >= last_up:
+            return None
+        last_cross = last_up
+    else:
+        if last_down is None:
+            return None
+        if last_up is not None and last_up >= last_down:
+            return None
+        last_cross = last_down
+
+    pos = int(df_h1.index.get_indexer([last_cross])[0])
+    # Use closed candles only:
+    # - current closed candle: len-2
+    # - previous closed candle: len-3
+    last_closed_pos = len(df_h1) - 2
+    prev_closed_pos = len(df_h1) - 3
+    if pos < prev_closed_pos:
+        return None
+
+    curr_close = float(close.iloc[last_closed_pos])
+    curr_psar = float(psar.iloc[last_closed_pos])
+    if direction == "UP" and curr_close <= curr_psar:
+        return None
+    if direction == "DOWN" and curr_close >= curr_psar:
+        return None
+
+    ema_stack = [df_h1["Close"].ewm(span=l, adjust=False).mean() for l in EMA_LENGTHS]
+    ema_vals_at_cross = [float(ema.iloc[pos]) for ema in ema_stack]
+    if direction == "UP":
+        if not _ema_alignment(ema_vals_at_cross, "UP"):
+            return None
+    else:
+        if not _ema_alignment(ema_vals_at_cross, "DOWN"):
+            return None
+
+    return {"time": str(last_cross), "bar_offset": int(last_closed_pos - pos)}
+
+
+def psar_valuewhen_levels(df_h1) -> Dict[str, Optional[float]]:
+    """
+    Pine equivalent on H1:
+    - bull_vw0, bull_vw1 from valuewhen(bull, sar, 0/1)
+    - bear_vw0, bear_vw1 from valuewhen(bear, sar, 0/1)
+    """
+    out = {"bull_vw0": None, "bull_vw1": None, "bear_vw0": None, "bear_vw1": None}
+    if df_h1 is None or df_h1.empty or len(df_h1) < 3:
+        return out
+
+    psar = _parabolic_sar(
+        df_h1,
+        start=PSAR_BREAK_START,
+        increment=PSAR_BREAK_INCREMENT,
+        max_af=PSAR_BREAK_MAX,
+    )
+    if psar is None or psar.empty:
+        return out
+
+    close = df_h1["Close"]
+    bull = ((close > psar) & (close.shift(1) < psar.shift(1))).fillna(False)
+    bear = ((close < psar) & (close.shift(1) > psar.shift(1))).fillna(False)
+
+    bull_vals = [float(psar.iloc[i]) for i, flag in enumerate(bull.tolist()) if flag]
+    bear_vals = [float(psar.iloc[i]) for i, flag in enumerate(bear.tolist()) if flag]
+
+    if len(bull_vals) >= 1:
+        out["bull_vw0"] = bull_vals[-1]
+    if len(bull_vals) >= 2:
+        out["bull_vw1"] = bull_vals[-2]
+    if len(bear_vals) >= 1:
+        out["bear_vw0"] = bear_vals[-1]
+    if len(bear_vals) >= 2:
+        out["bear_vw1"] = bear_vals[-2]
+    return out
 
 
 def _trend_last_from_tf(symbol: str, tf_label: str, bars: int = 300) -> int:
@@ -630,6 +836,9 @@ def compute_for_symbol(
     df_d1 = fetch_tv_ohlc(symbol=symbol, interval="1D", bars=bars_d1)
     if df_d1 is None or df_d1.empty:
         raise RuntimeError(f"No D1 data from TradingView for {symbol}")
+    df_w1 = fetch_tv_ohlc(symbol=symbol, interval="1W", bars=bars_d1)
+    if df_w1 is None or df_w1.empty:
+        raise RuntimeError(f"No W1 data from TradingView for {symbol}")
 
     regime_h1 = ema_regime(df_h1)
     regime_d1 = ema_regime(df_d1)
@@ -641,6 +850,23 @@ def compute_for_symbol(
     )
 
     trade = trade_decision(regime_h1, regime_d1, sup_slope_deg, res_slope_deg)
+    weekly_bull_ok, weekly_bear_ok = weekly_price_structure(df_w1)
+    weekly_filter_ok = (trade == "BUY" and weekly_bull_ok) or (trade == "SELL" and weekly_bear_ok)
+    break_direction = "UP" if trade == "BUY" else "DOWN" if trade == "SELL" else None
+    break_recent = detect_recent_break_current_or_previous(df_h1, break_direction) if break_direction else None
+    break_filter_ok = break_recent is not None
+    vw = psar_valuewhen_levels(df_h1)
+    bull_vw0 = vw.get("bull_vw0")
+    bull_vw1 = vw.get("bull_vw1")
+    bear_vw0 = vw.get("bear_vw0")
+    bear_vw1 = vw.get("bear_vw1")
+    if trade == "BUY":
+        vw_filter_ok = (bull_vw0 is not None) and (bull_vw1 is not None) and (bull_vw0 > bull_vw1)
+    elif trade == "SELL":
+        # As requested: for BEAR, compare bull_vw0 against previous bull_vw0.
+        vw_filter_ok = (bull_vw0 is not None) and (bull_vw1 is not None) and (bull_vw0 < bull_vw1)
+    else:
+        vw_filter_ok = False
     chg_cc_daily = daily_chg_cc(df_d1)
     last_original_signal = _last_original_signal(
         symbol=symbol,
@@ -672,6 +898,16 @@ def compute_for_symbol(
         "slope_res_deg_daily": None if math.isnan(res_slope_deg) else round(res_slope_deg, 4),
         "chg_cc_daily": None if math.isnan(chg_cc_daily) else round(chg_cc_daily, 4),
         "trade": trade,
+        "weekly_bull_ok": weekly_bull_ok,
+        "weekly_bear_ok": weekly_bear_ok,
+        "weekly_filter_ok": weekly_filter_ok,
+        "break_filter_ok": break_filter_ok,
+        "break_recent": break_recent,
+        "bull_vw0": None if bull_vw0 is None else round(bull_vw0, 6),
+        "bull_vw1": None if bull_vw1 is None else round(bull_vw1, 6),
+        "bear_vw0": None if bear_vw0 is None else round(bear_vw0, 6),
+        "bear_vw1": None if bear_vw1 is None else round(bear_vw1, 6),
+        "vw_filter_ok": vw_filter_ok,
         "last_original_signal": last_original_signal,
         "original_confirmed": original_confirmed,
         "index_base_chg_daily": None if index_base_chg is None else round(index_base_chg, 4),
@@ -793,9 +1029,13 @@ def main():
         r
         for r in results
         if r["trade"] in ("BUY", "SELL")
+        and bool(r.get("weekly_filter_ok"))
+        and bool(r.get("break_filter_ok"))
+        and bool(r.get("vw_filter_ok"))
         and _chg_confirms_trade(r)
         and bool(r.get("original_confirmed"))
     ]
+    filtered.sort(key=lambda r: float(r.get("alignment_pct") or 0.0), reverse=True)
     buy_count = sum(1 for r in filtered if r["trade"] == "BUY")
     sell_count = sum(1 for r in filtered if r["trade"] == "SELL")
 
@@ -824,11 +1064,21 @@ def main():
         for r in results:
             chg_ok = _chg_confirms_trade(r)
             orig_ok = bool(r.get("original_confirmed"))
-            final_ok = r["trade"] in ("BUY", "SELL") and chg_ok and orig_ok
+            break_ok = bool(r.get("break_filter_ok"))
+            vw_ok = bool(r.get("vw_filter_ok"))
+            final_ok = r["trade"] in ("BUY", "SELL") and chg_ok and orig_ok and break_ok and vw_ok
+            weekly_ok = bool(r.get("weekly_filter_ok"))
+            final_ok = final_ok and weekly_ok
             reason = None
             if not final_ok:
                 if r["trade"] not in ("BUY", "SELL"):
                     reason = "trade_neutral"
+                elif not weekly_ok:
+                    reason = "weekly_fail"
+                elif not break_ok:
+                    reason = "break_fail"
+                elif not vw_ok:
+                    reason = "vw_fail"
                 elif not chg_ok:
                     reason = "chg_fail"
                 elif not orig_ok:
@@ -845,9 +1095,17 @@ def main():
                     "last_original_signal": r.get("last_original_signal"),
                     "index_cc_confirmed": r.get("index_cc_confirmed"),
                     "alignment_pct": r.get("alignment_pct"),
+                    "pass_weekly": weekly_ok,
+                    "pass_break": break_ok,
+                    "pass_vw": vw_ok,
                     "pass_chg": chg_ok,
                     "pass_original": orig_ok,
                     "pass_final": final_ok,
+                    "break_recent": r.get("break_recent"),
+                    "bull_vw0": r.get("bull_vw0"),
+                    "bull_vw1": r.get("bull_vw1"),
+                    "bear_vw0": r.get("bear_vw0"),
+                    "bear_vw1": r.get("bear_vw1"),
                     "reject_reason": reason,
                 }
             )
