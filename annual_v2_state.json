@@ -1,11 +1,38 @@
 {
-    "timestamp": 1771286450.7314794,
-    "pairs": {},
+    "timestamp": 1771306647.4449544,
+    "pairs": {
+        "CADJPY=X": {
+            "aligned_state": "BEAR",
+            "daily_change_pct": -0.4227954238612938
+        },
+        "EURJPY=X": {
+            "aligned_state": "BEAR",
+            "daily_change_pct": -0.45400081346392374
+        },
+        "GBPJPY=X": {
+            "aligned_state": "BEAR",
+            "daily_change_pct": -0.5318742234540761
+        },
+        "USDJPY=X": {
+            "aligned_state": "BEAR",
+            "daily_change_pct": -0.36998436685774627
+        }
+    },
     "reversal_pairs": [],
     "reversal_day": "2026-02-16",
-    "top5_counts": {},
-    "run_count": 3,
+    "top5_counts": {
+        "CADJPY=X": 1,
+        "USDJPY=X": 1,
+        "EURJPY=X": 1,
+        "GBPJPY=X": 1
+    },
+    "run_count": 4,
     "persistence_day": "2026-02-16",
     "exited_top5_pairs": [],
-    "top5_last": []
+    "top5_last": [
+        "CADJPY=X",
+        "EURJPY=X",
+        "GBPJPY=X",
+        "USDJPY=X"
+    ]
 }
