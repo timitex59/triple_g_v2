@@ -833,8 +833,22 @@ def main():
         )
     )
     results = results[:3]
+    lines = ["SAR BREAK V5"]
+    if not results:
+        lines.append("NO DEAL 😞")
+    else:
+        for r in results:
+            cross_count = len(r.get("cross_events", []))
+            fire_count = r.get("fire_count", 0)
+            fire_tag = " 🔥" if fire_count > 0 else ""
+            chg_cc = r.get("chg_cc")
+            chg_text = f"{chg_cc:+.2f}%" if chg_cc is not None else "N/A"
+            print(f"{r['pair']} | {r['signal']} | CHG% (CC): {chg_text} | crosses: {cross_count}{fire_tag}")
+            dot = "🟢" if r["signal"] == "LONG" else "🔴"
+            lines.append(f"{dot} {r['pair']} ({chg_text}) : {cross_count}{fire_tag}")
 
-    lines = ["RUN BREAK"]
+    lines.append("")
+    lines.append("RUN BREAK")
     if not run_breaks:
         lines.append("NO BREAK😞")
     else:
@@ -860,6 +874,18 @@ def main():
             lines.append("BEAR")
             for p, chg in super_bear:
                 lines.append(f"🔴 {p} ({_chg_txt(chg)})")
+    if super_potential_bull or super_potential_bear:
+        lines.append("")
+        lines.append("POTENTIAL (waiting H1 cross)")
+        if super_potential_bull:
+            lines.append("BULL CANDIDATES")
+            for p, chg in super_potential_bull:
+                lines.append(f"🟢 {p} ({_chg_txt(chg)})")
+        if super_potential_bear:
+            lines.append("BEAR CANDIDATES")
+            for p, chg in super_potential_bear:
+                lines.append(f"🔴 {p} ({_chg_txt(chg)})")
+
     _, index_rows, _ = collect_extra_chg_cc_sections()
     lines.extend(build_best_trade_lines(index_rows))
     lines.append("")
