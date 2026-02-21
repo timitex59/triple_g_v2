@@ -50,10 +50,9 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           REVERSAL_TZ: Europe/Paris
         run: |
-          python sar_break_V6.py
-          python index_long_trend_V2.py
           python last_sar_break_V3.py
           python annual_NDX100_V1.py
+          python BTC_strategy.py
 
       # - name: Upload market cache
       #   uses: actions/upload-artifact@v4
@@ -71,6 +70,8 @@ jobs:
       #python annual_V2.py
       #python sms_tim_V2.py
       #python minitrend.py
+      # python sar_break_V6.py
+      # python index_long_trend_V2.py
 
       - name: Commit and Push History
         run: |

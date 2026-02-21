@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "config": {
+    "symbol": "INDEX:BTCUSD",
+    "timeframe": "D",
+    "start_date": "2026-02-06",
+    "drop_pct": 5.0,
+    "max_dca_pct": 5.0,
+    "start_usd": 15000.0,
+    "fee_pct": 0.1,
+    "slippage_pct": 0.05
+  },
+  "processed_until": "2026-02-20T00:00:00+00:00",
+  "p3_usdc": 13537.5,
+  "p3_btc": 0.021352414775248355,
+  "buys": [
+    {
+      "date": "2026-02-06T00:00:00+00:00",
+      "signal_price": 70561.27,
+      "exec_price": 70596.550635,
+      "usd_spent": 750.0,
+      "fee_usd": 0.75,
+      "btc": 0.010613124766871266
+    },
+    {
+      "date": "2026-02-12T00:00:00+00:00",
+      "signal_price": 66245.7,
+      "exec_price": 66278.82285,
+      "usd_spent": 712.5,
+      "fee_usd": 0.7125,
+      "btc": 0.01073929000837709
+    }
+  ]
+}
