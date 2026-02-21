@@ -423,6 +423,30 @@ def _validate_associations_with_indices(associations, index_changes):
     return out
 
 
+def _passes_8ema_filter_pair(pair, pair_bias):
+    df_d = fetch_pair_d1(pair)
+    df_w = fetch_pair_w1(pair)
+    if (
+        df_d is None or df_w is None
+        or df_d.empty or df_w.empty
+        or len(df_d) < max(EMA_STACK) + 5
+        or len(df_w) < 5
+    ):
+        return False
+
+    d_emas = _ema_last_values(df_d)
+    psar_w = calculate_psar(df_w, PSAR_START, PSAR_INCREMENT, PSAR_MAXIMUM)
+    if psar_w is None or psar_w.empty:
+        return False
+    w_close = float(df_w["close"].iloc[-1])
+    w_psar = float(psar_w.iloc[-1])
+    if pair_bias == "BULL":
+        return ema_alignment(d_emas, "UP") and w_close > w_psar
+    if pair_bias == "BEAR":
+        return ema_alignment(d_emas, "DOWN") and w_close < w_psar
+    return False
+
+
 def build_forex_screener_telegram_lines(chg_by_pair, top_n=FOREX_TOP_N, tz_name=TZ_NAME):
     ranked = [{"pair": p, "chg_pct": c} for p, c in chg_by_pair.items() if c is not None]
     ranked.sort(key=lambda x: x["chg_pct"], reverse=True)
@@ -444,6 +468,8 @@ def build_forex_screener_telegram_lines(chg_by_pair, top_n=FOREX_TOP_N, tz_name=
     lines = ["<b>FOREX SCREENER</b>"]
     assoc_count = 0
     for v in validated:
+        if not _passes_8ema_filter_pair(v["pair"], v["pair_bias"]):
+            continue
         chg = chg_lookup.get(v["pair"])
         chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
         icon = "\U0001F7E2" if v["pair_bias"] == "BULL" else "\U0001F534"
