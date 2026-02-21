@@ -77,6 +77,12 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          git add runner_history.json opportunity_stats.json trend_follower.json rubbeon_state.json rubbeon_MTF_IMP_state.json annual_v2_data.json annual_v2_state.json chg_cc_indices.json
-          # Ne commiter que s'il y a des changements
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update runner and stats history [skip ci]" && git pull --rebase && git push)
+          git add runner_history.json opportunity_stats.json trend_follower.json rubbeon_state.json rubbeon_MTF_IMP_state.json annual_v2_data.json annual_v2_state.json chg_cc_indices.json annual_ndx100_portfolio_state.json annual_ndx100_scan_state.json btc_dca_state.json
+          # Ne commiter que s'il y a des changements indexes
+          if git diff --staged --quiet; then
+            echo "No staged changes to commit"
+          else
+            git commit -m "Update runner and stats history [skip ci]"
+            git pull --rebase
+            git push
+          fi
