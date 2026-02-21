@@ -1,12 +1,12 @@
 {
   "version": 1,
   "created_at": "2026-02-20 01:29:26",
-  "updated_at": "2026-02-21 01:54:41",
-  "run_count": 16,
-  "cash": 368.8176319000004,
+  "updated_at": "2026-02-21 02:02:02",
+  "run_count": 17,
+  "cash": 743.9239297000003,
   "positions": {
     "EURONEXT:ISOE": {
-      "shares": 161,
+      "shares": 112,
       "avg_cost": 40.45502759300255
     },
     "ASML": {
@@ -20,12 +20,20 @@
     "ADI": {
       "shares": 2,
       "avg_cost": 354.58373
+    },
+    "AMAT": {
+      "shares": 2,
+      "avg_cost": 376.25538
+    },
+    "MU": {
+      "shares": 2,
+      "avg_cost": 429.09817000000004
     }
   },
-  "realized_pnl": 5.61449437341064,
-  "fees_paid": 47.5302681,
-  "turnover_notional": 26530.2681,
-  "last_equity": 10034.403431899998,
+  "realized_pnl": 9.131540116285867,
+  "fees_paid": 54.126170300000005,
+  "turnover_notional": 30126.170299999998,
+  "last_equity": 10027.807529700001,
   "history": [
     {
       "ts": "2026-02-20 01:29:26",
@@ -201,6 +209,17 @@
       "equity_before": 10040.9993341,
       "equity_after": 10034.403431899998,
       "cash": 368.8176319000004,
+      "trades": 3
+    },
+    {
+      "ts": "2026-02-21 02:02:02",
+      "run": 17,
+      "regime": "ISOE_DOMINANT",
+      "n_lqq": 15,
+      "n_isoe": 5,
+      "equity_before": 10034.403431899998,
+      "equity_after": 10027.807529700001,
+      "cash": 743.9239297000003,
       "trades": 3
     }
   ]
