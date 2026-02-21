@@ -53,6 +53,7 @@ jobs:
           python sar_break_V6.py
           python index_long_trend_V2.py
           python last_sar_break_V3.py
+          python annual_NDX100_V1.py
 
       # - name: Upload market cache
       #   uses: actions/upload-artifact@v4
