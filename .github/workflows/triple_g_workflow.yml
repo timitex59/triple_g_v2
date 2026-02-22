@@ -50,8 +50,17 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           REVERSAL_TZ: Europe/Paris
         run: |
+          HOUR_PARIS=$(TZ="$REVERSAL_TZ" date +%H)
+
           python last_sar_break_V3.py
           python allabove_V1.py
+
+          if [ "$HOUR_PARIS" -ge 20 ]; then
+            python annual_NDX100_V1.py
+            python BTC_strategy.py
+          else
+            echo "Skip annual_NDX100_V1.py and BTC_strategy.py before 20:00 ${REVERSAL_TZ} (current: ${HOUR_PARIS}:00 ${REVERSAL_TZ})"
+          fi
 
       # - name: Upload market cache
       #   uses: actions/upload-artifact@v4
