@@ -20,7 +20,9 @@ import random
 import string
 import sys
 import time
+from datetime import datetime, time as dt_time, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from zoneinfo import ZoneInfo
 
 
 def install_and_import(package, import_name=None):
@@ -53,6 +55,7 @@ HORIZONS = {
 TV_STOCK_PREFIX = os.getenv("TV_STOCK_PREFIX", "NASDAQ")
 LQQ_SYMBOL = os.getenv("LQQ_SYMBOL", "EURONEXT:LQQ")
 ISOE_SYMBOL = os.getenv("ISOE_SYMBOL", "EURONEXT:ISOE")
+USDTUSDC_SYMBOL = os.getenv("USDTUSDC_SYMBOL", "COINBASE:USDTUSDC")
 NDX100_CONSTITUENTS_URL = os.getenv(
     "NDX100_CONSTITUENTS_URL",
     "https://financialmodelingprep.com/stable/nasdaq-constituent",
@@ -62,8 +65,20 @@ D1_CANDLES_MAX = 900
 W1_CANDLES_DEFAULT = 120
 TOTAL_CAPITAL_USD = float(os.getenv("TOTAL_CAPITAL_USD", "10000"))
 ALLOC_PER_SURVIVOR_USD = float(os.getenv("ALLOC_PER_SURVIVOR_USD", "1000"))
+FEE_MODEL = os.getenv("TRADE_FEE_MODEL", "IBKR").strip().upper()  # IBKR | SIMPLE
+# SIMPLE model (legacy): fixed + % notional
 FEE_PCT = float(os.getenv("TRADE_FEE_PCT", "0.001"))  # 0.1%
 FEE_FIXED_USD = float(os.getenv("TRADE_FEE_FIXED_USD", "1.0"))
+# IBKR-like defaults
+IBKR_US_PER_SHARE_USD = float(os.getenv("IBKR_US_PER_SHARE_USD", "0.005"))
+IBKR_US_MIN_ORDER_USD = float(os.getenv("IBKR_US_MIN_ORDER_USD", "1.0"))
+IBKR_US_MAX_PCT_NOTIONAL = float(os.getenv("IBKR_US_MAX_PCT_NOTIONAL", "0.01"))  # 1%
+IBKR_US_TAF_PER_SHARE_USD = float(os.getenv("IBKR_US_TAF_PER_SHARE_USD", "0.000195"))
+IBKR_US_TAF_MAX_USD = float(os.getenv("IBKR_US_TAF_MAX_USD", "5.95"))
+IBKR_US_SEC_SELL_PCT = float(os.getenv("IBKR_US_SEC_SELL_PCT", "0.0"))  # SEC fee often 0 currently
+IBKR_EU_PCT_NOTIONAL = float(os.getenv("IBKR_EU_PCT_NOTIONAL", "0.0005"))  # 0.05%
+IBKR_EU_MIN_ORDER_EUR = float(os.getenv("IBKR_EU_MIN_ORDER_EUR", "3.0"))
+IBKR_EURUSD = float(os.getenv("IBKR_EURUSD", "1.08"))
 FEE_RESERVE_TRADE_COUNT = int(os.getenv("FEE_RESERVE_TRADE_COUNT", "10"))  # keep fees for 10 buys + 10 sells
 FEE_RESERVE_NOTIONAL_REF = float(os.getenv("FEE_RESERVE_NOTIONAL_REF", str(ALLOC_PER_SURVIVOR_USD)))
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -214,6 +229,30 @@ def ratio_above_ema_ribbon(ratio_close_series, lengths):
     }
 
 
+def ratio_below_ema_ribbon(ratio_close_series, lengths):
+    if ratio_close_series is None or ratio_close_series.empty or len(ratio_close_series) < max(lengths):
+        return {"pass": False, "below_all": False, "below_any": False, "ratio_last": np.nan}
+    ema_map = compute_ema_series(ratio_close_series, lengths)
+    ratio_last = ratio_close_series.iloc[-1]
+    ema_last = []
+    for l in lengths:
+        s = ema_map.get(l)
+        if s is None or s.empty:
+            return {"pass": False, "below_all": False, "below_any": False, "ratio_last": ratio_last}
+        v = s.iloc[-1]
+        if not np.isfinite(v):
+            return {"pass": False, "below_all": False, "below_any": False, "ratio_last": ratio_last}
+        ema_last.append(v)
+    below_all = all(ratio_last < v for v in ema_last)
+    below_any = any(ratio_last < v for v in ema_last)
+    return {
+        "pass": below_all,
+        "below_all": below_all,
+        "below_any": below_any,
+        "ratio_last": ratio_last,
+    }
+
+
 def build_ratio_series_by_date(asset_df, benchmark_df):
     if (
         asset_df is None
@@ -314,6 +353,8 @@ def analyze_symbol(
     lqq_weekly=None,
     isoe_daily=None,
     isoe_weekly=None,
+    usdtusdc_daily=None,
+    usdtusdc_weekly=None,
     d1_candles=D1_CANDLES_DEFAULT,
 ):
     current_d1 = d1_candles
@@ -445,6 +486,20 @@ def analyze_symbol(
             ratio_isoe_weekly = ratio_above_ema_ribbon(ratio_w_isoe, EMA_LENGTHS)
     ratio_isoe_filter_pass = bool(ratio_isoe_daily["pass"] or ratio_isoe_weekly["pass"])
 
+    # Final validation: USDTUSDC / ACTION must be below EMA ribbon on Daily AND Weekly.
+    # No EMA alignment requirement: only the ratio level vs each EMA matters.
+    ratio_usdt_daily = {"pass": False, "below_all": False, "below_any": False, "ratio_last": np.nan}
+    ratio_usdt_weekly = {"pass": False, "below_all": False, "below_any": False, "ratio_last": np.nan}
+    if usdtusdc_daily is not None and not usdtusdc_daily.empty:
+        ratio_d_usdt = build_ratio_series_by_date(usdtusdc_daily, df_d)
+        if len(ratio_d_usdt) >= max(EMA_LENGTHS):
+            ratio_usdt_daily = ratio_below_ema_ribbon(ratio_d_usdt, EMA_LENGTHS)
+    if usdtusdc_weekly is not None and not usdtusdc_weekly.empty and df_w is not None and not df_w.empty:
+        ratio_w_usdt = build_ratio_series_by_date(usdtusdc_weekly, df_w)
+        if len(ratio_w_usdt) >= max(EMA_LENGTHS):
+            ratio_usdt_weekly = ratio_below_ema_ribbon(ratio_w_usdt, EMA_LENGTHS)
+    ratio_usdt_filter_pass = bool(ratio_usdt_daily["pass"] and ratio_usdt_weekly["pass"])
+
     return {
         "symbol": symbol,
         "close": close_now,
@@ -462,6 +517,9 @@ def analyze_symbol(
         "ratio_isoe_filter_pass": ratio_isoe_filter_pass,
         "ratio_isoe_daily": ratio_isoe_daily,
         "ratio_isoe_weekly": ratio_isoe_weekly,
+        "ratio_usdt_filter_pass": ratio_usdt_filter_pass,
+        "ratio_usdt_daily": ratio_usdt_daily,
+        "ratio_usdt_weekly": ratio_usdt_weekly,
         "avg_pct": mean_pct,
     }
 
@@ -497,12 +555,42 @@ def print_result(item):
         f"W:{'OK' if item.get('ratio_lqq_weekly', {}).get('pass') else 'NO'} | "
         f"R/ISOE D:{'OK' if item.get('ratio_isoe_daily', {}).get('pass') else 'NO'} "
         f"W:{'OK' if item.get('ratio_isoe_weekly', {}).get('pass') else 'NO'} | "
+        f"USDT/A D:{'OK' if item.get('ratio_usdt_daily', {}).get('pass') else 'NO'} "
+        f"W:{'OK' if item.get('ratio_usdt_weekly', {}).get('pass') else 'NO'} | "
         f"Close: {item['close']:.4f}"
     )
 
 
 def now_iso():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+
+
+def get_market_session_status(now_utc=None):
+    # Trading sessions (cash market), holidays not modeled:
+    # - US (NYSE/NASDAQ): 09:30-16:00 America/New_York
+    # - Euronext Paris: 09:00-17:30 Europe/Paris
+    if now_utc is None:
+        now_utc = datetime.now(timezone.utc)
+    ny_tz = ZoneInfo("America/New_York")
+    paris_tz = ZoneInfo("Europe/Paris")
+    now_ny = now_utc.astimezone(ny_tz)
+    now_paris = now_utc.astimezone(paris_tz)
+
+    us_open = (
+        now_ny.weekday() < 5
+        and dt_time(9, 30) <= now_ny.time() < dt_time(16, 0)
+    )
+    eu_open = (
+        now_paris.weekday() < 5
+        and dt_time(9, 0) <= now_paris.time() < dt_time(17, 30)
+    )
+    return {
+        "us_open": us_open,
+        "eu_open": eu_open,
+        "any_open": bool(us_open or eu_open),
+        "ny_time": now_ny.strftime("%Y-%m-%d %H:%M:%S"),
+        "paris_time": now_paris.strftime("%Y-%m-%d %H:%M:%S"),
+    }
 
 
 def default_portfolio_state():
@@ -518,6 +606,30 @@ def default_portfolio_state():
         "turnover_notional": 0.0,
         "last_equity": TOTAL_CAPITAL_USD,
         "history": [],
+        "benchmarks": {
+            "initial_capital": TOTAL_CAPITAL_USD,
+            "isoe_100": {
+                "units": None,
+                "equity": TOTAL_CAPITAL_USD,
+                "fees_paid": 0.0,
+                "entry_fee": 0.0,
+            },
+            "lqq_100": {
+                "units": None,
+                "equity": TOTAL_CAPITAL_USD,
+                "fees_paid": 0.0,
+                "entry_fee": 0.0,
+            },
+            "regime_switch": {
+                "active": ISOE_SYMBOL,
+                "units": None,
+                "equity": TOTAL_CAPITAL_USD,
+                "fees_paid": 0.0,
+                "entry_fee": 0.0,
+                "switch_count": 0,
+                "last_switch_fee": 0.0,
+            },
+        },
     }
 
 
@@ -535,6 +647,8 @@ def load_portfolio_state():
             base["positions"] = {}
         if "history" not in base or not isinstance(base["history"], list):
             base["history"] = []
+        if "benchmarks" not in base or not isinstance(base["benchmarks"], dict):
+            base["benchmarks"] = default_portfolio_state()["benchmarks"]
         return base
     except Exception:
         return default_portfolio_state()
@@ -583,7 +697,7 @@ def send_telegram_message(message):
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         response = requests.post(
             url,
-            json={"chat_id": TELEGRAM_CHAT_ID, "text": message},
+            json={"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "HTML"},
             timeout=10,
         )
         data = response.json()
@@ -601,11 +715,12 @@ def build_telegram_portfolio_report(
     n_lqq,
     n_isoe,
     price_map,
+    benchmark_summary=None,
 ):
     baseline = TOTAL_CAPITAL_USD
     delta = equity_after - baseline
     equity_icon = "🟢" if delta > 0 else ("🔴" if delta < 0 else "🟡")
-    lines = ["NDX100 Portfolio", "", "Positions:"]
+    lines = ["<b>NDX100 Portfolio</b>", "", "<b>Positions:</b>"]
     positions = state.get("positions", {})
     if not positions:
         lines.append("(none)")
@@ -632,7 +747,181 @@ def build_telegram_portfolio_report(
     lines.append(f"Realized: {float(state.get('realized_pnl', 0.0)):+.2f}")
     lines.append(f"Unrealized: {unrealized:+.2f}")
     lines.append(f"Fees: {float(state.get('fees_paid', 0.0)):.2f}")
+    if isinstance(benchmark_summary, dict) and benchmark_summary:
+        lines.append("")
+        lines.append("<b>BENCHMARKS</b>")
+        p1 = benchmark_summary.get("isoe_100", {})
+        p2 = benchmark_summary.get("lqq_100", {})
+        p3 = benchmark_summary.get("regime_switch", {})
+        def icon_for_ret(ret_pct):
+            if not np.isfinite(ret_pct):
+                return "⚪"
+            if ret_pct > 0:
+                return "🟢"
+            if ret_pct < 0:
+                return "🔴"
+            return "⚪"
+        if p1:
+            ret = float(p1.get("ret_pct", 0.0))
+            lines.append(f"{icon_for_ret(ret)} ISOE ({ret:+.2f}%)")
+        if p2:
+            ret = float(p2.get("ret_pct", 0.0))
+            lines.append(f"{icon_for_ret(ret)} LQQ ({ret:+.2f}%)")
+        if p3:
+            ret = float(p3.get("ret_pct", 0.0))
+            lines.append(f"{icon_for_ret(ret)} Switch ({ret:+.2f}%)")
     return "\n".join(lines)
+
+
+def _to_float(value, default=np.nan):
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return default
+    return v if np.isfinite(v) else default
+
+
+def _bench_perf(equity, initial):
+    eq = _to_float(equity, np.nan)
+    ini = _to_float(initial, np.nan)
+    if not np.isfinite(eq) or not np.isfinite(ini) or ini <= 0:
+        return {"equity": np.nan, "pnl": np.nan, "ret_pct": np.nan}
+    pnl = eq - ini
+    return {"equity": eq, "pnl": pnl, "ret_pct": (pnl * 100.0 / ini)}
+
+
+def update_benchmark_trackers(state, price_map, regime, allow_switch=True):
+    benchmarks = state.get("benchmarks", {})
+    initial = _to_float(benchmarks.get("initial_capital", TOTAL_CAPITAL_USD), TOTAL_CAPITAL_USD)
+    if not np.isfinite(initial) or initial <= 0:
+        initial = TOTAL_CAPITAL_USD
+    benchmarks["initial_capital"] = initial
+
+    isoe_px = _to_float(price_map.get(ISOE_SYMBOL, np.nan), np.nan)
+    lqq_px = _to_float(price_map.get(LQQ_SYMBOL, np.nan), np.nan)
+
+    isoe_100 = benchmarks.get(
+        "isoe_100",
+        {"units": None, "equity": initial, "fees_paid": 0.0, "entry_fee": 0.0},
+    )
+    if np.isfinite(isoe_px) and isoe_px > 0:
+        units_isoe = _to_float(isoe_100.get("units", np.nan), np.nan)
+        if not np.isfinite(units_isoe):
+            fee_entry = estimate_fee_for_notional(initial, symbol=ISOE_SYMBOL, side="BUY")
+            investable = max(0.0, initial - fee_entry)
+            isoe_100["units"] = investable / isoe_px
+            isoe_100["fees_paid"] = _to_float(isoe_100.get("fees_paid", 0.0), 0.0) + fee_entry
+            isoe_100["entry_fee"] = fee_entry
+        isoe_100["equity"] = _to_float(isoe_100["units"], 0.0) * isoe_px
+    benchmarks["isoe_100"] = isoe_100
+
+    lqq_100 = benchmarks.get(
+        "lqq_100",
+        {"units": None, "equity": initial, "fees_paid": 0.0, "entry_fee": 0.0},
+    )
+    if np.isfinite(lqq_px) and lqq_px > 0:
+        units_lqq = _to_float(lqq_100.get("units", np.nan), np.nan)
+        if not np.isfinite(units_lqq):
+            fee_entry = estimate_fee_for_notional(initial, symbol=LQQ_SYMBOL, side="BUY")
+            investable = max(0.0, initial - fee_entry)
+            lqq_100["units"] = investable / lqq_px
+            lqq_100["fees_paid"] = _to_float(lqq_100.get("fees_paid", 0.0), 0.0) + fee_entry
+            lqq_100["entry_fee"] = fee_entry
+        lqq_100["equity"] = _to_float(lqq_100["units"], 0.0) * lqq_px
+    benchmarks["lqq_100"] = lqq_100
+
+    sw = benchmarks.get(
+        "regime_switch",
+        {
+            "active": ISOE_SYMBOL,
+            "units": None,
+            "equity": initial,
+            "fees_paid": 0.0,
+            "entry_fee": 0.0,
+            "switch_count": 0,
+            "last_switch_fee": 0.0,
+        },
+    )
+    active = sw.get("active", ISOE_SYMBOL)
+    units = _to_float(sw.get("units", np.nan), np.nan)
+    equity = _to_float(sw.get("equity", initial), initial)
+    switch_fees_paid = _to_float(sw.get("fees_paid", 0.0), 0.0)
+    switch_entry_fee = _to_float(sw.get("entry_fee", 0.0), 0.0)
+    switch_count = int(_to_float(sw.get("switch_count", 0), 0))
+    last_switch_fee = 0.0
+
+    if regime == "LQQ_DOMINANT":
+        desired_active = LQQ_SYMBOL
+    elif regime == "ISOE_DOMINANT":
+        desired_active = ISOE_SYMBOL
+    else:
+        desired_active = active if active in {ISOE_SYMBOL, LQQ_SYMBOL} else ISOE_SYMBOL
+
+    if allow_switch:
+        target_active = desired_active
+    else:
+        target_active = active if active in {ISOE_SYMBOL, LQQ_SYMBOL} else ISOE_SYMBOL
+
+    px_by_symbol = {ISOE_SYMBOL: isoe_px, LQQ_SYMBOL: lqq_px}
+    if not np.isfinite(units):
+        # First initialization is treated as a real entry (with fees),
+        # using current dominant regime to set the initial side.
+        init_symbol = desired_active if desired_active in px_by_symbol else ISOE_SYMBOL
+        start_px = px_by_symbol.get(init_symbol, np.nan)
+        if np.isfinite(start_px) and start_px > 0:
+            fee_entry = estimate_fee_for_notional(initial, symbol=init_symbol, side="BUY")
+            investable = max(0.0, initial - fee_entry)
+            units = investable / start_px
+            active = init_symbol
+            equity = units * start_px
+            switch_fees_paid += fee_entry
+            switch_entry_fee += fee_entry
+
+    if np.isfinite(units) and active in px_by_symbol:
+        active_px = px_by_symbol.get(active, np.nan)
+        if np.isfinite(active_px) and active_px > 0:
+            equity = units * active_px
+            if target_active != active:
+                target_px = px_by_symbol.get(target_active, np.nan)
+                if np.isfinite(target_px) and target_px > 0:
+                    fee_sell = estimate_fee_for_notional(equity, symbol=active, side="SELL")
+                    after_sell = max(0.0, equity - fee_sell)
+                    fee_buy = estimate_fee_for_notional(after_sell, symbol=target_active, side="BUY")
+                    investable = max(0.0, after_sell - fee_buy)
+                    switch_fee = (equity - investable)
+                    switch_fees_paid += switch_fee
+                    switch_count += 1
+                    last_switch_fee = switch_fee
+                    units = investable / target_px if target_px > 0 else 0.0
+                    active = target_active
+                    equity = units * target_px
+
+    sw["active"] = active
+    sw["units"] = units
+    sw["equity"] = equity
+    sw["fees_paid"] = switch_fees_paid
+    sw["entry_fee"] = switch_entry_fee
+    sw["switch_count"] = switch_count
+    sw["last_switch_fee"] = last_switch_fee
+    benchmarks["regime_switch"] = sw
+    state["benchmarks"] = benchmarks
+
+    summary = {
+        "initial": initial,
+        "isoe_100": _bench_perf(benchmarks.get("isoe_100", {}).get("equity", np.nan), initial),
+        "lqq_100": _bench_perf(benchmarks.get("lqq_100", {}).get("equity", np.nan), initial),
+        "regime_switch": _bench_perf(sw.get("equity", np.nan), initial),
+    }
+    summary["isoe_100"]["fees_paid"] = benchmarks.get("isoe_100", {}).get("fees_paid", 0.0)
+    summary["isoe_100"]["entry_fee"] = benchmarks.get("isoe_100", {}).get("entry_fee", 0.0)
+    summary["lqq_100"]["fees_paid"] = benchmarks.get("lqq_100", {}).get("fees_paid", 0.0)
+    summary["lqq_100"]["entry_fee"] = benchmarks.get("lqq_100", {}).get("entry_fee", 0.0)
+    summary["regime_switch"]["active"] = sw.get("active", ISOE_SYMBOL)
+    summary["regime_switch"]["fees_paid"] = sw.get("fees_paid", 0.0)
+    summary["regime_switch"]["entry_fee"] = sw.get("entry_fee", 0.0)
+    summary["regime_switch"]["switch_count"] = sw.get("switch_count", 0)
+    summary["regime_switch"]["last_switch_fee"] = sw.get("last_switch_fee", 0.0)
+    return summary
 
 def fee_for_notional(notional):
     if not np.isfinite(notional) or notional <= 0:
@@ -640,23 +929,87 @@ def fee_for_notional(notional):
     return FEE_FIXED_USD + (FEE_PCT * notional)
 
 
+def get_symbol_exchange(symbol):
+    s = str(symbol or "").strip().upper()
+    if ":" in s:
+        return s.split(":", 1)[0]
+    return str(TV_STOCK_PREFIX).strip().upper()
+
+
+def fee_for_trade(symbol, qty, price, side):
+    if (
+        not np.isfinite(qty)
+        or not np.isfinite(price)
+        or qty <= 0
+        or price <= 0
+    ):
+        return 0.0
+    qty_i = int(qty)
+    notional = qty_i * float(price)
+    side_u = str(side or "").strip().upper()
+
+    if FEE_MODEL == "SIMPLE":
+        return fee_for_notional(notional)
+
+    ex = get_symbol_exchange(symbol)
+    us_exchanges = {"NASDAQ", "NYSE", "AMEX", "ARCA", "BATS", "IEX"}
+    if ex in us_exchanges:
+        commission = max(IBKR_US_MIN_ORDER_USD, IBKR_US_PER_SHARE_USD * qty_i)
+        commission = min(commission, IBKR_US_MAX_PCT_NOTIONAL * notional)
+        regulatory = 0.0
+        if side_u == "SELL":
+            taf = min(IBKR_US_TAF_MAX_USD, IBKR_US_TAF_PER_SHARE_USD * qty_i)
+            sec = max(0.0, IBKR_US_SEC_SELL_PCT) * notional
+            regulatory = taf + sec
+        return commission + regulatory
+
+    # Euronext approximation in USD (min in EUR converted to USD).
+    if ex in {"EURONEXT"}:
+        min_usd = max(0.0, IBKR_EU_MIN_ORDER_EUR) * max(0.0, IBKR_EURUSD)
+        return max(min_usd, max(0.0, IBKR_EU_PCT_NOTIONAL) * notional)
+
+    # Fallback to legacy if exchange is unknown.
+    return fee_for_notional(notional)
+
+
+def estimate_fee_for_notional(notional, symbol=None, side="BUY"):
+    if not np.isfinite(notional) or notional <= 0:
+        return 0.0
+    if FEE_MODEL == "SIMPLE":
+        return fee_for_notional(notional)
+    ex = get_symbol_exchange(symbol)
+    if ex == "EURONEXT":
+        min_usd = max(0.0, IBKR_EU_MIN_ORDER_EUR) * max(0.0, IBKR_EURUSD)
+        return max(min_usd, max(0.0, IBKR_EU_PCT_NOTIONAL) * notional)
+    # US approximation for reserve sizing when qty/price are not known.
+    base = max(IBKR_US_MIN_ORDER_USD, 0.001 * notional)
+    if str(side or "").strip().upper() == "SELL":
+        base += min(IBKR_US_TAF_MAX_USD, IBKR_US_TAF_PER_SHARE_USD * max(1, int(notional / 100.0)))
+    return base
+
+
 def min_fee_reserve_cash():
     # Reserve enough cash for future operations:
     # 10 buys + 10 sells (20 trades) at a reference notional.
     ref_notional = max(0.0, FEE_RESERVE_NOTIONAL_REF)
-    fee_per_trade = fee_for_notional(ref_notional)
-    return max(0.0, 2.0 * FEE_RESERVE_TRADE_COUNT * fee_per_trade)
+    fee_buy = estimate_fee_for_notional(ref_notional, side="BUY")
+    fee_sell = estimate_fee_for_notional(ref_notional, side="SELL")
+    return max(0.0, FEE_RESERVE_TRADE_COUNT * (fee_buy + fee_sell))
 
 
-def max_affordable_shares(cash, price, reserve_cash=0.0):
+def max_affordable_shares(cash, price, symbol, reserve_cash=0.0):
     if not np.isfinite(cash) or not np.isfinite(price) or cash <= 0 or price <= 0:
         return 0
     available = cash - max(0.0, reserve_cash)
-    available -= FEE_FIXED_USD
     if available <= 0:
         return 0
-    qty = int(available // (price * (1.0 + FEE_PCT)))
-    return max(0, qty)
+    qty = int(available // price)
+    while qty > 0:
+        fee = fee_for_trade(symbol, qty, price, "BUY")
+        if (qty * price) + fee <= available:
+            return qty
+        qty -= 1
+    return 0
 
 
 def get_latest_close(symbol):
@@ -755,7 +1108,7 @@ def rebalance_portfolio(state, price_map, target_values):
             continue
         qty = current_shares - tgt_shares
         notional = qty * px
-        fee = fee_for_notional(notional)
+        fee = fee_for_trade(sym, qty, px, "SELL")
         cash += (notional - fee)
         avg_cost = float(pos.get("avg_cost", 0.0) or 0.0)
         realized += (px - avg_cost) * qty - fee
@@ -783,12 +1136,12 @@ def rebalance_portfolio(state, price_map, target_values):
         px = price_map.get(sym, np.nan)
         if not np.isfinite(px) or px <= 0:
             continue
-        max_qty = max_affordable_shares(cash, px, reserve_cash=reserve_cash)
+        max_qty = max_affordable_shares(cash, px, sym, reserve_cash=reserve_cash)
         qty = min(need, max_qty)
         if qty <= 0:
             continue
         notional = qty * px
-        fee = fee_for_notional(notional)
+        fee = fee_for_trade(sym, qty, px, "BUY")
         total_cost = notional + fee
         if cash - total_cost < reserve_cash:
             continue
@@ -820,6 +1173,8 @@ def scan_symbols_once(
     lqq_weekly,
     isoe_daily,
     isoe_weekly,
+    usdtusdc_daily,
+    usdtusdc_weekly,
     d1_candles,
 ):
     results = {}
@@ -833,6 +1188,8 @@ def scan_symbols_once(
                 lqq_weekly,
                 isoe_daily,
                 isoe_weekly,
+                usdtusdc_daily,
+                usdtusdc_weekly,
                 d1_candles,
             ): sym
             for sym in symbols
@@ -886,16 +1243,23 @@ def main():
     lqq_weekly = fetch_data_tv(LQQ_SYMBOL, "1w", n_candles=W1_CANDLES_DEFAULT)
     isoe_daily = fetch_data_tv(ISOE_SYMBOL, "1d", n_candles=D1_CANDLES_MAX)
     isoe_weekly = fetch_data_tv(ISOE_SYMBOL, "1w", n_candles=W1_CANDLES_DEFAULT)
+    usdtusdc_daily = fetch_data_tv(USDTUSDC_SYMBOL, "1d", n_candles=D1_CANDLES_MAX)
+    usdtusdc_weekly = fetch_data_tv(USDTUSDC_SYMBOL, "1w", n_candles=W1_CANDLES_DEFAULT)
     lqq_daily = normalize_index(lqq_daily) if lqq_daily is not None else None
     lqq_weekly = normalize_index(lqq_weekly) if lqq_weekly is not None else None
     isoe_daily = normalize_index(isoe_daily) if isoe_daily is not None else None
     isoe_weekly = normalize_index(isoe_weekly) if isoe_weekly is not None else None
+    usdtusdc_daily = normalize_index(usdtusdc_daily) if usdtusdc_daily is not None else None
+    usdtusdc_weekly = normalize_index(usdtusdc_weekly) if usdtusdc_weekly is not None else None
     lqq_d_n = len(lqq_daily) if lqq_daily is not None else 0
     lqq_w_n = len(lqq_weekly) if lqq_weekly is not None else 0
     isoe_d_n = len(isoe_daily) if isoe_daily is not None else 0
     isoe_w_n = len(isoe_weekly) if isoe_weekly is not None else 0
+    usdt_d_n = len(usdtusdc_daily) if usdtusdc_daily is not None else 0
+    usdt_w_n = len(usdtusdc_weekly) if usdtusdc_weekly is not None else 0
     print(f"LQQ source: {LQQ_SYMBOL} | D bars: {lqq_d_n} | W bars: {lqq_w_n}")
     print(f"ISOE source: {ISOE_SYMBOL} | D bars: {isoe_d_n} | W bars: {isoe_w_n}")
+    print(f"USDTUSDC source: {USDTUSDC_SYMBOL} | D bars: {usdt_d_n} | W bars: {usdt_w_n}")
 
     results = []
     errors = []
@@ -907,6 +1271,8 @@ def main():
         lqq_weekly,
         isoe_daily,
         isoe_weekly,
+        usdtusdc_daily,
+        usdtusdc_weekly,
         args.d1_candles,
     )
 
@@ -929,6 +1295,8 @@ def main():
             lqq_weekly,
             isoe_daily,
             isoe_weekly,
+            usdtusdc_daily,
+            usdtusdc_weekly,
             args.d1_candles,
         )
         for sym, res in retry_results.items():
@@ -951,6 +1319,7 @@ def main():
     ]
     lqq_pass = [r for r in inter_pass if r.get("ratio_lqq_filter_pass")]
     aligned_and_positive = [r for r in lqq_pass if r.get("ratio_isoe_filter_pass")]
+    final_validated = [r for r in aligned_and_positive if r.get("ratio_usdt_filter_pass")]
 
     print("\nFilter funnel:")
     print(f"  PSAR all TF OK: {len(psar_pass)}")
@@ -959,17 +1328,18 @@ def main():
     print(f"  + AVG% inter-EMA > 0: {len(inter_pass)}")
     print(f"  + Ratio ACTION/LQQ above EMA ribbon (D or W): {len(lqq_pass)}")
     print(f"  + Ratio ACTION/ISOE above EMA ribbon (D or W): {len(aligned_and_positive)}")
-    ranked_close = sorted(aligned_and_positive, key=lambda x: (-x["avg_pct"], x["symbol"]))
-    ranked_inter = sorted(aligned_and_positive, key=lambda x: (-x["inter_ema_global_mean"], x["symbol"]))
+    print(f"  + Ratio USDTUSDC/ACTION below EMA ribbon (D and W): {len(final_validated)}")
+    ranked_close = sorted(final_validated, key=lambda x: (-x["avg_pct"], x["symbol"]))
+    ranked_inter = sorted(final_validated, key=lambda x: (-x["inter_ema_global_mean"], x["symbol"]))
     close_pos = {item["symbol"]: i + 1 for i, item in enumerate(ranked_close)}
     inter_pos = {item["symbol"]: i + 1 for i, item in enumerate(ranked_inter)}
 
-    for item in aligned_and_positive:
+    for item in final_validated:
         item["rank_close"] = close_pos[item["symbol"]]
         item["rank_inter"] = inter_pos[item["symbol"]]
         item["rank_cross"] = item["rank_close"] + item["rank_inter"]
 
-    ranked = sorted(aligned_and_positive, key=rank_key_cross)
+    ranked = sorted(final_validated, key=rank_key_cross)
     top_n = ranked[: max(1, min(args.top, len(ranked)))] if ranked else []
 
     print(f"\nRanked results (top {len(top_n)}):")
@@ -981,7 +1351,7 @@ def main():
     # - buy/sell fees
     # - rolling entries/exits driven by screener results
     n_lqq = len(lqq_pass)
-    n_isoe = len(aligned_and_positive)
+    n_isoe = len(final_validated)
     regime = "NONE"
 
     if n_isoe < n_lqq:
@@ -991,9 +1361,11 @@ def main():
     # Portfolio state load
     state = load_portfolio_state()
     state["run_count"] = int(state.get("run_count", 0) or 0) + 1
+    market_status = get_market_session_status()
+    rebalance_allowed = bool(market_status.get("any_open", False))
 
     # Candidate sets for the two regimes.
-    isoe_candidates = sorted(aligned_and_positive, key=rank_key_cross)
+    isoe_candidates = sorted(final_validated, key=rank_key_cross)
     lqq_candidates = sorted(lqq_pass, key=lambda x: (-x["avg_pct"], -x["inter_ema_global_mean"], x["symbol"]))
 
     # Price map from current scan + benchmark closes + current holdings fallback.
@@ -1024,9 +1396,18 @@ def main():
         target_values, benchmark_symbol, basket_budget, bench_budget = build_target_values(
             equity_before, regime, isoe_candidates, lqq_candidates, price_map
         )
-        trades = rebalance_portfolio(state, price_map, target_values)
+        if rebalance_allowed:
+            trades = rebalance_portfolio(state, price_map, target_values)
+        else:
+            trades = []
     equity_after = compute_equity(state, price_map)
     unrealized = compute_unrealized_pnl(state, price_map)
+    benchmark_summary = update_benchmark_trackers(
+        state=state,
+        price_map=price_map,
+        regime=regime,
+        allow_switch=rebalance_allowed,
+    )
     state["last_equity"] = equity_after
     state["history"].append(
         {
@@ -1039,6 +1420,12 @@ def main():
             "equity_after": equity_after,
             "cash": state.get("cash", 0.0),
             "trades": len(trades),
+            "rebalance_allowed": rebalance_allowed,
+            "us_open": bool(market_status.get("us_open", False)),
+            "eu_open": bool(market_status.get("eu_open", False)),
+            "bench_isoe_100": benchmark_summary.get("isoe_100", {}).get("equity", np.nan),
+            "bench_lqq_100": benchmark_summary.get("lqq_100", {}).get("equity", np.nan),
+            "bench_switch": benchmark_summary.get("regime_switch", {}).get("equity", np.nan),
         }
     )
     state["history"] = state["history"][-400:]
@@ -1060,8 +1447,49 @@ def main():
         f"  Target basket=${basket_budget:.2f} ({ALLOC_PER_SURVIVOR_USD:.2f} per survivor, >=1 share if price>{ALLOC_PER_SURVIVOR_USD:.2f}) | "
         f"target benchmark={benchmark_symbol if benchmark_symbol else 'N/A'} ${bench_budget:.2f}"
     )
+    print(
+        f"  Market status: US={'OPEN' if market_status.get('us_open') else 'CLOSED'} "
+        f"(NY {market_status.get('ny_time', 'N/A')}) | "
+        f"Euronext={'OPEN' if market_status.get('eu_open') else 'CLOSED'} "
+        f"(Paris {market_status.get('paris_time', 'N/A')})"
+    )
+    if not rebalance_allowed and regime != "NONE":
+        print("  Rebalance blocked: both US and Euronext cash sessions are closed.")
+    print("  Benchmark trackers (initial $10000):")
+    b_isoe = benchmark_summary.get("isoe_100", {})
+    b_lqq = benchmark_summary.get("lqq_100", {})
+    b_sw = benchmark_summary.get("regime_switch", {})
+    print(
+        f"    - ISOE 100%: ${b_isoe.get('equity', np.nan):.2f} "
+        f"({b_isoe.get('pnl', np.nan):+.2f} | {b_isoe.get('ret_pct', np.nan):+.2f}%)"
+    )
+    print(
+        f"      fees=${b_isoe.get('fees_paid', 0.0):.2f} "
+        f"| entry_fee=${b_isoe.get('entry_fee', 0.0):.2f}"
+    )
+    print(
+        f"    - LQQ 100%: ${b_lqq.get('equity', np.nan):.2f} "
+        f"({b_lqq.get('pnl', np.nan):+.2f} | {b_lqq.get('ret_pct', np.nan):+.2f}%)"
+    )
+    print(
+        f"      fees=${b_lqq.get('fees_paid', 0.0):.2f} "
+        f"| entry_fee=${b_lqq.get('entry_fee', 0.0):.2f}"
+    )
+    switch_active = str(b_sw.get("active", ISOE_SYMBOL)).replace("EURONEXT:", "")
+    print(
+        f"    - Switch ({switch_active}): ${b_sw.get('equity', np.nan):.2f} "
+        f"({b_sw.get('pnl', np.nan):+.2f} | {b_sw.get('ret_pct', np.nan):+.2f}%)"
+    )
+    print(
+        f"      fees=${b_sw.get('fees_paid', 0.0):.2f} "
+        f"| switches={int(b_sw.get('switch_count', 0) or 0)} "
+        f"| last_switch_fee=${b_sw.get('last_switch_fee', 0.0):.2f}"
+    )
     if not trades:
-        print("  No trades executed this run.")
+        if regime != "NONE" and not rebalance_allowed:
+            print("  No trades executed this run (blocked by market hours).")
+        else:
+            print("  No trades executed this run.")
     else:
         print(f"  Trades executed: {len(trades)}")
         for t in trades:
@@ -1095,6 +1523,7 @@ def main():
         n_lqq=n_lqq,
         n_isoe=n_isoe,
         price_map=price_map,
+        benchmark_summary=benchmark_summary,
     )
     tg_sent = send_telegram_message(tg_message)
     if TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
