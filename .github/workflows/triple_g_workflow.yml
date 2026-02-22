@@ -51,8 +51,7 @@ jobs:
           REVERSAL_TZ: Europe/Paris
         run: |
           python last_sar_break_V3.py
-          python annual_NDX100_V1.py
-          python BTC_strategy.py
+          python allabove_V1.py
 
       # - name: Upload market cache
       #   uses: actions/upload-artifact@v4
