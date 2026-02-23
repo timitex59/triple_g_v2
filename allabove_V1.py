@@ -321,6 +321,7 @@ def analyze_pair(pair):
     details["H1"]["bear_vw2"] = bear_vw2
 
     chg_cc_daily = daily_chg_cc(tf_data.get("D1"))
+    chg_cc_weekly = weekly_chg_cc(tf_data.get("W1"))
 
     bull_ok = (
         checks["W1"]
@@ -331,6 +332,8 @@ def analyze_pair(pair):
         and checks["H1_BULL_VW"]
         and (chg_cc_daily is not None)
         and (chg_cc_daily > 0)
+        and (chg_cc_weekly is not None)
+        and (chg_cc_weekly > 0)
     )
     bear_ok = (
         checks["W1_BEAR"]
@@ -341,6 +344,8 @@ def analyze_pair(pair):
         and checks["H1_BEAR_VW"]
         and (chg_cc_daily is not None)
         and (chg_cc_daily < 0)
+        and (chg_cc_weekly is not None)
+        and (chg_cc_weekly < 0)
     )
     bull_wd_ok = (
         checks["W1"]
@@ -349,6 +354,8 @@ def analyze_pair(pair):
         and checks.get("D1_ALIGN8", False)
         and (chg_cc_daily is not None)
         and (chg_cc_daily > 0)
+        and (chg_cc_weekly is not None)
+        and (chg_cc_weekly > 0)
     )
     bear_wd_ok = (
         checks["W1_BEAR"]
@@ -357,6 +364,8 @@ def analyze_pair(pair):
         and checks.get("D1_ALIGN8_BEAR", False)
         and (chg_cc_daily is not None)
         and (chg_cc_daily < 0)
+        and (chg_cc_weekly is not None)
+        and (chg_cc_weekly < 0)
     )
     bias = "BULL" if bull_ok else "BEAR" if bear_ok else "NONE"
     wd_bias = "BULL" if bull_wd_ok else "BEAR" if bear_wd_ok else "NONE"
@@ -369,6 +378,7 @@ def analyze_pair(pair):
         "wd_ok": bull_wd_ok or bear_wd_ok,
         "h1_flame": h1_flame,
         "chg_cc_daily": chg_cc_daily,
+        "chg_cc_weekly": chg_cc_weekly,
         "all_ok": all_ok,
         "checks": checks,
         "details": details,
@@ -386,6 +396,16 @@ def daily_chg_cc(df_d1):
         return None
     prev_close = float(df_d1["close"].iloc[-2])
     last_close = float(df_d1["close"].iloc[-1])
+    if prev_close == 0:
+        return None
+    return ((last_close - prev_close) / prev_close) * 100.0
+
+
+def weekly_chg_cc(df_w1):
+    if df_w1 is None or df_w1.empty or len(df_w1) < 2:
+        return None
+    prev_close = float(df_w1["close"].iloc[-2])
+    last_close = float(df_w1["close"].iloc[-1])
     if prev_close == 0:
         return None
     return ((last_close - prev_close) / prev_close) * 100.0
@@ -433,8 +453,8 @@ def send_telegram_message(text):
 
 def main():
     print("ALL ABOVE V1")
-    print("BULL: close > EMA8 (W1/D1/H1) + 8EMA aligned up (W1/D1) + bull_vw0 > bull_vw1 (H1) + CHG% CC DAILY > 0")
-    print("BEAR: close < EMA8 (W1/D1/H1) + 8EMA aligned down (W1/D1) + bear_vw0 < bear_vw1 (H1) + CHG% CC DAILY < 0")
+    print("BULL: close > EMA8 (W1/D1/H1) + 8EMA aligned up (W1/D1) + bull_vw0 > bull_vw1 (H1) + CHG% CC DAILY > 0 + CHG% CC WEEKLY > 0")
+    print("BEAR: close < EMA8 (W1/D1/H1) + 8EMA aligned down (W1/D1) + bear_vw0 < bear_vw1 (H1) + CHG% CC DAILY < 0 + CHG% CC WEEKLY < 0")
 
     t0 = time.time()
     matches = []
@@ -463,12 +483,13 @@ def main():
         for r in sorted(wd_matches, key=lambda x: x["pair"]):
             w = r["details"]["W1"]
             d = r["details"]["D1"]
-            chg_txt = "N/A" if r.get("chg_cc_daily") is None else f"{r['chg_cc_daily']:+.2f}%"
+            chg_d_txt = "N/A" if r.get("chg_cc_daily") is None else f"{r['chg_cc_daily']:+.2f}%"
+            chg_w_txt = "N/A" if r.get("chg_cc_weekly") is None else f"{r['chg_cc_weekly']:+.2f}%"
             print(
                 f"  {r['pair']} [{r['wd_bias']}] | "
                 f"W1:{fmt_pct_dist(w['close'], w['ema8'])} "
                 f"D1:{fmt_pct_dist(d['close'], d['ema8'])} "
-                f"| CHG%CC:{chg_txt}"
+                f"| CHG%CC D1:{chg_d_txt} W1:{chg_w_txt}"
             )
     else:
         print("\nWEEKLY + DAILY ONLY")
@@ -501,11 +522,12 @@ def main():
                 vw_txt = f"bull_vw0:{h.get('bull_vw0'):.5f} > bull_vw1:{h.get('bull_vw1'):.5f}"
             else:
                 vw_txt = f"bear_vw0:{h.get('bear_vw0'):.5f} < bear_vw1:{h.get('bear_vw1'):.5f}"
-            chg_txt = "N/A" if r.get("chg_cc_daily") is None else f"{r['chg_cc_daily']:+.2f}%"
+            chg_d_txt = "N/A" if r.get("chg_cc_daily") is None else f"{r['chg_cc_daily']:+.2f}%"
+            chg_w_txt = "N/A" if r.get("chg_cc_weekly") is None else f"{r['chg_cc_weekly']:+.2f}%"
             print(
                 f"  {flame}{p} [{b}] | W1:{fmt_pct_dist(w['close'], w['ema8'])} "
                 f"D1:{fmt_pct_dist(d['close'], d['ema8'])} "
-                f"H1:{fmt_pct_dist(h['close'], h['ema8'])} | H1_BASE:OK | CHG%CC:{chg_txt} | {vw_txt}"
+                f"H1:{fmt_pct_dist(h['close'], h['ema8'])} | H1_BASE:OK | CHG%CC D1:{chg_d_txt} W1:{chg_w_txt} | {vw_txt}"
             )
     else:
         print("\nNo pair matches the BULL/BEAR bias filters.")
