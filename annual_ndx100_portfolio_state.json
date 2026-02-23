@@ -1,8 +1,8 @@
 {
   "version": 1,
   "created_at": "1970-01-01 00:00:00",
-  "updated_at": "2026-02-23 21:06:36",
-  "run_count": 2,
+  "updated_at": "2026-02-23 22:06:30",
+  "run_count": 3,
   "cash": 453.74869300000137,
   "positions": {
     "AMAT": {
@@ -25,7 +25,7 @@
   "realized_pnl": 0.0,
   "fees_paid": 6.497306999999999,
   "turnover_notional": 9539.753999999999,
-  "last_equity": 10006.722693000002,
+  "last_equity": 10006.482693000002,
   "history": [
     {
       "ts": "2026-02-23 19:35:22",
@@ -52,6 +52,23 @@
       "n_isoe": 4,
       "equity_before": 10006.722693000002,
       "equity_after": 10006.722693000002,
+      "cash": 453.74869300000137,
+      "trades": 0,
+      "rebalance_allowed": false,
+      "us_open": false,
+      "eu_open": false,
+      "bench_isoe_100": 9995.0,
+      "bench_lqq_100": 9995.0,
+      "bench_switch": 9995.0
+    },
+    {
+      "ts": "2026-02-23 22:06:30",
+      "run": 3,
+      "regime": "ISOE_DOMINANT",
+      "n_lqq": 16,
+      "n_isoe": 4,
+      "equity_before": 10006.482693000002,
+      "equity_after": 10006.482693000002,
       "cash": 453.74869300000137,
       "trades": 0,
       "rebalance_allowed": false,
