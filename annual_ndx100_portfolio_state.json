@@ -1,35 +1,70 @@
 {
   "version": 1,
   "created_at": "1970-01-01 00:00:00",
-  "updated_at": "1970-01-01 00:00:00",
-  "run_count": 0,
-  "cash": 10000.0,
-  "positions": {},
+  "updated_at": "2026-02-23 19:35:22",
+  "run_count": 1,
+  "cash": 453.74869300000137,
+  "positions": {
+    "AMAT": {
+      "shares": 2,
+      "avg_cost": 371.61
+    },
+    "EURONEXT:ISOE": {
+      "shares": 165,
+      "avg_cost": 42.4127958
+    },
+    "LRCX": {
+      "shares": 4,
+      "avg_cost": 240.48
+    },
+    "MU": {
+      "shares": 2,
+      "avg_cost": 421.5
+    }
+  },
   "realized_pnl": 0.0,
-  "fees_paid": 0.0,
-  "turnover_notional": 0.0,
-  "last_equity": 10000.0,
-  "history": [],
+  "fees_paid": 6.497306999999999,
+  "turnover_notional": 9539.753999999999,
+  "last_equity": 9993.502693,
+  "history": [
+    {
+      "ts": "2026-02-23 19:35:22",
+      "run": 1,
+      "regime": "ISOE_DOMINANT",
+      "n_lqq": 16,
+      "n_isoe": 3,
+      "equity_before": 10000.0,
+      "equity_after": 9993.502693,
+      "cash": 453.74869300000137,
+      "trades": 4,
+      "rebalance_allowed": true,
+      "us_open": true,
+      "eu_open": false,
+      "bench_isoe_100": 9995.0,
+      "bench_lqq_100": 9995.0,
+      "bench_switch": 9995.0
+    }
+  ],
   "benchmarks": {
     "initial_capital": 10000.0,
     "isoe_100": {
-      "units": null,
-      "equity": 10000.0,
-      "fees_paid": 0.0,
-      "entry_fee": 0.0
+      "units": 235.77784278017344,
+      "equity": 9995.0,
+      "fees_paid": 5.0,
+      "entry_fee": 5.0
     },
     "lqq_100": {
-      "units": null,
-      "equity": 10000.0,
-      "fees_paid": 0.0,
-      "entry_fee": 0.0
+      "units": 7.259587449157467,
+      "equity": 9995.0,
+      "fees_paid": 5.0,
+      "entry_fee": 5.0
     },
     "regime_switch": {
       "active": "EURONEXT:ISOE",
-      "units": null,
-      "equity": 10000.0,
-      "fees_paid": 0.0,
-      "entry_fee": 0.0,
+      "units": 235.77784278017344,
+      "equity": 9995.0,
+      "fees_paid": 5.0,
+      "entry_fee": 5.0,
       "switch_count": 0,
       "last_switch_fee": 0.0
     }
