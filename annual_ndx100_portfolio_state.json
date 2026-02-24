@@ -1,16 +1,16 @@
 {
   "version": 1,
   "created_at": "1970-01-01 00:00:00",
-  "updated_at": "2026-02-23 22:06:30",
-  "run_count": 3,
-  "cash": 453.74869300000137,
+  "updated_at": "2026-02-24 19:22:34",
+  "run_count": 4,
+  "cash": 713.2838930000015,
   "positions": {
     "AMAT": {
       "shares": 2,
       "avg_cost": 371.61
     },
     "EURONEXT:ISOE": {
-      "shares": 165,
+      "shares": 142,
       "avg_cost": 42.4127958
     },
     "LRCX": {
@@ -20,12 +20,16 @@
     "MU": {
       "shares": 2,
       "avg_cost": 421.5
+    },
+    "ADI": {
+      "shares": 2,
+      "avg_cost": 358.54
     }
   },
-  "realized_pnl": 0.0,
-  "fees_paid": 6.497306999999999,
-  "turnover_notional": 9539.753999999999,
-  "last_equity": 10006.482693000002,
+  "realized_pnl": 1.1208966000001173,
+  "fees_paid": 10.737307,
+  "turnover_notional": 11235.689199999999,
+  "last_equity": 10046.904693000002,
   "history": [
     {
       "ts": "2026-02-23 19:35:22",
@@ -77,26 +81,43 @@
       "bench_isoe_100": 9995.0,
       "bench_lqq_100": 9995.0,
       "bench_switch": 9995.0
+    },
+    {
+      "ts": "2026-02-24 19:22:34",
+      "run": 4,
+      "regime": "ISOE_DOMINANT",
+      "n_lqq": 18,
+      "n_isoe": 4,
+      "equity_before": 10051.144693000002,
+      "equity_after": 10046.904693000002,
+      "cash": 713.2838930000015,
+      "trades": 2,
+      "rebalance_allowed": true,
+      "us_open": true,
+      "eu_open": false,
+      "bench_isoe_100": 10044.701969258062,
+      "bench_lqq_100": 10177.941603718768,
+      "bench_switch": 10044.701969258062
     }
   ],
   "benchmarks": {
     "initial_capital": 10000.0,
     "isoe_100": {
       "units": 235.77784278017344,
-      "equity": 9995.0,
+      "equity": 10044.701969258062,
       "fees_paid": 5.0,
       "entry_fee": 5.0
     },
     "lqq_100": {
       "units": 7.259587449157467,
-      "equity": 9995.0,
+      "equity": 10177.941603718768,
       "fees_paid": 5.0,
       "entry_fee": 5.0
     },
     "regime_switch": {
       "active": "EURONEXT:ISOE",
       "units": 235.77784278017344,
-      "equity": 9995.0,
+      "equity": 10044.701969258062,
       "fees_paid": 5.0,
       "entry_fee": 5.0,
       "switch_count": 0,
