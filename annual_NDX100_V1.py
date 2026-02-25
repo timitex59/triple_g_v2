@@ -769,7 +769,9 @@ def build_telegram_portfolio_report(
             lines.append(f"{icon_for_ret(ret)} LQQ ({ret:+.2f}%)")
         if p3:
             ret = float(p3.get("ret_pct", 0.0))
-            lines.append(f"{icon_for_ret(ret)} Switch ({ret:+.2f}%)")
+            switch_active = str(p3.get("active", "")).replace("EURONEXT:", "").upper()
+            switch_suffix = "🔥" if switch_active == "ISOE" else ""
+            lines.append(f"{icon_for_ret(ret)} Switch ({ret:+.2f}%){switch_suffix}")
     return "\n".join(lines)
 
 
