@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -719,7 +719,7 @@ def build_telegram_portfolio_report(
 ):
     baseline = TOTAL_CAPITAL_USD
     delta = equity_after - baseline
-    equity_icon = "🟢" if delta > 0 else ("🔴" if delta < 0 else "🟡")
+    equity_icon = "ðŸŸ¢" if delta > 0 else ("ðŸ”´" if delta < 0 else "ðŸŸ¡")
     lines = ["<b>NDX100 Portfolio</b>", "", "<b>Positions:</b>"]
     positions = state.get("positions", {})
     if not positions:
@@ -730,11 +730,11 @@ def build_telegram_portfolio_report(
             shares = int(p.get("shares", 0) or 0)
             avg_cost = float(p.get("avg_cost", 0.0) or 0.0)
             last_px = price_map.get(sym, np.nan)
-            status_icon = "⚪"
+            status_icon = "âšª"
             if np.isfinite(last_px) and last_px > avg_cost:
-                status_icon = "🟢"
+                status_icon = "ðŸŸ¢"
             elif np.isfinite(last_px) and last_px < avg_cost:
-                status_icon = "🔴"
+                status_icon = "ðŸ”´"
             short_sym = "ISOE" if sym == ISOE_SYMBOL else sym
             if np.isfinite(last_px):
                 pnl_pos = (last_px - avg_cost) * shares
@@ -753,6 +753,8 @@ def build_telegram_portfolio_report(
         p1 = benchmark_summary.get("isoe_100", {})
         p2 = benchmark_summary.get("lqq_100", {})
         p3 = benchmark_summary.get("regime_switch", {})
+        switch_active = str(p3.get("active", "")).upper().split(":")[-1] if p3 else ""
+
         def icon_for_ret(ret_pct):
             if not np.isfinite(ret_pct):
                 return "⚪"
@@ -761,17 +763,18 @@ def build_telegram_portfolio_report(
             if ret_pct < 0:
                 return "🔴"
             return "⚪"
+
         if p1:
             ret = float(p1.get("ret_pct", 0.0))
-            lines.append(f"{icon_for_ret(ret)} ISOE ({ret:+.2f}%)")
+            isoe_suffix = " 🔥" if switch_active == "ISOE" else ""
+            lines.append(f"{icon_for_ret(ret)} ISOE ({ret:+.2f}%){isoe_suffix}")
         if p2:
             ret = float(p2.get("ret_pct", 0.0))
-            lines.append(f"{icon_for_ret(ret)} LQQ ({ret:+.2f}%)")
+            lqq_suffix = " 🔥" if switch_active == "LQQ" else ""
+            lines.append(f"{icon_for_ret(ret)} LQQ ({ret:+.2f}%){lqq_suffix}")
         if p3:
             ret = float(p3.get("ret_pct", 0.0))
-            switch_active = str(p3.get("active", "")).replace("EURONEXT:", "").upper()
-            switch_suffix = "🔥" if switch_active == "ISOE" else ""
-            lines.append(f"{icon_for_ret(ret)} Switch ({ret:+.2f}%){switch_suffix}")
+            lines.append(f"{icon_for_ret(ret)} Switch ({ret:+.2f}%)")
     return "\n".join(lines)
 
 
@@ -1443,7 +1446,7 @@ def main():
     print(f"  Fee reserve (10 buys + 10 sells): ${min_fee_reserve_cash():.2f}")
     print(
         f"  RealizedPnL=${state.get('realized_pnl', 0.0):.2f} | "
-        f"Unrealizedâ‰ˆ${unrealized:.2f} | FeesPaid=${state.get('fees_paid', 0.0):.2f}"
+        f"UnrealizedÃ¢â€°Ë†${unrealized:.2f} | FeesPaid=${state.get('fees_paid', 0.0):.2f}"
     )
     print(
         f"  Target basket=${basket_budget:.2f} ({ALLOC_PER_SURVIVOR_USD:.2f} per survivor, >=1 share if price>{ALLOC_PER_SURVIVOR_USD:.2f}) | "
@@ -1545,3 +1548,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
