@@ -1,27 +1,19 @@
 {
   "version": 1,
   "created_at": "1970-01-01 00:00:00",
-  "updated_at": "2026-02-25 22:56:20",
-  "run_count": 14,
-  "cash": 375.7927230000023,
+  "updated_at": "2026-02-26 19:14:29",
+  "run_count": 15,
+  "cash": 48.09914300000219,
   "positions": {
-    "AMAT": {
-      "shares": 2,
-      "avg_cost": 371.61
-    },
     "EURONEXT:ISOE": {
-      "shares": 189,
-      "avg_cost": 42.73760319365079
-    },
-    "MU": {
-      "shares": 2,
-      "avg_cost": 421.5
+      "shares": 233,
+      "avg_cost": 42.88154422145922
     }
   },
-  "realized_pnl": 39.41972660000019,
-  "fees_paid": 15.978477,
-  "turnover_notional": 15006.539199999997,
-  "last_equity": 10273.542723000002,
+  "realized_pnl": 39.498946600000124,
+  "fees_paid": 21.219257,
+  "turnover_notional": 18505.591999999993,
+  "last_equity": 10166.403743000003,
   "history": [
     {
       "ts": "2026-02-23 19:35:22",
@@ -260,26 +252,43 @@
       "bench_isoe_100": 10291.70283735457,
       "bench_lqq_100": 10421.863742010459,
       "bench_switch": 10291.70283735457
+    },
+    {
+      "ts": "2026-02-26 19:14:29",
+      "run": 15,
+      "regime": "ISOE_DOMINANT",
+      "n_lqq": 11,
+      "n_isoe": 0,
+      "equity_before": 10171.644523000004,
+      "equity_after": 10166.403743000003,
+      "cash": 48.09914300000219,
+      "trades": 3,
+      "rebalance_allowed": true,
+      "us_open": true,
+      "eu_open": false,
+      "bench_isoe_100": 10238.935756140369,
+      "bench_lqq_100": 10243.277890761185,
+      "bench_switch": 10238.935756140369
     }
   ],
   "benchmarks": {
     "initial_capital": 10000.0,
     "isoe_100": {
       "units": 235.77784278017344,
-      "equity": 10291.70283735457,
+      "equity": 10238.935756140369,
       "fees_paid": 5.0,
       "entry_fee": 5.0
     },
     "lqq_100": {
       "units": 7.259587449157467,
-      "equity": 10421.863742010459,
+      "equity": 10243.277890761185,
       "fees_paid": 5.0,
       "entry_fee": 5.0
     },
     "regime_switch": {
       "active": "EURONEXT:ISOE",
       "units": 235.77784278017344,
-      "equity": 10291.70283735457,
+      "equity": 10238.935756140369,
       "fees_paid": 5.0,
       "entry_fee": 5.0,
       "switch_count": 0,
