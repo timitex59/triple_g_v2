@@ -1,8 +1,8 @@
 {
   "version": 1,
   "created_at": "1970-01-01 00:00:00",
-  "updated_at": "2026-02-26 19:14:29",
-  "run_count": 15,
+  "updated_at": "2026-02-26 19:58:58",
+  "run_count": 16,
   "cash": 48.09914300000219,
   "positions": {
     "EURONEXT:ISOE": {
@@ -263,6 +263,23 @@
       "equity_after": 10166.403743000003,
       "cash": 48.09914300000219,
       "trades": 3,
+      "rebalance_allowed": true,
+      "us_open": true,
+      "eu_open": false,
+      "bench_isoe_100": 10238.935756140369,
+      "bench_lqq_100": 10243.277890761185,
+      "bench_switch": 10238.935756140369
+    },
+    {
+      "ts": "2026-02-26 19:58:58",
+      "run": 16,
+      "regime": "ISOE_DOMINANT",
+      "n_lqq": 11,
+      "n_isoe": 0,
+      "equity_before": 10166.403743000003,
+      "equity_after": 10166.403743000003,
+      "cash": 48.09914300000219,
+      "trades": 0,
       "rebalance_allowed": true,
       "us_open": true,
       "eu_open": false,
