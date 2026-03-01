@@ -657,7 +657,7 @@ def export_csv(results, fname='signal_v6_28pairs_mini_current.csv'):
 # ================================================================
 # MAIN
 # ================================================================
-def run_scan(target_pairs):
+def run_scan(target_pairs, write_csv=True):
     t0   = time.time()
     now  = datetime.now(ZoneInfo("UTC")).strftime("%Y-%m-%d %H:%M UTC")
     print(f"\n  Scan {len(target_pairs)} paires -- {now}")
@@ -688,12 +688,15 @@ def run_scan(target_pairs):
     print_summary(results)
     print_active_signals(results)
 
-    csv_f = export_csv(results)
+    csv_f = export_csv(results) if write_csv else None
     tg    = telegram_text(results)
     send_telegram(tg)
 
     elapsed = time.time() - t0
-    print(f"\n  -> {csv_f}")
+    if csv_f:
+        print(f"\n  -> {csv_f}")
+    else:
+        print("\n  -> Export CSV desactive")
     print(f"  Temps total : {elapsed:.1f}s  ({elapsed/len(target_pairs):.1f}s/paire)")
     print(f"{'='*90}\n")
     return results
@@ -704,6 +707,7 @@ def main():
     parser.add_argument('--filter',   default=None, help='Filtrer par label: ROBUST / MOYEN / FRAGILE')
     parser.add_argument('--loop',     action='store_true', help='Mode boucle')
     parser.add_argument('--interval', type=int, default=3600, help='Intervalle boucle (secondes)')
+    parser.add_argument('--no-csv',   action='store_true', help='Desactive la generation du fichier CSV')
     args = parser.parse_args()
 
     if args.pair:
@@ -726,7 +730,7 @@ def main():
         print(f"Mode LOOP -- scan toutes les {args.interval}s  (Ctrl+C pour arreter)")
         while True:
             try:
-                run_scan(target)
+                run_scan(target, write_csv=not args.no_csv)
             except KeyboardInterrupt:
                 print("\nArret."); break
             except Exception as e:
@@ -734,8 +738,9 @@ def main():
             print(f"Prochain scan dans {args.interval}s...")
             time.sleep(args.interval)
     else:
-        run_scan(target)
+        run_scan(target, write_csv=not args.no_csv)
 
 if __name__ == "__main__":
     main()
+
 

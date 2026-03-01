@@ -55,9 +55,7 @@ jobs:
           REVERSAL_TZ: Europe/Paris
         run: |
           HOUR_PARIS=$(TZ="$REVERSAL_TZ" date +%H)
-
-          python last_sar_break_V3.py
-          python allabove_V1.py
+          python annual_V1.py
           python signal_v6_28pairs.py --no-csv
           python signal_v6_28pairs_mini.py --no-csv
 
@@ -74,6 +72,8 @@ jobs:
       #     name: market-cache
       #     path: market_cache.pkl
       # python rubbeon_V3.py
+      #python last_sar_break_V3.py
+      #python allabove_V1.py
       # python annual_V1.py
       #python rubbeon_MTF_IMP.py
       #python rubbeon_MTF_IMP_V2.py
