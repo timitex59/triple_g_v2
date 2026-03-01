@@ -719,7 +719,7 @@ def build_telegram_portfolio_report(
 ):
     baseline = TOTAL_CAPITAL_USD
     delta = equity_after - baseline
-    equity_icon = "ðŸŸ¢" if delta > 0 else ("ðŸ”´" if delta < 0 else "ðŸŸ¡")
+    equity_icon = "🟢" if delta > 0 else ("🔴" if delta < 0 else "🟡")
     lines = ["<b>NDX100 Portfolio</b>", "", "<b>Positions:</b>"]
     positions = state.get("positions", {})
     if not positions:
@@ -730,11 +730,11 @@ def build_telegram_portfolio_report(
             shares = int(p.get("shares", 0) or 0)
             avg_cost = float(p.get("avg_cost", 0.0) or 0.0)
             last_px = price_map.get(sym, np.nan)
-            status_icon = "âšª"
+            status_icon = "⚪"
             if np.isfinite(last_px) and last_px > avg_cost:
-                status_icon = "ðŸŸ¢"
+                status_icon = "🟢"
             elif np.isfinite(last_px) and last_px < avg_cost:
-                status_icon = "ðŸ”´"
+                status_icon = "🔴"
             short_sym = "ISOE" if sym == ISOE_SYMBOL else sym
             if np.isfinite(last_px):
                 pnl_pos = (last_px - avg_cost) * shares
