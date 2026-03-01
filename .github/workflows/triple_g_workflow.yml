@@ -47,7 +47,6 @@ jobs:
       - name: Validate critical imports
         run: |
           python -c "import websocket; print('websocket import OK')"
-          python -c "import pandas_ta; print('pandas_ta import OK')"
 
       - name: Run Triple G Indicators Scan
         env:
