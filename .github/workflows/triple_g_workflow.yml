@@ -59,6 +59,7 @@ jobs:
           python last_sar_break_V3.py
           python allabove_V1.py
           python signal_v6_28pairs.py --no-csv
+          python signal_v6_28pairs_mini.py --no-csv
 
           if [ "$HOUR_PARIS" -ge 20 ]; then
             python annual_NDX100_V1.py
