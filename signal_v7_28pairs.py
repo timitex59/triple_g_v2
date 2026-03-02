@@ -19,6 +19,8 @@ Usage :
 """
 
 import argparse
+import json
+import os
 import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -32,6 +34,115 @@ import signal_v6_28pairs_mini as v6mini
 
 PAIRS_CONFIG = v6.PAIRS_CONFIG
 robustness_label = v6.robustness_label
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+EXIT_STATE_FILE = os.path.join(SCRIPT_DIR, "signal_v7_exit_state.json")
+EXIT_START_HOUR = 6
+EXIT_END_HOUR = 22
+
+
+def _empty_exit_state():
+    return {
+        "date": "",
+        "window_active": False,
+        "prev_open": {},
+        "prev_trail": {},
+        "exit_pairs": {},
+    }
+
+
+def _load_exit_state():
+    if not os.path.exists(EXIT_STATE_FILE):
+        return _empty_exit_state()
+    try:
+        with open(EXIT_STATE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        st = _empty_exit_state()
+        if isinstance(data, dict):
+            st.update(data)
+        for key in ("prev_open", "prev_trail", "exit_pairs"):
+            if not isinstance(st.get(key), dict):
+                st[key] = {}
+        return st
+    except Exception:
+        return _empty_exit_state()
+
+
+def _save_exit_state(state):
+    try:
+        with open(EXIT_STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def _collect_open_trail(results):
+    seen_open = {}
+    seen_trail = {}
+    for r in results:
+        if r.get("error") or (not r["longs"] and not r["shorts"]):
+            continue
+        icon = "🟢" if r["longs"] else "🔴"
+        has_trail = (r["longs"] and r["lt"]) or (r["shorts"] and r["st_arm"])
+        if has_trail:
+            seen_trail[r["pair"]] = icon
+        else:
+            seen_open[r["pair"]] = icon
+    return seen_open, seen_trail
+
+
+def _update_exit_pairs(results):
+    now_paris = datetime.now(ZoneInfo("Europe/Paris"))
+    today = now_paris.strftime("%Y-%m-%d")
+    in_window = EXIT_START_HOUR <= now_paris.hour < EXIT_END_HOUR
+
+    current_open, current_trail = _collect_open_trail(results)
+    current_active = set(current_open) | set(current_trail)
+
+    st = _load_exit_state()
+    if st.get("date") != today:
+        st = _empty_exit_state()
+        st["date"] = today
+
+    if not in_window:
+        st["window_active"] = False
+        st["prev_open"] = current_open
+        st["prev_trail"] = current_trail
+        st["exit_pairs"] = {}
+        _save_exit_state(st)
+        return {}
+
+    if not st.get("window_active"):
+        st["window_active"] = True
+        st["date"] = today
+        st["prev_open"] = current_open
+        st["prev_trail"] = current_trail
+        st["exit_pairs"] = {}
+        _save_exit_state(st)
+        return {}
+
+    prev_open = st.get("prev_open", {})
+    prev_trail = st.get("prev_trail", {})
+    exits = st.get("exit_pairs", {})
+
+    for pair in prev_open:
+        if pair not in current_active:
+            exits[pair] = prev_open.get(pair, "⚪")
+
+    for pair in prev_trail:
+        if pair not in current_active:
+            exits[pair] = prev_trail.get(pair, "⚪")
+
+    for pair in list(exits.keys()):
+        if pair in current_active:
+            exits.pop(pair, None)
+
+    st["prev_open"] = current_open
+    st["prev_trail"] = current_trail
+    st["exit_pairs"] = exits
+    st["date"] = today
+    st["window_active"] = True
+    _save_exit_state(st)
+    return exits
 
 
 def _is_mini_confirmed(main_r, mini_r):
@@ -67,18 +178,8 @@ def telegram_text(results):
     def flame(r):
         return "🔥" if r and r.get("confirmed_mini") else ""
 
-    seen_open = {}
-    seen_trail = {}
-
-    for r in results:
-        if r.get("error") or (not r["longs"] and not r["shorts"]):
-            continue
-        icon = "🟢" if r["longs"] else "🔴"
-        has_trail = (r["longs"] and r["lt"]) or (r["shorts"] and r["st_arm"])
-        if has_trail:
-            seen_trail[r["pair"]] = icon
-        else:
-            seen_open[r["pair"]] = icon
+    seen_open, seen_trail = _collect_open_trail(results)
+    exit_pairs = _update_exit_pairs(results)
 
     new_entries = [r for r in results if not r.get("error") and r["sig"] != "AUCUN"]
 
@@ -111,7 +212,13 @@ def telegram_text(results):
             chg = rr.get("chg_cc_daily") if rr else np.nan
             lines.append(f"  {icon}{pair} ({fmt_chg(chg)}){flame(rr)}")
 
-    if not new_entries and not seen_open and not seen_trail:
+    if exit_pairs:
+        lines.append("")
+        lines.append("EXIT")
+        for pair, icon in exit_pairs.items():
+            lines.append(f"  {icon}{pair}")
+
+    if not new_entries and not seen_open and not seen_trail and not exit_pairs:
         lines.append("⚪ Aucune position active")
 
     lines.append("")
