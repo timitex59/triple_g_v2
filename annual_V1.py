@@ -344,6 +344,8 @@ def analyze_pair(pair, d1_candles=D1_CANDLES_DEFAULT, saved_data=None):
             lowest_pct_ytd = update_lowest_pct(saved_data, pair, lowest_pct_ytd)
         break
     close_now = df_d["Close"].iloc[-1]
+    prev_close = df_d["Close"].iloc[-2] if len(df_d) > 1 else np.nan
+    chg_cc_daily = ((close_now - prev_close) / prev_close * 100) if not np.isnan(prev_close) and prev_close != 0 else np.nan
     psar_now = psar_d[-1]
     bull_vw0_now = bull_vw[-1]
     bear_vw0_now = bear_vw[-1]
@@ -371,6 +373,7 @@ def analyze_pair(pair, d1_candles=D1_CANDLES_DEFAULT, saved_data=None):
         "pair": pair,
         "close_now": close_now,
         "annual_open": annual_open,
+        "chg_cc_daily": chg_cc_daily,
         "annual_change_pct": annual_change_pct,
         "highest_pct_ytd": highest_pct_ytd,
         "lowest_pct_ytd": lowest_pct_ytd,
@@ -424,7 +427,7 @@ def build_telegram_message(results):
     sorted_results = sorted(filtered, key=lambda x: x.get("ratio", 0), reverse=True)
     good_pairs = []
     for r in sorted_results:
-        ratio = r.get("ratio", np.nan)
+        chg_cc_daily = r.get("chg_cc_daily", np.nan)
         final_state = r["final_state"]
         if final_state == "BULLISH":
             icon = "🟢"
@@ -433,7 +436,8 @@ def build_telegram_message(results):
         else:
             icon = "⚪"
         direction_icon = " 🔄" if r.get("direction_changed", False) else ""
-        good_pairs.append(f"{icon} {format_pair_name(r['pair'])} ({ratio:.0f}%){direction_icon}")
+        chg_text = "N/A" if np.isnan(chg_cc_daily) else f"{chg_cc_daily:+.2f}%"
+        good_pairs.append(f"{icon} {format_pair_name(r['pair'])} ({chg_text}){direction_icon}")
     if good_pairs:
         lines.extend(good_pairs)
     else:
