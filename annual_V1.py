@@ -65,6 +65,22 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(SCRIPT_DIR, "annual_data.json")
 
+def _json_safe(obj):
+    """Convert numpy/pandas scalar types to JSON-serializable Python types."""
+    if isinstance(obj, dict):
+        return {str(k): _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, tuple):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, np.bool_):
+        return bool(obj)
+    if isinstance(obj, np.integer):
+        return int(obj)
+    if isinstance(obj, np.floating):
+        return float(obj)
+    return obj
+
 
 def load_saved_data():
     if not os.path.exists(DATA_FILE):
@@ -82,7 +98,7 @@ def load_saved_data():
 def save_data(data):
     try:
         with open(DATA_FILE, "w") as f:
-            json.dump(data, f, indent=2)
+            json.dump(_json_safe(data), f, indent=2)
     except Exception as e:
         print(f"Erreur sauvegarde: {e}")
 
@@ -117,7 +133,7 @@ def update_direction(saved_data, pair, is_bullish):
     direction_changed = False
     if was_bullish is not None and was_bullish != is_bullish:
         direction_changed = True
-    pair_data["was_bullish"] = is_bullish
+    pair_data["was_bullish"] = bool(is_bullish)
     saved_data["pairs"][pair_key] = pair_data
     return direction_changed
 

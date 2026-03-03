@@ -32,7 +32,6 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
-import pandas_ta as pta
 import requests
 from websocket import WebSocketConnectionClosedException, create_connection
 
@@ -183,15 +182,85 @@ def ema_pine(s, n):
                          if not np.isnan(s.iloc[i]) else result.iloc[i - 1]
     return result
 
+def _wilder_rma(s, n):
+    s = s.astype(float)
+    if len(s) < n:
+        return pd.Series(np.nan, index=s.index)
+    out = pd.Series(np.nan, index=s.index, dtype=float)
+    out.iloc[n - 1] = s.iloc[:n].mean()
+    alpha = 1.0 / n
+    for i in range(n, len(s)):
+        prev = out.iloc[i - 1]
+        cur = s.iloc[i]
+        out.iloc[i] = prev + alpha * (cur - prev)
+    return out
+
+def psar(h, l, af0=0.1, af=0.1, max_af=0.2):
+    h = h.astype(float)
+    l = l.astype(float)
+    if len(h) < 2:
+        return pd.Series(np.nan, index=h.index)
+
+    sar = np.full(len(h), np.nan, dtype=float)
+    bull = bool(h.iloc[1] >= h.iloc[0])
+    ep = h.iloc[0] if bull else l.iloc[0]
+    a = af0
+    sar[0] = l.iloc[0] if bull else h.iloc[0]
+
+    for i in range(1, len(h)):
+        prev = sar[i - 1]
+        cur = prev + a * (ep - prev)
+        if bull:
+            if i >= 2:
+                cur = min(cur, l.iloc[i - 1], l.iloc[i - 2])
+            else:
+                cur = min(cur, l.iloc[i - 1])
+            if l.iloc[i] < cur:
+                bull = False
+                cur = ep
+                ep = l.iloc[i]
+                a = af0
+            else:
+                if h.iloc[i] > ep:
+                    ep = h.iloc[i]
+                    a = min(a + af, max_af)
+        else:
+            if i >= 2:
+                cur = max(cur, h.iloc[i - 1], h.iloc[i - 2])
+            else:
+                cur = max(cur, h.iloc[i - 1])
+            if h.iloc[i] > cur:
+                bull = True
+                cur = ep
+                ep = h.iloc[i]
+                a = af0
+            else:
+                if l.iloc[i] < ep:
+                    ep = l.iloc[i]
+                    a = min(a + af, max_af)
+        sar[i] = cur
+    return pd.Series(sar, index=h.index)
+
 def psar_calc(h, l, af0, af, max_af):
-    r   = pta.psar(h, l, af0=af0, af=af, max_af=max_af)
-    cl  = [c for c in r.columns if 'PSARl' in c][0]
-    cs  = [c for c in r.columns if 'PSARs' in c][0]
-    return r[cl].combine_first(r[cs])
+    return psar(h, l, af0=af0, af=af, max_af=max_af)
 
 def adx14(h, l, c):
-    res = pta.adx(h, l, c, length=14)
-    return res[[x for x in res.columns if x.startswith('ADX_')][0]]
+    h = h.astype(float)
+    l = l.astype(float)
+    c = c.astype(float)
+    up = h.diff()
+    dn = -l.diff()
+    plus_dm = pd.Series(np.where((up > dn) & (up > 0), up, 0.0), index=h.index)
+    minus_dm = pd.Series(np.where((dn > up) & (dn > 0), dn, 0.0), index=h.index)
+    tr = pd.concat(
+        [(h - l).abs(), (h - c.shift()).abs(), (l - c.shift()).abs()],
+        axis=1,
+    ).max(axis=1)
+    atr = _wilder_rma(tr, 14)
+    plus_di = 100 * _wilder_rma(plus_dm, 14) / atr.replace(0, np.nan)
+    minus_di = 100 * _wilder_rma(minus_dm, 14) / atr.replace(0, np.nan)
+    dx = (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan) * 100
+    return _wilder_rma(dx, 14)
 
 def xo(a, b): return (a > b) & (a.shift(1) <= b.shift(1))
 def xu(a, b): return (a < b) & (a.shift(1) >= b.shift(1))
