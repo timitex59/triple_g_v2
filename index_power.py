@@ -26,6 +26,11 @@ try:
 except Exception:
     annual = None
 
+try:
+    import index_power1h as index_power_1h
+except Exception:
+    index_power_1h = None
+
 import os
 import requests
 
@@ -241,6 +246,89 @@ def fetch_pair_chg_cc(pair_code, d1_candles=200):
     return (d_close - d_prev) / d_prev * 100.0
 
 
+def get_h1_confirmed_pairs():
+    """
+    Rebuild the 1H BEST DEAL selection (same logic as index_power1h.py)
+    and return selected forex pairs as a set.
+    """
+    if index_power_1h is None:
+        return set()
+
+    rows = []
+    for name, sym in index_power_1h.INDICES.items():
+        h1 = index_power_1h.fetch_tv_ohlc(sym, "60", 200)
+        d1 = index_power_1h.fetch_tv_ohlc(sym, "D", 200)
+        chg_cc_d = index_power_1h.daily_chg_pct_close_close(d1)
+        dist_h1 = index_power_1h.dist_from_ema20_h1(h1)
+        rows.append(
+            {
+                "INDEX": f"{name} ({index_power_1h.INDEX_TO_CCY.get(name, name)})",
+                "CHG% (CC) DAILY": chg_cc_d,
+                "DIST% EMA20 H1": dist_h1,
+                "DEAL": None if dist_h1 is None else ((-1 if dist_h1 < 0 else 1) * abs(dist_h1) * abs(dist_h1)),
+            }
+        )
+
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return set()
+
+    df_deal = df.copy()
+    df_deal["CCY"] = df_deal["INDEX"].str.extract(r"\(([^)]+)\)")
+    min_abs_dist = 0.1
+    df_deal = df_deal[df_deal["DIST% EMA20 H1"].abs() > min_abs_dist]
+    df_deal = df_deal[df_deal["CHG% (CC) DAILY"].notna()]
+    df_deal = df_deal[
+        ((df_deal["DIST% EMA20 H1"] > 0) & (df_deal["CHG% (CC) DAILY"] > 0))
+        | ((df_deal["DIST% EMA20 H1"] < 0) & (df_deal["CHG% (CC) DAILY"] < 0))
+    ]
+
+    top_pos = df_deal[df_deal["DEAL"] > 0].sort_values(by="DEAL", ascending=False).head(2)
+    top_neg = df_deal[df_deal["DEAL"] < 0].sort_values(by="DEAL", ascending=True).head(2)
+    if top_pos.empty or top_neg.empty:
+        return set()
+
+    combos = []
+    dist_map = {row["CCY"]: row["DIST% EMA20 H1"] for _, row in df_deal.iterrows()}
+    for _, p in top_pos.iterrows():
+        for _, n in top_neg.iterrows():
+            strong = p["CCY"]
+            weak = n["CCY"]
+            if not isinstance(strong, str) or not isinstance(weak, str):
+                continue
+            strong_dist = dist_map.get(strong)
+            weak_dist = dist_map.get(weak)
+            if pd.isna(strong_dist) or pd.isna(weak_dist):
+                continue
+            if (strong_dist >= 0 and weak_dist >= 0) or (strong_dist <= 0 and weak_dist <= 0):
+                continue
+            pair = None
+            if strong + weak in PAIR_SET:
+                pair = strong + weak
+            elif weak + strong in PAIR_SET:
+                pair = weak + strong
+            if pair:
+                combos.append((pair, strong, weak))
+
+    if not combos:
+        return set()
+
+    deal_map = {row["CCY"]: row["DEAL"] for _, row in df_deal.iterrows()}
+
+    def combo_strength(item):
+        _, strong, weak = item
+        return abs(deal_map.get(strong, 0)) + abs(deal_map.get(weak, 0))
+
+    combos.sort(key=combo_strength, reverse=True)
+
+    confirmed_pairs = set()
+    for pair, _, _ in combos:
+        chg_cc_d = index_power_1h.fetch_pair_chg_cc_daily(pair)
+        if chg_cc_d is not None and abs(chg_cc_d) > 0.2:
+            confirmed_pairs.add(pair)
+    return confirmed_pairs
+
+
 def main():
     if load_dotenv:
         load_dotenv()
@@ -330,7 +418,7 @@ def main():
     top_pos = df_deal[df_deal["DEAL"] > 0].sort_values(by="DEAL", ascending=False).head(2)
     top_neg = df_deal[df_deal["DEAL"] < 0].sort_values(by="DEAL", ascending=True).head(2)
 
-    valid_lines = []
+    valid_items = []
     if not top_pos.empty and not top_neg.empty:
         print("\nBEST DEAL")
         combos = []
@@ -353,6 +441,7 @@ def main():
         if combos:
             # Sort by combined strength (abs strong DEAL + abs weak DEAL)
             deal_map = {row["CCY"]: row["DEAL"] for _, row in df_deal.iterrows()}
+
             def combo_strength(item):
                 _, strong, weak, _ = item
                 return abs(deal_map.get(strong, 0)) + abs(deal_map.get(weak, 0))
@@ -361,21 +450,33 @@ def main():
             for pair, strong, weak, direction in combos:
                 chg_cc = fetch_pair_chg_cc(pair)
                 if chg_cc is None:
-                    status = "❌"
+                    status = "\u274C"
                 else:
                     if direction == "LONG":
-                        status = "✅" if chg_cc > 0 else "❌"
+                        status = "\u2705" if chg_cc > 0 else "\u274C"
                     else:
-                        status = "✅" if chg_cc < 0 else "❌"
+                        status = "\u2705" if chg_cc < 0 else "\u274C"
                 chg_txt = "na" if chg_cc is None else f"{chg_cc:+.2f}%"
                 print(f"{pair} ({direction}) | {strong} strong vs {weak} weak | CHG% (CC): {chg_txt} {status}")
-                if status == "✅":
-                    dot = "🟢" if chg_cc > 0 else "🔴"
-                    valid_lines.append(f"{dot} {pair} ({chg_txt})")
+                if status == "\u2705":
+                    dot = "\U0001F7E2" if chg_cc > 0 else "\U0001F534"
+                    valid_items.append({"pair": pair, "dot": dot, "chg_txt": chg_txt})
         else:
             print("No valid pairs found for best deal combinations.")
     else:
         print("\nBEST DEAL\nNot enough positive/negative DEAL values.")
+
+    h1_confirmed_pairs = set()
+    try:
+        h1_confirmed_pairs = get_h1_confirmed_pairs()
+    except Exception:
+        h1_confirmed_pairs = set()
+
+    valid_lines = []
+    for item in valid_items:
+        pair = item["pair"]
+        flame = "\U0001F525" if pair in h1_confirmed_pairs else ""
+        valid_lines.append(f"{item['dot']} {pair} ({item['chg_txt']}){flame}")
 
     # Telegram: send only valid BEST DEAL
     token = os.getenv("TELEGRAM_BOT_TOKEN")
