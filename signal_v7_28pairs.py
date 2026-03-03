@@ -176,12 +176,12 @@ def telegram_text(results):
         return f"{v:+.2f}%"
 
     def flame(r):
-        return "??" if r and r.get("confirmed_mini") else ""
+        return "\U0001F525" if r and r.get("confirmed_mini") else ""
 
     def chg_icon(v):
         if v is None or (isinstance(v, float) and np.isnan(v)):
-            return "?"
-        return "??" if v >= 0 else "??"
+            return "\u26AA"
+        return "\U0001F7E2" if v >= 0 else "\U0001F534"
 
     seen_open, seen_trail = _collect_open_trail(results)
     exit_pairs = _update_exit_pairs(results)
@@ -198,7 +198,7 @@ def telegram_text(results):
             lines.append("")
             lines.append("Entree")
         for r in new_entries:
-            icon = "??" if "LONG" in r["sig"] else "??"
+            icon = "\U0001F7E2" if "LONG" in r["sig"] else "\U0001F534"
             chg = r.get("chg_cc_daily")
             lines.append(f"  {icon}{chg_icon(chg)}{r['pair']} ({fmt_chg(chg)}){flame(r)}")
 
@@ -225,10 +225,10 @@ def telegram_text(results):
             lines.append(f"  {icon}{pair}")
 
     if not new_entries and not seen_open and not seen_trail and not exit_pairs:
-        lines.append("? Aucune position active")
+        lines.append("\u26AA Aucune position active")
 
     lines.append("")
-    lines.append(f"? {now} Paris")
+    lines.append(f"\u23F0 {now} Paris")
     return "\n".join(lines)
 
 

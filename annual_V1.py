@@ -430,18 +430,18 @@ def build_telegram_message(results):
         chg_cc_daily = r.get("chg_cc_daily", np.nan)
         final_state = r["final_state"]
         if final_state == "BULLISH":
-            icon = "??"
+            icon = "\U0001F7E2"
         elif final_state == "BEARISH":
-            icon = "??"
+            icon = "\U0001F534"
         else:
-            icon = "?"
+            icon = "\u26AA"
 
-        direction_icon = " ??" if r.get("direction_changed", False) else ""
+        direction_icon = " \U0001F504" if r.get("direction_changed", False) else ""
         if np.isnan(chg_cc_daily):
-            chg_icon = "?"
+            chg_icon = "\u26AA"
             chg_text = "N/A"
         else:
-            chg_icon = "??" if chg_cc_daily >= 0 else "??"
+            chg_icon = "\U0001F7E2" if chg_cc_daily >= 0 else "\U0001F534"
             chg_text = f"{chg_cc_daily:+.2f}%"
 
         good_pairs.append(f"{icon}{chg_icon} {format_pair_name(r['pair'])} ({chg_text}){direction_icon}")
@@ -449,7 +449,7 @@ def build_telegram_message(results):
     if good_pairs:
         lines.extend(good_pairs)
     else:
-        lines.append("NO DEAL ??")
+        lines.append("NO DEAL \U0001F61E")
     return "\n".join(lines)
 
 
