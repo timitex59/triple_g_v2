@@ -176,7 +176,12 @@ def telegram_text(results):
         return f"{v:+.2f}%"
 
     def flame(r):
-        return "🔥" if r and r.get("confirmed_mini") else ""
+        return "??" if r and r.get("confirmed_mini") else ""
+
+    def chg_icon(v):
+        if v is None or (isinstance(v, float) and np.isnan(v)):
+            return "?"
+        return "??" if v >= 0 else "??"
 
     seen_open, seen_trail = _collect_open_trail(results)
     exit_pairs = _update_exit_pairs(results)
@@ -193,8 +198,9 @@ def telegram_text(results):
             lines.append("")
             lines.append("Entree")
         for r in new_entries:
-            icon = "🟢" if "LONG" in r["sig"] else "🔴"
-            lines.append(f"  {icon}{r['pair']} ({fmt_chg(r.get('chg_cc_daily'))}){flame(r)}")
+            icon = "??" if "LONG" in r["sig"] else "??"
+            chg = r.get("chg_cc_daily")
+            lines.append(f"  {icon}{chg_icon(chg)}{r['pair']} ({fmt_chg(chg)}){flame(r)}")
 
     if seen_open:
         lines.append("")
@@ -202,7 +208,7 @@ def telegram_text(results):
         for pair, icon in seen_open.items():
             rr = next((x for x in results if x.get("pair") == pair), None)
             chg = rr.get("chg_cc_daily") if rr else np.nan
-            lines.append(f"  {icon}{pair} ({fmt_chg(chg)}){flame(rr)}")
+            lines.append(f"  {icon}{chg_icon(chg)}{pair} ({fmt_chg(chg)}){flame(rr)}")
 
     if seen_trail:
         lines.append("")
@@ -210,7 +216,7 @@ def telegram_text(results):
         for pair, icon in seen_trail.items():
             rr = next((x for x in results if x.get("pair") == pair), None)
             chg = rr.get("chg_cc_daily") if rr else np.nan
-            lines.append(f"  {icon}{pair} ({fmt_chg(chg)}){flame(rr)}")
+            lines.append(f"  {icon}{chg_icon(chg)}{pair} ({fmt_chg(chg)}){flame(rr)}")
 
     if exit_pairs:
         lines.append("")
@@ -219,10 +225,10 @@ def telegram_text(results):
             lines.append(f"  {icon}{pair}")
 
     if not new_entries and not seen_open and not seen_trail and not exit_pairs:
-        lines.append("⚪ Aucune position active")
+        lines.append("? Aucune position active")
 
     lines.append("")
-    lines.append(f"⏰ {now} Paris")
+    lines.append(f"? {now} Paris")
     return "\n".join(lines)
 
 
