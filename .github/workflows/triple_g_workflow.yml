@@ -91,6 +91,7 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
+          BRANCH="${GITHUB_REF_NAME:-main}"
           STATE_FILES="runner_history.json opportunity_stats.json trend_follower.json rubbeon_state.json rubbeon_MTF_IMP_state.json annual_v2_data.json annual_v2_state.json chg_cc_indices.json annual_ndx100_portfolio_state.json annual_ndx100_scan_state.json btc_dca_state.json"
           git add $STATE_FILES
           # Ne commiter que s'il y a des changements indexes
@@ -98,11 +99,13 @@ jobs:
             echo "No staged changes to commit"
           else
             git commit -m "Update runner and stats history [skip ci]"
-            if ! git pull --rebase; then
+            if ! git pull --rebase --autostash origin "$BRANCH"; then
               echo "Rebase conflict on generated state files. Keep current run values and continue."
               git checkout --theirs $STATE_FILES || true
               git add $STATE_FILES
-              GIT_EDITOR=true git rebase --continue
+              if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
+                GIT_EDITOR=true git rebase --continue || true
+              fi
             fi
-            git push
+            git push origin "HEAD:$BRANCH"
           fi
