@@ -38,6 +38,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 EXIT_STATE_FILE = os.path.join(SCRIPT_DIR, "signal_v7_exit_state.json")
 EXIT_START_HOUR = 6
 EXIT_END_HOUR = 22
+MIN_ABS_CHG_CC_DAILY_TG = 0.10
 
 
 def _empty_exit_state():
@@ -166,6 +167,13 @@ def _is_mini_confirmed(main_r, mini_r):
     return mini_r.get("sig") != "AUCUN"
 
 
+def _is_visible_for_telegram(r):
+    chg = r.get("chg_cc_daily", np.nan)
+    if chg is None or (isinstance(chg, float) and np.isnan(chg)):
+        return True
+    return abs(float(chg)) >= MIN_ABS_CHG_CC_DAILY_TG
+
+
 def telegram_text(results):
     now = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
     lines = []
@@ -183,10 +191,23 @@ def telegram_text(results):
             return "\u26AA"
         return "\U0001F7E2" if v >= 0 else "\U0001F534"
 
-    seen_open, seen_trail = _collect_open_trail(results)
+    visible_pairs = {
+        r["pair"]
+        for r in results
+        if not r.get("error")
+        and (r.get("longs") or r.get("shorts") or r.get("sig") != "AUCUN")
+        and _is_visible_for_telegram(r)
+    }
+
+    seen_open_raw, seen_trail_raw = _collect_open_trail(results)
+    seen_open = {p: i for p, i in seen_open_raw.items() if p in visible_pairs}
+    seen_trail = {p: i for p, i in seen_trail_raw.items() if p in visible_pairs}
     exit_pairs = _update_exit_pairs(results)
 
-    new_entries = [r for r in results if not r.get("error") and r["sig"] != "AUCUN"]
+    new_entries = [
+        r for r in results
+        if not r.get("error") and r["sig"] != "AUCUN" and _is_visible_for_telegram(r)
+    ]
 
     if seen_trail:
         lines.append("TRAILING")
