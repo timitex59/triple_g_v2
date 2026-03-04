@@ -55,9 +55,6 @@ jobs:
           REVERSAL_TZ: Europe/Paris
         run: |
           HOUR_MIN_PARIS=$(TZ="$REVERSAL_TZ" date +%H%M)
-          python annual_V1.py
-          python index_power.py
-          python signal_v8.py
           python signal_v7_28pairs.py --no-csv
 
           if [ "$HOUR_MIN_PARIS" -ge 2000 ] && [ "$HOUR_MIN_PARIS" -le 2130 ]; then
@@ -87,6 +84,10 @@ jobs:
       #python minitrend.py
       # python sar_break_V6.py
       # python index_long_trend_V2.py
+      # python signal_v8.py
+      #python index_power.
+      #python annual_V1.py
+          
 
       - name: Commit and Push History
         run: |
