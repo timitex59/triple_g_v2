@@ -477,6 +477,7 @@ def scan_alignment(pairs: list[str]) -> int:
             print(f"  {r['pair']:<8} {r['direction']}{' 🔥' if r.get('flame') else ''}  ({chg_txt})")
 
     telegram_rows = [r for r in aligned_rows if passes_telegram_abs_chg_filter(r.get("chg_cc_d1"))]
+    telegram_rows.sort(key=lambda r: abs(r.get("chg_cc_d1") or 0.0), reverse=True)
     tg_text = build_telegram_aligned_message(telegram_rows)
     send_telegram_message(tg_text)
 
