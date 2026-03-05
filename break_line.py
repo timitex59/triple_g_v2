@@ -44,6 +44,7 @@ if load_dotenv:
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_MIN_ABS_CHG_D1 = 0.15
 
 
 @dataclass
@@ -327,6 +328,12 @@ def passes_chg_filter(direction: str, chg_cc_d1: float | None) -> bool:
     return False
 
 
+def passes_telegram_abs_chg_filter(chg_cc_d1: float | None, min_abs_chg: float = TELEGRAM_MIN_ABS_CHG_D1) -> bool:
+    if chg_cc_d1 is None:
+        return False
+    return abs(chg_cc_d1) > min_abs_chg
+
+
 def daily_ema_ribbon_direction(df_d1: pd.DataFrame) -> int:
     """
     Return:
@@ -469,7 +476,8 @@ def scan_alignment(pairs: list[str]) -> int:
             chg_txt = "N/A" if r.get("chg_cc_d1") is None else f"{r['chg_cc_d1']:+.2f}%"
             print(f"  {r['pair']:<8} {r['direction']}{' 🔥' if r.get('flame') else ''}  ({chg_txt})")
 
-    tg_text = build_telegram_aligned_message(aligned_rows)
+    telegram_rows = [r for r in aligned_rows if passes_telegram_abs_chg_filter(r.get("chg_cc_d1"))]
+    tg_text = build_telegram_aligned_message(telegram_rows)
     send_telegram_message(tg_text)
 
     print(f"Elapsed: {time.time() - t0:.2f}s")
