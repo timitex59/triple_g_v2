@@ -17,7 +17,9 @@ import os
 import random
 import string
 import time
+from datetime import datetime
 from dataclasses import dataclass
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -283,7 +285,7 @@ def state_name(v: int) -> str:
 
 
 def build_telegram_aligned_message(aligned_rows: list[dict], retrace_rows: list[dict]) -> str:
-    lines = ["ALIGNED PAIRS", "(dot1=W1/D1, dot2=D1/H1)", ""]
+    lines = ["ALIGNED PAIRS", ""]
     if not aligned_rows:
         lines.append("Aucune paire alignee")
     else:
@@ -297,7 +299,7 @@ def build_telegram_aligned_message(aligned_rows: list[dict], retrace_rows: list[
             flame = " \U0001F525" if r.get("flame") else ""
             lines.append(f"{w1d1_icon}{d1h1_icon} {r['pair']} ({chg_txt}){flame}")
 
-    lines.extend(["", "RETRACE", "(W1/D1 aligned, D1/H1 not aligned)", ""])
+    lines.extend(["", "", "RETRACING PAIRS", ""])
     if not retrace_rows:
         lines.append("Aucune paire retrace")
     else:
@@ -309,6 +311,8 @@ def build_telegram_aligned_message(aligned_rows: list[dict], retrace_rows: list[
             chg = r.get("chg_cc_d1")
             chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
             lines.append(f"{w1d1_icon}{d1h1_icon} {r['pair']} ({chg_txt})")
+    paris_now = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
+    lines.extend(["", f"⏰ {paris_now} Paris"])
     return "\n".join(lines)
 
 
