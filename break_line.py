@@ -310,7 +310,8 @@ def build_telegram_aligned_message(aligned_rows: list[dict], retrace_rows: list[
             d1h1_icon = "\u26AA"
             chg = r.get("chg_cc_d1")
             chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
-            lines.append(f"{w1d1_icon}{d1h1_icon} {r['pair']} ({chg_txt})")
+            flame = " \U0001F525" if r.get("retrace_flame") else ""
+            lines.append(f"{w1d1_icon}{d1h1_icon} {r['pair']} ({chg_txt}){flame}")
     paris_now = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
     lines.extend(["", f"⏰ {paris_now} Paris"])
     return "\n".join(lines)
@@ -386,6 +387,33 @@ def daily_chg_cc(df_d1: pd.DataFrame) -> float | None:
     if prev_close == 0:
         return None
     return ((last_close - prev_close) / prev_close) * 100.0
+
+
+def has_recent_sar_cross_signal(df: pd.DataFrame, direction: str, persist_bars_after_signal: int = 1) -> bool:
+    """
+    Return True if the last bar is a SAR cross signal in `direction`, or if the
+    signal happened up to `persist_bars_after_signal` bars before the last bar.
+    """
+    if df is None or df.empty or len(df) < 3:
+        return False
+
+    psar = calculate_psar(df)
+    if psar is None or psar.empty:
+        return False
+
+    close = df["close"].astype(float)
+    bull_cross = ((close > psar) & (close.shift(1) <= psar.shift(1))).fillna(False)
+    bear_cross = ((close < psar) & (close.shift(1) >= psar.shift(1))).fillna(False)
+
+    if direction == "BULL":
+        cross = bull_cross
+    elif direction == "BEAR":
+        cross = bear_cross
+    else:
+        return False
+
+    lookback = min(len(cross), persist_bars_after_signal + 1)
+    return bool(cross.iloc[-lookback:].any())
 
 
 def analyze_single_tf(pair: str, interval: str, candles: int) -> int:
@@ -495,6 +523,7 @@ def scan_alignment(pairs: list[str]) -> int:
                 "direction": direction,
                 "w1d1_direction": w1d1_direction,
                 "flame": flame,
+                "retrace_flame": has_recent_sar_cross_signal(h1, w1d1_direction, persist_bars_after_signal=1),
             }
         )
 
