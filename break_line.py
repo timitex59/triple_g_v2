@@ -389,31 +389,27 @@ def daily_chg_cc(df_d1: pd.DataFrame) -> float | None:
     return ((last_close - prev_close) / prev_close) * 100.0
 
 
-def has_recent_sar_cross_signal(df: pd.DataFrame, direction: str, persist_bars_after_signal: int = 1) -> bool:
+def retrace_flame_active(df: pd.DataFrame, direction: str) -> bool:
     """
-    Return True if the last bar is a SAR cross signal in `direction`, or if the
-    signal happened up to `persist_bars_after_signal` bars before the last bar.
+    RETRACING flame persistence rule on H1:
+    - W1/D1 BULL: flame stays ON while close is above SAR.
+    - W1/D1 BEAR: flame stays ON while close is below SAR.
     """
-    if df is None or df.empty or len(df) < 3:
+    if df is None or df.empty or len(df) < 2:
         return False
 
     psar = calculate_psar(df)
     if psar is None or psar.empty:
         return False
 
-    close = df["close"].astype(float)
-    bull_cross = ((close > psar) & (close.shift(1) <= psar.shift(1))).fillna(False)
-    bear_cross = ((close < psar) & (close.shift(1) >= psar.shift(1))).fillna(False)
+    last_close = float(df["close"].iloc[-1])
+    last_psar = float(psar.iloc[-1])
 
     if direction == "BULL":
-        cross = bull_cross
-    elif direction == "BEAR":
-        cross = bear_cross
-    else:
-        return False
-
-    lookback = min(len(cross), persist_bars_after_signal + 1)
-    return bool(cross.iloc[-lookback:].any())
+        return last_close > last_psar
+    if direction == "BEAR":
+        return last_close < last_psar
+    return False
 
 
 def analyze_single_tf(pair: str, interval: str, candles: int) -> int:
@@ -523,7 +519,7 @@ def scan_alignment(pairs: list[str]) -> int:
                 "direction": direction,
                 "w1d1_direction": w1d1_direction,
                 "flame": flame,
-                "retrace_flame": has_recent_sar_cross_signal(h1, w1d1_direction, persist_bars_after_signal=1),
+                "retrace_flame": retrace_flame_active(h1, w1d1_direction),
             }
         )
 
