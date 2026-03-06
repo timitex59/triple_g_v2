@@ -282,21 +282,33 @@ def state_name(v: int) -> str:
     return "GREEN" if v == 1 else "RED" if v == -1 else "NEUTRAL"
 
 
-def build_telegram_aligned_message(aligned_rows: list[dict]) -> str:
+def build_telegram_aligned_message(aligned_rows: list[dict], retrace_rows: list[dict]) -> str:
     lines = ["ALIGNED PAIRS", "(dot1=W1/D1, dot2=D1/H1)", ""]
     if not aligned_rows:
         lines.append("Aucune paire alignee")
-        return "\n".join(lines)
+    else:
+        for r in aligned_rows:
+            direction = r.get("direction")
+            bull_bear_icon = "\U0001F7E2" if direction == "BULL" else "\U0001F534" if direction == "BEAR" else "\u26AA"
+            w1d1_icon = bull_bear_icon if r.get("aligned_w1_d1") else "\u26AA"
+            d1h1_icon = bull_bear_icon if r.get("aligned") else "\u26AA"
+            chg = r.get("chg_cc_d1")
+            chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+            flame = " \U0001F525" if r.get("flame") else ""
+            lines.append(f"{w1d1_icon}{d1h1_icon} {r['pair']} ({chg_txt}){flame}")
 
-    for r in aligned_rows:
-        direction = r.get("direction")
-        bull_bear_icon = "\U0001F7E2" if direction == "BULL" else "\U0001F534" if direction == "BEAR" else "\u26AA"
-        w1d1_icon = bull_bear_icon if r.get("aligned_w1_d1") else "\u26AA"
-        d1h1_icon = bull_bear_icon if r.get("aligned") else "\u26AA"
-        chg = r.get("chg_cc_d1")
-        chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
-        flame = " \U0001F525" if r.get("flame") else ""
-        lines.append(f"{w1d1_icon}{d1h1_icon} {r['pair']} ({chg_txt}){flame}")
+    lines.extend(["", "RETRACE", "(W1/D1 aligned, D1/H1 not aligned)", ""])
+    if not retrace_rows:
+        lines.append("Aucune paire retrace")
+    else:
+        for r in retrace_rows:
+            direction = r.get("w1d1_direction")
+            bull_bear_icon = "\U0001F7E2" if direction == "BULL" else "\U0001F534" if direction == "BEAR" else "\u26AA"
+            w1d1_icon = bull_bear_icon if r.get("aligned_w1_d1") else "\u26AA"
+            d1h1_icon = "\u26AA"
+            chg = r.get("chg_cc_d1")
+            chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+            lines.append(f"{w1d1_icon}{d1h1_icon} {r['pair']} ({chg_txt})")
     return "\n".join(lines)
 
 
@@ -461,6 +473,7 @@ def scan_alignment(pairs: list[str]) -> int:
         aligned_w1_d1 = (s_w1.state != 0) and (s_w1.state == s_d1.state)
         double_aligned = aligned_d1_h1 and aligned_w1_d1
         direction = "BULL" if aligned_d1_h1 and s_d1.state == 1 else "BEAR" if aligned_d1_h1 and s_d1.state == -1 else "NONE"
+        w1d1_direction = "BULL" if aligned_w1_d1 and s_d1.state == 1 else "BEAR" if aligned_w1_d1 and s_d1.state == -1 else "NONE"
         flame = aligned_d1_h1 and (ribbon_d1 == s_d1.state)
 
         rows.append(
@@ -476,6 +489,7 @@ def scan_alignment(pairs: list[str]) -> int:
                 "aligned_w1_d1": aligned_w1_d1,
                 "double_aligned": double_aligned,
                 "direction": direction,
+                "w1d1_direction": w1d1_direction,
                 "flame": flame,
             }
         )
@@ -502,7 +516,16 @@ def scan_alignment(pairs: list[str]) -> int:
         if r.get("double_aligned") and passes_telegram_abs_chg_filter(r.get("chg_cc_d1"))
     ]
     telegram_rows.sort(key=lambda r: abs(r.get("chg_cc_d1") or 0.0), reverse=True)
-    tg_text = build_telegram_aligned_message(telegram_rows)
+    retrace_rows = [
+        r for r in rows
+        if not r.get("error")
+        and r.get("aligned_w1_d1")
+        and not r.get("aligned")
+        and passes_chg_filter(r.get("w1d1_direction"), r.get("chg_cc_d1"))
+        and passes_telegram_abs_chg_filter(r.get("chg_cc_d1"))
+    ]
+    retrace_rows.sort(key=lambda r: abs(r.get("chg_cc_d1") or 0.0), reverse=True)
+    tg_text = build_telegram_aligned_message(telegram_rows, retrace_rows)
     send_telegram_message(tg_text)
 
     print(f"Elapsed: {time.time() - t0:.2f}s")
