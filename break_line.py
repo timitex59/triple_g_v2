@@ -520,8 +520,7 @@ def scan_alignment(pairs: list[str]) -> int:
         r for r in rows
         if not r.get("error")
         and r.get("aligned_w1_d1")
-        and not r.get("aligned")
-        and passes_chg_filter(r.get("w1d1_direction"), r.get("chg_cc_d1"))
+        and r.get("direction") == "NONE"
         and passes_telegram_abs_chg_filter(r.get("chg_cc_d1"))
     ]
     retrace_rows.sort(key=lambda r: abs(r.get("chg_cc_d1") or 0.0), reverse=True)
