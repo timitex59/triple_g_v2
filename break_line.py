@@ -283,18 +283,20 @@ def state_name(v: int) -> str:
 
 
 def build_telegram_aligned_message(aligned_rows: list[dict]) -> str:
-    lines = ["ALIGNED PAIRS", ""]
+    lines = ["ALIGNED PAIRS", "(dot1=W1/D1, dot2=D1/H1)", ""]
     if not aligned_rows:
         lines.append("Aucune paire alignee")
         return "\n".join(lines)
 
     for r in aligned_rows:
         direction = r.get("direction")
-        icon = "🟢" if direction == "BULL" else "🔴" if direction == "BEAR" else "⚪"
+        bull_bear_icon = "\U0001F7E2" if direction == "BULL" else "\U0001F534" if direction == "BEAR" else "\u26AA"
+        w1d1_icon = bull_bear_icon if r.get("aligned_w1_d1") else "\u26AA"
+        d1h1_icon = bull_bear_icon if r.get("aligned") else "\u26AA"
         chg = r.get("chg_cc_d1")
         chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
-        flame = " 🔥" if r.get("flame") else ""
-        lines.append(f"{icon} {r['pair']} ({chg_txt}){flame}")
+        flame = " \U0001F525" if r.get("flame") else ""
+        lines.append(f"{w1d1_icon}{d1h1_icon} {r['pair']} ({chg_txt}){flame}")
     return "\n".join(lines)
 
 
@@ -395,74 +397,93 @@ def analyze_single_tf(pair: str, interval: str, candles: int) -> int:
 
 def analyze_pair_alignment(pair: str) -> int:
     symbol = f"OANDA:{pair}"
+    w1 = fetch_tv_ohlc(symbol, "W", 350)
     d1 = fetch_tv_ohlc(symbol, "D", 500)
     h1 = fetch_tv_ohlc(symbol, "60", 1400)
-    if d1 is None or h1 is None:
-        print(f"{pair}: data unavailable on D1 or H1")
+    if w1 is None or d1 is None or h1 is None:
+        print(f"{pair}: data unavailable on W1, D1 or H1")
         return 1
 
+    s_w1 = compute_break_line_state(w1)
     s_d1 = compute_break_line_state(d1)
     s_h1 = compute_break_line_state(h1)
     ribbon_d1 = daily_ema_ribbon_direction(d1)
     chg_cc_d1 = daily_chg_cc(d1)
-    aligned = (s_d1.state != 0) and (s_d1.state == s_h1.state)
-    direction = "BULL" if aligned and s_d1.state == 1 else "BEAR" if aligned and s_d1.state == -1 else "NONE"
-    flame = "🔥" if aligned and ribbon_d1 == s_d1.state else ""
+    aligned_d1_h1 = (s_d1.state != 0) and (s_d1.state == s_h1.state)
+    aligned_w1_d1 = (s_w1.state != 0) and (s_w1.state == s_d1.state)
+    double_aligned = aligned_d1_h1 and aligned_w1_d1
+    direction = "BULL" if aligned_d1_h1 and s_d1.state == 1 else "BEAR" if aligned_d1_h1 and s_d1.state == -1 else "NONE"
+    flame = "\U0001F525" if aligned_d1_h1 and ribbon_d1 == s_d1.state else ""
 
     print(f"PAIR      : {pair}")
+    print(f"W1 STATE  : {state_name(s_w1.state)}")
     print(f"D1 STATE  : {state_name(s_d1.state)}")
     print(f"H1 STATE  : {state_name(s_h1.state)}")
-    print(f"ALIGNMENT : {direction} {flame}".rstrip())
+    print(f"D1/H1 ALIGNMENT : {direction} {flame}".rstrip())
+    print(f"W1/D1 ALIGNMENT : {'YES' if aligned_w1_d1 else 'NO'}")
+    print(f"DOUBLE ALIGNMENT: {'YES' if double_aligned else 'NO'}")
     print(f"D1 RIBBON : {'BULL' if ribbon_d1 == 1 else 'BEAR' if ribbon_d1 == -1 else 'NEUTRAL'}")
     print(f"CHG%CC D1 : {'N/A' if chg_cc_d1 is None else f'{chg_cc_d1:+.2f}%'}")
+    print(f"W1 close  : {s_w1.close}")
     print(f"D1 close  : {s_d1.close}")
     print(f"H1 close  : {s_h1.close}")
+    print(f"W1 bull_line: {s_w1.bull_line_now} | W1 bear_line: {s_w1.bear_line_now}")
     print(f"D1 bull_line: {s_d1.bull_line_now} | D1 bear_line: {s_d1.bear_line_now}")
     print(f"H1 bull_line: {s_h1.bull_line_now} | H1 bear_line: {s_h1.bear_line_now}")
+    print(f"W1 bull_last_valid_event: {s_w1.bull_valid_last_event} | W1 bear_last_valid_event: {s_w1.bear_valid_last_event}")
     print(f"D1 bull_last_valid_event: {s_d1.bull_valid_last_event} | D1 bear_last_valid_event: {s_d1.bear_valid_last_event}")
     print(f"H1 bull_last_valid_event: {s_h1.bull_valid_last_event} | H1 bear_last_valid_event: {s_h1.bear_valid_last_event}")
     return 0
-
 
 def scan_alignment(pairs: list[str]) -> int:
     rows = []
     t0 = time.time()
 
-    print(f"Scan alignment D1 + H1 on {len(pairs)} instruments")
+    print(f"Scan alignment D1/H1 + W1/D1 on {len(pairs)} instruments")
     for i, pair in enumerate(pairs, 1):
         symbol = f"OANDA:{pair}"
         print(f"[{i:>2}/{len(pairs)}] {pair} ...", end=" ", flush=True)
 
+        w1 = fetch_tv_ohlc(symbol, "W", 350)
         d1 = fetch_tv_ohlc(symbol, "D", 500)
         h1 = fetch_tv_ohlc(symbol, "60", 1400)
-        if d1 is None or h1 is None:
+        if w1 is None or d1 is None or h1 is None:
             print("ERROR")
             rows.append({"pair": pair, "error": True})
             continue
 
+        s_w1 = compute_break_line_state(w1)
         s_d1 = compute_break_line_state(d1)
         s_h1 = compute_break_line_state(h1)
         ribbon_d1 = daily_ema_ribbon_direction(d1)
         chg_cc_d1 = daily_chg_cc(d1)
-        aligned = (s_d1.state != 0) and (s_d1.state == s_h1.state)
-        direction = "BULL" if aligned and s_d1.state == 1 else "BEAR" if aligned and s_d1.state == -1 else "NONE"
-        flame = aligned and (ribbon_d1 == s_d1.state)
+        aligned_d1_h1 = (s_d1.state != 0) and (s_d1.state == s_h1.state)
+        aligned_w1_d1 = (s_w1.state != 0) and (s_w1.state == s_d1.state)
+        double_aligned = aligned_d1_h1 and aligned_w1_d1
+        direction = "BULL" if aligned_d1_h1 and s_d1.state == 1 else "BEAR" if aligned_d1_h1 and s_d1.state == -1 else "NONE"
+        flame = aligned_d1_h1 and (ribbon_d1 == s_d1.state)
 
         rows.append(
             {
                 "pair": pair,
                 "error": False,
+                "w1_state": s_w1.state,
                 "d1_state": s_d1.state,
                 "h1_state": s_h1.state,
                 "d1_ribbon_state": ribbon_d1,
                 "chg_cc_d1": chg_cc_d1,
-                "aligned": aligned,
+                "aligned": aligned_d1_h1,
+                "aligned_w1_d1": aligned_w1_d1,
+                "double_aligned": double_aligned,
                 "direction": direction,
                 "flame": flame,
             }
         )
 
-        print(f"D1={state_name(s_d1.state)} H1={state_name(s_h1.state)} ALIGN={direction}{' 🔥' if flame else ''}")
+        print(
+            f"W1={state_name(s_w1.state)} D1={state_name(s_d1.state)} H1={state_name(s_h1.state)} "
+            f"D1H1={direction} W1D1={'YES' if aligned_w1_d1 else 'NO'}{' 🔥' if flame else ''}"
+        )
 
     aligned_rows = [r for r in rows if not r.get("error") and r.get("aligned")]
     aligned_rows = [r for r in aligned_rows if passes_chg_filter(r.get("direction"), r.get("chg_cc_d1"))]
@@ -483,7 +504,6 @@ def scan_alignment(pairs: list[str]) -> int:
 
     print(f"Elapsed: {time.time() - t0:.2f}s")
     return 0
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description="break_line.py - Python version of break_line.pine")
