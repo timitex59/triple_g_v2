@@ -57,6 +57,7 @@ jobs:
           HOUR_MIN_PARIS=$(TZ="$REVERSAL_TZ" date +%H%M)
           python signal_v7_28pairs.py --no-csv
           python break_line.py
+          python ichimoku_v4.py
 
           if [ "$HOUR_MIN_PARIS" -ge 2000 ] && [ "$HOUR_MIN_PARIS" -le 2130 ]; then
             python annual_NDX100_V1.py
