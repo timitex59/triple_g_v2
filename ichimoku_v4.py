@@ -277,6 +277,81 @@ def build_telegram_aligned_message(aligned_rows: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def passes_chg_filter(direction: str, chg_cc_d1: float | None) -> bool:
+    if chg_cc_d1 is None:
+        return False
+    if direction == "BULL":
+        return chg_cc_d1 > 0
+    if direction == "BEAR":
+        return chg_cc_d1 < 0
+    return False
+
+
+def build_telegram_mid_aligned_message(aligned_rows: list[dict], mid_aligned_rows: list[dict]) -> str:
+    lines = ["ICHIMOKU", ""]
+    if not aligned_rows:
+        lines.append("Aucune paire alignee")
+    else:
+        for row in aligned_rows:
+            icon = "ðŸŸ¢" if row["direction"] == "BULL" else "ðŸ”´"
+            chg = row.get("chg_cc_d1")
+            chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+            flame = " ðŸ”¥" if row.get("hourly_aligned") else ""
+            lines.append(f"{icon} {row['pair']} ({chg_txt}){flame}")
+
+    lines.extend(["", "MID ALIGNED", ""])
+    if not mid_aligned_rows:
+        lines.append("Aucune paire mid aligned")
+    else:
+        for row in mid_aligned_rows:
+            icon = "ðŸŸ¢" if row["direction"] == "BULL" else "ðŸ”´"
+            chg = row.get("chg_cc_d1")
+            chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+            lines.append(f"{icon} {row['pair']} ({chg_txt})")
+
+    lines.append("")
+    lines.append(f"â° {datetime.now(ZoneInfo('Europe/Paris')).strftime('%Y-%m-%d %H:%M Paris')}")
+    return "\n".join(lines)
+
+
+def build_telegram_report_message(aligned_rows: list[dict], mid_aligned_rows: list[dict]) -> str:
+    clock = "\u23F0"
+    bull_icon = "\U0001F7E2"
+    bear_icon = "\U0001F534"
+    fire_icon = "\U0001F525"
+    neutral_icon = "\u26AA\uFE0F"
+    mixed_icon = "\u2194\uFE0F"
+    lines = ["ICHIMOKU", ""]
+
+    if not aligned_rows:
+        lines.append("Aucune paire alignee")
+    else:
+        for row in aligned_rows:
+            icon = bull_icon if row["direction"] == "BULL" else bear_icon
+            chg = row.get("chg_cc_d1")
+            chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+            if row.get("hourly_aligned"):
+                suffix = fire_icon
+            elif passes_chg_filter(row.get("direction"), chg):
+                suffix = neutral_icon
+            else:
+                suffix = mixed_icon
+            lines.append(f"{icon} {row['pair']} ({chg_txt}) {suffix}")
+
+    lines.extend(["", "MID ALIGNED", ""])
+    if not mid_aligned_rows:
+        lines.append("Aucune paire mid aligned")
+    else:
+        for row in mid_aligned_rows:
+            icon = bull_icon if row["direction"] == "BULL" else bear_icon
+            chg = row.get("chg_cc_d1")
+            chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+            lines.append(f"{icon} {row['pair']} ({chg_txt})")
+
+    lines.extend(["", f"{clock} {datetime.now(ZoneInfo('Europe/Paris')).strftime('%Y-%m-%d %H:%M Paris')}"])
+    return "\n".join(lines)
+
+
 def send_telegram_message(text: str) -> bool:
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("Telegram: credentials missing, skip send.")
@@ -343,8 +418,9 @@ def scan_alignment(pairs: list[str]) -> int:
         hourly_state = compute_ichimoku_bias_state(hourly_df)
         chg_cc_d1 = daily_chg_cc(daily_df)
         aligned = daily_state.state != 0 and daily_state.state == weekly_state.state
-        direction = state_name(daily_state.state) if aligned else "NONE"
-        hourly_aligned = aligned and hourly_state.state == daily_state.state
+        direction = state_name(daily_state.state) if daily_state.state != 0 else "NONE"
+        hourly_aligned = daily_state.state != 0 and hourly_state.state == daily_state.state
+        mid_aligned = hourly_aligned and weekly_state.state == 0 and passes_chg_filter(direction, chg_cc_d1)
 
         rows.append(
             {
@@ -357,6 +433,7 @@ def scan_alignment(pairs: list[str]) -> int:
                 "aligned": aligned,
                 "direction": direction,
                 "hourly_aligned": hourly_aligned,
+                "mid_aligned": mid_aligned,
             }
         )
 
@@ -364,6 +441,14 @@ def scan_alignment(pairs: list[str]) -> int:
 
     aligned_rows = [row for row in rows if not row.get("error") and row.get("aligned")]
     aligned_rows.sort(
+        key=lambda row: (
+            -(abs(row["chg_cc_d1"]) if row.get("chg_cc_d1") is not None else -1.0),
+            row["pair"],
+        )
+    )
+
+    mid_aligned_rows = [row for row in rows if not row.get("error") and row.get("mid_aligned")]
+    mid_aligned_rows.sort(
         key=lambda row: (
             -(abs(row["chg_cc_d1"]) if row.get("chg_cc_d1") is not None else -1.0),
             row["pair"],
@@ -380,7 +465,16 @@ def scan_alignment(pairs: list[str]) -> int:
             flame = " 🔥" if row.get("hourly_aligned") else ""
             print(f"  {row['pair']:<8} {row['direction']:<4} ({chg_txt}){flame}")
 
-    send_telegram_message(build_telegram_aligned_message(aligned_rows))
+    print("\nMID ALIGNED")
+    if not mid_aligned_rows:
+        print("None")
+    else:
+        for row in mid_aligned_rows:
+            chg = row.get("chg_cc_d1")
+            chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+            print(f"  {row['pair']:<8} {row['direction']:<4} ({chg_txt})")
+
+    send_telegram_message(build_telegram_report_message(aligned_rows, mid_aligned_rows))
     print(f"Elapsed: {time.time() - t0:.2f}s")
     return 0
 
