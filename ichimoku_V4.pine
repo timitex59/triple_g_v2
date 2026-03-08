@@ -1,0 +1,252 @@
+//@version=6
+indicator(title="Ichimoku_cloud_V4", shorttitle="ichimoku_cloud_V4", overlay=true)
+conversionPeriods = input.int(9, minval=1, title="Conversion Line Length")
+basePeriods = input.int(26, minval=1, title="Base Line Length")
+laggingSpan2Periods = input.int(52, minval=1, title="Leading Span B Length")
+displacement = input.int(26, minval=1, title="Cloud Displacement")
+alignmentBullColor = input.color(color.rgb(67, 160, 71, 80), title="Daily/Weekly Bull Background")
+alignmentBearColor = input.color(color.rgb(244, 67, 54, 80), title="Daily/Weekly Bear Background")
+showImpSignals = input.bool(true, title="Show IMP Signals")
+showTradeSignals = input.bool(true, title="Show LONG/SHORT Signals")
+showBreakLines = input.bool(true, title="Show Bull/Bear Break Lines")
+breakLineWidth = input.int(2, title="Break Line Width", minval=1, maxval=5, step=1)
+showTrendTable = input.bool(true, title="Show Trend Table")
+trendTablePositionInput = input.string("Top Right", title="Trend Table Position", options=["Top Left", "Top Center", "Top Right", "Middle Left", "Middle Center", "Middle Right", "Bottom Left", "Bottom Center", "Bottom Right"])
+cloudTrendRsiLength = input.int(5, title="Cloud Trend RSI Length", minval=2)
+s_sar = input.float(0.1, title="PSAR Start", step=0.01, minval=0.01)
+i_sar = input.float(0.1, title="PSAR Increment", step=0.01, minval=0.01)
+m_sar = input.float(0.2, title="PSAR Maximum", step=0.01, minval=0.01)
+donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
+f_table_position(pos) =>
+    pos == "Top Left" ? position.top_left :
+     pos == "Top Center" ? position.top_center :
+     pos == "Top Right" ? position.top_right :
+     pos == "Middle Left" ? position.middle_left :
+     pos == "Middle Center" ? position.middle_center :
+     pos == "Middle Right" ? position.middle_right :
+     pos == "Bottom Left" ? position.bottom_left :
+     pos == "Bottom Center" ? position.bottom_center :
+     position.bottom_right
+
+f_trend_state() =>
+    _conversionLine = donchian(conversionPeriods)
+    _baseLine = donchian(basePeriods)
+    _leadLine1 = math.avg(_conversionLine, _baseLine)
+    _leadLine2 = donchian(laggingSpan2Periods)
+    _visibleSpanA = displacement > 0 ? _leadLine1[displacement - 1] : _leadLine1
+    _visibleSpanB = displacement > 0 ? _leadLine2[displacement - 1] : _leadLine2
+    _visibleTop = math.max(_visibleSpanA, _visibleSpanB)
+    _visibleBottom = math.min(_visibleSpanA, _visibleSpanB)
+    _visibleMid = (_visibleTop + _visibleBottom) / 2.0
+    _visibleBull = _visibleSpanA > _visibleSpanB
+    _visibleBear = _visibleSpanA < _visibleSpanB
+    _visibleTrendRsi = ta.rsi(_visibleMid, cloudTrendRsiLength)
+    _visibleTrendBull = _visibleTrendRsi > 50
+    _visibleTrendBear = _visibleTrendRsi < 50
+    _liveTop = math.max(_leadLine1, _leadLine2)
+    _liveBottom = math.min(_leadLine1, _leadLine2)
+    _liveMid = (_liveTop + _liveBottom) / 2.0
+    _liveBull = _leadLine1 > _leadLine2
+    _liveBear = _leadLine1 < _leadLine2
+    _liveTrendRsi = ta.rsi(_liveMid, cloudTrendRsiLength)
+    _liveTrendBull = _liveTrendRsi > 50
+    _liveTrendBear = _liveTrendRsi < 50
+    _visibleBull and _visibleTrendBull and _liveBull and _liveTrendBull ? 1 : _visibleBear and _visibleTrendBear and _liveBear and _liveTrendBear ? -1 : 0
+
+conversionLine = donchian(conversionPeriods)
+baseLine = donchian(basePeriods)
+leadLine1 = math.avg(conversionLine, baseLine)
+leadLine2 = donchian(laggingSpan2Periods)
+p1 = plot(leadLine1, offset=displacement - 1, color=#A5D6A7, title="Leading Span A")
+p2 = plot(leadLine2, offset=displacement - 1, color=#EF9A9A, title="Leading Span B")
+fill(p1, p2, title="Cloud Fill", color=leadLine1 > leadLine2 ? color.rgb(67, 160, 71, 90) : color.rgb(244, 67, 54, 90))
+
+dailyState = request.security(syminfo.tickerid, "D", f_trend_state(), barmerge.gaps_off, barmerge.lookahead_off)
+weeklyState = request.security(syminfo.tickerid, "W", f_trend_state(), barmerge.gaps_off, barmerge.lookahead_off)
+bgBull = dailyState == 1 and weeklyState == 1
+bgBear = dailyState == -1 and weeklyState == -1
+
+bgcolor(bgBull ? alignmentBullColor : bgBear ? alignmentBearColor : na, title="Daily/Weekly Alignment Background")
+
+sar = ta.sar(s_sar, i_sar, m_sar)
+bull = ta.crossover(close, sar)
+bear = ta.crossunder(close, sar)
+plot(sar, color=color.black, title="PSAR", linewidth=2)
+
+bull_vw0 = ta.valuewhen(bull, sar, 0)
+bear_vw0 = ta.valuewhen(bear, sar, 0)
+bull_vw1 = ta.valuewhen(bull, sar, 1)
+bear_vw1 = ta.valuewhen(bear, sar, 1)
+bull_bi0 = ta.valuewhen(bull, bar_index, 0)
+bull_bi1 = ta.valuewhen(bull, bar_index, 1)
+bear_bi0 = ta.valuewhen(bear, bar_index, 0)
+bear_bi1 = ta.valuewhen(bear, bar_index, 1)
+
+var float last_bull_level = na
+var float last_bear_level = na
+var float tracked_bull_level = na
+var float tracked_bear_level = na
+var bool tracked_bull_important = false
+var bool tracked_bear_important = false
+var bool bullSequenceArmed = false
+var bool bearSequenceArmed = false
+var float lastLongSignalOpen = na
+var float lastShortSignalOpen = na
+var line bearLine = na
+var line bullLine = na
+var int bearLineX1 = na
+var int bearLineX2 = na
+var float bearLineY1 = na
+var float bearLineY2 = na
+var int bullLineX1 = na
+var int bullLineX2 = na
+var float bullLineY1 = na
+var float bullLineY2 = na
+
+if bull
+    last_bull_level := bull_vw0
+    tracked_bull_level := bull_vw0
+    tracked_bull_important := false
+if bear
+    last_bear_level := bear_vw0
+    tracked_bear_level := bear_vw0
+    tracked_bear_important := false
+
+bearValidEvent = bear and not na(bear_bi1) and not na(bear_vw1) and bear_vw0 < bear_vw1
+bullValidEvent = bull and not na(bull_bi1) and not na(bull_vw1) and bull_vw0 > bull_vw1
+
+if bearValidEvent
+    bearLineX1 := bear_bi1
+    bearLineX2 := bear_bi0
+    bearLineY1 := bear_vw1
+    bearLineY2 := bear_vw0
+    line.delete(bearLine)
+    bearLine := showBreakLines ? line.new(bearLineX1, bearLineY1, bearLineX2, bearLineY2, xloc=xloc.bar_index, extend=extend.right, color=color.red, width=breakLineWidth) : na
+
+if bullValidEvent
+    bullLineX1 := bull_bi1
+    bullLineX2 := bull_bi0
+    bullLineY1 := bull_vw1
+    bullLineY2 := bull_vw0
+    line.delete(bullLine)
+    bullLine := showBreakLines ? line.new(bullLineX1, bullLineY1, bullLineX2, bullLineY2, xloc=xloc.bar_index, extend=extend.right, color=color.green, width=breakLineWidth) : na
+
+if showBreakLines
+    if na(bearLine) and not na(bearLineX1) and not na(bearLineX2)
+        bearLine := line.new(bearLineX1, bearLineY1, bearLineX2, bearLineY2, xloc=xloc.bar_index, extend=extend.right, color=color.red, width=breakLineWidth)
+    if na(bullLine) and not na(bullLineX1) and not na(bullLineX2)
+        bullLine := line.new(bullLineX1, bullLineY1, bullLineX2, bullLineY2, xloc=xloc.bar_index, extend=extend.right, color=color.green, width=breakLineWidth)
+
+if not showBreakLines
+    if not na(bearLine)
+        line.delete(bearLine)
+        bearLine := na
+    if not na(bullLine)
+        line.delete(bullLine)
+        bullLine := na
+
+bullImp = false
+bearImp = false
+longSignal = false
+shortSignal = false
+
+visibleCloudSpanA = displacement > 0 ? leadLine1[displacement - 1] : leadLine1
+visibleCloudSpanB = displacement > 0 ? leadLine2[displacement - 1] : leadLine2
+visibleCloudTop = math.max(visibleCloudSpanA, visibleCloudSpanB)
+visibleCloudBottom = math.min(visibleCloudSpanA, visibleCloudSpanB)
+visibleCloudMid = (visibleCloudTop + visibleCloudBottom) / 2.0
+visibleCloudColorBull = visibleCloudSpanA > visibleCloudSpanB
+visibleCloudColorBear = visibleCloudSpanA < visibleCloudSpanB
+visibleCloudTrendRsi = ta.rsi(visibleCloudMid, cloudTrendRsiLength)
+visibleCloudTrendBull = visibleCloudTrendRsi > 50
+visibleCloudTrendBear = visibleCloudTrendRsi < 50
+
+liveCloudTop = math.max(leadLine1, leadLine2)
+liveCloudBottom = math.min(leadLine1, leadLine2)
+liveCloudMid = (liveCloudTop + liveCloudBottom) / 2.0
+liveCloudColorBull = leadLine1 > leadLine2
+liveCloudColorBear = leadLine1 < leadLine2
+liveCloudTrendRsi = ta.rsi(liveCloudMid, cloudTrendRsiLength)
+liveCloudTrendBull = liveCloudTrendRsi > 50
+liveCloudTrendBear = liveCloudTrendRsi < 50
+
+longContextOk = bgBull and visibleCloudColorBull and visibleCloudTrendBull and liveCloudColorBull and liveCloudTrendBull
+shortContextOk = bgBear and visibleCloudColorBear and visibleCloudTrendBear and liveCloudColorBear and liveCloudTrendBear
+longOpenAllowed = not na(visibleCloudTop) and open <= visibleCloudTop
+shortOpenAllowed = not na(visibleCloudBottom) and open >= visibleCloudBottom
+bullReset = bgBull and not na(visibleCloudTop) and close > visibleCloudTop
+bearReset = bgBear and not na(visibleCloudBottom) and close < visibleCloudBottom
+bullArm = bgBull and not na(visibleCloudBottom) and close < visibleCloudBottom
+bearArm = bgBear and not na(visibleCloudTop) and close > visibleCloudTop
+
+if bullReset
+    bullSequenceArmed := false
+    lastLongSignalOpen := na
+if bearReset
+    bearSequenceArmed := false
+    lastShortSignalOpen := na
+
+if bullArm
+    bullSequenceArmed := true
+if bearArm
+    bearSequenceArmed := true
+
+if not tracked_bear_important and not na(tracked_bear_level) and not na(last_bull_level) and close < last_bull_level
+    tracked_bear_important := true
+    bearImp := true
+if not tracked_bull_important and not na(tracked_bull_level) and not na(last_bear_level) and close > last_bear_level
+    tracked_bull_important := true
+    bullImp := true
+
+longSequenceAllowed = bullSequenceArmed and (na(lastLongSignalOpen) or close < lastLongSignalOpen)
+shortSequenceAllowed = bearSequenceArmed and (na(lastShortSignalOpen) or close > lastShortSignalOpen)
+
+if bullImp and longContextOk and longOpenAllowed and longSequenceAllowed
+    longSignal := true
+    lastLongSignalOpen := open
+    if showTradeSignals
+        label.new(bar_index, tracked_bull_level, "LONG", style=label.style_label_up, color=color.new(color.green, 0), textcolor=color.white)
+
+if bearImp and shortContextOk and shortOpenAllowed and shortSequenceAllowed
+    shortSignal := true
+    lastShortSignalOpen := open
+    if showTradeSignals
+        label.new(bar_index, tracked_bear_level, "SHORT", style=label.style_label_down, color=color.new(color.red, 0), textcolor=color.white)
+
+if bearImp and not shortSignal and showImpSignals
+    label.new(bar_index, tracked_bear_level, "IMP", style=label.style_label_left, color=color.new(color.fuchsia, 0), textcolor=color.white)
+
+if bullImp and not longSignal and showImpSignals
+    label.new(bar_index, tracked_bull_level, "IMP", style=label.style_label_left, color=color.new(color.yellow, 0), textcolor=color.black)
+
+plot(showImpSignals ? tracked_bull_level : na, title="IMP Bull Level", style=plot.style_circles, color=tracked_bull_important ? color.new(color.yellow, 0) : color.new(color.orange, 60))
+plot(showImpSignals ? tracked_bear_level : na, title="IMP Bear Level", style=plot.style_circles, color=tracked_bear_important ? color.new(color.fuchsia, 0) : color.new(color.lime, 60))
+
+trendStateH1 = request.security(syminfo.tickerid, "60", f_trend_state(), barmerge.gaps_off, barmerge.lookahead_off)
+trendStateD = request.security(syminfo.tickerid, "D", f_trend_state(), barmerge.gaps_off, barmerge.lookahead_off)
+trendStateW = request.security(syminfo.tickerid, "W", f_trend_state(), barmerge.gaps_off, barmerge.lookahead_off)
+
+trendTablePosition = f_table_position(trendTablePositionInput)
+var table trendTable = table.new(trendTablePosition, 2, 4)
+var string lastTrendTablePositionInput = trendTablePositionInput
+if barstate.islast
+    if trendTablePositionInput != lastTrendTablePositionInput
+        table.delete(trendTable)
+        trendTable := table.new(trendTablePosition, 2, 4)
+        lastTrendTablePositionInput := trendTablePositionInput
+    if showTrendTable
+        table.cell(trendTable, 0, 0, "TF", bgcolor=color.new(color.black, 0), text_color=color.white)
+        table.cell(trendTable, 1, 0, "TREND", bgcolor=color.new(color.black, 0), text_color=color.white)
+        table.cell(trendTable, 0, 1, "1H", bgcolor=color.new(color.gray, 75), text_color=color.white)
+        table.cell(trendTable, 0, 2, "D", bgcolor=color.new(color.gray, 75), text_color=color.white)
+        table.cell(trendTable, 0, 3, "W", bgcolor=color.new(color.gray, 75), text_color=color.white)
+        table.cell(trendTable, 1, 1, trendStateH1 == 1 ? "BULL" : trendStateH1 == -1 ? "BEAR" : "NEUTRAL", bgcolor=trendStateH1 == 1 ? color.new(color.green, 0) : trendStateH1 == -1 ? color.new(color.red, 0) : color.new(color.gray, 65), text_color=color.white)
+        table.cell(trendTable, 1, 2, trendStateD == 1 ? "BULL" : trendStateD == -1 ? "BEAR" : "NEUTRAL", bgcolor=trendStateD == 1 ? color.new(color.green, 0) : trendStateD == -1 ? color.new(color.red, 0) : color.new(color.gray, 65), text_color=color.white)
+        table.cell(trendTable, 1, 3, trendStateW == 1 ? "BULL" : trendStateW == -1 ? "BEAR" : "NEUTRAL", bgcolor=trendStateW == 1 ? color.new(color.green, 0) : trendStateW == -1 ? color.new(color.red, 0) : color.new(color.gray, 65), text_color=color.white)
+    else
+        table.clear(trendTable, 0, 0, 1, 3)
+
+alertcondition(bullImp, title="Bull IMP", message="Bull IMP on {{ticker}}")
+alertcondition(bearImp, title="Bear IMP", message="Bear IMP on {{ticker}}")
+alertcondition(longSignal, title="LONG Signal", message="LONG signal on {{ticker}}")
+alertcondition(shortSignal, title="SHORT Signal", message="SHORT signal on {{ticker}}")
