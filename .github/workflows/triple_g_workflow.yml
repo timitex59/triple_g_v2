@@ -55,7 +55,6 @@ jobs:
           REVERSAL_TZ: Europe/Paris
         run: |
           HOUR_MIN_PARIS=$(TZ="$REVERSAL_TZ" date +%H%M)
-          python signal_v7_28pairs.py --no-csv
           python break_line.py
           python ichimoku_v4.py
 
@@ -89,6 +88,7 @@ jobs:
       # python signal_v8.py
       #python index_power.
       #python annual_V1.py
+      #python signal_v7_28pairs.py --no-csv
           
 
       - name: Commit and Push History
