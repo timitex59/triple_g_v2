@@ -484,10 +484,12 @@ def scan_alignment(pairs: list[str]) -> int:
     telegram_aligned_rows = [
         row for row in aligned_rows
         if passes_telegram_abs_chg_filter(row.get("chg_cc_d1"))
+        and passes_chg_filter(row.get("direction"), row.get("chg_cc_d1"))
     ]
     telegram_mid_aligned_rows = [
         row for row in mid_aligned_rows
         if passes_telegram_abs_chg_filter(row.get("chg_cc_d1"))
+        and passes_chg_filter(row.get("direction"), row.get("chg_cc_d1"))
     ]
 
     send_telegram_message(build_telegram_report_message(telegram_aligned_rows, telegram_mid_aligned_rows))
