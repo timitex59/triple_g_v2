@@ -332,15 +332,17 @@ def _format_tracked_row(row: dict) -> str:
     chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
 
     if section == "RETRACING":
+        cloud = " \u2601\uFE0F" if row.get("daily_cloud_ok") or row.get("retrace_daily_cloud_ok") else ""
         w1d1_icon = _direction_icon(row.get("w1d1_direction"))
         d1h1_icon = "\u26AA\uFE0F"
         flame = " \U0001F525" if row.get("retrace_flame") else ""
-        return f"{w1d1_icon}{d1h1_icon} {row['pair']} ({chg_txt}){flame}"
+        return f"{w1d1_icon}{d1h1_icon} {row['pair']} ({chg_txt}){cloud}{flame}"
 
+    cloud = " \u2601\uFE0F" if row.get("daily_cloud_ok") else ""
     w1d1_icon = _direction_icon(row.get("direction"))
     d1h1_icon = _direction_icon(row.get("direction"))
     flame = " \U0001F525" if row.get("flame") else ""
-    return f"{w1d1_icon}{d1h1_icon} {row['pair']} ({chg_txt}){flame}"
+    return f"{w1d1_icon}{d1h1_icon} {row['pair']} ({chg_txt}){cloud}{flame}"
 
 
 def build_telegram_tracking_message(aligned_rows: list[dict], retrace_rows: list[dict], exited_rows: list[dict]) -> str:
@@ -390,6 +392,7 @@ def save_tracking_state(path: str, aligned_rows: list[dict], retrace_rows: list[
             "direction": row.get("direction"),
             "chg_cc_d1": row.get("chg_cc_d1"),
             "flame": bool(row.get("flame")),
+            "daily_cloud_ok": bool(row.get("daily_cloud_ok")),
             "section": "ALIGNED",
         }
         for row in aligned_rows
@@ -400,6 +403,8 @@ def save_tracking_state(path: str, aligned_rows: list[dict], retrace_rows: list[
             "w1d1_direction": row.get("w1d1_direction"),
             "chg_cc_d1": row.get("chg_cc_d1"),
             "retrace_flame": bool(row.get("retrace_flame")),
+            "daily_cloud_ok": bool(row.get("daily_cloud_ok")),
+            "retrace_daily_cloud_ok": bool(row.get("retrace_daily_cloud_ok")),
             "section": "RETRACING",
         }
         for row in retrace_rows
@@ -427,6 +432,7 @@ def compute_exited_rows(previous: dict, aligned_rows: list[dict], retrace_rows: 
                     "direction": row.get("direction"),
                     "chg_cc_d1": row.get("chg_cc_d1"),
                     "flame": False,
+                    "daily_cloud_ok": bool(row.get("daily_cloud_ok")),
                     "section": "ALIGNED",
                 }
             )
@@ -439,6 +445,8 @@ def compute_exited_rows(previous: dict, aligned_rows: list[dict], retrace_rows: 
                     "w1d1_direction": row.get("w1d1_direction"),
                     "chg_cc_d1": row.get("chg_cc_d1"),
                     "retrace_flame": False,
+                    "daily_cloud_ok": bool(row.get("daily_cloud_ok")),
+                    "retrace_daily_cloud_ok": bool(row.get("retrace_daily_cloud_ok")),
                     "section": "RETRACING",
                 }
             )
@@ -481,6 +489,39 @@ def passes_telegram_abs_chg_filter(chg_cc_d1: float | None, min_abs_chg: float =
     if chg_cc_d1 is None:
         return False
     return abs(chg_cc_d1) > min_abs_chg
+
+
+def daily_ichimoku_cloud_direction(
+    df_d1: pd.DataFrame,
+    conversion_periods: int = 9,
+    base_periods: int = 26,
+    span_b_periods: int = 52,
+) -> int:
+    if df_d1 is None or df_d1.empty or len(df_d1) < span_b_periods:
+        return 0
+
+    high = df_d1["high"].astype(float)
+    low = df_d1["low"].astype(float)
+    close = df_d1["close"].astype(float)
+
+    conversion_line = (high.rolling(conversion_periods).max() + low.rolling(conversion_periods).min()) / 2.0
+    base_line = (high.rolling(base_periods).max() + low.rolling(base_periods).min()) / 2.0
+    span_a = (conversion_line + base_line) / 2.0
+    span_b = (high.rolling(span_b_periods).max() + low.rolling(span_b_periods).min()) / 2.0
+
+    last_span_a = span_a.iloc[-1]
+    last_span_b = span_b.iloc[-1]
+    last_close = close.iloc[-1]
+    if pd.isna(last_span_a) or pd.isna(last_span_b) or pd.isna(last_close):
+        return 0
+
+    cloud_top = max(float(last_span_a), float(last_span_b))
+    cloud_bottom = min(float(last_span_a), float(last_span_b))
+    if float(last_close) > cloud_top:
+        return 1
+    if float(last_close) < cloud_bottom:
+        return -1
+    return 0
 
 
 def daily_ema_ribbon_direction(df_d1: pd.DataFrame) -> int:
@@ -626,6 +667,7 @@ def scan_alignment(pairs: list[str]) -> int:
         s_d1 = compute_break_line_state(d1)
         s_h1 = compute_break_line_state(h1)
         ribbon_d1 = daily_ema_ribbon_direction(d1)
+        ichimoku_d1 = daily_ichimoku_cloud_direction(d1)
         chg_cc_d1 = daily_chg_cc(d1)
         aligned_d1_h1 = (s_d1.state != 0) and (s_d1.state == s_h1.state)
         aligned_w1_d1 = (s_w1.state != 0) and (s_w1.state == s_d1.state)
@@ -633,6 +675,8 @@ def scan_alignment(pairs: list[str]) -> int:
         direction = "BULL" if aligned_d1_h1 and s_d1.state == 1 else "BEAR" if aligned_d1_h1 and s_d1.state == -1 else "NONE"
         w1d1_direction = "BULL" if aligned_w1_d1 and s_d1.state == 1 else "BEAR" if aligned_w1_d1 and s_d1.state == -1 else "NONE"
         flame = aligned_d1_h1 and (ribbon_d1 == s_d1.state)
+        aligned_cloud_ok = (direction == "BULL" and ichimoku_d1 == 1) or (direction == "BEAR" and ichimoku_d1 == -1)
+        retrace_cloud_ok = (w1d1_direction == "BULL" and ichimoku_d1 == 1) or (w1d1_direction == "BEAR" and ichimoku_d1 == -1)
 
         rows.append(
             {
@@ -650,6 +694,8 @@ def scan_alignment(pairs: list[str]) -> int:
                 "w1d1_direction": w1d1_direction,
                 "flame": flame,
                 "retrace_flame": retrace_flame_active(h1, w1d1_direction),
+                "daily_cloud_ok": aligned_cloud_ok,
+                "retrace_daily_cloud_ok": retrace_cloud_ok,
             }
         )
 
