@@ -47,6 +47,7 @@ if load_dotenv:
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TELEGRAM_MIN_ABS_CHG_D1 = 0.15
+TRACKING_PATH = os.path.join(os.path.dirname(__file__), "break_line_state.json")
 
 
 @dataclass
@@ -317,6 +318,135 @@ def build_telegram_aligned_message(aligned_rows: list[dict], retrace_rows: list[
     return "\n".join(lines)
 
 
+def _direction_icon(direction: str | None) -> str:
+    if direction == "BULL":
+        return "\U0001F7E2"
+    if direction == "BEAR":
+        return "\U0001F534"
+    return "\u26AA"
+
+
+def _format_tracked_row(row: dict) -> str:
+    section = row.get("section")
+    chg = row.get("chg_cc_d1")
+    chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+
+    if section == "RETRACING":
+        w1d1_icon = _direction_icon(row.get("w1d1_direction"))
+        d1h1_icon = "\u26AA\uFE0F"
+        flame = " \U0001F525" if row.get("retrace_flame") else ""
+        return f"{w1d1_icon}{d1h1_icon} {row['pair']} ({chg_txt}){flame}"
+
+    w1d1_icon = _direction_icon(row.get("direction"))
+    d1h1_icon = _direction_icon(row.get("direction"))
+    flame = " \U0001F525" if row.get("flame") else ""
+    return f"{w1d1_icon}{d1h1_icon} {row['pair']} ({chg_txt}){flame}"
+
+
+def build_telegram_tracking_message(aligned_rows: list[dict], retrace_rows: list[dict], exited_rows: list[dict]) -> str:
+    lines = ["ALIGNED PAIRS", ""]
+    if not aligned_rows:
+        lines.append("Aucune paire alignee")
+    else:
+        for row in aligned_rows:
+            lines.append(_format_tracked_row({**row, "section": "ALIGNED"}))
+
+    lines.extend(["", "", "RETRACING PAIRS", ""])
+    if not retrace_rows:
+        lines.append("Aucune paire retrace")
+    else:
+        for row in retrace_rows:
+            lines.append(_format_tracked_row({**row, "section": "RETRACING"}))
+
+    lines.extend(["", "", "EXITED PAIRS", ""])
+    if not exited_rows:
+        lines.append("Aucune paire sortie")
+    else:
+        for row in exited_rows:
+            lines.append(_format_tracked_row(row))
+
+    paris_now = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
+    lines.extend(["", f"\u23F0 {paris_now} Paris"])
+    return "\n".join(lines)
+
+
+def load_tracking_state(path: str) -> dict:
+    if not os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        return {}
+    return {}
+
+
+def save_tracking_state(path: str, aligned_rows: list[dict], retrace_rows: list[dict]) -> None:
+    aligned_map = {
+        row["pair"]: {
+            "pair": row["pair"],
+            "direction": row.get("direction"),
+            "chg_cc_d1": row.get("chg_cc_d1"),
+            "flame": bool(row.get("flame")),
+            "section": "ALIGNED",
+        }
+        for row in aligned_rows
+    }
+    retrace_map = {
+        row["pair"]: {
+            "pair": row["pair"],
+            "w1d1_direction": row.get("w1d1_direction"),
+            "chg_cc_d1": row.get("chg_cc_d1"),
+            "retrace_flame": bool(row.get("retrace_flame")),
+            "section": "RETRACING",
+        }
+        for row in retrace_rows
+    }
+    payload = {
+        "updated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "telegram_aligned": aligned_map,
+        "telegram_retracing": retrace_map,
+    }
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=False, indent=2)
+
+
+def compute_exited_rows(previous: dict, aligned_rows: list[dict], retrace_rows: list[dict]) -> list[dict]:
+    prev_aligned = previous.get("telegram_aligned", {}) if isinstance(previous, dict) else {}
+    prev_retracing = previous.get("telegram_retracing", {}) if isinstance(previous, dict) else {}
+    current_pairs = {row["pair"] for row in aligned_rows} | {row["pair"] for row in retrace_rows}
+
+    exited_rows = []
+    for pair, row in prev_aligned.items():
+        if pair not in current_pairs:
+            exited_rows.append(
+                {
+                    "pair": pair,
+                    "direction": row.get("direction"),
+                    "chg_cc_d1": row.get("chg_cc_d1"),
+                    "flame": False,
+                    "section": "ALIGNED",
+                }
+            )
+
+    for pair, row in prev_retracing.items():
+        if pair not in current_pairs:
+            exited_rows.append(
+                {
+                    "pair": pair,
+                    "w1d1_direction": row.get("w1d1_direction"),
+                    "chg_cc_d1": row.get("chg_cc_d1"),
+                    "retrace_flame": False,
+                    "section": "RETRACING",
+                }
+            )
+
+    exited_rows.sort(key=lambda row: abs(row.get("chg_cc_d1") or 0.0), reverse=True)
+    return exited_rows
+
+
 def send_telegram_message(text: str) -> bool:
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
         print("Telegram: credentials missing, skip send.")
@@ -556,8 +686,11 @@ def scan_alignment(pairs: list[str]) -> int:
         and passes_chg_filter(r.get("w1d1_direction"), r.get("chg_cc_d1"))
     ]
     retrace_rows.sort(key=lambda r: abs(r.get("chg_cc_d1") or 0.0), reverse=True)
-    tg_text = build_telegram_aligned_message(telegram_rows, retrace_rows)
+    previous_state = load_tracking_state(TRACKING_PATH)
+    exited_rows = compute_exited_rows(previous_state, telegram_rows, retrace_rows)
+    tg_text = build_telegram_tracking_message(telegram_rows, retrace_rows, exited_rows)
     send_telegram_message(tg_text)
+    save_tracking_state(TRACKING_PATH, telegram_rows, retrace_rows)
 
     print(f"Elapsed: {time.time() - t0:.2f}s")
     return 0
