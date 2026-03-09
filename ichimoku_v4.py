@@ -165,7 +165,7 @@ def rsi(series: pd.Series, length: int) -> pd.Series:
     loss = -delta.clip(upper=0.0)
     avg_gain = gain.ewm(alpha=1.0 / length, adjust=False, min_periods=length).mean()
     avg_loss = loss.ewm(alpha=1.0 / length, adjust=False, min_periods=length).mean()
-    rs = avg_gain / avg_loss.replace(0.0, pd.NA)
+    rs = avg_gain / avg_loss.where(avg_loss != 0.0, float("nan"))
     out = 100.0 - (100.0 / (1.0 + rs))
     out = out.mask((avg_loss == 0) & (avg_gain > 0), 100.0)
     out = out.mask((avg_gain == 0) & (avg_loss > 0), 0.0)
