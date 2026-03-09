@@ -542,7 +542,9 @@ def scan_alignment(pairs: list[str]) -> int:
 
     telegram_rows = [
         r for r in aligned_rows
-        if r.get("double_aligned") and passes_telegram_abs_chg_filter(r.get("chg_cc_d1"))
+        if r.get("double_aligned")
+        and passes_telegram_abs_chg_filter(r.get("chg_cc_d1"))
+        and passes_chg_filter(r.get("direction"), r.get("chg_cc_d1"))
     ]
     telegram_rows.sort(key=lambda r: abs(r.get("chg_cc_d1") or 0.0), reverse=True)
     retrace_rows = [
@@ -551,6 +553,7 @@ def scan_alignment(pairs: list[str]) -> int:
         and r.get("aligned_w1_d1")
         and r.get("direction") == "NONE"
         and passes_telegram_abs_chg_filter(r.get("chg_cc_d1"))
+        and passes_chg_filter(r.get("w1d1_direction"), r.get("chg_cc_d1"))
     ]
     retrace_rows.sort(key=lambda r: abs(r.get("chg_cc_d1") or 0.0), reverse=True)
     tg_text = build_telegram_aligned_message(telegram_rows, retrace_rows)
