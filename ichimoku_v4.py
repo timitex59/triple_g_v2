@@ -44,6 +44,7 @@ if load_dotenv:
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_MIN_ABS_CHG_D1 = 0.11
 
 
 @dataclass
@@ -287,6 +288,12 @@ def passes_chg_filter(direction: str, chg_cc_d1: float | None) -> bool:
     return False
 
 
+def passes_telegram_abs_chg_filter(chg_cc_d1: float | None, min_abs_chg: float = TELEGRAM_MIN_ABS_CHG_D1) -> bool:
+    if chg_cc_d1 is None:
+        return False
+    return abs(chg_cc_d1) > min_abs_chg
+
+
 def build_telegram_mid_aligned_message(aligned_rows: list[dict], mid_aligned_rows: list[dict]) -> str:
     lines = ["ICHIMOKU", ""]
     if not aligned_rows:
@@ -474,7 +481,16 @@ def scan_alignment(pairs: list[str]) -> int:
             chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
             print(f"  {row['pair']:<8} {row['direction']:<4} ({chg_txt})")
 
-    send_telegram_message(build_telegram_report_message(aligned_rows, mid_aligned_rows))
+    telegram_aligned_rows = [
+        row for row in aligned_rows
+        if passes_telegram_abs_chg_filter(row.get("chg_cc_d1"))
+    ]
+    telegram_mid_aligned_rows = [
+        row for row in mid_aligned_rows
+        if passes_telegram_abs_chg_filter(row.get("chg_cc_d1"))
+    ]
+
+    send_telegram_message(build_telegram_report_message(telegram_aligned_rows, telegram_mid_aligned_rows))
     print(f"Elapsed: {time.time() - t0:.2f}s")
     return 0
 
