@@ -491,6 +491,60 @@ def passes_telegram_abs_chg_filter(chg_cc_d1: float | None, min_abs_chg: float =
     return abs(chg_cc_d1) > min_abs_chg
 
 
+def _pair_currencies(pair: str) -> tuple[str, str] | None:
+    if not pair or len(pair) != 6:
+        return None
+    return pair[:3], pair[3:]
+
+
+def _row_strength_roles(row: dict) -> tuple[str, str] | None:
+    pair = row.get("pair")
+    direction = row.get("direction")
+    if direction is None:
+        direction = row.get("w1d1_direction")
+
+    currencies = _pair_currencies(pair)
+    if currencies is None or direction not in {"BULL", "BEAR"}:
+        return None
+
+    base, quote = currencies
+    if direction == "BULL":
+        return base, quote
+    return quote, base
+
+
+def collect_ambiguous_currencies(*row_groups: list[dict]) -> set[str]:
+    strong: set[str] = set()
+    weak: set[str] = set()
+
+    for rows in row_groups:
+        for row in rows:
+            roles = _row_strength_roles(row)
+            if roles is None:
+                continue
+            strong_ccy, weak_ccy = roles
+            strong.add(strong_ccy)
+            weak.add(weak_ccy)
+
+    return strong & weak
+
+
+def filter_ambiguous_rows(rows: list[dict], ambiguous_currencies: set[str]) -> list[dict]:
+    if not ambiguous_currencies:
+        return rows
+
+    filtered_rows = []
+    for row in rows:
+        currencies = _pair_currencies(row.get("pair"))
+        if currencies is None:
+            filtered_rows.append(row)
+            continue
+        if currencies[0] in ambiguous_currencies or currencies[1] in ambiguous_currencies:
+            continue
+        filtered_rows.append(row)
+    return filtered_rows
+
+
 def daily_ichimoku_cloud_direction(
     df_d1: pd.DataFrame,
     conversion_periods: int = 9,
@@ -732,8 +786,12 @@ def scan_alignment(pairs: list[str]) -> int:
         and passes_chg_filter(r.get("w1d1_direction"), r.get("chg_cc_d1"))
     ]
     retrace_rows.sort(key=lambda r: abs(r.get("chg_cc_d1") or 0.0), reverse=True)
+    ambiguous_currencies = collect_ambiguous_currencies(telegram_rows, retrace_rows)
+    telegram_rows = filter_ambiguous_rows(telegram_rows, ambiguous_currencies)
+    retrace_rows = filter_ambiguous_rows(retrace_rows, ambiguous_currencies)
     previous_state = load_tracking_state(TRACKING_PATH)
     exited_rows = compute_exited_rows(previous_state, telegram_rows, retrace_rows)
+    exited_rows = filter_ambiguous_rows(exited_rows, ambiguous_currencies)
     tg_text = build_telegram_tracking_message(telegram_rows, retrace_rows, exited_rows)
     send_telegram_message(tg_text)
     save_tracking_state(TRACKING_PATH, telegram_rows, retrace_rows)

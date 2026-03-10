@@ -294,6 +294,56 @@ def passes_telegram_abs_chg_filter(chg_cc_d1: float | None, min_abs_chg: float =
     return abs(chg_cc_d1) > min_abs_chg
 
 
+def _pair_currencies(pair: str) -> tuple[str, str] | None:
+    if not pair or len(pair) != 6:
+        return None
+    return pair[:3], pair[3:]
+
+
+def _row_strength_roles(row: dict) -> tuple[str, str] | None:
+    currencies = _pair_currencies(row.get("pair"))
+    direction = row.get("direction")
+    if currencies is None or direction not in {"BULL", "BEAR"}:
+        return None
+
+    base, quote = currencies
+    if direction == "BULL":
+        return base, quote
+    return quote, base
+
+
+def collect_ambiguous_currencies(*row_groups: list[dict]) -> set[str]:
+    strong: set[str] = set()
+    weak: set[str] = set()
+
+    for rows in row_groups:
+        for row in rows:
+            roles = _row_strength_roles(row)
+            if roles is None:
+                continue
+            strong_ccy, weak_ccy = roles
+            strong.add(strong_ccy)
+            weak.add(weak_ccy)
+
+    return strong & weak
+
+
+def filter_ambiguous_rows(rows: list[dict], ambiguous_currencies: set[str]) -> list[dict]:
+    if not ambiguous_currencies:
+        return rows
+
+    filtered_rows = []
+    for row in rows:
+        currencies = _pair_currencies(row.get("pair"))
+        if currencies is None:
+            filtered_rows.append(row)
+            continue
+        if currencies[0] in ambiguous_currencies or currencies[1] in ambiguous_currencies:
+            continue
+        filtered_rows.append(row)
+    return filtered_rows
+
+
 def build_telegram_mid_aligned_message(aligned_rows: list[dict], mid_aligned_rows: list[dict]) -> str:
     lines = ["ICHIMOKU", ""]
     if not aligned_rows:
@@ -491,6 +541,9 @@ def scan_alignment(pairs: list[str]) -> int:
         if passes_telegram_abs_chg_filter(row.get("chg_cc_d1"))
         and passes_chg_filter(row.get("direction"), row.get("chg_cc_d1"))
     ]
+    ambiguous_currencies = collect_ambiguous_currencies(telegram_aligned_rows, telegram_mid_aligned_rows)
+    telegram_aligned_rows = filter_ambiguous_rows(telegram_aligned_rows, ambiguous_currencies)
+    telegram_mid_aligned_rows = filter_ambiguous_rows(telegram_mid_aligned_rows, ambiguous_currencies)
 
     send_telegram_message(build_telegram_report_message(telegram_aligned_rows, telegram_mid_aligned_rows))
     print(f"Elapsed: {time.time() - t0:.2f}s")
