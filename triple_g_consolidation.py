@@ -232,21 +232,13 @@ def save_output(path: str, payload: dict) -> None:
 
 
 def build_telegram_message(payload: dict) -> str:
-    conflicts = payload["conflicted_currencies"]
     tradable_by_section = payload["tradable_by_section"]
-    invalidated_pairs = payload["invalidated_pairs"]
     best_opportunities = payload["best_opportunities"]
 
     no_entry_icon = "\u26D4"
     clock_icon = "\u23F0"
 
     lines = ["TRIPLE G CONSOLIDATION", ""]
-
-    lines.append("CONFLITS DEVISES")
-    if not conflicts:
-        lines.append("Aucun conflit")
-    else:
-        lines.append(", ".join(conflicts))
 
     lines.extend(["", "TRADABLES", ""])
     has_tradable = False
@@ -263,14 +255,6 @@ def build_telegram_message(payload: dict) -> str:
     if not has_tradable:
         lines.append(f"{no_entry_icon} Aucune paire tradable")
         lines.append("")
-
-    lines.append("NON TRADABLES")
-    if not invalidated_pairs:
-        lines.append("Aucune paire invalidee")
-    else:
-        for row in invalidated_pairs:
-            blocked = ", ".join(row["blocked_by"])
-            lines.append(f"{row['pair']} <- conflit {blocked}")
 
     lines.extend(["", "MEILLEURES OPPORTUNITES"])
     if not best_opportunities:
