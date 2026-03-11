@@ -1,26 +1,34 @@
 {
-  "updated_at_utc": "2026-03-11T15:05:59Z",
+  "updated_at_utc": "2026-03-11T16:03:29Z",
   "telegram_aligned": {
-    "AUDJPY": {
-      "pair": "AUDJPY",
+    "AUDNZD": {
+      "pair": "AUDNZD",
       "direction": "BULL",
-      "chg_cc_d1": 1.2139632433969638,
+      "chg_cc_d1": 0.8054306180243269,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     },
-    "EURAUD": {
-      "pair": "EURAUD",
+    "EURUSD": {
+      "pair": "EURUSD",
       "direction": "BEAR",
-      "chg_cc_d1": -1.065799963205982,
-      "flame": true,
+      "chg_cc_d1": -0.3506081802832447,
+      "flame": false,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     },
     "CADJPY": {
       "pair": "CADJPY",
       "direction": "BULL",
-      "chg_cc_d1": 0.3685408702375345,
+      "chg_cc_d1": 0.3238692496026763,
+      "flame": true,
+      "daily_cloud_ok": true,
+      "section": "ALIGNED"
+    },
+    "CHFJPY": {
+      "pair": "CHFJPY",
+      "direction": "BULL",
+      "chg_cc_d1": 0.22459956262191288,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
@@ -28,11 +36,48 @@
     "EURCAD": {
       "pair": "EURCAD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.22266628604053046,
+      "chg_cc_d1": -0.18587242680875932,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     }
   },
-  "telegram_retracing": {}
+  "telegram_retracing": {
+    "AUDJPY": {
+      "pair": "AUDJPY",
+      "w1d1_direction": "BULL",
+      "chg_cc_d1": 0.9260246702925612,
+      "retrace_flame": true,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    },
+    "EURAUD": {
+      "pair": "EURAUD",
+      "w1d1_direction": "BEAR",
+      "chg_cc_d1": -0.7837125160973824,
+      "retrace_flame": true,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    },
+    "AUDCHF": {
+      "pair": "AUDCHF",
+      "w1d1_direction": "BULL",
+      "chg_cc_d1": 0.7036916747861686,
+      "retrace_flame": true,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    },
+    "AUDUSD": {
+      "pair": "AUDUSD",
+      "w1d1_direction": "BULL",
+      "chg_cc_d1": 0.4382638010956612,
+      "retrace_flame": false,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    }
+  }
 }
