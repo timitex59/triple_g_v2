@@ -232,8 +232,7 @@ def save_output(path: str, payload: dict) -> None:
 
 
 def build_telegram_message(payload: dict) -> str:
-    tradable_by_section = payload["tradable_by_section"]
-    best_opportunities = payload["best_opportunities"]
+    tradable_pairs = payload["tradable_pairs"]
 
     no_entry_icon = "\u26D4"
     clock_icon = "\u23F0"
@@ -241,28 +240,11 @@ def build_telegram_message(payload: dict) -> str:
     lines = ["TRIPLE G CONSOLIDATION", ""]
 
     lines.extend(["", "TRADABLES", ""])
-    has_tradable = False
-    for source, section in SECTION_ORDER:
-        section_key = format_section_key(source, section)
-        rows = tradable_by_section.get(section_key, [])
-        if not rows:
-            continue
-        has_tradable = True
-        lines.append(SECTION_LABELS[(source, section)])
-        for row in rows:
-            lines.append(format_pair_line(row))
-        lines.append("")
-    if not has_tradable:
+    if not tradable_pairs:
         lines.append(f"{no_entry_icon} Aucune paire tradable")
-        lines.append("")
-
-    lines.extend(["", "MEILLEURES OPPORTUNITES"])
-    if not best_opportunities:
-        lines.append("Aucune confirmation multiple")
     else:
-        for row in best_opportunities:
-            sections = " + ".join(SECTION_LABELS_BY_KEY[key] for key in row["sections"])
-            lines.append(f"{row['pair']} {'⭐' * row['stars']} - {sections}")
+        for row in tradable_pairs:
+            lines.append(format_pair_line(row))
 
     lines.extend(["", f"{clock_icon} {payload['updated_at_utc']} UTC"])
     return "\n".join(lines)
