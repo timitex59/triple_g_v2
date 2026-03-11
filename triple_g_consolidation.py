@@ -17,6 +17,26 @@ OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "triple_g_consolidation.js
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
+SECTION_ORDER = [
+    ("break_line", "aligned"),
+    ("break_line", "retracing"),
+    ("break_line", "exited"),
+    ("ichimoku", "aligned"),
+    ("ichimoku", "mid_aligned"),
+]
+
+SECTION_LABELS = {
+    ("break_line", "aligned"): "ALIGNED PAIRS",
+    ("break_line", "retracing"): "RETRACING",
+    ("break_line", "exited"): "EXITED PAIRS",
+    ("ichimoku", "aligned"): "ICHIMOKU",
+    ("ichimoku", "mid_aligned"): "MID ALIGNED",
+}
+SECTION_LABELS_BY_KEY = {
+    format_key: SECTION_LABELS[key]
+    for key, format_key in [((source, section), f"{source}:{section}") for source, section in SECTION_ORDER]
+}
+
 
 def load_json(path: str) -> dict:
     with open(path, "r", encoding="utf-8") as handle:
@@ -70,11 +90,11 @@ def collect_entries(break_line_data: dict, ichimoku_data: dict) -> list[dict]:
     entries = []
 
     mapping = [
-        ("break_line", "aligned", break_line_data.get("aligned_rows", [])),
+        ("break_line", "aligned", break_line_data.get("telegram_rows", [])),
         ("break_line", "retracing", break_line_data.get("retracing_rows", [])),
         ("break_line", "exited", break_line_data.get("exited_rows", [])),
-        ("ichimoku", "aligned", ichimoku_data.get("aligned_rows", [])),
-        ("ichimoku", "mid_aligned", ichimoku_data.get("mid_aligned_rows", [])),
+        ("ichimoku", "aligned", ichimoku_data.get("telegram_aligned_rows", [])),
+        ("ichimoku", "mid_aligned", ichimoku_data.get("telegram_mid_aligned_rows", [])),
     ]
 
     for source, section, rows in mapping:
@@ -96,6 +116,52 @@ def collect_conflicted_currencies(entries: list[dict]) -> set[str]:
     return strong & weak
 
 
+def format_section_key(source: str, section: str) -> str:
+    return f"{source}:{section}"
+
+
+def direction_icon(direction: str) -> str:
+    return "\U0001F7E2" if direction == "BULL" else "\U0001F534"
+
+
+def format_pair_line(row: dict, include_stars: bool = False) -> str:
+    icon = direction_icon(row["direction"])
+    chg = row.get("best_chg_cc_d1", row.get("chg_cc_d1"))
+    chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+    suffix = ""
+    if include_stars and row.get("stars"):
+        suffix = " " + ("\u2B50" * row["stars"])
+    return f"{icon} {row['pair']} ({chg_txt}){suffix}"
+
+
+def group_entries_by_section(entries: list[dict]) -> dict[str, list[dict]]:
+    grouped: dict[str, dict[str, dict]] = {}
+    for entry in entries:
+        section_key = format_section_key(entry["source"], entry["section"])
+        section_group = grouped.setdefault(section_key, {})
+        current = section_group.get(entry["pair"])
+        if current is None:
+            section_group[entry["pair"]] = dict(entry)
+            continue
+        current_chg = current.get("chg_cc_d1")
+        new_chg = entry.get("chg_cc_d1")
+        if new_chg is not None and (current_chg is None or abs(new_chg) > abs(current_chg)):
+            section_group[entry["pair"]] = dict(entry)
+
+    ordered: dict[str, list[dict]] = {}
+    for source, section in SECTION_ORDER:
+        section_key = format_section_key(source, section)
+        rows = list(grouped.get(section_key, {}).values())
+        rows.sort(
+            key=lambda row: (
+                -(abs(row["chg_cc_d1"]) if row.get("chg_cc_d1") is not None else -1.0),
+                row["pair"],
+            )
+        )
+        ordered[section_key] = rows
+    return ordered
+
+
 def aggregate_tradable_pairs(entries: list[dict]) -> list[dict]:
     grouped: dict[str, dict] = {}
 
@@ -114,7 +180,7 @@ def aggregate_tradable_pairs(entries: list[dict]) -> list[dict]:
             },
         )
         item["sources"].add(entry["source"])
-        item["sections"].add(f"{entry['source']}:{entry['section']}")
+        item["sections"].add(format_section_key(entry["source"], entry["section"]))
         if entry.get("chg_cc_d1") is not None:
             item["chg_cc_d1_values"].append(float(entry["chg_cc_d1"]))
 
@@ -148,6 +214,18 @@ def aggregate_tradable_pairs(entries: list[dict]) -> list[dict]:
     return tradable_pairs
 
 
+def aggregate_best_opportunities(tradable_pairs: list[dict]) -> list[dict]:
+    best = [row for row in tradable_pairs if row["confirmation_count"] >= 2]
+    best.sort(
+        key=lambda row: (
+            -row["confirmation_count"],
+            -(abs(row["best_chg_cc_d1"]) if row["best_chg_cc_d1"] is not None else -1.0),
+            row["pair"],
+        )
+    )
+    return best
+
+
 def save_output(path: str, payload: dict) -> None:
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
@@ -155,10 +233,10 @@ def save_output(path: str, payload: dict) -> None:
 
 def build_telegram_message(payload: dict) -> str:
     conflicts = payload["conflicted_currencies"]
-    tradable = payload["tradable_pairs"]
+    tradable_by_section = payload["tradable_by_section"]
+    invalidated_pairs = payload["invalidated_pairs"]
+    best_opportunities = payload["best_opportunities"]
 
-    bull_icon = "\U0001F7E2"
-    bear_icon = "\U0001F534"
     no_entry_icon = "\u26D4"
     clock_icon = "\u23F0"
 
@@ -171,15 +249,36 @@ def build_telegram_message(payload: dict) -> str:
         lines.append(", ".join(conflicts))
 
     lines.extend(["", "TRADABLES", ""])
-    if not tradable:
+    has_tradable = False
+    for source, section in SECTION_ORDER:
+        section_key = format_section_key(source, section)
+        rows = tradable_by_section.get(section_key, [])
+        if not rows:
+            continue
+        has_tradable = True
+        lines.append(SECTION_LABELS[(source, section)])
+        for row in rows:
+            lines.append(format_pair_line(row))
+        lines.append("")
+    if not has_tradable:
         lines.append(f"{no_entry_icon} Aucune paire tradable")
+        lines.append("")
+
+    lines.append("NON TRADABLES")
+    if not invalidated_pairs:
+        lines.append("Aucune paire invalidee")
     else:
-        for row in tradable[:12]:
-            icon = bull_icon if row["direction"] == "BULL" else bear_icon
-            chg = row["best_chg_cc_d1"]
-            chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
-            stars = "\u2B50" * row["stars"]
-            lines.append(f"{icon} {row['pair']} {stars} ({chg_txt})")
+        for row in invalidated_pairs:
+            blocked = ", ".join(row["blocked_by"])
+            lines.append(f"{row['pair']} <- conflit {blocked}")
+
+    lines.extend(["", "MEILLEURES OPPORTUNITES"])
+    if not best_opportunities:
+        lines.append("Aucune confirmation multiple")
+    else:
+        for row in best_opportunities:
+            sections = " + ".join(SECTION_LABELS_BY_KEY[key] for key in row["sections"])
+            lines.append(f"{row['pair']} {'⭐' * row['stars']} - {sections}")
 
     lines.extend(["", f"{clock_icon} {payload['updated_at_utc']} UTC"])
     return "\n".join(lines)
@@ -205,6 +304,8 @@ def print_report(payload: dict) -> None:
     conflicts = payload["conflicted_currencies"]
     invalidated = payload["invalidated_pairs"]
     tradable = payload["tradable_pairs"]
+    tradable_by_section = payload["tradable_by_section"]
+    best_opportunities = payload["best_opportunities"]
 
     print("TRIPLE G CONSOLIDATION")
     print("")
@@ -235,6 +336,27 @@ def print_report(payload: dict) -> None:
             stars = "*" * row["stars"]
             sections = ", ".join(row["sections"])
             print(f"  {row['pair']:<8} {row['direction']:<4} {stars:<3} ({chg_txt}) [{sections}]")
+
+    print("")
+    print("TRADABLE BY SECTION")
+    for source, section in SECTION_ORDER:
+        section_key = format_section_key(source, section)
+        rows = tradable_by_section.get(section_key, [])
+        print(SECTION_LABELS[(source, section)])
+        if not rows:
+            print("  None")
+            continue
+        for row in rows:
+            print(f"  {format_pair_line(row)}")
+
+    print("")
+    print("BEST OPPORTUNITIES")
+    if not best_opportunities:
+        print("None")
+    else:
+        for row in best_opportunities:
+            sections = " + ".join(SECTION_LABELS_BY_KEY[key] for key in row["sections"])
+            print(f"  {row['pair']} {'*' * row['stars']} [{sections}]")
 
 
 def main() -> int:
@@ -293,6 +415,8 @@ def main() -> int:
     invalidated_pairs.sort(key=lambda item: (item["pair"], item["direction"]))
 
     tradable_pairs = aggregate_tradable_pairs(tradable_entries)
+    tradable_by_section = group_entries_by_section(tradable_entries)
+    best_opportunities = aggregate_best_opportunities(tradable_pairs)
 
     payload = {
         "updated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -304,6 +428,8 @@ def main() -> int:
         "conflicted_currencies": conflicted_currencies,
         "invalidated_pairs": invalidated_pairs,
         "tradable_pairs": tradable_pairs,
+        "tradable_by_section": tradable_by_section,
+        "best_opportunities": best_opportunities,
     }
 
     save_output(OUTPUT_PATH, payload)
