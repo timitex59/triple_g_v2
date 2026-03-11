@@ -48,6 +48,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TELEGRAM_MIN_ABS_CHG_D1 = 0.15
 TRACKING_PATH = os.path.join(os.path.dirname(__file__), "break_line_state.json")
+SCAN_OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "break_line_scan.json")
 
 
 @dataclass
@@ -413,6 +414,26 @@ def save_tracking_state(path: str, aligned_rows: list[dict], retrace_rows: list[
         "updated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "telegram_aligned": aligned_map,
         "telegram_retracing": retrace_map,
+    }
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=False, indent=2)
+
+
+def save_scan_snapshot(
+    path: str,
+    rows: list[dict],
+    aligned_rows: list[dict],
+    telegram_rows: list[dict],
+    retrace_rows: list[dict],
+    exited_rows: list[dict],
+) -> None:
+    payload = {
+        "updated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "rows": rows,
+        "aligned_rows": aligned_rows,
+        "telegram_rows": telegram_rows,
+        "retracing_rows": retrace_rows,
+        "exited_rows": exited_rows,
     }
     with open(path, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
@@ -795,6 +816,7 @@ def scan_alignment(pairs: list[str]) -> int:
     tg_text = build_telegram_tracking_message(telegram_rows, retrace_rows, exited_rows)
     send_telegram_message(tg_text)
     save_tracking_state(TRACKING_PATH, telegram_rows, retrace_rows)
+    save_scan_snapshot(SCAN_OUTPUT_PATH, rows, aligned_rows, telegram_rows, retrace_rows, exited_rows)
 
     print(f"Elapsed: {time.time() - t0:.2f}s")
     return 0

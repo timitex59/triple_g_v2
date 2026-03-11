@@ -45,6 +45,7 @@ if load_dotenv:
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TELEGRAM_MIN_ABS_CHG_D1 = 0.11
+SCAN_OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "ichimoku_scan.json")
 
 
 @dataclass
@@ -425,6 +426,26 @@ def send_telegram_message(text: str) -> bool:
         return False
 
 
+def save_scan_snapshot(
+    path: str,
+    rows: list[dict],
+    aligned_rows: list[dict],
+    mid_aligned_rows: list[dict],
+    telegram_aligned_rows: list[dict],
+    telegram_mid_aligned_rows: list[dict],
+) -> None:
+    payload = {
+        "updated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "rows": rows,
+        "aligned_rows": aligned_rows,
+        "mid_aligned_rows": mid_aligned_rows,
+        "telegram_aligned_rows": telegram_aligned_rows,
+        "telegram_mid_aligned_rows": telegram_mid_aligned_rows,
+    }
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, ensure_ascii=False, indent=2)
+
+
 def analyze_pair_alignment(pair: str) -> int:
     symbol = f"OANDA:{pair}"
     daily_df = fetch_tv_ohlc(symbol, "D", 500)
@@ -546,6 +567,14 @@ def scan_alignment(pairs: list[str]) -> int:
     telegram_mid_aligned_rows = filter_ambiguous_rows(telegram_mid_aligned_rows, ambiguous_currencies)
 
     send_telegram_message(build_telegram_report_message(telegram_aligned_rows, telegram_mid_aligned_rows))
+    save_scan_snapshot(
+        SCAN_OUTPUT_PATH,
+        rows,
+        aligned_rows,
+        mid_aligned_rows,
+        telegram_aligned_rows,
+        telegram_mid_aligned_rows,
+    )
     print(f"Elapsed: {time.time() - t0:.2f}s")
     return 0
 
