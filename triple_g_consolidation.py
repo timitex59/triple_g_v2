@@ -8,11 +8,14 @@ Consolide les screeners break_line et ichimoku avec une logique de conflit devis
 import json
 import os
 import time
-from collections import defaultdict
+
+import requests
 
 BREAK_LINE_PATH = os.path.join(os.path.dirname(__file__), "break_line_scan.json")
 ICHIMOKU_PATH = os.path.join(os.path.dirname(__file__), "ichimoku_scan.json")
 OUTPUT_PATH = os.path.join(os.path.dirname(__file__), "triple_g_consolidation.json")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 
 def load_json(path: str) -> dict:
@@ -150,6 +153,54 @@ def save_output(path: str, payload: dict) -> None:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
 
 
+def build_telegram_message(payload: dict) -> str:
+    conflicts = payload["conflicted_currencies"]
+    tradable = payload["tradable_pairs"]
+
+    bull_icon = "\U0001F7E2"
+    bear_icon = "\U0001F534"
+    no_entry_icon = "\u26D4"
+    clock_icon = "\u23F0"
+
+    lines = ["TRIPLE G CONSOLIDATION", ""]
+
+    lines.append("CONFLITS DEVISES")
+    if not conflicts:
+        lines.append("Aucun conflit")
+    else:
+        lines.append(", ".join(conflicts))
+
+    lines.extend(["", "TRADABLES", ""])
+    if not tradable:
+        lines.append(f"{no_entry_icon} Aucune paire tradable")
+    else:
+        for row in tradable[:12]:
+            icon = bull_icon if row["direction"] == "BULL" else bear_icon
+            chg = row["best_chg_cc_d1"]
+            chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+            stars = "\u2B50" * row["stars"]
+            lines.append(f"{icon} {row['pair']} {stars} ({chg_txt})")
+
+    lines.extend(["", f"{clock_icon} {payload['updated_at_utc']} UTC"])
+    return "\n".join(lines)
+
+
+def send_telegram_message(text: str) -> bool:
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("Telegram: credentials missing, skip send.")
+        return False
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        response = requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": text}, timeout=10)
+        data = response.json()
+        ok = bool(data.get("ok", False))
+        print(f"Telegram: {'sent' if ok else 'failed'}")
+        return ok
+    except Exception as exc:
+        print(f"Telegram: send failed ({exc})")
+        return False
+
+
 def print_report(payload: dict) -> None:
     conflicts = payload["conflicted_currencies"]
     invalidated = payload["invalidated_pairs"]
@@ -257,6 +308,7 @@ def main() -> int:
 
     save_output(OUTPUT_PATH, payload)
     print_report(payload)
+    send_telegram_message(build_telegram_message(payload))
     return 0
 
 
