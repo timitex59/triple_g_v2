@@ -1,26 +1,18 @@
 {
-  "updated_at_utc": "2026-03-11T10:01:11Z",
+  "updated_at_utc": "2026-03-11T11:01:33Z",
   "telegram_aligned": {
     "AUDJPY": {
       "pair": "AUDJPY",
       "direction": "BULL",
-      "chg_cc_d1": 0.6611922789804839,
+      "chg_cc_d1": 0.7589492019480282,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     },
-    "AUDNZD": {
-      "pair": "AUDNZD",
-      "direction": "BULL",
-      "chg_cc_d1": 0.5772113943028572,
-      "flame": true,
-      "daily_cloud_ok": true,
-      "section": "ALIGNED"
-    },
-    "GBPAUD": {
-      "pair": "GBPAUD",
+    "EURAUD": {
+      "pair": "EURAUD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.42605346095482566,
+      "chg_cc_d1": -0.6304041209296662,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
@@ -28,7 +20,23 @@
     "AUDUSD": {
       "pair": "AUDUSD",
       "direction": "BULL",
-      "chg_cc_d1": 0.3975277426604859,
+      "chg_cc_d1": 0.6208737182188481,
+      "flame": true,
+      "daily_cloud_ok": true,
+      "section": "ALIGNED"
+    },
+    "AUDNZD": {
+      "pair": "AUDNZD",
+      "direction": "BULL",
+      "chg_cc_d1": 0.5830418124271296,
+      "flame": true,
+      "daily_cloud_ok": true,
+      "section": "ALIGNED"
+    },
+    "EURGBP": {
+      "pair": "EURGBP",
+      "direction": "BEAR",
+      "chg_cc_d1": -0.23462240817364094,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
@@ -36,7 +44,7 @@
     "CADJPY": {
       "pair": "CADJPY",
       "direction": "BULL",
-      "chg_cc_d1": 0.31012413556119084,
+      "chg_cc_d1": 0.21906275503629177,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
@@ -44,34 +52,35 @@
     "CHFJPY": {
       "pair": "CHFJPY",
       "direction": "BULL",
-      "chg_cc_d1": 0.25119687924819206,
-      "flame": true,
-      "daily_cloud_ok": true,
-      "section": "ALIGNED"
-    },
-    "EURCAD": {
-      "pair": "EURCAD",
-      "direction": "BEAR",
-      "chg_cc_d1": -0.19602245694165735,
+      "chg_cc_d1": 0.15367338495183513,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     }
   },
   "telegram_retracing": {
-    "EURAUD": {
-      "pair": "EURAUD",
-      "w1d1_direction": "BEAR",
-      "chg_cc_d1": -0.5488440547004362,
-      "retrace_flame": true,
+    "AUDCHF": {
+      "pair": "AUDCHF",
+      "w1d1_direction": "BULL",
+      "chg_cc_d1": 0.602648767637382,
+      "retrace_flame": false,
       "daily_cloud_ok": false,
       "retrace_daily_cloud_ok": true,
       "section": "RETRACING"
     },
-    "AUDCHF": {
-      "pair": "AUDCHF",
+    "GBPAUD": {
+      "pair": "GBPAUD",
+      "w1d1_direction": "BEAR",
+      "chg_cc_d1": -0.4053609516432023,
+      "retrace_flame": false,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    },
+    "NZDJPY": {
+      "pair": "NZDJPY",
       "w1d1_direction": "BULL",
-      "chg_cc_d1": 0.411388979105761,
+      "chg_cc_d1": 0.1771309061419726,
       "retrace_flame": false,
       "daily_cloud_ok": false,
       "retrace_daily_cloud_ok": true,
