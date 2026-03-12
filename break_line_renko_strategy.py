@@ -247,11 +247,14 @@ def save_scan_snapshot(path: str, rows: list[dict], active_rows: list[dict]) -> 
 
 def build_telegram_message(active_rows: list[dict]) -> str:
     lines = ["RENKO", ""]
-    for row in active_rows:
-        icon = "\U0001F7E2" if row["signal_direction"] == "BULL" else "\U0001F534"
-        chg = row.get("chg_cc_d1")
-        chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
-        lines.append(f"{icon} {row['pair']} ({chg_txt})")
+    if not active_rows:
+        lines.append("NO DEAL \U0001F61E")
+    else:
+        for row in active_rows:
+            icon = "\U0001F7E2" if row["signal_direction"] == "BULL" else "\U0001F534"
+            chg = row.get("chg_cc_d1")
+            chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+            lines.append(f"{icon} {row['pair']} ({chg_txt})")
     now_txt = datetime.now(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
     lines.extend(["", f"\u23F0 {now_txt} Paris"])
     return "\n".join(lines)
@@ -456,7 +459,7 @@ def scan_pairs(args) -> int:
     save_tracking_state(TRACKING_PATH, active_rows)
     save_scan_snapshot(SCAN_OUTPUT_PATH, rows, active_rows)
 
-    if args.telegram and active_rows and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
+    if args.telegram and TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID:
         send_telegram_message(build_telegram_message(active_rows))
 
     return 0
