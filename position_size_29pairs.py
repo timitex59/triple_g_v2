@@ -7,7 +7,7 @@ sur les 29 instruments du screener.
 
 Exemple:
     python position_size_29pairs.py
-    python position_size_29pairs.py --notional 50000
+    python position_size_29pairs.py --notional 1000
 """
 
 import argparse
