@@ -1,12 +1,12 @@
 {
   "version": 1,
   "created_at": "1970-01-01 00:00:00",
-  "updated_at": "2026-03-12 19:16:14",
-  "run_count": 45,
-  "cash": 251.44884300000263,
+  "updated_at": "2026-03-12 19:57:57",
+  "run_count": 46,
+  "cash": 288.1581430000026,
   "positions": {
     "EURONEXT:ISOE": {
-      "shares": 135,
+      "shares": 134,
       "avg_cost": 42.88154422145922
     },
     "ROST": {
@@ -26,10 +26,10 @@
       "avg_cost": 493.24
     }
   },
-  "realized_pnl": -204.61268710300354,
-  "fees_paid": 31.699257000000003,
-  "turnover_notional": 26221.281699999992,
-  "last_equity": 9394.854343000003,
+  "realized_pnl": -210.78493132446275,
+  "fees_paid": 34.939257000000005,
+  "turnover_notional": 26261.230999999992,
+  "last_equity": 9375.804343000003,
   "history": [
     {
       "ts": "2026-02-23 19:35:22",
@@ -789,6 +789,23 @@
       "equity_after": 9394.854343000003,
       "cash": 251.44884300000263,
       "trades": 4,
+      "rebalance_allowed": true,
+      "us_open": true,
+      "eu_open": false,
+      "bench_isoe_100": 9419.159774577984,
+      "bench_lqq_100": 10179.3935212086,
+      "bench_switch": 9419.159774577984
+    },
+    {
+      "ts": "2026-03-12 19:57:57",
+      "run": 46,
+      "regime": "ISOE_DOMINANT",
+      "n_lqq": 5,
+      "n_isoe": 4,
+      "equity_before": 9379.044343000003,
+      "equity_after": 9375.804343000003,
+      "cash": 288.1581430000026,
+      "trades": 1,
       "rebalance_allowed": true,
       "us_open": true,
       "eu_open": false,
