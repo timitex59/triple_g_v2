@@ -56,9 +56,10 @@ jobs:
         run: |
           HOUR_MIN_PARIS=$(TZ="$REVERSAL_TZ" date +%H%M)
           python break_line.py
-          python break_line_renko_strategy.py --telegram
           python ichimoku_v4.py
           python triple_g_consolidation.py
+          python break_line_renko_strategy.py --telegram
+
 
           if [ "$HOUR_MIN_PARIS" -ge 2000 ] && [ "$HOUR_MIN_PARIS" -le 2130 ]; then
             python annual_NDX100_V1.py
