@@ -237,7 +237,7 @@ def build_telegram_message(payload: dict) -> str:
     no_entry_icon = "\u26D4"
     clock_icon = "\u23F0"
 
-    lines = ["TRIPLE G CONSOLIDATION", ""]
+    lines = ["CONSOLIDATION", ""]
 
     lines.extend(["", "TRADABLES", ""])
     if not tradable_pairs:
