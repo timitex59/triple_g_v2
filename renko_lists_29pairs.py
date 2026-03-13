@@ -91,10 +91,12 @@ def list_aligned(states: list[PairState]) -> tuple[list[PairState], list[PairSta
         fresh_ok = state.weekly_fresh and state.daily_fresh and state.hourly_fresh
         if not fresh_ok:
             continue
+        if state.chg_cc_d1 is None or abs(state.chg_cc_d1) <= 0.10:
+            continue
 
-        if state.renko_w1 == state.renko_d1 == state.renko_h1 == "BULL" and (state.chg_cc_d1 is not None and state.chg_cc_d1 > 0):
+        if state.renko_w1 == state.renko_d1 == state.renko_h1 == "BULL" and state.chg_cc_d1 > 0:
             green.append(state)
-        elif state.renko_w1 == state.renko_d1 == state.renko_h1 == "BEAR" and (state.chg_cc_d1 is not None and state.chg_cc_d1 < 0):
+        elif state.renko_w1 == state.renko_d1 == state.renko_h1 == "BEAR" and state.chg_cc_d1 < 0:
             red.append(state)
     return green, red
 
