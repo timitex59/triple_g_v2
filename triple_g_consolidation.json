@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-03-13T20:53:23Z",
+  "updated_at_utc": "2026-03-13T20:57:00Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 6,
+  "entry_count": 7,
   "conflicted_currencies": [],
   "invalidated_pairs": [],
   "tradable_pairs": [
@@ -23,7 +23,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": -0.15914064054107785
+      "best_chg_cc_d1": -0.17240236058616867
     },
     {
       "pair": "GBPUSD",
@@ -38,7 +38,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.9232890674180795
+      "best_chg_cc_d1": -0.9097994544200995
     },
     {
       "pair": "EURUSD",
@@ -53,7 +53,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.8539731906280139
+      "best_chg_cc_d1": -0.8383358382055215
     },
     {
       "pair": "GBPCHF",
@@ -68,7 +68,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.22117566305030584
+      "best_chg_cc_d1": -0.2535893378076806
     },
     {
       "pair": "GBPCAD",
@@ -83,7 +83,22 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.21269462657528895
+      "best_chg_cc_d1": -0.2517161213733383
+    },
+    {
+      "pair": "EURCAD",
+      "direction": "BEAR",
+      "strong_currency": "CAD",
+      "weak_currency": "EUR",
+      "sources": [
+        "break_line"
+      ],
+      "sections": [
+        "break_line:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": -0.18221202854230917
     }
   ],
   "tradable_by_section": {
@@ -95,7 +110,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.9232890674180795
+        "chg_cc_d1": -0.9097994544200995
       },
       {
         "pair": "EURUSD",
@@ -104,7 +119,7 @@
         "weak_currency": "EUR",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.8539731906280139
+        "chg_cc_d1": -0.8383358382055215
       },
       {
         "pair": "GBPCAD",
@@ -113,7 +128,16 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.21269462657528895
+        "chg_cc_d1": -0.2517161213733383
+      },
+      {
+        "pair": "EURCAD",
+        "direction": "BEAR",
+        "strong_currency": "CAD",
+        "weak_currency": "EUR",
+        "source": "break_line",
+        "section": "aligned",
+        "chg_cc_d1": -0.18221202854230917
       },
       {
         "pair": "EURCHF",
@@ -122,7 +146,7 @@
         "weak_currency": "EUR",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.15914064054107785
+        "chg_cc_d1": -0.17240236058616867
       }
     ],
     "break_line:retracing": [],
@@ -135,7 +159,7 @@
         "weak_currency": "GBP",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": -0.22117566305030584
+        "chg_cc_d1": -0.2535893378076806
       },
       {
         "pair": "EURCHF",
@@ -144,7 +168,7 @@
         "weak_currency": "EUR",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": -0.14808920717017082
+        "chg_cc_d1": -0.17019207391198482
       }
     ],
     "ichimoku:mid_aligned": []
@@ -165,7 +189,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": -0.15914064054107785
+      "best_chg_cc_d1": -0.17240236058616867
     }
   ]
 }
