@@ -55,11 +55,14 @@ jobs:
           REVERSAL_TZ: Europe/Paris
         run: |
           HOUR_MIN_PARIS=$(TZ="$REVERSAL_TZ" date +%H%M)
-          python break_line.py
-          python ichimoku_v4.py
-          python triple_g_consolidation.py
-          python break_line_renko_strategy.py --telegram
-          python renko_lists_tracker.py --telegram
+          export TG_BOT_TOKEN="$TELEGRAM_BOT_TOKEN"
+          export TG_CHAT_ID="$TELEGRAM_CHAT_ID"
+
+          TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python break_line.py
+          TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python ichimoku_v4.py
+          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python triple_g_consolidation.py
+          TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python break_line_renko_strategy.py --telegram
+          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_lists_tracker.py --telegram
 
 
           if [ "$HOUR_MIN_PARIS" -ge 2000 ] && [ "$HOUR_MIN_PARIS" -le 2130 ]; then
