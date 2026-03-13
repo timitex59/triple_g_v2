@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-03-13T14:56:11Z",
+  "updated_at_utc": "2026-03-13T15:04:13Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 4,
+  "entry_count": 3,
   "conflicted_currencies": [],
   "invalidated_pairs": [],
   "tradable_pairs": [
@@ -21,7 +21,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.602536047243626
+      "best_chg_cc_d1": -0.6849725711202318
     },
     {
       "pair": "EURUSD",
@@ -36,7 +36,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.42220851540712406
+      "best_chg_cc_d1": -0.47172679807834716
     },
     {
       "pair": "GBPCHF",
@@ -51,22 +51,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.30506988006941216
-    },
-    {
-      "pair": "EURCHF",
-      "direction": "BEAR",
-      "strong_currency": "CHF",
-      "weak_currency": "EUR",
-      "sources": [
-        "ichimoku"
-      ],
-      "sections": [
-        "ichimoku:aligned"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": -0.11714519373162144
+      "best_chg_cc_d1": -0.30125650656854075
     }
   ],
   "tradable_by_section": {
@@ -78,7 +63,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.602536047243626
+        "chg_cc_d1": -0.6849725711202318
       },
       {
         "pair": "EURUSD",
@@ -87,7 +72,7 @@
         "weak_currency": "EUR",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.42220851540712406
+        "chg_cc_d1": -0.47172679807834716
       }
     ],
     "break_line:retracing": [],
@@ -100,16 +85,7 @@
         "weak_currency": "GBP",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": -0.30506988006941216
-      },
-      {
-        "pair": "EURCHF",
-        "direction": "BEAR",
-        "strong_currency": "CHF",
-        "weak_currency": "EUR",
-        "source": "ichimoku",
-        "section": "aligned",
-        "chg_cc_d1": -0.11714519373162144
+        "chg_cc_d1": -0.30125650656854075
       }
     ],
     "ichimoku:mid_aligned": []
