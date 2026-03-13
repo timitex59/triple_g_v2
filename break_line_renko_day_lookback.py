@@ -16,6 +16,7 @@ from break_line import compute_break_line_state, fetch_tv_ohlc
 from break_line_renko_strategy import (
     PAIRS_29,
     compute_renko_state,
+    market_week_start_from_df,
     price_crosses_above_level,
     price_crosses_below_level,
     psar_cross_signal,
@@ -34,6 +35,7 @@ def parse_args():
     parser.add_argument("--tf", default="60", help="Signal timeframe, e.g. 60, 15, 5")
     parser.add_argument("--renko-length", type=int, default=14, help="ATR length for Renko box size")
     parser.add_argument("--signal-candles", type=int, default=1500, help="Number of signal timeframe candles fetched")
+    parser.add_argument("--weekly-candles", type=int, default=260, help="Number of weekly candles fetched")
     parser.add_argument("--daily-candles", type=int, default=500, help="Number of daily candles fetched")
     parser.add_argument("--hourly-candles", type=int, default=900, help="Number of hourly candles fetched for Renko H1")
     parser.add_argument("--show-all-bars", action="store_true", help="Print every bar of the selected day, not only true signals")
@@ -83,6 +85,21 @@ def intraday_hourly_view(signal_slice: pd.DataFrame) -> pd.DataFrame:
     return hourly.dropna()
 
 
+def intraday_weekly_view(signal_slice: pd.DataFrame) -> pd.DataFrame:
+    if signal_slice.empty:
+        return pd.DataFrame(columns=["open", "high", "low", "close"])
+
+    weekly = signal_slice.resample("W-MON").agg(
+        {
+            "open": "first",
+            "high": "max",
+            "low": "min",
+            "close": "last",
+        }
+    )
+    return weekly.dropna()
+
+
 def combine_higher_tf(base_df: pd.DataFrame, intraday_df: pd.DataFrame) -> pd.DataFrame:
     if base_df is None or base_df.empty:
         return intraday_df.copy()
@@ -114,27 +131,30 @@ def live_daily_chg_cc(prev_daily_close: float | None, current_close: float | Non
 
 def evaluate_bar(
     signal_slice: pd.DataFrame,
+    weekly_slice: pd.DataFrame,
     daily_slice: pd.DataFrame,
     hourly_slice: pd.DataFrame,
     prev_daily_close: float | None,
-    ref_dt: datetime,
     renko_length: int,
 ) -> dict:
     break_state = compute_break_line_state(signal_slice)
+    renko_w1 = compute_renko_state(weekly_slice, renko_length)
     renko_d1 = compute_renko_state(daily_slice, renko_length)
     renko_h1 = compute_renko_state(hourly_slice, renko_length)
     chg = live_daily_chg_cc(prev_daily_close, break_state.close)
+    market_week_start = market_week_start_from_df(weekly_slice)
 
     break_above_bear_vw0 = price_crosses_above_level(signal_slice, break_state.bear_vw0)
     break_below_bull_vw0 = price_crosses_below_level(signal_slice, break_state.bull_vw0)
     sar_bull_cross, sar_bear_cross = psar_cross_signal(signal_slice)
 
-    hourly_fresh = renko_brick_in_week(renko_h1.last_brick_at, ref_dt)
-    daily_fresh = renko_brick_in_week(renko_d1.last_brick_at, ref_dt)
-    freshness_ok = hourly_fresh and daily_fresh
+    weekly_fresh = renko_brick_in_week(renko_w1.last_brick_at, market_week_start)
+    hourly_fresh = renko_brick_in_week(renko_h1.last_brick_at, market_week_start)
+    daily_fresh = renko_brick_in_week(renko_d1.last_brick_at, market_week_start)
+    freshness_ok = weekly_fresh and hourly_fresh and daily_fresh
 
-    bull_filters_ok = renko_h1.direction == 1 and renko_d1.direction == 1 and freshness_ok
-    bear_filters_ok = renko_h1.direction == -1 and renko_d1.direction == -1 and freshness_ok
+    bull_filters_ok = renko_w1.direction == 1 and renko_h1.direction == 1 and renko_d1.direction == 1 and freshness_ok
+    bear_filters_ok = renko_w1.direction == -1 and renko_h1.direction == -1 and renko_d1.direction == -1 and freshness_ok
     bull_signal = bull_filters_ok and (break_above_bear_vw0 or sar_bull_cross)
     bear_signal = bear_filters_ok and (break_below_bull_vw0 or sar_bear_cross)
 
@@ -152,11 +172,14 @@ def evaluate_bar(
         "close": break_state.close,
         "bear_vw0": break_state.bear_vw0,
         "bull_vw0": break_state.bull_vw0,
+        "renko_w1": renko_w1.color,
         "renko_d1": renko_d1.color,
         "renko_h1": renko_h1.color,
         "chg_cc_d1": chg,
+        "renko_w1_last_brick_at": renko_w1.last_brick_at,
         "renko_h1_last_brick_at": renko_h1.last_brick_at,
         "renko_d1_last_brick_at": renko_d1.last_brick_at,
+        "weekly_fresh": weekly_fresh,
         "hourly_fresh": hourly_fresh,
         "daily_fresh": daily_fresh,
         "bull_filters_ok": bull_filters_ok,
@@ -178,9 +201,10 @@ def lookback_day(args) -> int:
     symbol = f"OANDA:{pair}"
 
     signal_df = fetch_tv_ohlc(symbol, args.tf, args.signal_candles)
+    weekly_df = fetch_tv_ohlc(symbol, "W", args.weekly_candles)
     daily_df = fetch_tv_ohlc(symbol, "D", args.daily_candles)
     hourly_df = fetch_tv_ohlc(symbol, "60", args.hourly_candles)
-    if signal_df is None or daily_df is None or hourly_df is None:
+    if signal_df is None or weekly_df is None or daily_df is None or hourly_df is None:
         print(f"{pair}: data unavailable")
         return 1
 
@@ -190,6 +214,7 @@ def lookback_day(args) -> int:
         print(f"{pair}: no {args.tf} bars found on {args.date} (Paris time)")
         return 1
 
+    combined_weekly = combine_higher_tf(weekly_df, intraday_weekly_view(signal_df))
     combined_daily = combine_higher_tf(daily_df, intraday_daily_view(signal_df))
     combined_hourly = combine_higher_tf(hourly_df, intraday_hourly_view(signal_df))
     prev_daily_close = previous_official_daily_close(daily_df, start_local)
@@ -204,9 +229,10 @@ def lookback_day(args) -> int:
     true_rows = []
     for ts, _ in signal_day.iterrows():
         signal_slice = signal_df.loc[:ts]
+        weekly_slice = combined_weekly.loc[:ts]
         daily_slice = combined_daily.loc[:ts]
         hourly_slice = combined_hourly.loc[:ts]
-        result = evaluate_bar(signal_slice, daily_slice, hourly_slice, prev_daily_close, ts.to_pydatetime(), args.renko_length)
+        result = evaluate_bar(signal_slice, weekly_slice, daily_slice, hourly_slice, prev_daily_close, args.renko_length)
         row = {
             "ts": ts,
             **result,
@@ -217,8 +243,8 @@ def lookback_day(args) -> int:
             print(
                 f"{ts.strftime('%Y-%m-%d %H:%M')} "
                 f"SIG={row['signal_direction']:<4} "
-                f"RENKO={row['renko_h1']}/{row['renko_d1']} "
-                f"FRESH={row['hourly_fresh']}/{row['daily_fresh']} "
+                f"RENKO={row['renko_w1']}/{row['renko_h1']}/{row['renko_d1']} "
+                f"FRESH={row['weekly_fresh']}/{row['hourly_fresh']}/{row['daily_fresh']} "
                 f"CHG={chg_txt} "
                 f"TRIG={trigger_txt}"
             )

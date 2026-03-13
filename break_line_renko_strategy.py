@@ -6,11 +6,13 @@ Strategy screener inspired by break_line.py with Renko filters.
 
 Bull signal:
 - H1 close crosses above the latest bear_vw0, or H1 price crosses above PSAR
+- W1 Renko ATR(14) is bullish
 - D1 Renko ATR(14) is bullish
 - H1 Renko ATR(14) is bullish
 
 Bear signal:
 - H1 close crosses below the latest bull_vw0, or H1 price crosses below PSAR
+- W1 Renko ATR(14) is bearish
 - D1 Renko ATR(14) is bearish
 - H1 Renko ATR(14) is bearish
 """
@@ -19,7 +21,7 @@ import argparse
 import json
 import os
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -53,6 +55,7 @@ def parse_args():
     parser.add_argument("--pair", default=None, help="Analyze a single pair, e.g. EURUSD")
     parser.add_argument("--scan29", action="store_true", help="Scan the 29 configured instruments")
     parser.add_argument("--renko-length", type=int, default=14, help="ATR length for Renko box size")
+    parser.add_argument("--w-candles", type=int, default=260, help="Weekly candles fetched")
     parser.add_argument("--d-candles", type=int, default=320, help="Daily candles fetched")
     parser.add_argument("--h-candles", type=int, default=900, help="H1 candles fetched")
     parser.add_argument("--telegram", action="store_true", help="Send Telegram update when active persisted signals change")
@@ -191,19 +194,16 @@ def compute_renko_state(df: pd.DataFrame, length: int = 14) -> RenkoState:
     return RenkoState(direction, color, box_size, last_brick_at)
 
 
-def paris_week_bounds(ref_dt: datetime) -> tuple[datetime, datetime]:
-    ref_local = ref_dt.astimezone(PARIS_TZ)
-    start = datetime(ref_local.year, ref_local.month, ref_local.day, tzinfo=PARIS_TZ) - timedelta(days=ref_local.weekday())
-    end = start + timedelta(days=7)
-    return start, end
+def market_week_start_from_df(df: pd.DataFrame) -> pd.Timestamp | None:
+    if df is None or df.empty:
+        return None
+    return df.index[-1]
 
 
-def renko_brick_in_week(last_brick_at: pd.Timestamp | None, ref_dt: datetime) -> bool:
-    if last_brick_at is None:
+def renko_brick_in_week(last_brick_at: pd.Timestamp | None, market_week_start: pd.Timestamp | None) -> bool:
+    if last_brick_at is None or market_week_start is None:
         return False
-    ts_local = last_brick_at.tz_convert(PARIS_TZ).to_pydatetime()
-    start, end = paris_week_bounds(ref_dt)
-    return start <= ts_local < end
+    return last_brick_at >= market_week_start
 
 
 def load_tracking_state(path: str) -> dict:
@@ -261,8 +261,12 @@ def build_telegram_message(active_rows: list[dict]) -> str:
 
 
 def row_invalidation_direction(row: dict, active_direction: str) -> bool:
-    renko_ok = row["renko_h1"] == active_direction and row["renko_d1"] == active_direction
-    fresh_ok = row["hourly_fresh"] and row["daily_fresh"]
+    renko_ok = (
+        row["renko_h1"] == active_direction
+        and row["renko_d1"] == active_direction
+        and row["renko_w1"] == active_direction
+    )
+    fresh_ok = row["hourly_fresh"] and row["daily_fresh"] and row["weekly_fresh"]
     if active_direction == "BULL":
         return row["sar_bear_cross"] or row["break_below_bull_vw0"] or not (renko_ok and fresh_ok)
     return row["sar_bull_cross"] or row["break_above_bear_vw0"] or not (renko_ok and fresh_ok)
@@ -332,29 +336,32 @@ def psar_cross_signal(df: pd.DataFrame) -> tuple[bool, bool]:
     return bull_cross, bear_cross
 
 
-def analyze_pair(pair: str, renko_length: int, d_candles: int, h_candles: int) -> dict:
+def analyze_pair(pair: str, renko_length: int, w_candles: int, d_candles: int, h_candles: int) -> dict:
     symbol = f"OANDA:{pair}"
+    w1 = fetch_tv_ohlc(symbol, "W", w_candles)
     d1 = fetch_tv_ohlc(symbol, "D", d_candles)
     h1 = fetch_tv_ohlc(symbol, "60", h_candles)
-    if d1 is None or h1 is None:
+    if w1 is None or d1 is None or h1 is None:
         return {"pair": pair, "error": True}
 
     break_h1 = compute_break_line_state(h1)
+    renko_w1 = compute_renko_state(w1, renko_length)
     renko_d1 = compute_renko_state(d1, renko_length)
     renko_h1 = compute_renko_state(h1, renko_length)
     chg_cc_d1 = daily_chg_cc(d1)
-    ref_dt = datetime.now(PARIS_TZ)
+    market_week_start = market_week_start_from_df(w1)
 
     break_above_bear_vw0 = price_crosses_above_level(h1, break_h1.bear_vw0)
     break_below_bull_vw0 = price_crosses_below_level(h1, break_h1.bull_vw0)
     sar_bull_cross, sar_bear_cross = psar_cross_signal(h1)
 
-    hourly_fresh = renko_brick_in_week(renko_h1.last_brick_at, ref_dt)
-    daily_fresh = renko_brick_in_week(renko_d1.last_brick_at, ref_dt)
-    freshness_ok = hourly_fresh and daily_fresh
+    weekly_fresh = renko_brick_in_week(renko_w1.last_brick_at, market_week_start)
+    hourly_fresh = renko_brick_in_week(renko_h1.last_brick_at, market_week_start)
+    daily_fresh = renko_brick_in_week(renko_d1.last_brick_at, market_week_start)
+    freshness_ok = weekly_fresh and hourly_fresh and daily_fresh
 
-    bull_filters = renko_h1.direction == 1 and renko_d1.direction == 1 and freshness_ok
-    bear_filters = renko_h1.direction == -1 and renko_d1.direction == -1 and freshness_ok
+    bull_filters = renko_w1.direction == 1 and renko_h1.direction == 1 and renko_d1.direction == 1 and freshness_ok
+    bear_filters = renko_w1.direction == -1 and renko_h1.direction == -1 and renko_d1.direction == -1 and freshness_ok
 
     bull_trigger = break_above_bear_vw0 or sar_bull_cross
     bear_trigger = break_below_bull_vw0 or sar_bear_cross
@@ -368,10 +375,13 @@ def analyze_pair(pair: str, renko_length: int, d_candles: int, h_candles: int) -
         "close_h1": break_h1.close,
         "bear_vw0": break_h1.bear_vw0,
         "bull_vw0": break_h1.bull_vw0,
+        "renko_w1": renko_w1.color,
         "renko_h1": renko_h1.color,
         "renko_d1": renko_d1.color,
+        "renko_w1_box": renko_w1.box_size,
         "renko_h1_box": renko_h1.box_size,
         "renko_d1_box": renko_d1.box_size,
+        "renko_w1_last_brick_at": None if renko_w1.last_brick_at is None else renko_w1.last_brick_at.tz_convert(PARIS_TZ),
         "renko_h1_last_brick_at": None if renko_h1.last_brick_at is None else renko_h1.last_brick_at.tz_convert(PARIS_TZ),
         "renko_d1_last_brick_at": None if renko_d1.last_brick_at is None else renko_d1.last_brick_at.tz_convert(PARIS_TZ),
         "chg_cc_d1": chg_cc_d1,
@@ -381,6 +391,7 @@ def analyze_pair(pair: str, renko_length: int, d_candles: int, h_candles: int) -
         "sar_bear_cross": sar_bear_cross,
         "bull_filters_ok": bull_filters,
         "bear_filters_ok": bear_filters,
+        "weekly_fresh": weekly_fresh,
         "hourly_fresh": hourly_fresh,
         "daily_fresh": daily_fresh,
         "bull_signal": bull_signal,
@@ -399,13 +410,15 @@ def print_pair_report(row: dict) -> None:
     print(f"H1 CLOSE       : {row['close_h1']}")
     print(f"bear_vw0       : {row['bear_vw0']}")
     print(f"bull_vw0       : {row['bull_vw0']}")
+    print(f"RENKO W1       : {row['renko_w1']}")
     print(f"RENKO H1       : {row['renko_h1']}")
     print(f"RENKO D1       : {row['renko_d1']}")
+    print(f"RENKO W1 LAST  : {row['renko_w1_last_brick_at']}")
     print(f"RENKO H1 LAST  : {row['renko_h1_last_brick_at']}")
     print(f"RENKO D1 LAST  : {row['renko_d1_last_brick_at']}")
     print(f"BULL trigger   : break_above_bear_vw0={row['break_above_bear_vw0']} sar_crossover={row['sar_bull_cross']}")
     print(f"BEAR trigger   : break_below_bull_vw0={row['break_below_bull_vw0']} sar_crossunder={row['sar_bear_cross']}")
-    print(f"RENKO FRESH    : H1={row['hourly_fresh']} D1={row['daily_fresh']}")
+    print(f"RENKO FRESH    : W1={row['weekly_fresh']} H1={row['hourly_fresh']} D1={row['daily_fresh']}")
     print(f"BULL filters   : {row['bull_filters_ok']}")
     print(f"BEAR filters   : {row['bear_filters_ok']}")
     print(f"SIGNAL         : {row['signal_direction']}")
@@ -414,15 +427,15 @@ def print_pair_report(row: dict) -> None:
 def scan_pairs(args) -> int:
     rows = []
     for pair in PAIRS_29:
-        row = analyze_pair(pair, args.renko_length, args.d_candles, args.h_candles)
+        row = analyze_pair(pair, args.renko_length, args.w_candles, args.d_candles, args.h_candles)
         rows.append(row)
         if row.get("error"):
             print(f"{pair:<8} ERROR")
             continue
         print(
             f"{pair:<8} SIG={row['signal_direction']:<4} "
-            f"RENKO={row['renko_h1']}/{row['renko_d1']} "
-            f"FRESH={row['hourly_fresh']}/{row['daily_fresh']}"
+            f"RENKO={row['renko_w1']}/{row['renko_h1']}/{row['renko_d1']} "
+            f"FRESH={row['weekly_fresh']}/{row['hourly_fresh']}/{row['daily_fresh']}"
         )
 
     previous_state = load_tracking_state(TRACKING_PATH)
@@ -470,7 +483,7 @@ def main() -> int:
     if args.scan29 or not args.pair:
         return scan_pairs(args)
 
-    row = analyze_pair(args.pair.upper(), args.renko_length, args.d_candles, args.h_candles)
+    row = analyze_pair(args.pair.upper(), args.renko_length, args.w_candles, args.d_candles, args.h_candles)
     print_pair_report(row)
     return 0 if not row.get("error") else 1
 
