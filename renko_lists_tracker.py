@@ -85,7 +85,12 @@ def telegram_lines_for_rows(rows, flame_pairs: set[str] | None = None) -> list[s
     flame_pairs = flame_pairs or set()
     lines = []
     for state in rows:
-        icon = "\U0001F7E2" if state.renko_w1 == state.renko_d1 == state.renko_h1 == "BULL" else "\U0001F534" if state.renko_w1 == state.renko_d1 == state.renko_h1 == "BEAR" else "\u26AA"
+        if state.renko_w1 == state.renko_d1 == "BULL":
+            icon = "\U0001F7E2"
+        elif state.renko_w1 == state.renko_d1 == "BEAR":
+            icon = "\U0001F534"
+        else:
+            icon = "\u26AA"
         flame = " \U0001F525" if state.pair in flame_pairs else ""
         lines.append(f"{icon} {state.pair} ({fmt_chg(state.chg_cc_d1)}){flame}")
     return lines
