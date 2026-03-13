@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-03-13T20:56:16Z",
+  "updated_at_utc": "2026-03-13T21:49:23Z",
   "telegram_aligned": {
     "GBPUSD": {
       "pair": "GBPUSD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.9097994544200995,
+      "chg_cc_d1": -0.8963098414221028,
       "flame": false,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
@@ -12,7 +12,7 @@
     "EURUSD": {
       "pair": "EURUSD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.8383358382055215,
+      "chg_cc_d1": -0.8209610021805382,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
@@ -20,7 +20,7 @@
     "GBPCAD": {
       "pair": "GBPCAD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.2517161213733383,
+      "chg_cc_d1": -0.2874400250616962,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
@@ -28,19 +28,21 @@
     "EURCAD": {
       "pair": "EURCAD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.18221202854230917,
-      "flame": true,
-      "daily_cloud_ok": true,
-      "section": "ALIGNED"
-    },
-    "EURCHF": {
-      "pair": "EURCHF",
-      "direction": "BEAR",
-      "chg_cc_d1": -0.17240236058616867,
+      "chg_cc_d1": -0.20897043832824744,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     }
   },
-  "telegram_retracing": {}
+  "telegram_retracing": {
+    "EURCHF": {
+      "pair": "EURCHF",
+      "w1d1_direction": "BEAR",
+      "chg_cc_d1": -0.1558252105298082,
+      "retrace_flame": true,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    }
+  }
 }
