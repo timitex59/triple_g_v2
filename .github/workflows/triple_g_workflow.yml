@@ -62,7 +62,9 @@ jobs:
           TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python ichimoku_v4.py
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python triple_g_consolidation.py
           TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python break_line_renko_strategy.py --telegram
-          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_alignment_index.py
+          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_alignment_index.
+          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_ashi_alignment_29pairs.py --telegram
+
 
           if [ "$HOUR_MIN_PARIS" -ge 2000 ] && [ "$HOUR_MIN_PARIS" -le 2130 ]; then
             python annual_NDX100_V1.py
@@ -96,8 +98,6 @@ jobs:
       #python annual_V1.py
       #python signal_v7_28pairs.py --no-csv
       #TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_lists_tracker.py --telegram
-
-          
 
       - name: Commit and Push History
         run: |
