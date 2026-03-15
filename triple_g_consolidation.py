@@ -8,6 +8,8 @@ Consolide les screeners break_line et ichimoku avec une logique de conflit devis
 import json
 import os
 import time
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -236,17 +238,16 @@ def build_telegram_message(payload: dict) -> str:
 
     no_entry_icon = "\u26D4"
     clock_icon = "\u23F0"
+    paris_now = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
 
-    lines = ["CONSOLIDATION", ""]
-
-    lines.extend(["", "TRADABLES", ""])
+    lines = ["CONSOLIDATION", "", ""]
     if not tradable_pairs:
         lines.append(f"{no_entry_icon} Aucune paire tradable")
     else:
         for row in tradable_pairs:
             lines.append(format_pair_line(row))
 
-    lines.extend(["", f"{clock_icon} {payload['updated_at_utc']} UTC"])
+    lines.extend(["", f"{clock_icon} {paris_now} Paris"])
     return "\n".join(lines)
 
 
