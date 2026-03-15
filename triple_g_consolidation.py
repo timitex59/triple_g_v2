@@ -243,7 +243,7 @@ def build_telegram_message(payload: dict) -> str:
     )
     paris_time = updated_at_utc.astimezone(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
 
-    lines = ["CONSOLIDATION", "", ""]
+    lines = ["CONSOLIDATION", ""]
     if not tradable_pairs:
         lines.append(f"{no_entry_icon} Aucune paire tradable")
     else:
