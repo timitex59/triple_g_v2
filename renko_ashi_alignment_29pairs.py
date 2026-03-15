@@ -135,7 +135,7 @@ def h1_psar_bias(pair: str) -> tuple[str, float | None, float | None, pd.Timesta
     return "NEUTRAL", close, sar, ts
 
 
-def daily_chg_pct(pair: str) -> float | None:
+def daily_chg_cc_daily(pair: str) -> float | None:
     df_d1 = fetch_tv_ohlc_cached(f"OANDA:{pair}", "D", 5)
     if df_d1 is None or df_d1.empty or len(df_d1) < 2:
         return None
@@ -145,6 +145,20 @@ def daily_chg_pct(pair: str) -> float | None:
     if prev_close == 0:
         return None
     return ((last_close - prev_close) / prev_close) * 100.0
+
+
+def sort_pairs_by_daily_chg_cc_desc(pairs: list[str]) -> list[tuple[str, float | None]]:
+    rows: list[tuple[str, float | None]] = []
+    for pair in pairs:
+        rows.append((pair, daily_chg_cc_daily(pair)))
+    rows.sort(
+        key=lambda row: (
+            row[1] is None,
+            -(float(row[1]) if row[1] is not None else 0.0),
+            row[0],
+        ),
+    )
+    return rows
 
 
 def build_telegram_report(trending: list[str], retracing: list[str], renko_states: dict[str, dict[str, RenkoState]]) -> str:
@@ -170,15 +184,13 @@ def build_telegram_report(trending: list[str], retracing: list[str], renko_state
         cached = ichimoku_cache.get(pair)
         if cached is not None:
             return cached
-        df_d = fetch_tv_ohlc_cached(f"OANDA:{pair}", "D", 200)
         df_h = fetch_tv_ohlc_cached(f"OANDA:{pair}", "60", 200)
-        if df_d is None or df_h is None or df_d.empty or df_h.empty:
+        if df_h is None or df_h.empty:
             ichimoku_cache[pair] = False
             return False
 
-        d_bias = ichimoku_cloud_bias(df_d)
         h_bias = ichimoku_cloud_bias(df_h)
-        ok = d_bias != 0 and d_bias == h_bias
+        ok = h_bias != 0
         ichimoku_cache[pair] = ok
         return ok
 
@@ -189,18 +201,11 @@ def build_telegram_report(trending: list[str], retracing: list[str], renko_state
         cloud = " ☁️" if ichimoku_valid(pair) else ""
         return f"{icon} {pair} ({chg_txt}){cloud}"
 
-    def sorted_rows(pairs: list[str]) -> list[tuple[str, float | None]]:
-        rows: list[tuple[str, float | None]] = []
-        for p in pairs:
-            rows.append((p, daily_chg_pct(p)))
-        rows.sort(key=lambda kv: float(kv[1]) if kv[1] is not None else float("-inf"), reverse=True)
-        return rows
-
-    for pair, chg in sorted_rows(trending):
+    for pair, chg in sort_pairs_by_daily_chg_cc_desc(trending):
         lines.append(fmt_pair(pair, chg))
 
     lines.extend(["", "RETRACING"])
-    for pair, chg in sorted_rows(retracing):
+    for pair, chg in sort_pairs_by_daily_chg_cc_desc(retracing):
         lines.append(fmt_pair(pair, chg))
 
     lines.extend(["", f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}"])
@@ -544,11 +549,14 @@ def main() -> int:
             else:
                 retracing.append(pair)
 
-    print_group("TRENDING (H1 PSAR in trend direction)", trending)
-    print_group("RETRACING (H1 PSAR against trend)", retracing)
+    trending_sorted = [pair for pair, _ in sort_pairs_by_daily_chg_cc_desc(trending)]
+    retracing_sorted = [pair for pair, _ in sort_pairs_by_daily_chg_cc_desc(retracing)]
+
+    print_group("TRENDING (H1 PSAR in trend direction)", trending_sorted)
+    print_group("RETRACING (H1 PSAR against trend)", retracing_sorted)
 
     if args.telegram:
-        send_telegram_message(build_telegram_report(trending, retracing, renko_states))
+        send_telegram_message(build_telegram_report(trending_sorted, retracing_sorted, renko_states))
     return 0
 
 
