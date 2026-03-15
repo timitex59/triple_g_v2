@@ -238,7 +238,10 @@ def build_telegram_message(payload: dict) -> str:
 
     no_entry_icon = "\u26D4"
     clock_icon = "\u23F0"
-    paris_now = datetime.now(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
+    updated_at_utc = datetime.strptime(payload["updated_at_utc"], "%Y-%m-%dT%H:%M:%SZ").replace(
+        tzinfo=ZoneInfo("UTC")
+    )
+    paris_time = updated_at_utc.astimezone(ZoneInfo("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
 
     lines = ["CONSOLIDATION", "", ""]
     if not tradable_pairs:
@@ -247,7 +250,7 @@ def build_telegram_message(payload: dict) -> str:
         for row in tradable_pairs:
             lines.append(format_pair_line(row))
 
-    lines.extend(["", f"{clock_icon} {paris_now} Paris"])
+    lines.extend(["", f"{clock_icon} {paris_time} Paris"])
     return "\n".join(lines)
 
 
