@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import Iterable
 from zoneinfo import ZoneInfo
 
+import numpy as np
 import pandas as pd
 
 from ichimoku_v4 import compute_ichimoku_bias_state, fetch_tv_ohlc, send_telegram_message
@@ -86,6 +87,7 @@ class PairCheck:
     chg_cc_daily: float | None
     d1_last_at: pd.Timestamp | None
     cloud_confirms: bool
+    sar_confirms: bool
     confirms: bool | None
 
 
@@ -198,7 +200,9 @@ def compute_renko_state(index_code: str, symbol: str, interval: str, length: int
     )
 
 
-def build_states(indices: dict[str, str], intervals: Iterable[str], length: int, candles: int) -> dict[str, dict[str, RenkoState]]:
+def build_states(
+    indices: dict[str, str], intervals: Iterable[str], length: int, candles: int
+) -> dict[str, dict[str, RenkoState]]:
     out: dict[str, dict[str, RenkoState]] = {}
     for index_code, symbol in indices.items():
         out[index_code] = {}
@@ -229,6 +233,146 @@ def daily_chg_cc(df_daily: pd.DataFrame) -> float | None:
     if prev_close == 0:
         return None
     return ((last_close - prev_close) / prev_close) * 100.0
+
+
+def calculate_psar(
+    df: pd.DataFrame,
+    start: float = 0.1,
+    increment: float = 0.1,
+    maximum: float = 0.2,
+) -> pd.Series | None:
+    if df is None or df.empty or len(df) < 2:
+        return None
+
+    highs = df["high"].astype(float).to_numpy()
+    lows = df["low"].astype(float).to_numpy()
+    closes = df["close"].astype(float).to_numpy()
+
+    psar = np.zeros(len(df), dtype=float)
+    bull = closes[1] >= closes[0]
+    af = start
+    ep = highs[0] if bull else lows[0]
+    psar[0] = lows[0] if bull else highs[0]
+
+    for i in range(1, len(df)):
+        psar[i] = psar[i - 1] + af * (ep - psar[i - 1])
+        if bull:
+            if lows[i] < psar[i]:
+                bull = False
+                psar[i] = ep
+                ep = lows[i]
+                af = start
+            else:
+                if highs[i] > ep:
+                    ep = highs[i]
+                    af = min(af + increment, maximum)
+                psar[i] = min(psar[i], lows[i - 1], lows[i - 2]) if i >= 2 else min(psar[i], lows[i - 1])
+        else:
+            if highs[i] > psar[i]:
+                bull = True
+                psar[i] = ep
+                ep = highs[i]
+                af = start
+            else:
+                if lows[i] < ep:
+                    ep = lows[i]
+                    af = min(af + increment, maximum)
+                psar[i] = max(psar[i], highs[i - 1], highs[i - 2]) if i >= 2 else max(psar[i], highs[i - 1])
+
+    return pd.Series(psar, index=df.index)
+
+
+def build_renko_brick_frame(df: pd.DataFrame | None, length: int = 14) -> pd.DataFrame | None:
+    if df is None or df.empty:
+        return None
+
+    atr_series = atr(df, length)
+    if atr_series.empty:
+        return None
+    box_size = float(atr_series.iloc[-1])
+    if pd.isna(box_size) or box_size <= 0:
+        return None
+
+    close = df["close"].astype(float)
+    anchor = float(close.iloc[0])
+    direction = 0
+    bricks: list[dict] = []
+
+    for ts, price in close.iloc[1:].items():
+        price = float(price)
+        formed = 0
+        new_direction = direction
+
+        if direction == 0:
+            if price >= anchor + box_size:
+                formed = int((price - anchor) // box_size)
+                new_direction = 1 if formed > 0 else direction
+            elif price <= anchor - box_size:
+                formed = int((anchor - price) // box_size)
+                new_direction = -1 if formed > 0 else direction
+        elif direction == 1:
+            if price >= anchor + box_size:
+                formed = int((price - anchor) // box_size)
+                new_direction = 1 if formed > 0 else direction
+            elif price <= anchor - (2.0 * box_size):
+                formed = int((anchor - price) // box_size) - 1
+                new_direction = -1 if formed > 0 else direction
+        else:
+            if price <= anchor - box_size:
+                formed = int((anchor - price) // box_size)
+                new_direction = -1 if formed > 0 else direction
+            elif price >= anchor + (2.0 * box_size):
+                formed = int((price - anchor) // box_size) - 1
+                new_direction = 1 if formed > 0 else direction
+
+        if formed <= 0:
+            continue
+
+        step = box_size if new_direction == 1 else -box_size
+        for _ in range(formed):
+            prev_anchor = anchor
+            anchor += step
+            bricks.append(
+                {
+                    "open": prev_anchor,
+                    "high": max(prev_anchor, anchor),
+                    "low": min(prev_anchor, anchor),
+                    "close": anchor,
+                    "timestamp": ts,
+                }
+            )
+        direction = new_direction
+
+    if len(bricks) < 2:
+        return None
+
+    brick_df = pd.DataFrame(bricks)
+    brick_df.index = pd.Index(brick_df.pop("timestamp"))
+    return brick_df
+
+
+def psar_confirms_trend(df_h1: pd.DataFrame | None, df_d1: pd.DataFrame | None, expected: str) -> bool:
+    if df_h1 is None or df_h1.empty or df_d1 is None or df_d1.empty:
+        return False
+
+    renko_h1 = build_renko_brick_frame(df_h1)
+    renko_d1 = build_renko_brick_frame(df_d1)
+    if renko_h1 is None or renko_d1 is None:
+        return False
+
+    psar_h1 = calculate_psar(renko_h1)
+    psar_d1 = calculate_psar(renko_d1)
+    if psar_h1 is None or psar_h1.empty or psar_d1 is None or psar_d1.empty:
+        return False
+
+    h1_close = float(renko_h1["close"].iloc[-1])
+    d1_close = float(renko_d1["close"].iloc[-1])
+    h1_psar = float(psar_h1.iloc[-1])
+    d1_psar = float(psar_d1.iloc[-1])
+
+    if expected == "BULLISH":
+        return h1_close > h1_psar and d1_close > d1_psar
+    return h1_close < h1_psar and d1_close < d1_psar
 
 
 def price_confirms_cloud(pair: str, expected: str) -> bool:
@@ -346,13 +490,15 @@ def compute_pair_checks(pairs: list[str], green_ccy: set[str], red_ccy: set[str]
         if expected is None:
             continue
 
-        df_d1 = fetch_tv_ohlc(f"OANDA:{pair}", "D", 5)
+        df_h1 = fetch_tv_ohlc(f"OANDA:{pair}", "60", 160)
+        df_d1 = fetch_tv_ohlc(f"OANDA:{pair}", "D", 160)
         d1_last_at = None if df_d1 is None or df_d1.empty else df_d1.index[-1]
         if not is_in_current_paris_week(d1_last_at):
             continue
         chg = daily_chg_cc(df_d1)
         confirms = None if chg is None else (chg > 0 if expected == "BULLISH" else chg < 0)
         cloud_confirms = price_confirms_cloud(pair, expected)
+        sar_confirms = psar_confirms_trend(df_h1, df_d1, expected)
         out.append(
             PairCheck(
                 pair=pair,
@@ -362,6 +508,7 @@ def compute_pair_checks(pairs: list[str], green_ccy: set[str], red_ccy: set[str]
                 chg_cc_daily=chg,
                 d1_last_at=d1_last_at,
                 cloud_confirms=cloud_confirms,
+                sar_confirms=sar_confirms,
                 confirms=confirms,
             )
         )
@@ -405,7 +552,8 @@ def build_telegram_message(checks: list[PairCheck]) -> str:
         lines.append("NO DEAL 😞")
     else:
         for row in sorted_checks:
-            icon = "🟢" if row.expected == "BULLISH" else "🔴"
+            base_icon = "🟢" if row.expected == "BULLISH" else "🔴"
+            icon = base_icon * (2 if row.sar_confirms else 1)
             cloud_marker = " ☁️" if row.cloud_confirms else ""
             lines.append(f"{icon} {row.pair} ({row.chg_cc_daily:+.2f}%){cloud_marker}")
 
