@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 
 from ichimoku_v4 import PAIRS_29, compute_ichimoku_bias_state, fetch_tv_ohlc, send_telegram_message
+from index_power1h import fetch_pair_chg_cc_daily
 
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
@@ -136,15 +137,11 @@ def h1_psar_bias(pair: str) -> tuple[str, float | None, float | None, pd.Timesta
 
 
 def daily_chg_cc_daily(pair: str) -> float | None:
-    df_d1 = fetch_tv_ohlc_cached(f"OANDA:{pair}", "D", 5)
-    if df_d1 is None or df_d1.empty or len(df_d1) < 2:
-        return None
-    close = df_d1["close"].astype(float)
-    prev_close = float(close.iloc[-2])
-    last_close = float(close.iloc[-1])
-    if prev_close == 0:
-        return None
-    return ((last_close - prev_close) / prev_close) * 100.0
+    try:
+        value = fetch_pair_chg_cc_daily(pair)
+    except Exception:
+        value = None
+    return None if value is None else float(value)
 
 
 def sort_pairs_by_daily_chg_cc_desc(pairs: list[str]) -> list[tuple[str, float | None]]:
@@ -154,7 +151,7 @@ def sort_pairs_by_daily_chg_cc_desc(pairs: list[str]) -> list[tuple[str, float |
     rows.sort(
         key=lambda row: (
             row[1] is None,
-            -(float(row[1]) if row[1] is not None else 0.0),
+            -(abs(float(row[1])) if row[1] is not None else 0.0),
             row[0],
         ),
     )
