@@ -8,6 +8,8 @@ Validate a trend when the following are aligned:
 - Renko Daily direction
 """
 
+from __future__ import annotations
+
 import argparse
 from dataclasses import dataclass
 from datetime import datetime
@@ -17,7 +19,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 
-from ichimoku_v4 import PAIRS_29, fetch_tv_ohlc
+from ichimoku_v4 import PAIRS_29, compute_ichimoku_bias_state, fetch_tv_ohlc, send_telegram_message
 
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
@@ -34,6 +36,24 @@ PSAR_H1_INCREMENT = 0.1
 PSAR_H1_MAXIMUM = 0.2
 
 H1_CANDLES = 260
+
+
+_OHLC_CACHE: dict[tuple[str, str], tuple[int, pd.DataFrame]] = {}
+
+
+def fetch_tv_ohlc_cached(symbol: str, interval: str, n_candles: int) -> pd.DataFrame | None:
+    key = (symbol, interval)
+    cached = _OHLC_CACHE.get(key)
+    if cached is not None:
+        cached_n, cached_df = cached
+        if cached_df is not None and not cached_df.empty and cached_n >= n_candles:
+            return cached_df
+
+    df = fetch_tv_ohlc(symbol, interval, n_candles)
+    if df is None or df.empty:
+        return df
+    _OHLC_CACHE[key] = (n_candles, df)
+    return df
 
 
 def current_paris_week_start() -> pd.Timestamp:
@@ -95,7 +115,7 @@ def calculate_psar(df: pd.DataFrame, start: float, increment: float, maximum: fl
 
 
 def h1_psar_bias(pair: str) -> tuple[str, float | None, float | None, pd.Timestamp | None]:
-    df_h1 = fetch_tv_ohlc(f"OANDA:{pair}", "60", H1_CANDLES)
+    df_h1 = fetch_tv_ohlc_cached(f"OANDA:{pair}", "60", H1_CANDLES)
     if df_h1 is None or df_h1.empty or len(df_h1) < 3:
         return "N/A", None, None, None
 
@@ -113,6 +133,78 @@ def h1_psar_bias(pair: str) -> tuple[str, float | None, float | None, pd.Timesta
     if close < sar:
         return "BEAR", close, sar, ts
     return "NEUTRAL", close, sar, ts
+
+
+def daily_chg_pct(pair: str) -> float | None:
+    df_d1 = fetch_tv_ohlc_cached(f"OANDA:{pair}", "D", 5)
+    if df_d1 is None or df_d1.empty or len(df_d1) < 2:
+        return None
+    close = df_d1["close"].astype(float)
+    prev_close = float(close.iloc[-2])
+    last_close = float(close.iloc[-1])
+    if prev_close == 0:
+        return None
+    return ((last_close - prev_close) / prev_close) * 100.0
+
+
+def build_telegram_report(trending: list[str], retracing: list[str], renko_states: dict[str, dict[str, RenkoState]]) -> str:
+    lines: list[str] = ["RENKO_HEIKEN", "", "TRENDING"]
+
+    ichimoku_cache: dict[str, bool] = {}
+
+    def ichimoku_cloud_bias(df: pd.DataFrame) -> int:
+        state = compute_ichimoku_bias_state(df)
+        if (
+            state.close is None
+            or state.visible_cloud_top is None
+            or state.visible_cloud_bottom is None
+        ):
+            return 0
+        if float(state.close) > float(state.visible_cloud_top):
+            return 1
+        if float(state.close) < float(state.visible_cloud_bottom):
+            return -1
+        return 0
+
+    def ichimoku_valid(pair: str) -> bool:
+        cached = ichimoku_cache.get(pair)
+        if cached is not None:
+            return cached
+        df_d = fetch_tv_ohlc_cached(f"OANDA:{pair}", "D", 200)
+        df_h = fetch_tv_ohlc_cached(f"OANDA:{pair}", "60", 200)
+        if df_d is None or df_h is None or df_d.empty or df_h.empty:
+            ichimoku_cache[pair] = False
+            return False
+
+        d_bias = ichimoku_cloud_bias(df_d)
+        h_bias = ichimoku_cloud_bias(df_h)
+        ok = d_bias != 0 and d_bias == h_bias
+        ichimoku_cache[pair] = ok
+        return ok
+
+    def fmt_pair(pair: str, chg: float | None) -> str:
+        d1 = renko_states.get(pair, {}).get("D")
+        icon = "🟢" if d1 and d1.direction == 1 else "🔴"
+        chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
+        cloud = " ☁️" if ichimoku_valid(pair) else ""
+        return f"{icon} {pair} ({chg_txt}){cloud}"
+
+    def sorted_rows(pairs: list[str]) -> list[tuple[str, float | None]]:
+        rows: list[tuple[str, float | None]] = []
+        for p in pairs:
+            rows.append((p, daily_chg_pct(p)))
+        rows.sort(key=lambda kv: float(kv[1]) if kv[1] is not None else float("-inf"), reverse=True)
+        return rows
+
+    for pair, chg in sorted_rows(trending):
+        lines.append(fmt_pair(pair, chg))
+
+    lines.extend(["", "RETRACING"])
+    for pair, chg in sorted_rows(retracing):
+        lines.append(fmt_pair(pair, chg))
+
+    lines.extend(["", f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}"])
+    return "\n".join(lines)
 
 
 @dataclass
@@ -144,6 +236,11 @@ def parse_args():
     )
     parser.add_argument("--length", type=int, default=14, help="ATR length.")
     parser.add_argument("--candles", type=int, default=260, help="Number of candles fetched per symbol and timeframe.")
+    parser.add_argument(
+        "--telegram",
+        action="store_true",
+        help="Send screening results to Telegram.",
+    )
     parser.add_argument(
         "--no-wicks",
         action="store_true",
@@ -449,6 +546,9 @@ def main() -> int:
 
     print_group("TRENDING (H1 PSAR in trend direction)", trending)
     print_group("RETRACING (H1 PSAR against trend)", retracing)
+
+    if args.telegram:
+        send_telegram_message(build_telegram_report(trending, retracing, renko_states))
     return 0
 
 
