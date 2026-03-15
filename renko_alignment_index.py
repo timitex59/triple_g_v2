@@ -553,9 +553,9 @@ def build_telegram_message(checks: list[PairCheck]) -> str:
     else:
         for row in sorted_checks:
             base_icon = "🟢" if row.expected == "BULLISH" else "🔴"
-            icon = base_icon * (2 if row.sar_confirms else 1)
+            confirm_icon = base_icon if row.sar_confirms else "⚪"
             cloud_marker = " ☁️" if row.cloud_confirms else ""
-            lines.append(f"{icon} {row.pair} ({row.chg_cc_daily:+.2f}%){cloud_marker}")
+            lines.append(f"{base_icon}{confirm_icon} {row.pair} ({row.chg_cc_daily:+.2f}%){cloud_marker}")
 
     lines.append("")
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}")
