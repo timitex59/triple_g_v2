@@ -37,6 +37,7 @@ PSAR_H1_INCREMENT = 0.1
 PSAR_H1_MAXIMUM = 0.2
 
 H1_CANDLES = 260
+MIN_ABS_CHG_CC_DAILY = 0.1
 
 
 _OHLC_CACHE: dict[tuple[str, str], tuple[int, pd.DataFrame]] = {}
@@ -158,52 +159,113 @@ def sort_pairs_by_daily_chg_cc_desc(pairs: list[str]) -> list[tuple[str, float |
     return rows
 
 
-def build_telegram_report(trending: list[str], retracing: list[str], renko_states: dict[str, dict[str, RenkoState]]) -> str:
-    lines: list[str] = ["RENKO_HEIKEN", "", "TRENDING"]
-
-    ichimoku_cache: dict[str, bool] = {}
-
-    def ichimoku_cloud_bias(df: pd.DataFrame) -> int:
-        state = compute_ichimoku_bias_state(df)
-        if (
-            state.close is None
-            or state.visible_cloud_top is None
-            or state.visible_cloud_bottom is None
-        ):
-            return 0
-        if float(state.close) > float(state.visible_cloud_top):
-            return 1
-        if float(state.close) < float(state.visible_cloud_bottom):
-            return -1
+def ichimoku_cloud_bias(df: pd.DataFrame) -> int:
+    state = compute_ichimoku_bias_state(df)
+    if (
+        state.close is None
+        or state.visible_cloud_top is None
+        or state.visible_cloud_bottom is None
+    ):
         return 0
+    if float(state.close) > float(state.visible_cloud_top):
+        return 1
+    if float(state.close) < float(state.visible_cloud_bottom):
+        return -1
+    return 0
 
-    def ichimoku_valid(pair: str) -> bool:
-        cached = ichimoku_cache.get(pair)
-        if cached is not None:
-            return cached
-        df_h = fetch_tv_ohlc_cached(f"OANDA:{pair}", "60", 200)
-        if df_h is None or df_h.empty:
-            ichimoku_cache[pair] = False
-            return False
 
-        h_bias = ichimoku_cloud_bias(df_h)
-        ok = h_bias != 0
-        ichimoku_cache[pair] = ok
-        return ok
+def ichimoku_h1_valid(pair: str) -> bool:
+    df_h = fetch_tv_ohlc_cached(f"OANDA:{pair}", "60", 200)
+    if df_h is None or df_h.empty:
+        return False
+    return ichimoku_cloud_bias(df_h) != 0
+
+
+def pair_passes_report_filters(pair: str, chg: float | None) -> bool:
+    if chg is None or abs(float(chg)) <= MIN_ABS_CHG_CC_DAILY:
+        return False
+    return ichimoku_h1_valid(pair)
+
+
+def expected_pair_bias(pair: str, renko_states: dict[str, dict[str, RenkoState]]) -> str | None:
+    d1 = renko_states.get(pair, {}).get("D")
+    if not d1:
+        return None
+    if d1.direction == 1:
+        return "BULL"
+    if d1.direction == -1:
+        return "BEAR"
+    return None
+
+
+def chg_confirms_expected_bias(expected: str, chg: float) -> bool:
+    if expected == "BULL":
+        return chg > 0
+    if expected == "BEAR":
+        return chg < 0
+    return False
+
+
+def filter_controversial_rows(rows: list[ReportRow]) -> list[ReportRow]:
+    strong_ccy: set[str] = set()
+    weak_ccy: set[str] = set()
+
+    for row in rows:
+        base = row.pair[:3]
+        quote = row.pair[3:6]
+        if row.expected == "BULL":
+            strong_ccy.add(base)
+            weak_ccy.add(quote)
+        elif row.expected == "BEAR":
+            weak_ccy.add(base)
+            strong_ccy.add(quote)
+
+    ambiguous_ccy = strong_ccy & weak_ccy
+    if not ambiguous_ccy:
+        return rows
+
+    return [
+        row for row in rows
+        if row.pair[:3] not in ambiguous_ccy and row.pair[3:6] not in ambiguous_ccy
+    ]
+
+
+def build_report_rows(
+    pairs: list[str],
+    renko_states: dict[str, dict[str, RenkoState]],
+) -> list[ReportRow]:
+    rows: list[ReportRow] = []
+    for pair, chg in sort_pairs_by_daily_chg_cc_desc(pairs):
+        expected = expected_pair_bias(pair, renko_states)
+        if expected is None or chg is None:
+            continue
+        if not pair_passes_report_filters(pair, chg):
+            continue
+        if not chg_confirms_expected_bias(expected, float(chg)):
+            continue
+        rows.append(ReportRow(pair=pair, chg=float(chg), expected=expected))
+    return rows
+
+
+def build_telegram_report(
+    trending_rows: list[ReportRow],
+    retracing_rows: list[ReportRow],
+    renko_states: dict[str, dict[str, RenkoState]],
+) -> str:
+    lines: list[str] = ["RENKO_HEIKEN", "", "TRENDING"]
 
     def fmt_pair(pair: str, chg: float | None) -> str:
         d1 = renko_states.get(pair, {}).get("D")
         icon = "🟢" if d1 and d1.direction == 1 else "🔴"
         chg_txt = "N/A" if chg is None else f"{chg:+.2f}%"
-        cloud = " ☁️" if ichimoku_valid(pair) else ""
-        return f"{icon} {pair} ({chg_txt}){cloud}"
+        return f"{icon} {pair} ({chg_txt}) ☁️"
 
-    for pair, chg in sort_pairs_by_daily_chg_cc_desc(trending):
-        lines.append(fmt_pair(pair, chg))
+    for row in trending_rows:
+        lines.append(fmt_pair(row.pair, row.chg))
 
     lines.extend(["", "RETRACING"])
-    for pair, chg in sort_pairs_by_daily_chg_cc_desc(retracing):
-        lines.append(fmt_pair(pair, chg))
+    for row in retracing_rows:
+        lines.append(fmt_pair(row.pair, row.chg))
 
     lines.extend(["", f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}"])
     return "\n".join(lines)
@@ -228,6 +290,13 @@ class HeikinAshiState:
     label: str
     color: str
     last_at: pd.Timestamp | None
+
+
+@dataclass
+class ReportRow:
+    pair: str
+    chg: float
+    expected: str
 
 
 def parse_args():
@@ -546,14 +615,16 @@ def main() -> int:
             else:
                 retracing.append(pair)
 
-    trending_sorted = [pair for pair, _ in sort_pairs_by_daily_chg_cc_desc(trending)]
-    retracing_sorted = [pair for pair, _ in sort_pairs_by_daily_chg_cc_desc(retracing)]
+    trending_rows = filter_controversial_rows(build_report_rows(trending, renko_states))
+    retracing_rows = build_report_rows(retracing, renko_states)
+    trending_sorted = [row.pair for row in trending_rows]
+    retracing_sorted = [row.pair for row in retracing_rows]
 
     print_group("TRENDING (H1 PSAR in trend direction)", trending_sorted)
     print_group("RETRACING (H1 PSAR against trend)", retracing_sorted)
 
     if args.telegram:
-        send_telegram_message(build_telegram_report(trending_sorted, retracing_sorted, renko_states))
+        send_telegram_message(build_telegram_report(trending_rows, retracing_rows, renko_states))
     return 0
 
 
