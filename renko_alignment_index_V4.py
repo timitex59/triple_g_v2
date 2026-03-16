@@ -21,6 +21,9 @@ from renko_alignment_index_V2 import compute_pair_checks as compute_filtered_pai
 from renko_alignment_index_V3 import compute_pair_checks as compute_direct_pair_checks
 
 
+MIN_ABS_CHG_CC_DAILY = 0.1
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Merge V2 filtered signals and V3 direct signals into one Telegram message.")
     parser.add_argument("--length", type=int, default=14, help="ATR length.")
@@ -29,7 +32,13 @@ def parse_args():
 
 
 def confirmed_rows(checks):
-    return [row for row in checks if row.confirms is True]
+    return [
+        row
+        for row in checks
+        if row.confirms is True
+        and row.chg_cc_daily is not None
+        and abs(float(row.chg_cc_daily)) > MIN_ABS_CHG_CC_DAILY
+    ]
 
 
 def sort_rows(rows):
