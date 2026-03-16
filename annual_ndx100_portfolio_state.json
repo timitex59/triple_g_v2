@@ -1,8 +1,8 @@
 {
   "version": 1,
   "created_at": "1970-01-01 00:00:00",
-  "updated_at": "2026-03-13 19:52:36",
-  "run_count": 48,
+  "updated_at": "2026-03-16 19:26:15",
+  "run_count": 49,
   "cash": 331.41559800000243,
   "positions": {
     "EURONEXT:ISOE": {
@@ -33,7 +33,7 @@
   "realized_pnl": -342.1176260824026,
   "fees_paid": 39.67960200000001,
   "turnover_notional": 28287.06879999999,
-  "last_equity": 9105.612998000002,
+  "last_equity": 9040.361198000004,
   "history": [
     {
       "ts": "2026-02-23 19:35:22",
@@ -850,26 +850,43 @@
       "bench_isoe_100": 8949.608200681267,
       "bench_lqq_100": 10055.980534572924,
       "bench_switch": 8949.608200681267
+    },
+    {
+      "ts": "2026-03-16 19:26:15",
+      "run": 49,
+      "regime": "NONE",
+      "n_lqq": 7,
+      "n_isoe": 7,
+      "equity_before": 9040.361198000004,
+      "equity_after": 9040.361198000004,
+      "cash": 331.41559800000243,
+      "trades": 0,
+      "rebalance_allowed": true,
+      "us_open": true,
+      "eu_open": false,
+      "bench_isoe_100": 8760.490792987292,
+      "bench_lqq_100": 10159.06667635096,
+      "bench_switch": 8760.490792987292
     }
   ],
   "benchmarks": {
     "initial_capital": 10000.0,
     "isoe_100": {
       "units": 235.77784278017344,
-      "equity": 8949.608200681267,
+      "equity": 8760.490792987292,
       "fees_paid": 5.0,
       "entry_fee": 5.0
     },
     "lqq_100": {
       "units": 7.259587449157467,
-      "equity": 10055.980534572924,
+      "equity": 10159.06667635096,
       "fees_paid": 5.0,
       "entry_fee": 5.0
     },
     "regime_switch": {
       "active": "EURONEXT:ISOE",
       "units": 235.77784278017344,
-      "equity": 8949.608200681267,
+      "equity": 8760.490792987292,
       "fees_paid": 5.0,
       "entry_fee": 5.0,
       "switch_count": 0,
