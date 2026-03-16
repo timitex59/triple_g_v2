@@ -63,6 +63,7 @@ jobs:
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python triple_g_consolidation.py
           TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python break_line_renko_strategy.py --telegram
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_alignment_index.py
+          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_alignment_index_V4.py
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_ashi_alignment_29pairs.py --telegram
 
 
