@@ -421,7 +421,7 @@ def build_telegram_message(rows: list[PairAlignment], title: str) -> str:
         lines.append(f"{icon} {row.pair} ({row.daily_chg_cc:+.2f}%)")
 
     if not selected:
-        lines.append("Aucune paire alignée")
+        lines.append("NO DEAL 😞")
 
     lines.append("")
     lines.append(f"⏰ {datetime.now(PARIS_TZ):%Y-%m-%d %H:%M} Paris")
