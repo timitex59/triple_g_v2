@@ -7,18 +7,21 @@ heiken_ashi_aligned_v1.py
 Scan des 29 instruments avec la logique du script Pine `heiken_ashi_alignment.pine`:
 - Heikin Ashi Daily
 - Heikin Ashi Weekly
+- Bougie Heikin Ashi Daily vs PSAR(0.1, 0.1, 0.2)
 - Prix H1 au-dessus/en-dessous du nuage Ichimoku
 - CHG% CC daily
 
 Alignement bull:
 - HA Daily = BULL
 - HA Weekly = BULL
+- HA Daily au-dessus du PSAR
 - H1 Cloud = BULL
 - CHG% CC daily > 0 et abs(CHG% CC daily) > 0.1
 
 Alignement bear:
 - HA Daily = BEAR
 - HA Weekly = BEAR
+- HA Daily en-dessous du PSAR
 - H1 Cloud = BEAR
 - CHG% CC daily < 0 et abs(CHG% CC daily) > 0.1
 """
@@ -77,9 +80,11 @@ class PairAlignment:
     pair: str
     daily_state: int
     weekly_state: int
+    daily_psar_state: int
     h1_cloud_state: int
     daily_chg_cc: float | None
     align_state: int
+    blockers: list[str]
 
 
 @dataclass
@@ -279,6 +284,70 @@ def donchian_avg(high: pd.Series, low: pd.Series, length: int) -> pd.Series:
     return (high.rolling(length).max() + low.rolling(length).min()) / 2.0
 
 
+def parabolic_sar(high: pd.Series, low: pd.Series, step: float = 0.1, max_step: float = 0.2) -> pd.Series:
+    if len(high) < 2:
+        return pd.Series(index=high.index, dtype=float)
+
+    sar = [float(low.iloc[0])]
+    uptrend = float(high.iloc[1]) >= float(high.iloc[0])
+    ep = float(high.iloc[0]) if uptrend else float(low.iloc[0])
+    af = step
+
+    for i in range(1, len(high)):
+        prev_sar = sar[-1]
+        current_sar = prev_sar + af * (ep - prev_sar)
+
+        if uptrend:
+            if i >= 2:
+                current_sar = min(current_sar, float(low.iloc[i - 1]), float(low.iloc[i - 2]))
+            else:
+                current_sar = min(current_sar, float(low.iloc[i - 1]))
+
+            if float(low.iloc[i]) < current_sar:
+                uptrend = False
+                current_sar = ep
+                ep = float(low.iloc[i])
+                af = step
+            else:
+                if float(high.iloc[i]) > ep:
+                    ep = float(high.iloc[i])
+                    af = min(af + step, max_step)
+        else:
+            if i >= 2:
+                current_sar = max(current_sar, float(high.iloc[i - 1]), float(high.iloc[i - 2]))
+            else:
+                current_sar = max(current_sar, float(high.iloc[i - 1]))
+
+            if float(high.iloc[i]) > current_sar:
+                uptrend = True
+                current_sar = ep
+                ep = float(high.iloc[i])
+                af = step
+            else:
+                if float(low.iloc[i]) < ep:
+                    ep = float(low.iloc[i])
+                    af = min(af + step, max_step)
+
+        sar.append(current_sar)
+
+    return pd.Series(sar, index=high.index, dtype=float)
+
+
+def ha_psar_state(ha_df: pd.DataFrame, step: float = 0.1, max_step: float = 0.2) -> int:
+    if ha_df is None or ha_df.empty or len(ha_df) < 2:
+        return 0
+    sar = parabolic_sar(ha_df["ha_high"].astype(float), ha_df["ha_low"].astype(float), step=step, max_step=max_step)
+    last_sar = sar.iloc[-1]
+    last_close = float(ha_df["ha_close"].iloc[-1])
+    if pd.isna(last_sar):
+        return 0
+    if last_close > float(last_sar):
+        return 1
+    if last_close < float(last_sar):
+        return -1
+    return 0
+
+
 def ichimoku_price_state(
     df: pd.DataFrame,
     conversion_periods: int = 9,
@@ -345,21 +414,74 @@ def compute_pair_alignment(pair: str, candles_h1: int, candles_d: int, candles_w
 
     ha_daily = compute_ha_state_from_df(pair, "D", df_d)
     ha_weekly = compute_ha_state_from_df(pair, "W", df_w)
+    ha_daily_df = heikin_ashi_df(df_d)
+    daily_psar_state = ha_psar_state(ha_daily_df, step=0.1, max_step=0.2)
     h1_cloud_state = ichimoku_price_state(df_h1)
     chg = daily_chg_cc(df_d)
 
     chg_abs_ok = chg is not None and abs(chg) > MIN_ABS_DAILY_CHG_CC
-    bull = ha_daily.state == 1 and ha_weekly.state == 1 and h1_cloud_state == 1 and chg_abs_ok and chg > 0
-    bear = ha_daily.state == -1 and ha_weekly.state == -1 and h1_cloud_state == -1 and chg_abs_ok and chg < 0
+    bull = ha_daily.state == 1 and ha_weekly.state == 1 and daily_psar_state == 1 and h1_cloud_state == 1 and chg_abs_ok and chg > 0
+    bear = ha_daily.state == -1 and ha_weekly.state == -1 and daily_psar_state == -1 and h1_cloud_state == -1 and chg_abs_ok and chg < 0
     align_state = 1 if bull else -1 if bear else 0
+
+    blockers: list[str] = []
+    if align_state == 0:
+        if ha_daily.state == 1 and ha_weekly.state == 1:
+            if daily_psar_state != 1:
+                blockers.append("D1_PSAR not BULL")
+            if h1_cloud_state != 1:
+                blockers.append("H1 cloud not BULL")
+            if chg is None:
+                blockers.append("CHG% CC unavailable")
+            else:
+                if chg <= 0:
+                    blockers.append("CHG% CC not > 0")
+                if abs(chg) <= MIN_ABS_DAILY_CHG_CC:
+                    blockers.append(f"|CHG% CC| <= {MIN_ABS_DAILY_CHG_CC:.1f}")
+        elif ha_daily.state == -1 and ha_weekly.state == -1:
+            if daily_psar_state != -1:
+                blockers.append("D1_PSAR not BEAR")
+            if h1_cloud_state != -1:
+                blockers.append("H1 cloud not BEAR")
+            if chg is None:
+                blockers.append("CHG% CC unavailable")
+            else:
+                if chg >= 0:
+                    blockers.append("CHG% CC not < 0")
+                if abs(chg) <= MIN_ABS_DAILY_CHG_CC:
+                    blockers.append(f"|CHG% CC| <= {MIN_ABS_DAILY_CHG_CC:.1f}")
+        else:
+            if ha_daily.state != ha_weekly.state:
+                blockers.append("D1/W1 not aligned")
+            if ha_daily.state == 0:
+                blockers.append("D1 is MIXED")
+            if ha_weekly.state == 0:
+                blockers.append("W1 is MIXED")
+            if ha_daily.state == 1 or ha_weekly.state == 1:
+                if daily_psar_state != 1:
+                    blockers.append("D1_PSAR not BULL")
+                if h1_cloud_state != 1:
+                    blockers.append("H1 cloud not BULL")
+            if ha_daily.state == -1 or ha_weekly.state == -1:
+                if daily_psar_state != -1:
+                    blockers.append("D1_PSAR not BEAR")
+                if h1_cloud_state != -1:
+                    blockers.append("H1 cloud not BEAR")
+            if chg is None:
+                blockers.append("CHG% CC unavailable")
+            else:
+                if abs(chg) <= MIN_ABS_DAILY_CHG_CC:
+                    blockers.append(f"|CHG% CC| <= {MIN_ABS_DAILY_CHG_CC:.1f}")
 
     return PairAlignment(
         pair=pair,
         daily_state=ha_daily.state,
         weekly_state=ha_weekly.state,
+        daily_psar_state=daily_psar_state,
         h1_cloud_state=h1_cloud_state,
         daily_chg_cc=chg,
         align_state=align_state,
+        blockers=blockers,
     )
 
 
@@ -383,8 +505,8 @@ def print_table(rows: list[PairAlignment], show_all: bool) -> None:
         key=lambda row: abs(row.daily_chg_cc) if row.daily_chg_cc is not None else -1.0,
         reverse=True,
     )
-    print(f"{'PAIR':<8} {'D1':<8} {'W1':<8} {'H1_CLOUD':<10} {'CHG%CC':<10} {'ALIGN':<8}")
-    print("-" * 60)
+    print(f"{'PAIR':<8} {'D1':<8} {'W1':<8} {'D1_PSAR':<9} {'H1_CLOUD':<10} {'CHG%CC':<10} {'ALIGN':<8}")
+    print("-" * 78)
     for row in ordered_rows:
         if not show_all and row.align_state == 0:
             continue
@@ -393,9 +515,32 @@ def print_table(rows: list[PairAlignment], show_all: bool) -> None:
             f"{row.pair:<8} "
             f"{state_name(row.daily_state):<8} "
             f"{state_name(row.weekly_state):<8} "
+            f"{state_name(row.daily_psar_state):<9} "
             f"{state_name(row.h1_cloud_state):<10} "
             f"{chg_text:<10} "
             f"{state_name(row.align_state):<8}"
+        )
+
+
+def print_blockers(rows: list[PairAlignment]) -> None:
+    blocked_rows = [row for row in rows if row.align_state == 0]
+    if not blocked_rows:
+        return
+
+    print()
+    print("BLOCKERS")
+    print("-" * 78)
+    for row in blocked_rows:
+        reason = "; ".join(row.blockers) if row.blockers else "Unknown"
+        chg_text = "na" if row.daily_chg_cc is None else f"{row.daily_chg_cc:.2f}%"
+        print(
+            f"{row.pair:<8} "
+            f"D1={state_name(row.daily_state):<5} "
+            f"W1={state_name(row.weekly_state):<5} "
+            f"PSAR={state_name(row.daily_psar_state):<5} "
+            f"H1={state_name(row.h1_cloud_state):<5} "
+            f"CHG={chg_text:<8} "
+            f"-> {reason}"
         )
 
 
@@ -453,6 +598,7 @@ def main():
     rows = result.rows
     print_table(rows, show_all=args.show_all)
     print_summary(rows)
+    print_blockers(rows)
     if result.errors:
         print()
         print(f"Fetch errors: {len(result.errors)}")
