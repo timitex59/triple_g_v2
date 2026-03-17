@@ -65,6 +65,7 @@ jobs:
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_alignment_index.py
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_alignment_index_V4.py
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_ashi_alignment_29pairs.py --telegram
+          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python heiken_ashi_aligned_v1.py
 
 
           if [ "$HOUR_MIN_PARIS" -ge 2000 ] && [ "$HOUR_MIN_PARIS" -le 2130 ]; then
