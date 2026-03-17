@@ -24,7 +24,11 @@ Alignement bear:
 """
 
 import argparse
+import json
 import os
+import random
+import string
+import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -33,9 +37,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
-
-from ichimoku_v4 import PAIRS_29, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, fetch_tv_ohlc
-
+from websocket import WebSocketConnectionClosedException, create_connection
 
 TIMEFRAME_LABELS = {
     "60": "H1",
@@ -43,9 +45,20 @@ TIMEFRAME_LABELS = {
     "W": "W1",
 }
 
+PAIRS_29 = [
+    "AUDCAD", "AUDCHF", "AUDJPY", "AUDNZD", "AUDUSD",
+    "CADCHF", "CADJPY", "CHFJPY", "EURAUD", "EURCAD",
+    "EURCHF", "EURGBP", "EURJPY", "EURNZD", "EURUSD",
+    "GBPAUD", "GBPCAD", "GBPCHF", "GBPJPY", "GBPNZD",
+    "GBPUSD", "NZDCAD", "NZDCHF", "NZDJPY", "NZDUSD",
+    "USDCAD", "USDCHF", "USDJPY", "XAUUSD",
+]
+
 PARIS_TZ = ZoneInfo("Europe/Paris")
 MIN_ABS_DAILY_CHG_CC = 0.1
 ENV_PATH = Path(__file__).with_name(".env")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 
 @dataclass
@@ -67,6 +80,123 @@ class PairAlignment:
     h1_cloud_state: int
     daily_chg_cc: float | None
     align_state: int
+
+
+@dataclass
+class ScanResult:
+    rows: list[PairAlignment]
+    errors: list[str]
+
+
+def _gen_session_id() -> str:
+    return "cs_" + "".join(random.choices(string.ascii_letters + string.digits, k=12))
+
+
+def _create_msg(func, args) -> str:
+    payload = json.dumps({"m": func, "p": args})
+    return f"~m~{len(payload)}~m~{payload}"
+
+
+def _parse_frames(raw: str):
+    if raw in ("~h", "h"):
+        return [raw]
+    out = []
+    i = 0
+    while raw.startswith("~m~", i):
+        i += 3
+        j = raw.find("~m~", i)
+        if j == -1:
+            break
+        size = int(raw[i:j])
+        i = j + 3
+        out.append(raw[i : i + size])
+        i += size
+    return out if out else [raw]
+
+
+def fetch_tv_ohlc(symbol: str, interval: str, n_candles: int, timeout_s: int = 20, retries: int = 2, debug: bool = False) -> pd.DataFrame | None:
+    for attempt in range(retries + 1):
+        ws = None
+        try:
+            if debug:
+                print(f"[fetch] {symbol} {interval} attempt {attempt + 1}/{retries + 1}")
+            ws = create_connection(
+                "wss://prodata.tradingview.com/socket.io/websocket",
+                header={"Origin": "https://www.tradingview.com", "User-Agent": "Mozilla/5.0"},
+                timeout=timeout_s,
+            )
+            sid = _gen_session_id()
+            ws.send(_create_msg("chart_create_session", [sid, ""]))
+            ws.send(
+                _create_msg(
+                    "resolve_symbol",
+                    [sid, "sds_sym_1", f'={{"symbol":"{symbol}","adjustment":"splits","session":"regular"}}'],
+                )
+            )
+            ws.send(_create_msg("create_series", [sid, "sds_1", "s1", "sds_sym_1", interval, n_candles, ""]))
+
+            points = []
+            t0 = time.time()
+            while time.time() - t0 < 14:
+                try:
+                    raw = ws.recv()
+                except WebSocketConnectionClosedException:
+                    break
+
+                for frame in _parse_frames(raw):
+                    if frame in ("~h", "h"):
+                        ws.send("~h")
+                        continue
+
+                    if '"m":"timescale_update"' in frame:
+                        payload = json.loads(frame)
+                        series = payload.get("p", [None, {}])[1]
+                        if isinstance(series, dict) and "sds_1" in series:
+                            points = series["sds_1"].get("s", []) or points
+                            if debug and points:
+                                print(f"[fetch] {symbol} {interval} received {len(points)} points")
+
+                    if "series_completed" in frame:
+                        break
+
+                if "series_completed" in raw:
+                    break
+
+            if not points:
+                if debug:
+                    print(f"[fetch] {symbol} {interval} no points returned")
+                continue
+
+            rows = []
+            for item in points:
+                values = item.get("v", [])
+                if len(values) < 5:
+                    continue
+                ts, o, h, l, c = values[:5]
+                rows.append({"date": ts, "open": o, "high": h, "low": l, "close": c})
+
+            if not rows:
+                if debug:
+                    print(f"[fetch] {symbol} {interval} points had no OHLC rows")
+                continue
+
+            df = pd.DataFrame(rows)
+            df["date"] = pd.to_datetime(df["date"], unit="s", utc=True)
+            if debug:
+                print(f"[fetch] {symbol} {interval} OK rows={len(df)} first={df['date'].iloc[0]} last={df['date'].iloc[-1]}")
+            return df.set_index("date").sort_index()
+        except Exception as exc:
+            if debug:
+                print(f"[fetch] {symbol} {interval} ERROR: {type(exc).__name__}: {exc}")
+            if attempt >= retries:
+                return None
+        finally:
+            if ws:
+                try:
+                    ws.close()
+                except Exception:
+                    pass
+    return None
 
 
 def load_local_env(env_path: Path) -> None:
@@ -92,6 +222,7 @@ def parse_args():
     parser.add_argument("--show-all", action="store_true", help="Show all pairs, not only aligned ones.")
     parser.add_argument("--no-telegram", action="store_true", help="Do not send aligned pairs to Telegram.")
     parser.add_argument("--telegram-title", type=str, default="HEIKEN_ICHI", help="Telegram message title.")
+    parser.add_argument("--debug-fetch", action="store_true", help="Print websocket fetch diagnostics.")
     return parser.parse_args()
 
 
@@ -118,10 +249,16 @@ def heikin_ashi_df(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def compute_ha_state(pair: str, interval: str, candles: int) -> HaState:
-    df = fetch_tv_ohlc(f"OANDA:{pair}", interval, candles)
+def compute_ha_state(pair: str, interval: str, candles: int, debug_fetch: bool = False) -> HaState:
+    df = fetch_tv_ohlc(f"OANDA:{pair}", interval, candles, debug=debug_fetch)
     if df is None or df.empty:
         raise RuntimeError(f"Unable to fetch OHLC for {pair} on {interval}")
+    return compute_ha_state_from_df(pair, interval, df)
+
+
+def compute_ha_state_from_df(pair: str, interval: str, df: pd.DataFrame) -> HaState:
+    if df is None or df.empty:
+        raise RuntimeError(f"Unable to compute HA state for {pair} on {interval}: empty dataframe")
 
     ha = heikin_ashi_df(df)
     last_ha_open = float(ha["ha_open"].iloc[-1])
@@ -194,10 +331,10 @@ def daily_chg_cc(df_d1: pd.DataFrame) -> float | None:
     return ((last_close - prev_close) / prev_close) * 100.0
 
 
-def compute_pair_alignment(pair: str, candles_h1: int, candles_d: int, candles_w: int) -> PairAlignment:
-    df_h1 = fetch_tv_ohlc(f"OANDA:{pair}", "60", candles_h1)
-    df_d = fetch_tv_ohlc(f"OANDA:{pair}", "D", candles_d)
-    df_w = fetch_tv_ohlc(f"OANDA:{pair}", "W", candles_w)
+def compute_pair_alignment(pair: str, candles_h1: int, candles_d: int, candles_w: int, debug_fetch: bool = False) -> PairAlignment:
+    df_h1 = fetch_tv_ohlc(f"OANDA:{pair}", "60", candles_h1, debug=debug_fetch)
+    df_d = fetch_tv_ohlc(f"OANDA:{pair}", "D", candles_d, debug=debug_fetch)
+    df_w = fetch_tv_ohlc(f"OANDA:{pair}", "W", candles_w, debug=debug_fetch)
 
     if df_h1 is None or df_h1.empty:
         raise RuntimeError(f"Unable to fetch H1 OHLC for {pair}")
@@ -206,8 +343,8 @@ def compute_pair_alignment(pair: str, candles_h1: int, candles_d: int, candles_w
     if df_w is None or df_w.empty:
         raise RuntimeError(f"Unable to fetch W1 OHLC for {pair}")
 
-    ha_daily = compute_ha_state(pair, "D", candles_d)
-    ha_weekly = compute_ha_state(pair, "W", candles_w)
+    ha_daily = compute_ha_state_from_df(pair, "D", df_d)
+    ha_weekly = compute_ha_state_from_df(pair, "W", df_w)
     h1_cloud_state = ichimoku_price_state(df_h1)
     chg = daily_chg_cc(df_d)
 
@@ -226,14 +363,18 @@ def compute_pair_alignment(pair: str, candles_h1: int, candles_d: int, candles_w
     )
 
 
-def build_alignments(pairs: Iterable[str], candles_h1: int, candles_d: int, candles_w: int) -> list[PairAlignment]:
+def build_alignments(pairs: Iterable[str], candles_h1: int, candles_d: int, candles_w: int, debug_fetch: bool = False) -> ScanResult:
     rows: list[PairAlignment] = []
+    errors: list[str] = []
     for pair in pairs:
         try:
-            rows.append(compute_pair_alignment(pair, candles_h1, candles_d, candles_w))
+            rows.append(compute_pair_alignment(pair, candles_h1, candles_d, candles_w, debug_fetch=debug_fetch))
         except Exception as exc:
-            print(f"{pair:<8} ERROR: {exc}")
-    return rows
+            err = f"{pair:<8} ERROR: {exc}"
+            errors.append(err)
+            print(err)
+            time.sleep(0.5)
+    return ScanResult(rows=rows, errors=errors)
 
 
 def print_table(rows: list[PairAlignment], show_all: bool) -> None:
@@ -308,9 +449,16 @@ def main():
     load_local_env(ENV_PATH)
     args = parse_args()
     pairs = [args.pair.upper()] if args.pair else list(PAIRS_29)
-    rows = build_alignments(pairs, args.candles_h1, args.candles_d, args.candles_w)
+    result = build_alignments(pairs, args.candles_h1, args.candles_d, args.candles_w, debug_fetch=args.debug_fetch)
+    rows = result.rows
     print_table(rows, show_all=args.show_all)
     print_summary(rows)
+    if result.errors:
+        print()
+        print(f"Fetch errors: {len(result.errors)}")
+    if not rows:
+        print("No data fetched. Telegram message skipped.")
+        return
     if not args.no_telegram:
         message = build_telegram_message(rows, args.telegram_title)
         send_telegram_message(message)
