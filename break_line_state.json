@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-03-17T13:52:40Z",
+  "updated_at_utc": "2026-03-17T15:17:34Z",
   "telegram_aligned": {
     "AUDCAD": {
       "pair": "AUDCAD",
       "direction": "BULL",
-      "chg_cc_d1": 0.604482470008372,
+      "chg_cc_d1": 0.5507506948965091,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
@@ -12,7 +12,7 @@
     "AUDNZD": {
       "pair": "AUDNZD",
       "direction": "BULL",
-      "chg_cc_d1": 0.5785233564300621,
+      "chg_cc_d1": 0.49315386400556144,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
@@ -20,43 +20,47 @@
     "AUDUSD": {
       "pair": "AUDUSD",
       "direction": "BULL",
-      "chg_cc_d1": 0.5529158889077392,
+      "chg_cc_d1": 0.37615249731319583,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     },
-    "AUDJPY": {
-      "pair": "AUDJPY",
+    "CHFJPY": {
+      "pair": "CHFJPY",
       "direction": "BULL",
-      "chg_cc_d1": 0.4570026317661373,
-      "flame": true,
-      "daily_cloud_ok": true,
-      "section": "ALIGNED"
-    },
-    "AUDCHF": {
-      "pair": "AUDCHF",
-      "direction": "BULL",
-      "chg_cc_d1": 0.39314950452391667,
-      "flame": true,
-      "daily_cloud_ok": true,
-      "section": "ALIGNED"
-    },
-    "GBPAUD": {
-      "pair": "GBPAUD",
-      "direction": "BEAR",
-      "chg_cc_d1": -0.33555621628510085,
-      "flame": true,
-      "daily_cloud_ok": true,
-      "section": "ALIGNED"
-    },
-    "EURAUD": {
-      "pair": "EURAUD",
-      "direction": "BEAR",
-      "chg_cc_d1": -0.3269861952820558,
+      "chg_cc_d1": 0.1748191142168097,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     }
   },
-  "telegram_retracing": {}
+  "telegram_retracing": {
+    "AUDJPY": {
+      "pair": "AUDJPY",
+      "w1d1_direction": "BULL",
+      "chg_cc_d1": 0.32719254570027134,
+      "retrace_flame": true,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    },
+    "GBPAUD": {
+      "pair": "GBPAUD",
+      "w1d1_direction": "BEAR",
+      "chg_cc_d1": -0.16193773096037026,
+      "retrace_flame": false,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    },
+    "EURAUD": {
+      "pair": "EURAUD",
+      "w1d1_direction": "BEAR",
+      "chg_cc_d1": -0.1530442906489387,
+      "retrace_flame": false,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    }
+  }
 }
