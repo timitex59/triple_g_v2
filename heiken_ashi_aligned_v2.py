@@ -659,9 +659,17 @@ def build_telegram_message(rows: list[PairAlignment], title: str) -> str:
         [row for row in rows if row.align_state != 0 and row.daily_chg_cc is not None and row.pair in index_names],
         key=sort_key, reverse=True,
     )
-    all_pairs = [row for row in rows if row.pair not in index_names and row.daily_chg_cc is not None]
+    selected_index_ccys = {
+        INDEX_TO_CCY.get(row.pair, row.pair)
+        for row in index_selected
+    }
     idx_confirmed = sorted(
-        [r for r in all_pairs if r.idx_confirm != 0 and abs(r.daily_chg_cc) > MIN_ABS_DAILY_CHG_CC],
+        [
+            row for row in pair_selected
+            if (parts := split_pair_ccy(row.pair))
+            and parts[0] in selected_index_ccys
+            and parts[1] in selected_index_ccys
+        ],
         key=sort_key, reverse=True,
     )
 
