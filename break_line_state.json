@@ -1,5 +1,32 @@
 {
-  "updated_at_utc": "2026-03-18T00:03:53Z",
-  "telegram_aligned": {},
-  "telegram_retracing": {}
+  "updated_at_utc": "2026-03-18T05:42:21Z",
+  "telegram_aligned": {
+    "AUDCAD": {
+      "pair": "AUDCAD",
+      "direction": "BULL",
+      "chg_cc_d1": 0.20972981864539642,
+      "flame": true,
+      "daily_cloud_ok": true,
+      "section": "ALIGNED"
+    },
+    "AUDUSD": {
+      "pair": "AUDUSD",
+      "direction": "BULL",
+      "chg_cc_d1": 0.15904964319393702,
+      "flame": true,
+      "daily_cloud_ok": true,
+      "section": "ALIGNED"
+    }
+  },
+  "telegram_retracing": {
+    "AUDCHF": {
+      "pair": "AUDCHF",
+      "w1d1_direction": "BULL",
+      "chg_cc_d1": 0.2313859841079108,
+      "retrace_flame": true,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    }
+  }
 }
