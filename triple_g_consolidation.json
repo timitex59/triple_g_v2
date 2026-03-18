@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-03-18T10:13:36Z",
+  "updated_at_utc": "2026-03-18T11:12:07Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
@@ -18,27 +18,27 @@
         "ichimoku"
       ],
       "sections": [
-        "break_line:aligned",
+        "break_line:retracing",
         "ichimoku:mid_aligned"
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.25829133109719954
+      "best_chg_cc_d1": 0.17757529012933337
     }
   ],
   "tradable_by_section": {
-    "break_line:aligned": [
+    "break_line:aligned": [],
+    "break_line:retracing": [
       {
         "pair": "AUDCHF",
         "direction": "BULL",
         "strong_currency": "AUD",
         "weak_currency": "CHF",
         "source": "break_line",
-        "section": "aligned",
-        "chg_cc_d1": 0.25829133109719954
+        "section": "retracing",
+        "chg_cc_d1": 0.17757529012933337
       }
     ],
-    "break_line:retracing": [],
     "break_line:exited": [],
     "ichimoku:aligned": [],
     "ichimoku:mid_aligned": [
@@ -49,7 +49,7 @@
         "weak_currency": "CHF",
         "source": "ichimoku",
         "section": "mid_aligned",
-        "chg_cc_d1": 0.2529102616993457
+        "chg_cc_d1": 0.17040053093218174
       }
     ]
   },
@@ -64,12 +64,12 @@
         "ichimoku"
       ],
       "sections": [
-        "break_line:aligned",
+        "break_line:retracing",
         "ichimoku:mid_aligned"
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.25829133109719954
+      "best_chg_cc_d1": 0.17757529012933337
     }
   ]
 }

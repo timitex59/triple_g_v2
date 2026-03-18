@@ -1,14 +1,15 @@
 {
-  "updated_at_utc": "2026-03-18T10:12:51Z",
-  "telegram_aligned": {
+  "updated_at_utc": "2026-03-18T11:11:22Z",
+  "telegram_aligned": {},
+  "telegram_retracing": {
     "AUDCHF": {
       "pair": "AUDCHF",
-      "direction": "BULL",
-      "chg_cc_d1": 0.25829133109719954,
-      "flame": true,
-      "daily_cloud_ok": true,
-      "section": "ALIGNED"
+      "w1d1_direction": "BULL",
+      "chg_cc_d1": 0.17757529012933337,
+      "retrace_flame": false,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
     }
-  },
-  "telegram_retracing": {}
+  }
 }
