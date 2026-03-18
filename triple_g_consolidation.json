@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-03-18T11:12:07Z",
+  "updated_at_utc": "2026-03-18T12:00:15Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 2,
+  "entry_count": 1,
   "conflicted_currencies": [],
   "invalidated_pairs": [],
   "tradable_pairs": [
@@ -14,62 +14,32 @@
       "strong_currency": "AUD",
       "weak_currency": "CHF",
       "sources": [
-        "break_line",
-        "ichimoku"
+        "break_line"
       ],
       "sections": [
-        "break_line:retracing",
-        "ichimoku:mid_aligned"
+        "break_line:exited"
       ],
-      "confirmation_count": 2,
-      "stars": 2,
+      "confirmation_count": 1,
+      "stars": 1,
       "best_chg_cc_d1": 0.17757529012933337
     }
   ],
   "tradable_by_section": {
     "break_line:aligned": [],
-    "break_line:retracing": [
+    "break_line:retracing": [],
+    "break_line:exited": [
       {
         "pair": "AUDCHF",
         "direction": "BULL",
         "strong_currency": "AUD",
         "weak_currency": "CHF",
         "source": "break_line",
-        "section": "retracing",
+        "section": "exited",
         "chg_cc_d1": 0.17757529012933337
       }
     ],
-    "break_line:exited": [],
     "ichimoku:aligned": [],
-    "ichimoku:mid_aligned": [
-      {
-        "pair": "AUDCHF",
-        "direction": "BULL",
-        "strong_currency": "AUD",
-        "weak_currency": "CHF",
-        "source": "ichimoku",
-        "section": "mid_aligned",
-        "chg_cc_d1": 0.17040053093218174
-      }
-    ]
+    "ichimoku:mid_aligned": []
   },
-  "best_opportunities": [
-    {
-      "pair": "AUDCHF",
-      "direction": "BULL",
-      "strong_currency": "AUD",
-      "weak_currency": "CHF",
-      "sources": [
-        "break_line",
-        "ichimoku"
-      ],
-      "sections": [
-        "break_line:retracing",
-        "ichimoku:mid_aligned"
-      ],
-      "confirmation_count": 2,
-      "stars": 2,
-      "best_chg_cc_d1": 0.17757529012933337
-    }
-  ]
+  "best_opportunities": []
 }
