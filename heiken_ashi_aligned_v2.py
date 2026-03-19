@@ -98,6 +98,7 @@ MIN_ABS_DAILY_CHG_CC = 0.1
 ENV_PATH = Path(__file__).with_name(".env")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+SCAN_OUTPUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "heiken_ashi_scan.json")
 
 
 @dataclass
@@ -711,6 +712,29 @@ def build_telegram_message(rows: list[PairAlignment], title: str) -> str:
     return "\n".join(lines)
 
 
+def build_scan_payload(rows: list[PairAlignment]) -> dict:
+    index_names = set(INDICES.keys())
+    aligned = []
+    for row in rows:
+        if row.align_state == 0 or row.pair in index_names:
+            continue
+        aligned.append({
+            "pair": row.pair,
+            "direction": "BULL" if row.align_state == 1 else "BEAR",
+            "chg_cc_d1": row.daily_chg_cc,
+            "current_price": row.current_price,
+        })
+    return {
+        "updated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "aligned_pairs": aligned,
+    }
+
+
+def save_scan(path: str, payload: dict) -> None:
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+
+
 def send_telegram_message(message: str) -> None:
     bot_token = TELEGRAM_BOT_TOKEN or os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = TELEGRAM_CHAT_ID or os.getenv("TELEGRAM_CHAT_ID")
@@ -743,6 +767,8 @@ def main():
     if not rows:
         print("No data fetched. Telegram message skipped.")
         return
+    save_scan(SCAN_OUTPUT_PATH, build_scan_payload(rows))
+    print(f"Scan saved to {SCAN_OUTPUT_PATH}")
     if not args.no_telegram:
         message = build_telegram_message(rows, args.telegram_title)
         send_telegram_message(message)
