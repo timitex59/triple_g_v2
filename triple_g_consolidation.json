@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-03-19T20:28:09Z",
+  "updated_at_utc": "2026-03-19T20:58:03Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 8,
+  "entry_count": 7,
   "conflicted_currencies": [],
   "invalidated_pairs": [],
   "tradable_pairs": [
@@ -23,7 +23,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.9527956621359659
+      "best_chg_cc_d1": 0.9838988937617285
     },
     {
       "pair": "AUDUSD",
@@ -40,7 +40,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.8898570533629446
+      "best_chg_cc_d1": 0.9055185375021403
     },
     {
       "pair": "NZDCHF",
@@ -55,7 +55,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.6896251658798596
+      "best_chg_cc_d1": 0.7135553766832617
     },
     {
       "pair": "AUDCHF",
@@ -70,7 +70,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.21897548192554817
+      "best_chg_cc_d1": 0.27282191190725436
     },
     {
       "pair": "EURNZD",
@@ -85,22 +85,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.16143969797112437
-    },
-    {
-      "pair": "EURGBP",
-      "direction": "BEAR",
-      "strong_currency": "GBP",
-      "weak_currency": "EUR",
-      "sources": [
-        "break_line"
-      ],
-      "sections": [
-        "break_line:exited"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": -0.1551356858386598
+      "best_chg_cc_d1": -0.17814035638192724
     }
   ],
   "tradable_by_section": {
@@ -112,7 +97,7 @@
         "weak_currency": "CAD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.9527956621359659
+        "chg_cc_d1": 0.9838988937617285
       },
       {
         "pair": "AUDUSD",
@@ -121,7 +106,7 @@
         "weak_currency": "USD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.8898570533629446
+        "chg_cc_d1": 0.8998234523606118
       },
       {
         "pair": "NZDCHF",
@@ -130,7 +115,7 @@
         "weak_currency": "CHF",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.6896251658798596
+        "chg_cc_d1": 0.7135553766832617
       },
       {
         "pair": "AUDCHF",
@@ -139,7 +124,7 @@
         "weak_currency": "CHF",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.21897548192554817
+        "chg_cc_d1": 0.27282191190725436
       }
     ],
     "break_line:retracing": [
@@ -150,20 +135,10 @@
         "weak_currency": "EUR",
         "source": "break_line",
         "section": "retracing",
-        "chg_cc_d1": -0.16143969797112437
+        "chg_cc_d1": -0.17814035638192724
       }
     ],
-    "break_line:exited": [
-      {
-        "pair": "EURGBP",
-        "direction": "BEAR",
-        "strong_currency": "GBP",
-        "weak_currency": "EUR",
-        "source": "break_line",
-        "section": "exited",
-        "chg_cc_d1": -0.1551356858386598
-      }
-    ],
+    "break_line:exited": [],
     "ichimoku:aligned": [
       {
         "pair": "AUDCAD",
@@ -172,7 +147,7 @@
         "weak_currency": "CAD",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": 0.9465750158108065
+        "chg_cc_d1": 0.9776782474365805
       },
       {
         "pair": "AUDUSD",
@@ -181,7 +156,7 @@
         "weak_currency": "USD",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": 0.8841619682214318
+        "chg_cc_d1": 0.9055185375021403
       }
     ],
     "ichimoku:mid_aligned": []
@@ -202,7 +177,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.9527956621359659
+      "best_chg_cc_d1": 0.9838988937617285
     },
     {
       "pair": "AUDUSD",
@@ -219,7 +194,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.8898570533629446
+      "best_chg_cc_d1": 0.9055185375021403
     }
   ]
 }
