@@ -65,12 +65,8 @@ jobs:
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python heiken_ashi_aligned_v2.py
 
 
-          if [ "$HOUR_MIN_PARIS" -ge 2000 ] && [ "$HOUR_MIN_PARIS" -le 2130 ]; then
-            python annual_NDX100_V1.py
-            python BTC_strategy.py
-          else
-            echo "Skip annual_NDX100_V1.py and BTC_strategy.py outside 20:00-21:30 ${REVERSAL_TZ} (current: ${HOUR_MIN_PARIS} ${REVERSAL_TZ})"
-          fi
+          #python annual_NDX100_V1.py
+          #python BTC_strategy.py
 
       # - name: Upload market cache
       #   uses: actions/upload-artifact@v4
