@@ -22,6 +22,7 @@ import requests
 PARIS_TZ = ZoneInfo("Europe/Paris")
 CAPITAL_PER_PAIR = 10.0  # USD per position
 LEVERAGE = 50            # 50:1 forex leverage
+STARTING_CAPITAL = 10_000.0  # USD capital de départ par stratégie
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONSOLIDATION_PATH = os.path.join(SCRIPT_DIR, "triple_g_consolidation.json")
@@ -342,15 +343,21 @@ def build_telegram_message(results: dict[str, dict]) -> str:
 
         real = result["total_realized"]
         lat = result["total_latent"]
+        equity = STARTING_CAPITAL + real + lat
+        pct = (equity - STARTING_CAPITAL) / STARTING_CAPITAL * 100
         lines.append(f"Réalisé: {real:+.2f}$ | Latent: {lat:+.2f}$")
+        lines.append(f"💼 Capital: {equity:,.2f}$ ({pct:+.2f}%)")
 
         grand_realized += real
         grand_latent += lat
 
+    grand_equity = 2 * STARTING_CAPITAL + grand_realized + grand_latent
+    grand_pct = (grand_equity - 2 * STARTING_CAPITAL) / (2 * STARTING_CAPITAL) * 100
     lines.extend([
         "",
         f"💰 TOTAL Réalisé: {grand_realized:+.2f}$",
         f"💰 TOTAL Latent: {grand_latent:+.2f}$",
+        f"💼 TOTAL Capital: {grand_equity:,.2f}$ / 20,000.00$ ({grand_pct:+.2f}%)",
         f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}",
     ])
     return "\n".join(lines)
