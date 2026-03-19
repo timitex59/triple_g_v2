@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-03-19T16:10:44Z",
+  "updated_at_utc": "2026-03-19T17:16:39Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 7,
+  "entry_count": 5,
   "conflicted_currencies": [],
   "invalidated_pairs": [],
   "tradable_pairs": [
@@ -23,7 +23,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.316077225354519
+      "best_chg_cc_d1": 0.27336408679310226
     },
     {
       "pair": "AUDCAD",
@@ -40,22 +40,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.18558261536706566
-    },
-    {
-      "pair": "AUDCHF",
-      "direction": "BULL",
-      "strong_currency": "AUD",
-      "weak_currency": "CHF",
-      "sources": [
-        "break_line"
-      ],
-      "sections": [
-        "break_line:exited"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": 0.1938471479341065
+      "best_chg_cc_d1": 0.23120068841818858
     },
     {
       "pair": "EURGBP",
@@ -66,26 +51,11 @@
         "break_line"
       ],
       "sections": [
-        "break_line:aligned"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": -0.19102528480132552
-    },
-    {
-      "pair": "EURNZD",
-      "direction": "BEAR",
-      "strong_currency": "NZD",
-      "weak_currency": "EUR",
-      "sources": [
-        "break_line"
-      ],
-      "sections": [
         "break_line:exited"
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.1766221147082189
+      "best_chg_cc_d1": -0.19102528480132552
     }
   ],
   "tradable_by_section": {
@@ -97,16 +67,7 @@
         "weak_currency": "USD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.279059171934615
-      },
-      {
-        "pair": "EURGBP",
-        "direction": "BEAR",
-        "strong_currency": "GBP",
-        "weak_currency": "EUR",
-        "source": "break_line",
-        "section": "aligned",
-        "chg_cc_d1": -0.19102528480132552
+        "chg_cc_d1": 0.27336408679310226
       },
       {
         "pair": "AUDCAD",
@@ -115,28 +76,19 @@
         "weak_currency": "CAD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.17832519465439692
+        "chg_cc_d1": 0.23120068841818858
       }
     ],
     "break_line:retracing": [],
     "break_line:exited": [
       {
-        "pair": "AUDCHF",
-        "direction": "BULL",
-        "strong_currency": "AUD",
-        "weak_currency": "CHF",
-        "source": "break_line",
-        "section": "exited",
-        "chg_cc_d1": 0.1938471479341065
-      },
-      {
-        "pair": "EURNZD",
+        "pair": "EURGBP",
         "direction": "BEAR",
-        "strong_currency": "NZD",
+        "strong_currency": "GBP",
         "weak_currency": "EUR",
         "source": "break_line",
         "section": "exited",
-        "chg_cc_d1": -0.1766221147082189
+        "chg_cc_d1": -0.19102528480132552
       }
     ],
     "ichimoku:aligned": [
@@ -147,7 +99,7 @@
         "weak_currency": "USD",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": 0.316077225354519
+        "chg_cc_d1": 0.2605501452246709
       },
       {
         "pair": "AUDCAD",
@@ -156,7 +108,7 @@
         "weak_currency": "CAD",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": 0.18558261536706566
+        "chg_cc_d1": 0.22394326770551987
       }
     ],
     "ichimoku:mid_aligned": []
@@ -177,7 +129,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.316077225354519
+      "best_chg_cc_d1": 0.27336408679310226
     },
     {
       "pair": "AUDCAD",
@@ -194,7 +146,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.18558261536706566
+      "best_chg_cc_d1": 0.23120068841818858
     }
   ]
 }
