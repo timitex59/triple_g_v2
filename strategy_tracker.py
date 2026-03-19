@@ -259,7 +259,7 @@ def build_telegram_message(results: dict[str, dict]) -> str:
                 entry_dt = datetime.fromisoformat(c["entry_at"].replace("Z", "+00:00"))
                 days = (datetime.now(timezone.utc) - entry_dt).days
                 lines.append(
-                    f"{icon} {c['pair']} {dir_icon} {c['pips']:+.0f} pips ({c['pnl_usd']:+.2f}$) [{days}d]"
+                    f"{icon} {c['pair']} {dir_icon} {c['pips']:+.0f} pips ({c['pnl_usd']:+.2f}$)"
                 )
 
         # Open positions
@@ -270,7 +270,7 @@ def build_telegram_message(results: dict[str, dict]) -> str:
                 dir_icon = "🟢" if o["direction"] == "BULL" else "🔴"
                 new_tag = " 🆕" if o["pair"] in result["new_opened"] else ""
                 lines.append(
-                    f"{dir_icon} {o['pair']} {o['pips']:+.0f} pips ({o['pnl_usd']:+.2f}$) [{o['days']}d]{new_tag}"
+                    f"{dir_icon} {o['pair']} {o['pips']:+.0f} pips ({o['pnl_usd']:+.2f}$){new_tag}"
                 )
         else:
             lines.append("OPEN (0)")
