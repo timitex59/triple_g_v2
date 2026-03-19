@@ -1,37 +1,6 @@
 {
   "CONSOLIDATION": {
-    "open_positions": {
-      "AUDCAD": {
-        "pair": "AUDCAD",
-        "direction": "BULL",
-        "entry_price": 0.97374,
-        "entry_at": "2026-03-19T20:53:14Z"
-      },
-      "AUDUSD": {
-        "pair": "AUDUSD",
-        "direction": "BULL",
-        "entry_price": 0.7086,
-        "entry_at": "2026-03-19T20:53:14Z"
-      },
-      "NZDCHF": {
-        "pair": "NZDCHF",
-        "direction": "BULL",
-        "entry_price": 0.4629,
-        "entry_at": "2026-03-19T20:53:14Z"
-      },
-      "AUDCHF": {
-        "pair": "AUDCHF",
-        "direction": "BULL",
-        "entry_price": 0.55858,
-        "entry_at": "2026-03-19T20:53:14Z"
-      },
-      "EURNZD": {
-        "pair": "EURNZD",
-        "direction": "BEAR",
-        "entry_price": 1.9728,
-        "entry_at": "2026-03-19T20:53:14Z"
-      }
-    },
+    "open_positions": {},
     "closed_history": [
       {
         "pair": "EURGBP",
@@ -42,9 +11,59 @@
         "exit_at": "2026-03-19T20:59:43Z",
         "pips": -4.8,
         "pnl_usd": -0.01
+      },
+      {
+        "pair": "AUDCAD",
+        "direction": "BULL",
+        "entry_price": 0.97374,
+        "entry_at": "2026-03-19T20:53:14Z",
+        "exit_price": 0.9730749999999999,
+        "exit_at": "2026-03-19T21:36:11Z",
+        "pips": -6.7,
+        "pnl_usd": -0.34
+      },
+      {
+        "pair": "AUDUSD",
+        "direction": "BULL",
+        "entry_price": 0.7086,
+        "entry_at": "2026-03-19T20:53:14Z",
+        "exit_price": 0.70846,
+        "exit_at": "2026-03-19T21:36:11Z",
+        "pips": -1.4,
+        "pnl_usd": -0.1
+      },
+      {
+        "pair": "NZDCHF",
+        "direction": "BULL",
+        "entry_price": 0.4629,
+        "entry_at": "2026-03-19T20:53:14Z",
+        "exit_price": 0.462615,
+        "exit_at": "2026-03-19T21:36:11Z",
+        "pips": -2.8,
+        "pnl_usd": -0.31
+      },
+      {
+        "pair": "AUDCHF",
+        "direction": "BULL",
+        "entry_price": 0.55858,
+        "entry_at": "2026-03-19T20:53:14Z",
+        "exit_price": 0.558315,
+        "exit_at": "2026-03-19T21:36:11Z",
+        "pips": -2.6,
+        "pnl_usd": -0.24
+      },
+      {
+        "pair": "EURNZD",
+        "direction": "BEAR",
+        "entry_price": 1.9728,
+        "entry_at": "2026-03-19T20:53:14Z",
+        "exit_price": 1.973435,
+        "exit_at": "2026-03-19T21:36:11Z",
+        "pips": -6.3,
+        "pnl_usd": -0.16
       }
     ],
-    "total_realized_pnl": -0.01
+    "total_realized_pnl": -1.16
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
@@ -129,5 +148,5 @@
     ],
     "total_realized_pnl": 0.01
   },
-  "updated_at_utc": "2026-03-19T21:10:51Z"
+  "updated_at_utc": "2026-03-19T21:36:14Z"
 }
