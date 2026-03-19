@@ -59,7 +59,7 @@ jobs:
           export TG_CHAT_ID="$TELEGRAM_CHAT_ID"
 
           TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python break_line.py
-          TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python ichimoku_v4.
+          TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python ichimoku_v4.py
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python triple_g_consolidation.py
           TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python break_line_renko_strategy.py --telegram
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python heiken_ashi_aligned_v2.py
