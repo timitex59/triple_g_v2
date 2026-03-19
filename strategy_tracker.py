@@ -21,6 +21,7 @@ import requests
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
 CAPITAL_PER_PAIR = 10.0  # USD per position
+LEVERAGE = 50            # 50:1 forex leverage
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 CONSOLIDATION_PATH = os.path.join(SCRIPT_DIR, "triple_g_consolidation.json")
@@ -29,6 +30,55 @@ STATE_PATH = os.path.join(SCRIPT_DIR, "strategy_tracker_state.json")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+
+# ---------------------------------------------------------------------------
+# Spread table (average pips, standard OANDA-like account, no commission)
+# Sources: OANDA, IC Markets, industry averages 2024-2025
+# ---------------------------------------------------------------------------
+
+SPREAD_PIPS: dict[str, float] = {
+    # Majors (USD on one side, most liquid)
+    "EURUSD": 1.4,
+    "USDJPY": 1.5,
+    "GBPUSD": 1.5,
+    "USDCHF": 1.6,
+    "USDCAD": 1.9,
+    "AUDUSD": 1.4,
+    "NZDUSD": 2.0,
+    # Minors / Crosses
+    "EURGBP": 1.8,
+    "EURJPY": 1.8,
+    "EURCAD": 2.5,
+    "EURCHF": 2.2,
+    "EURAUD": 2.5,
+    "EURNZD": 3.5,
+    "GBPJPY": 2.8,
+    "GBPCAD": 3.5,
+    "GBPCHF": 3.2,
+    "GBPAUD": 3.5,
+    "GBPNZD": 4.5,
+    "AUDJPY": 2.0,
+    "AUDCAD": 2.5,
+    "AUDCHF": 2.5,
+    "AUDNZD": 3.0,
+    "NZDJPY": 2.5,
+    "NZDCAD": 3.5,
+    "NZDCHF": 3.5,
+    "CADJPY": 2.5,
+    "CADCHF": 3.0,
+    "CHFJPY": 2.8,
+    # Metals
+    "XAUUSD": 3.0,   # ~$0.30 spread, pip_size=0.1 → 3 pips
+}
+
+DEFAULT_SPREAD_PIPS = 2.5  # fallback for unlisted pairs
+
+
+def spread_cost_price(pair: str) -> float:
+    """Return the full spread in price units for the pair."""
+    s = SPREAD_PIPS.get(pair, DEFAULT_SPREAD_PIPS)
+    return s * pip_size(pair)
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +122,7 @@ def calc_pnl_usd(direction: str, entry_price: float, exit_price: float, capital:
     d = 1 if direction == "BULL" else -1
     if entry_price == 0:
         return 0.0
-    return d * (exit_price - entry_price) / entry_price * capital
+    return d * (exit_price - entry_price) / entry_price * capital * LEVERAGE
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +218,12 @@ def process_strategy(
         if not should_close:
             continue
 
-        exit_price = prices.get(pair, pos["entry_price"])
+        raw_exit = prices.get(pair, pos["entry_price"])
+        half_spread = spread_cost_price(pair) / 2
+        if pos["direction"] == "BULL":
+            exit_price = raw_exit - half_spread   # sell at bid
+        else:
+            exit_price = raw_exit + half_spread   # buy back at ask
         pips = calc_pips(pair, pos["direction"], pos["entry_price"], exit_price)
         pnl = calc_pnl_usd(pos["direction"], pos["entry_price"], exit_price, CAPITAL_PER_PAIR)
 
@@ -192,13 +247,18 @@ def process_strategy(
     for pair, direction in current_signals.items():
         if pair in open_positions:
             continue
-        price = prices.get(pair)
-        if price is None:
+        raw_price = prices.get(pair)
+        if raw_price is None:
             continue
+        half_spread = spread_cost_price(pair) / 2
+        if direction == "BULL":
+            entry_price = raw_price + half_spread   # buy at ask
+        else:
+            entry_price = raw_price - half_spread   # sell at bid
         open_positions[pair] = {
             "pair": pair,
             "direction": direction,
-            "entry_price": price,
+            "entry_price": entry_price,
             "entry_at": now_utc,
         }
         new_opened.append(pair)
@@ -206,9 +266,14 @@ def process_strategy(
     # 3) Compute latent P&L for open positions
     open_with_pnl: list[dict] = []
     for pair, pos in open_positions.items():
-        current_price = prices.get(pair, pos["entry_price"])
-        pips = calc_pips(pair, pos["direction"], pos["entry_price"], current_price)
-        pnl = calc_pnl_usd(pos["direction"], pos["entry_price"], current_price, CAPITAL_PER_PAIR)
+        raw_price = prices.get(pair, pos["entry_price"])
+        half_spread = spread_cost_price(pair) / 2
+        if pos["direction"] == "BULL":
+            mark_price = raw_price - half_spread   # would sell at bid
+        else:
+            mark_price = raw_price + half_spread   # would buy back at ask
+        pips = calc_pips(pair, pos["direction"], pos["entry_price"], mark_price)
+        pnl = calc_pnl_usd(pos["direction"], pos["entry_price"], mark_price, CAPITAL_PER_PAIR)
         entry_dt = datetime.fromisoformat(pos["entry_at"].replace("Z", "+00:00"))
         days = (datetime.now(timezone.utc) - entry_dt).days
         open_with_pnl.append({
