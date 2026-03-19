@@ -48,48 +48,6 @@
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
-      "AUDCAD": {
-        "pair": "AUDCAD",
-        "direction": "BULL",
-        "entry_price": 0.97368,
-        "entry_at": "2026-03-19T20:59:46Z"
-      },
-      "AUDCHF": {
-        "pair": "AUDCHF",
-        "direction": "BULL",
-        "entry_price": 0.55859,
-        "entry_at": "2026-03-19T20:59:46Z"
-      },
-      "CHFJPY": {
-        "pair": "CHFJPY",
-        "direction": "BEAR",
-        "entry_price": 200.126,
-        "entry_at": "2026-03-19T20:59:46Z"
-      },
-      "EURCHF": {
-        "pair": "EURCHF",
-        "direction": "BULL",
-        "entry_price": 0.91338,
-        "entry_at": "2026-03-19T20:59:46Z"
-      },
-      "EURGBP": {
-        "pair": "EURGBP",
-        "direction": "BEAR",
-        "entry_price": 0.86288,
-        "entry_at": "2026-03-19T20:59:46Z"
-      },
-      "GBPCAD": {
-        "pair": "GBPCAD",
-        "direction": "BULL",
-        "entry_price": 1.84514,
-        "entry_at": "2026-03-19T20:59:46Z"
-      },
-      "GBPCHF": {
-        "pair": "GBPCHF",
-        "direction": "BULL",
-        "entry_price": 1.05854,
-        "entry_at": "2026-03-19T20:59:46Z"
-      },
       "XAUUSD": {
         "pair": "XAUUSD",
         "direction": "BEAR",
@@ -97,8 +55,79 @@
         "entry_at": "2026-03-19T20:59:46Z"
       }
     },
-    "closed_history": [],
-    "total_realized_pnl": 0.0
+    "closed_history": [
+      {
+        "pair": "AUDCAD",
+        "direction": "BULL",
+        "entry_price": 0.97368,
+        "entry_at": "2026-03-19T20:59:46Z",
+        "exit_price": 0.97384,
+        "exit_at": "2026-03-19T21:10:48Z",
+        "pips": 1.6,
+        "pnl_usd": 0.0
+      },
+      {
+        "pair": "AUDCHF",
+        "direction": "BULL",
+        "entry_price": 0.55859,
+        "entry_at": "2026-03-19T20:59:46Z",
+        "exit_price": 0.5588,
+        "exit_at": "2026-03-19T21:10:48Z",
+        "pips": 2.1,
+        "pnl_usd": 0.0
+      },
+      {
+        "pair": "CHFJPY",
+        "direction": "BEAR",
+        "entry_price": 200.126,
+        "entry_at": "2026-03-19T20:59:46Z",
+        "exit_price": 200.082,
+        "exit_at": "2026-03-19T21:10:48Z",
+        "pips": 4.4,
+        "pnl_usd": 0.0
+      },
+      {
+        "pair": "EURCHF",
+        "direction": "BULL",
+        "entry_price": 0.91338,
+        "entry_at": "2026-03-19T20:59:46Z",
+        "exit_price": 0.91335,
+        "exit_at": "2026-03-19T21:10:48Z",
+        "pips": -0.3,
+        "pnl_usd": -0.0
+      },
+      {
+        "pair": "EURGBP",
+        "direction": "BEAR",
+        "entry_price": 0.86288,
+        "entry_at": "2026-03-19T20:59:46Z",
+        "exit_price": 0.86266,
+        "exit_at": "2026-03-19T21:10:48Z",
+        "pips": 2.2,
+        "pnl_usd": 0.0
+      },
+      {
+        "pair": "GBPCAD",
+        "direction": "BULL",
+        "entry_price": 1.84514,
+        "entry_at": "2026-03-19T20:59:46Z",
+        "exit_price": 1.84554,
+        "exit_at": "2026-03-19T21:10:48Z",
+        "pips": 4.0,
+        "pnl_usd": 0.0
+      },
+      {
+        "pair": "GBPCHF",
+        "direction": "BULL",
+        "entry_price": 1.05854,
+        "entry_at": "2026-03-19T20:59:46Z",
+        "exit_price": 1.05882,
+        "exit_at": "2026-03-19T21:10:48Z",
+        "pips": 2.8,
+        "pnl_usd": 0.0
+      }
+    ],
+    "total_realized_pnl": 0.01
   },
-  "updated_at_utc": "2026-03-19T20:59:49Z"
+  "updated_at_utc": "2026-03-19T21:10:51Z"
 }
