@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-03-20T09:00:18Z",
+  "updated_at_utc": "2026-03-20T09:59:04Z",
   "telegram_aligned": {
     "EURCAD": {
       "pair": "EURCAD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.33728825269609986,
+      "chg_cc_d1": -0.49305638429504955,
       "flame": true,
       "daily_cloud_ok": false,
       "section": "ALIGNED"
@@ -12,9 +12,17 @@
     "GBPCAD": {
       "pair": "GBPCAD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.2623107189698319,
+      "chg_cc_d1": -0.48939375873917934,
       "flame": false,
       "daily_cloud_ok": false,
+      "section": "ALIGNED"
+    },
+    "GBPUSD": {
+      "pair": "GBPUSD",
+      "direction": "BEAR",
+      "chg_cc_d1": -0.34695336232057505,
+      "flame": true,
+      "daily_cloud_ok": true,
       "section": "ALIGNED"
     }
   },
@@ -22,7 +30,7 @@
     "CADJPY": {
       "pair": "CADJPY",
       "w1d1_direction": "BULL",
-      "chg_cc_d1": 0.6524333411729821,
+      "chg_cc_d1": 0.869330406529564,
       "retrace_flame": true,
       "daily_cloud_ok": false,
       "retrace_daily_cloud_ok": true,
@@ -31,8 +39,17 @@
     "AUDJPY": {
       "pair": "AUDJPY",
       "w1d1_direction": "BULL",
-      "chg_cc_d1": 0.49743231878611965,
+      "chg_cc_d1": 0.3864941757474924,
       "retrace_flame": true,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    },
+    "CADCHF": {
+      "pair": "CADCHF",
+      "w1d1_direction": "BULL",
+      "chg_cc_d1": 0.19876556125116274,
+      "retrace_flame": false,
       "daily_cloud_ok": false,
       "retrace_daily_cloud_ok": true,
       "section": "RETRACING"
@@ -40,28 +57,10 @@
     "EURNZD": {
       "pair": "EURNZD",
       "w1d1_direction": "BEAR",
-      "chg_cc_d1": -0.32437911809428194,
+      "chg_cc_d1": -0.15813482007095853,
       "retrace_flame": false,
       "daily_cloud_ok": false,
       "retrace_daily_cloud_ok": false,
-      "section": "RETRACING"
-    },
-    "CADCHF": {
-      "pair": "CADCHF",
-      "w1d1_direction": "BULL",
-      "chg_cc_d1": 0.25804651811555,
-      "retrace_flame": true,
-      "daily_cloud_ok": false,
-      "retrace_daily_cloud_ok": true,
-      "section": "RETRACING"
-    },
-    "NZDCHF": {
-      "pair": "NZDCHF",
-      "w1d1_direction": "BULL",
-      "chg_cc_d1": 0.23332181126857282,
-      "retrace_flame": false,
-      "daily_cloud_ok": false,
-      "retrace_daily_cloud_ok": true,
       "section": "RETRACING"
     }
   }
