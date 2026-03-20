@@ -30,12 +30,6 @@
         "direction": "BEAR",
         "entry_price": 1.840665,
         "entry_at": "2026-03-20T05:23:33Z"
-      },
-      "GBPUSD": {
-        "pair": "GBPUSD",
-        "direction": "BEAR",
-        "entry_price": 1.340625,
-        "entry_at": "2026-03-20T05:23:33Z"
       }
     },
     "closed_history": [
@@ -98,9 +92,19 @@
         "exit_at": "2026-03-19T21:36:11Z",
         "pips": -6.3,
         "pnl_usd": -0.16
+      },
+      {
+        "pair": "GBPUSD",
+        "direction": "BEAR",
+        "entry_price": 1.340625,
+        "entry_at": "2026-03-20T05:23:33Z",
+        "exit_price": 1.342665,
+        "exit_at": "2026-03-20T07:59:44Z",
+        "pips": -20.4,
+        "pnl_usd": -0.76
       }
     ],
-    "total_realized_pnl": -1.16
+    "total_realized_pnl": -1.92
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
@@ -109,6 +113,12 @@
         "direction": "BULL",
         "entry_price": 0.559945,
         "entry_at": "2026-03-20T05:23:36Z"
+      },
+      "NZDCHF": {
+        "pair": "NZDCHF",
+        "direction": "BULL",
+        "entry_price": 0.46473499999999995,
+        "entry_at": "2026-03-20T07:59:47Z"
       }
     },
     "closed_history": [
@@ -205,5 +215,5 @@
     ],
     "total_realized_pnl": 0.02
   },
-  "updated_at_utc": "2026-03-20T07:17:03Z"
+  "updated_at_utc": "2026-03-20T07:59:48Z"
 }
