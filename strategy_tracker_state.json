@@ -109,12 +109,6 @@
         "direction": "BULL",
         "entry_price": 0.559945,
         "entry_at": "2026-03-20T05:23:36Z"
-      },
-      "NZDCHF": {
-        "pair": "NZDCHF",
-        "direction": "BULL",
-        "entry_price": 0.464505,
-        "entry_at": "2026-03-20T05:23:36Z"
       }
     },
     "closed_history": [
@@ -197,9 +191,19 @@
         "exit_at": "2026-03-19T22:51:58Z",
         "pips": 57.9,
         "pnl_usd": 0.62
+      },
+      {
+        "pair": "NZDCHF",
+        "direction": "BULL",
+        "entry_price": 0.464505,
+        "entry_at": "2026-03-20T05:23:36Z",
+        "exit_price": 0.46393500000000004,
+        "exit_at": "2026-03-20T07:17:02Z",
+        "pips": -5.7,
+        "pnl_usd": -0.61
       }
     ],
-    "total_realized_pnl": 0.63
+    "total_realized_pnl": 0.02
   },
-  "updated_at_utc": "2026-03-20T05:23:37Z"
+  "updated_at_utc": "2026-03-20T07:17:03Z"
 }
