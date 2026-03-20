@@ -1,12 +1,13 @@
 {
-  "updated_at_utc": "2026-03-20T19:50:50Z",
+  "updated_at_utc": "2026-03-20T20:51:32Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 6,
+  "entry_count": 8,
   "conflicted_currencies": [
-    "CHF"
+    "CHF",
+    "EUR"
   ],
   "invalidated_pairs": [
     {
@@ -30,13 +31,34 @@
       ]
     },
     {
+      "pair": "EURCAD",
+      "direction": "BEAR",
+      "blocked_by": [
+        "EUR"
+      ],
+      "sections": [
+        "break_line:retracing"
+      ]
+    },
+    {
       "pair": "EURCHF",
       "direction": "BEAR",
       "blocked_by": [
-        "CHF"
+        "CHF",
+        "EUR"
       ],
       "sections": [
         "ichimoku:aligned"
+      ]
+    },
+    {
+      "pair": "EURJPY",
+      "direction": "BULL",
+      "blocked_by": [
+        "EUR"
+      ],
+      "sections": [
+        "break_line:aligned"
       ]
     }
   ],
@@ -54,7 +76,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 1.180303307462482
+      "best_chg_cc_d1": 1.136749679880831
     },
     {
       "pair": "GBPCAD",
@@ -69,7 +91,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.9300107308930522
+      "best_chg_cc_d1": -0.8091526930205898
     },
     {
       "pair": "GBPUSD",
@@ -84,7 +106,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.7430460420513505
+      "best_chg_cc_d1": -0.681994162844724
     }
   ],
   "tradable_by_section": {
@@ -96,7 +118,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.9300107308930522
+        "chg_cc_d1": -0.8091526930205898
       },
       {
         "pair": "GBPUSD",
@@ -105,7 +127,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.7430460420513505
+        "chg_cc_d1": -0.681994162844724
       }
     ],
     "break_line:retracing": [
@@ -116,7 +138,7 @@
         "weak_currency": "JPY",
         "source": "break_line",
         "section": "retracing",
-        "chg_cc_d1": 1.180303307462482
+        "chg_cc_d1": 1.136749679880831
       }
     ],
     "break_line:exited": [],

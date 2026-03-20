@@ -1,18 +1,26 @@
 {
-  "updated_at_utc": "2026-03-20T19:50:06Z",
+  "updated_at_utc": "2026-03-20T20:50:46Z",
   "telegram_aligned": {
     "GBPCAD": {
       "pair": "GBPCAD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.9300107308930522,
+      "chg_cc_d1": -0.8091526930205898,
       "flame": true,
+      "daily_cloud_ok": false,
+      "section": "ALIGNED"
+    },
+    "EURJPY": {
+      "pair": "EURJPY",
+      "direction": "BULL",
+      "chg_cc_d1": 0.7840112048496106,
+      "flame": false,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     },
     "GBPUSD": {
       "pair": "GBPUSD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.7430460420513505,
+      "chg_cc_d1": -0.681994162844724,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
@@ -22,17 +30,26 @@
     "CADJPY": {
       "pair": "CADJPY",
       "w1d1_direction": "BULL",
-      "chg_cc_d1": 1.180303307462482,
+      "chg_cc_d1": 1.136749679880831,
       "retrace_flame": true,
       "daily_cloud_ok": false,
       "retrace_daily_cloud_ok": true,
       "section": "RETRACING"
     },
+    "EURCAD": {
+      "pair": "EURCAD",
+      "w1d1_direction": "BEAR",
+      "chg_cc_d1": -0.3473378095734474,
+      "retrace_flame": false,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": false,
+      "section": "RETRACING"
+    },
     "CADCHF": {
       "pair": "CADCHF",
       "w1d1_direction": "BULL",
-      "chg_cc_d1": 0.25804651811555,
-      "retrace_flame": true,
+      "chg_cc_d1": 0.16389441015446887,
+      "retrace_flame": false,
       "daily_cloud_ok": false,
       "retrace_daily_cloud_ok": true,
       "section": "RETRACING"
