@@ -1,12 +1,6 @@
 {
   "CONSOLIDATION": {
     "open_positions": {
-      "AUDJPY": {
-        "pair": "AUDJPY",
-        "direction": "BULL",
-        "entry_price": 112.352,
-        "entry_at": "2026-03-20T05:23:33Z"
-      },
       "CADJPY": {
         "pair": "CADJPY",
         "direction": "BULL",
@@ -136,9 +130,19 @@
         "exit_at": "2026-03-20T16:01:57Z",
         "pips": -0.9,
         "pnl_usd": -0.05
+      },
+      {
+        "pair": "AUDJPY",
+        "direction": "BULL",
+        "entry_price": 112.352,
+        "entry_at": "2026-03-20T05:23:33Z",
+        "exit_price": 111.741,
+        "exit_at": "2026-03-20T19:52:31Z",
+        "pips": -61.1,
+        "pnl_usd": -2.72
       }
     ],
-    "total_realized_pnl": -2.41
+    "total_realized_pnl": -5.13
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
@@ -311,5 +315,5 @@
     ],
     "total_realized_pnl": -6.02
   },
-  "updated_at_utc": "2026-03-20T19:10:11Z"
+  "updated_at_utc": "2026-03-20T19:52:35Z"
 }

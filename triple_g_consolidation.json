@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-03-20T19:08:27Z",
+  "updated_at_utc": "2026-03-20T19:50:50Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 7,
+  "entry_count": 6,
   "conflicted_currencies": [
     "CHF"
   ],
@@ -54,7 +54,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 1.1262968092612367
+      "best_chg_cc_d1": 1.180303307462482
     },
     {
       "pair": "GBPCAD",
@@ -69,7 +69,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.8888214444432385
+      "best_chg_cc_d1": -0.9300107308930522
     },
     {
       "pair": "GBPUSD",
@@ -84,22 +84,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.7839954732265284
-    },
-    {
-      "pair": "AUDJPY",
-      "direction": "BULL",
-      "strong_currency": "AUD",
-      "weak_currency": "JPY",
-      "sources": [
-        "break_line"
-      ],
-      "sections": [
-        "break_line:exited"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": 0.23082291051585838
+      "best_chg_cc_d1": -0.7430460420513505
     }
   ],
   "tradable_by_section": {
@@ -111,7 +96,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.8888214444432385
+        "chg_cc_d1": -0.9300107308930522
       },
       {
         "pair": "GBPUSD",
@@ -120,7 +105,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.7839954732265284
+        "chg_cc_d1": -0.7430460420513505
       }
     ],
     "break_line:retracing": [
@@ -131,20 +116,10 @@
         "weak_currency": "JPY",
         "source": "break_line",
         "section": "retracing",
-        "chg_cc_d1": 1.1262968092612367
+        "chg_cc_d1": 1.180303307462482
       }
     ],
-    "break_line:exited": [
-      {
-        "pair": "AUDJPY",
-        "direction": "BULL",
-        "strong_currency": "AUD",
-        "weak_currency": "JPY",
-        "source": "break_line",
-        "section": "exited",
-        "chg_cc_d1": 0.23082291051585838
-      }
-    ],
+    "break_line:exited": [],
     "ichimoku:aligned": [],
     "ichimoku:mid_aligned": []
   },
