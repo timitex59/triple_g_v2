@@ -142,12 +142,6 @@
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
-      "AUDUSD": {
-        "pair": "AUDUSD",
-        "direction": "BEAR",
-        "entry_price": 0.70331,
-        "entry_at": "2026-03-20T16:02:01Z"
-      },
       "EURNZD": {
         "pair": "EURNZD",
         "direction": "BULL",
@@ -159,6 +153,12 @@
         "direction": "BEAR",
         "entry_price": 4561.97,
         "entry_at": "2026-03-20T16:02:01Z"
+      },
+      "EURJPY": {
+        "pair": "EURJPY",
+        "direction": "BULL",
+        "entry_price": 184.07899999999998,
+        "entry_at": "2026-03-20T17:05:44Z"
       }
     },
     "closed_history": [
@@ -291,9 +291,19 @@
         "exit_at": "2026-03-20T11:49:25Z",
         "pips": -277.3,
         "pnl_usd": -2.99
+      },
+      {
+        "pair": "AUDUSD",
+        "direction": "BEAR",
+        "entry_price": 0.70331,
+        "entry_at": "2026-03-20T16:02:01Z",
+        "exit_price": 0.70359,
+        "exit_at": "2026-03-20T17:05:44Z",
+        "pips": -2.8,
+        "pnl_usd": -0.2
       }
     ],
-    "total_realized_pnl": -5.82
+    "total_realized_pnl": -6.02
   },
-  "updated_at_utc": "2026-03-20T16:02:02Z"
+  "updated_at_utc": "2026-03-20T17:05:46Z"
 }
