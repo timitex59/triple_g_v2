@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-03-20T20:51:32Z",
+  "updated_at_utc": "2026-03-20T21:47:21Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
@@ -17,7 +17,7 @@
         "CHF"
       ],
       "sections": [
-        "break_line:retracing"
+        "break_line:exited"
       ]
     },
     {
@@ -76,7 +76,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 1.136749679880831
+      "best_chg_cc_d1": 1.0670638757502062
     },
     {
       "pair": "GBPCAD",
@@ -91,7 +91,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.8091526930205898
+      "best_chg_cc_d1": -0.7717571566385223
     },
     {
       "pair": "GBPUSD",
@@ -106,7 +106,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.681994162844724
+      "best_chg_cc_d1": -0.6745488117219658
     }
   ],
   "tradable_by_section": {
@@ -118,7 +118,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.8091526930205898
+        "chg_cc_d1": -0.7717571566385223
       },
       {
         "pair": "GBPUSD",
@@ -127,7 +127,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.681994162844724
+        "chg_cc_d1": -0.6745488117219658
       }
     ],
     "break_line:retracing": [
@@ -138,7 +138,7 @@
         "weak_currency": "JPY",
         "source": "break_line",
         "section": "retracing",
-        "chg_cc_d1": 1.136749679880831
+        "chg_cc_d1": 1.0670638757502062
       }
     ],
     "break_line:exited": [],
