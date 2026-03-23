@@ -1,6 +1,25 @@
 {
   "CONSOLIDATION": {
-    "open_positions": {},
+    "open_positions": {
+      "AUDUSD": {
+        "pair": "AUDUSD",
+        "direction": "BULL",
+        "entry_price": 0.70389,
+        "entry_at": "2026-03-23T15:18:27Z"
+      },
+      "GBPJPY": {
+        "pair": "GBPJPY",
+        "direction": "BULL",
+        "entry_price": 212.85000000000002,
+        "entry_at": "2026-03-23T15:18:27Z"
+      },
+      "AUDCAD": {
+        "pair": "AUDCAD",
+        "direction": "BULL",
+        "entry_price": 0.964905,
+        "entry_at": "2026-03-23T15:18:27Z"
+      }
+    },
     "closed_history": [
       {
         "pair": "EURGBP",
@@ -225,17 +244,35 @@
         "entry_price": 1.910805,
         "entry_at": "2026-03-23T05:50:33Z"
       },
-      "GBPNZD": {
-        "pair": "GBPNZD",
-        "direction": "BULL",
-        "entry_price": 2.2943249999999997,
-        "entry_at": "2026-03-23T05:50:33Z"
-      },
       "XAUUSD": {
         "pair": "XAUUSD",
         "direction": "BEAR",
         "entry_price": 4321.245000000001,
         "entry_at": "2026-03-23T05:50:33Z"
+      },
+      "EURCAD": {
+        "pair": "EURCAD",
+        "direction": "BULL",
+        "entry_price": 1.5929849999999999,
+        "entry_at": "2026-03-23T15:18:29Z"
+      },
+      "EURUSD": {
+        "pair": "EURUSD",
+        "direction": "BULL",
+        "entry_price": 1.16204,
+        "entry_at": "2026-03-23T15:18:29Z"
+      },
+      "GBPJPY": {
+        "pair": "GBPJPY",
+        "direction": "BULL",
+        "entry_price": 212.85000000000002,
+        "entry_at": "2026-03-23T15:18:29Z"
+      },
+      "GBPUSD": {
+        "pair": "GBPUSD",
+        "direction": "BULL",
+        "entry_price": 1.344235,
+        "entry_at": "2026-03-23T15:18:29Z"
       }
     },
     "closed_history": [
@@ -548,9 +585,19 @@
         "exit_at": "2026-03-23T13:52:33Z",
         "pips": -59.5,
         "pnl_usd": -5.13
+      },
+      {
+        "pair": "GBPNZD",
+        "direction": "BULL",
+        "entry_price": 2.2943249999999997,
+        "entry_at": "2026-03-23T05:50:33Z",
+        "exit_price": 2.288475,
+        "exit_at": "2026-03-23T15:18:29Z",
+        "pips": -58.5,
+        "pnl_usd": -1.27
       }
     ],
-    "total_realized_pnl": -28.95
+    "total_realized_pnl": -30.22
   },
-  "updated_at_utc": "2026-03-23T13:52:38Z"
+  "updated_at_utc": "2026-03-23T15:18:33Z"
 }
