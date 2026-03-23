@@ -1,13 +1,6 @@
 {
   "CONSOLIDATION": {
-    "open_positions": {
-      "GBPJPY": {
-        "pair": "GBPJPY",
-        "direction": "BULL",
-        "entry_price": 212.678,
-        "entry_at": "2026-03-23T19:16:46Z"
-      }
-    },
+    "open_positions": {},
     "closed_history": [
       {
         "pair": "EURGBP",
@@ -248,41 +241,27 @@
         "exit_at": "2026-03-23T18:08:16Z",
         "pips": -5.4,
         "pnl_usd": -0.13
+      },
+      {
+        "pair": "GBPJPY",
+        "direction": "BULL",
+        "entry_price": 212.678,
+        "entry_at": "2026-03-23T19:16:46Z",
+        "exit_price": 212.79,
+        "exit_at": "2026-03-23T21:53:51Z",
+        "pips": 11.2,
+        "pnl_usd": 0.26
       }
     ],
-    "total_realized_pnl": -20.18
+    "total_realized_pnl": -19.92
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
-      "AUDJPY": {
-        "pair": "AUDJPY",
-        "direction": "BEAR",
-        "entry_price": 111.088,
-        "entry_at": "2026-03-23T05:50:33Z"
-      },
-      "GBPAUD": {
-        "pair": "GBPAUD",
-        "direction": "BULL",
-        "entry_price": 1.910805,
-        "entry_at": "2026-03-23T05:50:33Z"
-      },
       "XAUUSD": {
         "pair": "XAUUSD",
         "direction": "BEAR",
         "entry_price": 4321.245000000001,
         "entry_at": "2026-03-23T05:50:33Z"
-      },
-      "GBPUSD": {
-        "pair": "GBPUSD",
-        "direction": "BULL",
-        "entry_price": 1.340775,
-        "entry_at": "2026-03-23T17:14:43Z"
-      },
-      "GBPCAD": {
-        "pair": "GBPCAD",
-        "direction": "BULL",
-        "entry_price": 1.8447550000000001,
-        "entry_at": "2026-03-23T19:16:46Z"
       }
     },
     "closed_history": [
@@ -755,9 +734,49 @@
         "exit_at": "2026-03-23T20:04:09Z",
         "pips": 7.0,
         "pnl_usd": 0.16
+      },
+      {
+        "pair": "AUDJPY",
+        "direction": "BEAR",
+        "entry_price": 111.088,
+        "entry_at": "2026-03-23T05:50:33Z",
+        "exit_price": 111.00200000000001,
+        "exit_at": "2026-03-23T21:53:52Z",
+        "pips": 8.6,
+        "pnl_usd": 0.39
+      },
+      {
+        "pair": "GBPAUD",
+        "direction": "BULL",
+        "entry_price": 1.910805,
+        "entry_at": "2026-03-23T05:50:33Z",
+        "exit_price": 1.916855,
+        "exit_at": "2026-03-23T21:53:52Z",
+        "pips": 60.5,
+        "pnl_usd": 1.58
+      },
+      {
+        "pair": "GBPUSD",
+        "direction": "BULL",
+        "entry_price": 1.340775,
+        "entry_at": "2026-03-23T17:14:43Z",
+        "exit_price": 1.343505,
+        "exit_at": "2026-03-23T21:53:52Z",
+        "pips": 27.3,
+        "pnl_usd": 1.02
+      },
+      {
+        "pair": "GBPCAD",
+        "direction": "BULL",
+        "entry_price": 1.8447550000000001,
+        "entry_at": "2026-03-23T19:16:46Z",
+        "exit_price": 1.843825,
+        "exit_at": "2026-03-23T21:53:52Z",
+        "pips": -9.3,
+        "pnl_usd": -0.25
       }
     ],
-    "total_realized_pnl": -41.6
+    "total_realized_pnl": -38.86
   },
-  "updated_at_utc": "2026-03-23T20:57:55Z"
+  "updated_at_utc": "2026-03-23T21:53:54Z"
 }
