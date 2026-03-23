@@ -1,13 +1,6 @@
 {
   "CONSOLIDATION": {
-    "open_positions": {
-      "GBPJPY": {
-        "pair": "GBPJPY",
-        "direction": "BULL",
-        "entry_price": 212.68200000000002,
-        "entry_at": "2026-03-23T17:14:43Z"
-      }
-    },
+    "open_positions": {},
     "closed_history": [
       {
         "pair": "EURGBP",
@@ -238,9 +231,19 @@
         "exit_at": "2026-03-23T17:14:43Z",
         "pips": -30.6,
         "pnl_usd": -2.17
+      },
+      {
+        "pair": "GBPJPY",
+        "direction": "BULL",
+        "entry_price": 212.68200000000002,
+        "entry_at": "2026-03-23T17:14:43Z",
+        "exit_price": 212.628,
+        "exit_at": "2026-03-23T18:08:16Z",
+        "pips": -5.4,
+        "pnl_usd": -0.13
       }
     ],
-    "total_realized_pnl": -20.05
+    "total_realized_pnl": -20.18
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
@@ -280,17 +283,23 @@
         "entry_price": 1.5914249999999999,
         "entry_at": "2026-03-23T17:14:43Z"
       },
-      "GBPJPY": {
-        "pair": "GBPJPY",
-        "direction": "BULL",
-        "entry_price": 212.68200000000002,
-        "entry_at": "2026-03-23T17:14:43Z"
-      },
       "GBPUSD": {
         "pair": "GBPUSD",
         "direction": "BULL",
         "entry_price": 1.340775,
         "entry_at": "2026-03-23T17:14:43Z"
+      },
+      "EURCHF": {
+        "pair": "EURCHF",
+        "direction": "BULL",
+        "entry_price": 0.9131600000000001,
+        "entry_at": "2026-03-23T18:08:16Z"
+      },
+      "GBPCHF": {
+        "pair": "GBPCHF",
+        "direction": "BULL",
+        "entry_price": 1.05652,
+        "entry_at": "2026-03-23T18:08:16Z"
       }
     },
     "closed_history": [
@@ -683,9 +692,19 @@
         "exit_at": "2026-03-23T17:14:43Z",
         "pips": -23.3,
         "pnl_usd": -1.26
+      },
+      {
+        "pair": "GBPJPY",
+        "direction": "BULL",
+        "entry_price": 212.68200000000002,
+        "entry_at": "2026-03-23T17:14:43Z",
+        "exit_price": 212.628,
+        "exit_at": "2026-03-23T18:08:16Z",
+        "pips": -5.4,
+        "pnl_usd": -0.13
       }
     ],
-    "total_realized_pnl": -39.58
+    "total_realized_pnl": -39.71
   },
-  "updated_at_utc": "2026-03-23T17:14:48Z"
+  "updated_at_utc": "2026-03-23T18:08:21Z"
 }
