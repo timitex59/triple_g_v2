@@ -24,12 +24,6 @@
         "direction": "BEAR",
         "entry_price": 1.583785,
         "entry_at": "2026-03-23T05:50:31Z"
-      },
-      "CADCHF": {
-        "pair": "CADCHF",
-        "direction": "BULL",
-        "entry_price": 0.57533,
-        "entry_at": "2026-03-23T05:50:31Z"
       }
     },
     "closed_history": [
@@ -162,9 +156,19 @@
         "exit_at": "2026-03-23T05:50:31Z",
         "pips": -4.6,
         "pnl_usd": -0.11
+      },
+      {
+        "pair": "CADCHF",
+        "direction": "BULL",
+        "entry_price": 0.57533,
+        "entry_at": "2026-03-23T05:50:31Z",
+        "exit_price": 0.57443,
+        "exit_at": "2026-03-23T07:42:42Z",
+        "pips": -9.0,
+        "pnl_usd": -0.78
       }
     ],
-    "total_realized_pnl": -5.24
+    "total_realized_pnl": -6.02
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
@@ -245,6 +249,18 @@
         "direction": "BEAR",
         "entry_price": 4321.245000000001,
         "entry_at": "2026-03-23T05:50:33Z"
+      },
+      "AUDCHF": {
+        "pair": "AUDCHF",
+        "direction": "BEAR",
+        "entry_price": 0.548755,
+        "entry_at": "2026-03-23T07:42:44Z"
+      },
+      "NZDCHF": {
+        "pair": "NZDCHF",
+        "direction": "BEAR",
+        "entry_price": 0.456905,
+        "entry_at": "2026-03-23T07:42:44Z"
       }
     },
     "closed_history": [
@@ -421,5 +437,5 @@
     ],
     "total_realized_pnl": 1.62
   },
-  "updated_at_utc": "2026-03-23T05:50:39Z"
+  "updated_at_utc": "2026-03-23T07:42:51Z"
 }
