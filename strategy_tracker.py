@@ -167,19 +167,24 @@ def read_consolidation_signals() -> dict[str, str]:
         return {}
 
 
-def read_heiken_signals() -> dict[str, str]:
-    """Read HEIKEN_ICHI_V2 aligned_pairs → {pair: direction}."""
+def read_heiken_signals(top_n: int = 5) -> dict[str, str]:
+    """Read HEIKEN_ICHI_V2 aligned_pairs, keep only TOP N by |chg_cc_d1|."""
     if not os.path.exists(HEIKEN_SCAN_PATH):
         return {}
     try:
         with open(HEIKEN_SCAN_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-        signals = {}
+        rows = []
         for row in data.get("aligned_pairs", []):
             pair = row.get("pair")
             direction = row.get("direction")
+            chg = row.get("chg_cc_d1", 0)
             if pair and direction in ("BULL", "BEAR"):
-                signals[pair] = direction
+                rows.append((pair, direction, abs(chg)))
+        rows.sort(key=lambda x: x[2], reverse=True)
+        signals = {}
+        for pair, direction, _ in rows[:top_n]:
+            signals[pair] = direction
         return signals
     except Exception:
         return {}
