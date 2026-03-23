@@ -256,14 +256,7 @@
     "total_realized_pnl": -19.92
   },
   "HEIKEN_ICHI_V2": {
-    "open_positions": {
-      "XAUUSD": {
-        "pair": "XAUUSD",
-        "direction": "BEAR",
-        "entry_price": 4321.245000000001,
-        "entry_at": "2026-03-23T05:50:33Z"
-      }
-    },
+    "open_positions": {},
     "closed_history": [
       {
         "pair": "AUDCAD",
@@ -774,9 +767,19 @@
         "exit_at": "2026-03-23T21:53:52Z",
         "pips": -9.3,
         "pnl_usd": -0.25
+      },
+      {
+        "pair": "XAUUSD",
+        "direction": "BEAR",
+        "entry_price": 4321.245000000001,
+        "entry_at": "2026-03-23T05:50:33Z",
+        "exit_price": 4429.825,
+        "exit_at": "2026-03-23T22:54:58Z",
+        "pips": -1085.8,
+        "pnl_usd": -12.56
       }
     ],
-    "total_realized_pnl": -38.86
+    "total_realized_pnl": -51.42
   },
-  "updated_at_utc": "2026-03-23T21:53:54Z"
+  "updated_at_utc": "2026-03-23T22:54:59Z"
 }
