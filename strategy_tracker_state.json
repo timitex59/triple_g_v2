@@ -1,19 +1,6 @@
 {
   "CONSOLIDATION": {
-    "open_positions": {
-      "USDCAD": {
-        "pair": "USDCAD",
-        "direction": "BULL",
-        "entry_price": 1.375675,
-        "entry_at": "2026-03-24T15:23:43Z"
-      },
-      "EURJPY": {
-        "pair": "EURJPY",
-        "direction": "BULL",
-        "entry_price": 184.224,
-        "entry_at": "2026-03-24T21:01:13Z"
-      }
-    },
+    "open_positions": {},
     "closed_history": [
       {
         "pair": "EURGBP",
@@ -314,9 +301,29 @@
         "exit_at": "2026-03-24T21:56:00Z",
         "pips": -9.1,
         "pnl_usd": -0.38
+      },
+      {
+        "pair": "USDCAD",
+        "direction": "BULL",
+        "entry_price": 1.375675,
+        "entry_at": "2026-03-24T15:23:43Z",
+        "exit_price": 1.3762050000000001,
+        "exit_at": "2026-03-24T22:53:41Z",
+        "pips": 5.3,
+        "pnl_usd": 0.19
+      },
+      {
+        "pair": "EURJPY",
+        "direction": "BULL",
+        "entry_price": 184.224,
+        "entry_at": "2026-03-24T21:01:13Z",
+        "exit_price": 184.29100000000003,
+        "exit_at": "2026-03-24T22:53:41Z",
+        "pips": 6.7,
+        "pnl_usd": 0.18
       }
     ],
-    "total_realized_pnl": -22.51
+    "total_realized_pnl": -22.14
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {},
@@ -1114,5 +1121,5 @@
     ],
     "total_realized_pnl": -70.26
   },
-  "updated_at_utc": "2026-03-24T21:56:04Z"
+  "updated_at_utc": "2026-03-24T22:53:42Z"
 }
