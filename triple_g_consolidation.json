@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-03-24T09:10:16Z",
+  "updated_at_utc": "2026-03-24T10:11:16Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
@@ -21,7 +21,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.26290702177734326
+      "best_chg_cc_d1": -0.17576786725058388
     },
     {
       "pair": "USDCAD",
@@ -32,17 +32,17 @@
         "break_line"
       ],
       "sections": [
-        "break_line:aligned"
+        "break_line:exited"
       ],
       "confirmation_count": 1,
       "stars": 1,
       "best_chg_cc_d1": 0.16827535967947801
     },
     {
-      "pair": "EURCHF",
-      "direction": "BEAR",
+      "pair": "CHFJPY",
+      "direction": "BULL",
       "strong_currency": "CHF",
-      "weak_currency": "EUR",
+      "weak_currency": "JPY",
       "sources": [
         "ichimoku"
       ],
@@ -51,7 +51,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.12265101406106375
+      "best_chg_cc_d1": 0.12459420016480424
     }
   ],
   "tradable_by_section": {
@@ -63,29 +63,30 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.26290702177734326
-      },
+        "chg_cc_d1": -0.17576786725058388
+      }
+    ],
+    "break_line:retracing": [],
+    "break_line:exited": [
       {
         "pair": "USDCAD",
         "direction": "BULL",
         "strong_currency": "USD",
         "weak_currency": "CAD",
         "source": "break_line",
-        "section": "aligned",
+        "section": "exited",
         "chg_cc_d1": 0.16827535967947801
       }
     ],
-    "break_line:retracing": [],
-    "break_line:exited": [],
     "ichimoku:aligned": [
       {
-        "pair": "EURCHF",
-        "direction": "BEAR",
+        "pair": "CHFJPY",
+        "direction": "BULL",
         "strong_currency": "CHF",
-        "weak_currency": "EUR",
+        "weak_currency": "JPY",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": -0.12265101406106375
+        "chg_cc_d1": 0.12459420016480424
       }
     ],
     "ichimoku:mid_aligned": []
