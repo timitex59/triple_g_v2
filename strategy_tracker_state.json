@@ -12,6 +12,12 @@
         "direction": "BULL",
         "entry_price": 1.375575,
         "entry_at": "2026-03-24T05:41:18Z"
+      },
+      "EURCHF": {
+        "pair": "EURCHF",
+        "direction": "BEAR",
+        "entry_price": 0.9118999999999999,
+        "entry_at": "2026-03-24T09:11:57Z"
       }
     },
     "closed_history": [
@@ -282,23 +288,23 @@
         "entry_price": 110.55999999999999,
         "entry_at": "2026-03-24T05:41:19Z"
       },
-      "EURAUD": {
-        "pair": "EURAUD",
-        "direction": "BULL",
-        "entry_price": 1.6624649999999999,
-        "entry_at": "2026-03-24T05:41:19Z"
+      "AUDCHF": {
+        "pair": "AUDCHF",
+        "direction": "BEAR",
+        "entry_price": 0.547705,
+        "entry_at": "2026-03-24T09:11:59Z"
       },
-      "GBPAUD": {
-        "pair": "GBPAUD",
-        "direction": "BULL",
-        "entry_price": 1.9204350000000001,
-        "entry_at": "2026-03-24T07:22:50Z"
+      "AUDCAD": {
+        "pair": "AUDCAD",
+        "direction": "BEAR",
+        "entry_price": 0.956735,
+        "entry_at": "2026-03-24T09:11:59Z"
       },
-      "GBPNZD": {
-        "pair": "GBPNZD",
-        "direction": "BULL",
-        "entry_price": 2.2955449999999997,
-        "entry_at": "2026-03-24T07:22:50Z"
+      "NZDCHF": {
+        "pair": "NZDCHF",
+        "direction": "BEAR",
+        "entry_price": 0.458065,
+        "entry_at": "2026-03-24T09:11:59Z"
       }
     },
     "closed_history": [
@@ -841,9 +847,39 @@
         "exit_at": "2026-03-24T07:22:50Z",
         "pips": -31.0,
         "pnl_usd": -1.68
+      },
+      {
+        "pair": "EURAUD",
+        "direction": "BULL",
+        "entry_price": 1.6624649999999999,
+        "entry_at": "2026-03-24T05:41:19Z",
+        "exit_price": 1.6646150000000002,
+        "exit_at": "2026-03-24T09:11:59Z",
+        "pips": 21.5,
+        "pnl_usd": 0.65
+      },
+      {
+        "pair": "GBPAUD",
+        "direction": "BULL",
+        "entry_price": 1.9204350000000001,
+        "entry_at": "2026-03-24T07:22:50Z",
+        "exit_price": 1.923965,
+        "exit_at": "2026-03-24T09:11:59Z",
+        "pips": 35.3,
+        "pnl_usd": 0.92
+      },
+      {
+        "pair": "GBPNZD",
+        "direction": "BULL",
+        "entry_price": 2.2955449999999997,
+        "entry_at": "2026-03-24T07:22:50Z",
+        "exit_price": 2.3000350000000003,
+        "exit_at": "2026-03-24T09:11:59Z",
+        "pips": 44.9,
+        "pnl_usd": 0.98
       }
     ],
-    "total_realized_pnl": -58.39
+    "total_realized_pnl": -55.85
   },
-  "updated_at_utc": "2026-03-24T07:22:53Z"
+  "updated_at_utc": "2026-03-24T09:12:03Z"
 }
