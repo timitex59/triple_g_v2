@@ -6,18 +6,6 @@
         "direction": "BEAR",
         "entry_price": 1.339685,
         "entry_at": "2026-03-24T05:41:18Z"
-      },
-      "USDCAD": {
-        "pair": "USDCAD",
-        "direction": "BULL",
-        "entry_price": 1.375575,
-        "entry_at": "2026-03-24T05:41:18Z"
-      },
-      "CHFJPY": {
-        "pair": "CHFJPY",
-        "direction": "BULL",
-        "entry_price": 201.655,
-        "entry_at": "2026-03-24T10:12:56Z"
       }
     },
     "closed_history": [
@@ -280,41 +268,61 @@
         "exit_at": "2026-03-24T10:12:56Z",
         "pips": -5.7,
         "pnl_usd": -0.31
+      },
+      {
+        "pair": "USDCAD",
+        "direction": "BULL",
+        "entry_price": 1.375575,
+        "entry_at": "2026-03-24T05:41:18Z",
+        "exit_price": 1.373095,
+        "exit_at": "2026-03-24T11:12:58Z",
+        "pips": -24.8,
+        "pnl_usd": -0.9
+      },
+      {
+        "pair": "CHFJPY",
+        "direction": "BULL",
+        "entry_price": 201.655,
+        "entry_at": "2026-03-24T10:12:56Z",
+        "exit_price": 201.529,
+        "exit_at": "2026-03-24T11:12:58Z",
+        "pips": -12.6,
+        "pnl_usd": -0.31
       }
     ],
-    "total_realized_pnl": -20.23
+    "total_realized_pnl": -21.44
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
-      "AUDUSD": {
-        "pair": "AUDUSD",
-        "direction": "BEAR",
-        "entry_price": 0.69689,
-        "entry_at": "2026-03-24T05:41:19Z"
-      },
-      "AUDCHF": {
-        "pair": "AUDCHF",
-        "direction": "BEAR",
-        "entry_price": 0.547705,
-        "entry_at": "2026-03-24T09:11:59Z"
-      },
-      "AUDCAD": {
-        "pair": "AUDCAD",
-        "direction": "BEAR",
-        "entry_price": 0.956735,
-        "entry_at": "2026-03-24T09:11:59Z"
-      },
-      "NZDCHF": {
-        "pair": "NZDCHF",
-        "direction": "BEAR",
-        "entry_price": 0.458065,
-        "entry_at": "2026-03-24T09:11:59Z"
-      },
       "EURAUD": {
         "pair": "EURAUD",
         "direction": "BULL",
         "entry_price": 1.6632049999999998,
         "entry_at": "2026-03-24T10:12:58Z"
+      },
+      "GBPAUD": {
+        "pair": "GBPAUD",
+        "direction": "BULL",
+        "entry_price": 1.922195,
+        "entry_at": "2026-03-24T11:13:00Z"
+      },
+      "AUDJPY": {
+        "pair": "AUDJPY",
+        "direction": "BEAR",
+        "entry_price": 110.692,
+        "entry_at": "2026-03-24T11:13:00Z"
+      },
+      "GBPNZD": {
+        "pair": "GBPNZD",
+        "direction": "BULL",
+        "entry_price": 2.297325,
+        "entry_at": "2026-03-24T11:13:00Z"
+      },
+      "EURNZD": {
+        "pair": "EURNZD",
+        "direction": "BULL",
+        "entry_price": 1.986435,
+        "entry_at": "2026-03-24T11:13:00Z"
       }
     },
     "closed_history": [
@@ -897,9 +905,49 @@
         "exit_at": "2026-03-24T10:12:58Z",
         "pips": -7.4,
         "pnl_usd": -0.33
+      },
+      {
+        "pair": "AUDUSD",
+        "direction": "BEAR",
+        "entry_price": 0.69689,
+        "entry_at": "2026-03-24T05:41:19Z",
+        "exit_price": 0.69782,
+        "exit_at": "2026-03-24T11:13:00Z",
+        "pips": -9.3,
+        "pnl_usd": -0.67
+      },
+      {
+        "pair": "AUDCHF",
+        "direction": "BEAR",
+        "entry_price": 0.547705,
+        "entry_at": "2026-03-24T09:11:59Z",
+        "exit_price": 0.549435,
+        "exit_at": "2026-03-24T11:13:00Z",
+        "pips": -17.3,
+        "pnl_usd": -1.58
+      },
+      {
+        "pair": "AUDCAD",
+        "direction": "BEAR",
+        "entry_price": 0.956735,
+        "entry_at": "2026-03-24T09:11:59Z",
+        "exit_price": 0.958265,
+        "exit_at": "2026-03-24T11:13:00Z",
+        "pips": -15.3,
+        "pnl_usd": -0.8
+      },
+      {
+        "pair": "NZDCHF",
+        "direction": "BEAR",
+        "entry_price": 0.458065,
+        "entry_at": "2026-03-24T09:11:59Z",
+        "exit_price": 0.459815,
+        "exit_at": "2026-03-24T11:13:00Z",
+        "pips": -17.5,
+        "pnl_usd": -1.91
       }
     ],
-    "total_realized_pnl": -56.18
+    "total_realized_pnl": -61.14
   },
-  "updated_at_utc": "2026-03-24T10:13:01Z"
+  "updated_at_utc": "2026-03-24T11:13:04Z"
 }
