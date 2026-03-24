@@ -1,23 +1,11 @@
 {
   "CONSOLIDATION": {
     "open_positions": {
-      "GBPUSD": {
-        "pair": "GBPUSD",
-        "direction": "BEAR",
-        "entry_price": 1.339685,
-        "entry_at": "2026-03-24T05:41:18Z"
-      },
       "USDCAD": {
         "pair": "USDCAD",
         "direction": "BULL",
         "entry_price": 1.375675,
         "entry_at": "2026-03-24T15:23:43Z"
-      },
-      "AUDNZD": {
-        "pair": "AUDNZD",
-        "direction": "BULL",
-        "entry_price": 1.19903,
-        "entry_at": "2026-03-24T21:01:13Z"
       },
       "EURJPY": {
         "pair": "EURJPY",
@@ -306,43 +294,32 @@
         "exit_at": "2026-03-24T11:12:58Z",
         "pips": -12.6,
         "pnl_usd": -0.31
+      },
+      {
+        "pair": "GBPUSD",
+        "direction": "BEAR",
+        "entry_price": 1.339685,
+        "entry_at": "2026-03-24T05:41:18Z",
+        "exit_price": 1.3415350000000001,
+        "exit_at": "2026-03-24T21:56:00Z",
+        "pips": -18.5,
+        "pnl_usd": -0.69
+      },
+      {
+        "pair": "AUDNZD",
+        "direction": "BULL",
+        "entry_price": 1.19903,
+        "entry_at": "2026-03-24T21:01:13Z",
+        "exit_price": 1.1981199999999999,
+        "exit_at": "2026-03-24T21:56:00Z",
+        "pips": -9.1,
+        "pnl_usd": -0.38
       }
     ],
-    "total_realized_pnl": -21.44
+    "total_realized_pnl": -22.51
   },
   "HEIKEN_ICHI_V2": {
-    "open_positions": {
-      "EURNZD": {
-        "pair": "EURNZD",
-        "direction": "BULL",
-        "entry_price": 1.994795,
-        "entry_at": "2026-03-24T17:17:46Z"
-      },
-      "GBPNZD": {
-        "pair": "GBPNZD",
-        "direction": "BULL",
-        "entry_price": 2.303795,
-        "entry_at": "2026-03-24T18:13:13Z"
-      },
-      "USDCAD": {
-        "pair": "USDCAD",
-        "direction": "BULL",
-        "entry_price": 1.376625,
-        "entry_at": "2026-03-24T21:01:15Z"
-      },
-      "EURCAD": {
-        "pair": "EURCAD",
-        "direction": "BULL",
-        "entry_price": 1.5978649999999999,
-        "entry_at": "2026-03-24T21:01:15Z"
-      },
-      "EURCHF": {
-        "pair": "EURCHF",
-        "direction": "BULL",
-        "entry_price": 0.91503,
-        "entry_at": "2026-03-24T21:01:15Z"
-      }
-    },
+    "open_positions": {},
     "closed_history": [
       {
         "pair": "AUDCAD",
@@ -1083,9 +1060,59 @@
         "exit_at": "2026-03-24T21:01:15Z",
         "pips": -33.0,
         "pnl_usd": -0.99
+      },
+      {
+        "pair": "EURNZD",
+        "direction": "BULL",
+        "entry_price": 1.994795,
+        "entry_at": "2026-03-24T17:17:46Z",
+        "exit_price": 1.9887949999999999,
+        "exit_at": "2026-03-24T21:56:02Z",
+        "pips": -60.0,
+        "pnl_usd": -1.5
+      },
+      {
+        "pair": "GBPNZD",
+        "direction": "BULL",
+        "entry_price": 2.303795,
+        "entry_at": "2026-03-24T18:13:13Z",
+        "exit_price": 2.297975,
+        "exit_at": "2026-03-24T21:56:02Z",
+        "pips": -58.2,
+        "pnl_usd": -1.26
+      },
+      {
+        "pair": "USDCAD",
+        "direction": "BULL",
+        "entry_price": 1.376625,
+        "entry_at": "2026-03-24T21:01:15Z",
+        "exit_price": 1.375705,
+        "exit_at": "2026-03-24T21:56:02Z",
+        "pips": -9.2,
+        "pnl_usd": -0.33
+      },
+      {
+        "pair": "EURCAD",
+        "direction": "BULL",
+        "entry_price": 1.5978649999999999,
+        "entry_at": "2026-03-24T21:01:15Z",
+        "exit_price": 1.597355,
+        "exit_at": "2026-03-24T21:56:02Z",
+        "pips": -5.1,
+        "pnl_usd": -0.16
+      },
+      {
+        "pair": "EURCHF",
+        "direction": "BULL",
+        "entry_price": 0.91503,
+        "entry_at": "2026-03-24T21:01:15Z",
+        "exit_price": 0.9148099999999999,
+        "exit_at": "2026-03-24T21:56:02Z",
+        "pips": -2.2,
+        "pnl_usd": -0.12
       }
     ],
-    "total_realized_pnl": -66.88
+    "total_realized_pnl": -70.26
   },
-  "updated_at_utc": "2026-03-24T21:01:19Z"
+  "updated_at_utc": "2026-03-24T21:56:04Z"
 }
