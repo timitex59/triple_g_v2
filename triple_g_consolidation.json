@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-03-25T19:13:11Z",
+  "updated_at_utc": "2026-03-25T19:56:13Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
@@ -8,21 +8,6 @@
   "conflicted_currencies": [],
   "invalidated_pairs": [],
   "tradable_pairs": [
-    {
-      "pair": "GBPUSD",
-      "direction": "BEAR",
-      "strong_currency": "USD",
-      "weak_currency": "GBP",
-      "sources": [
-        "break_line"
-      ],
-      "sections": [
-        "break_line:aligned"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": -0.3862385731541794
-    },
     {
       "pair": "USDCAD",
       "direction": "BULL",
@@ -36,20 +21,26 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.3806673301707853
+      "best_chg_cc_d1": 0.36177925653636206
+    },
+    {
+      "pair": "GBPUSD",
+      "direction": "BEAR",
+      "strong_currency": "USD",
+      "weak_currency": "GBP",
+      "sources": [
+        "break_line"
+      ],
+      "sections": [
+        "break_line:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": -0.33553543999880314
     }
   ],
   "tradable_by_section": {
     "break_line:aligned": [
-      {
-        "pair": "GBPUSD",
-        "direction": "BEAR",
-        "strong_currency": "USD",
-        "weak_currency": "GBP",
-        "source": "break_line",
-        "section": "aligned",
-        "chg_cc_d1": -0.3862385731541794
-      },
       {
         "pair": "USDCAD",
         "direction": "BULL",
@@ -57,7 +48,16 @@
         "weak_currency": "CAD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.3806673301707853
+        "chg_cc_d1": 0.36177925653636206
+      },
+      {
+        "pair": "GBPUSD",
+        "direction": "BEAR",
+        "strong_currency": "USD",
+        "weak_currency": "GBP",
+        "source": "break_line",
+        "section": "aligned",
+        "chg_cc_d1": -0.33553543999880314
       }
     ],
     "break_line:retracing": [],
