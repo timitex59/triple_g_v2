@@ -6,6 +6,12 @@
         "direction": "BULL",
         "entry_price": 1.3787749999999999,
         "entry_at": "2026-03-25T09:11:54Z"
+      },
+      "GBPUSD": {
+        "pair": "GBPUSD",
+        "direction": "BEAR",
+        "entry_price": 1.337575,
+        "entry_at": "2026-03-25T13:53:36Z"
       }
     },
     "closed_history": [
@@ -356,23 +362,23 @@
         "entry_price": 1.662485,
         "entry_at": "2026-03-25T05:41:52Z"
       },
-      "GBPAUD": {
-        "pair": "GBPAUD",
-        "direction": "BULL",
-        "entry_price": 1.920055,
-        "entry_at": "2026-03-25T07:21:29Z"
-      },
       "AUDJPY": {
         "pair": "AUDJPY",
         "direction": "BEAR",
         "entry_price": 110.878,
         "entry_at": "2026-03-25T09:11:55Z"
       },
-      "GBPNZD": {
-        "pair": "GBPNZD",
+      "AUDCAD": {
+        "pair": "AUDCAD",
+        "direction": "BEAR",
+        "entry_price": 0.958465,
+        "entry_at": "2026-03-25T13:53:38Z"
+      },
+      "USDCHF": {
+        "pair": "USDCHF",
         "direction": "BULL",
-        "entry_price": 2.304395,
-        "entry_at": "2026-03-25T11:10:56Z"
+        "entry_price": 0.79164,
+        "entry_at": "2026-03-25T13:53:38Z"
       }
     },
     "closed_history": [
@@ -1215,9 +1221,29 @@
         "exit_at": "2026-03-25T11:10:56Z",
         "pips": -16.8,
         "pnl_usd": -0.42
+      },
+      {
+        "pair": "GBPAUD",
+        "direction": "BULL",
+        "entry_price": 1.920055,
+        "entry_at": "2026-03-25T07:21:29Z",
+        "exit_price": 1.923965,
+        "exit_at": "2026-03-25T13:53:38Z",
+        "pips": 39.1,
+        "pnl_usd": 1.02
+      },
+      {
+        "pair": "GBPNZD",
+        "direction": "BULL",
+        "entry_price": 2.304395,
+        "entry_at": "2026-03-25T11:10:56Z",
+        "exit_price": 2.301785,
+        "exit_at": "2026-03-25T13:53:38Z",
+        "pips": -26.1,
+        "pnl_usd": -0.57
       }
     ],
-    "total_realized_pnl": -72.59
+    "total_realized_pnl": -72.14
   },
-  "updated_at_utc": "2026-03-25T11:59:48Z"
+  "updated_at_utc": "2026-03-25T13:53:41Z"
 }
