@@ -1,28 +1,36 @@
 {
-  "updated_at_utc": "2026-03-25T19:56:13Z",
+  "updated_at_utc": "2026-03-25T20:39:15Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 2,
-  "conflicted_currencies": [],
-  "invalidated_pairs": [],
-  "tradable_pairs": [
+  "entry_count": 3,
+  "conflicted_currencies": [
+    "CAD"
+  ],
+  "invalidated_pairs": [
+    {
+      "pair": "CADJPY",
+      "direction": "BULL",
+      "blocked_by": [
+        "CAD"
+      ],
+      "sections": [
+        "break_line:retracing"
+      ]
+    },
     {
       "pair": "USDCAD",
       "direction": "BULL",
-      "strong_currency": "USD",
-      "weak_currency": "CAD",
-      "sources": [
-        "break_line"
+      "blocked_by": [
+        "CAD"
       ],
       "sections": [
         "break_line:aligned"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": 0.36177925653636206
-    },
+      ]
+    }
+  ],
+  "tradable_pairs": [
     {
       "pair": "GBPUSD",
       "direction": "BEAR",
@@ -36,20 +44,11 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.33553543999880314
+      "best_chg_cc_d1": -0.3787822300430957
     }
   ],
   "tradable_by_section": {
     "break_line:aligned": [
-      {
-        "pair": "USDCAD",
-        "direction": "BULL",
-        "strong_currency": "USD",
-        "weak_currency": "CAD",
-        "source": "break_line",
-        "section": "aligned",
-        "chg_cc_d1": 0.36177925653636206
-      },
       {
         "pair": "GBPUSD",
         "direction": "BEAR",
@@ -57,7 +56,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.33553543999880314
+        "chg_cc_d1": -0.3787822300430957
       }
     ],
     "break_line:retracing": [],

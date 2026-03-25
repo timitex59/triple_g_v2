@@ -1,22 +1,32 @@
 {
-  "updated_at_utc": "2026-03-25T19:55:23Z",
+  "updated_at_utc": "2026-03-25T20:38:31Z",
   "telegram_aligned": {
-    "USDCAD": {
-      "pair": "USDCAD",
-      "direction": "BULL",
-      "chg_cc_d1": 0.36177925653636206,
-      "flame": false,
-      "daily_cloud_ok": true,
-      "section": "ALIGNED"
-    },
     "GBPUSD": {
       "pair": "GBPUSD",
       "direction": "BEAR",
-      "chg_cc_d1": -0.33553543999880314,
+      "chg_cc_d1": -0.3787822300430957,
       "flame": true,
+      "daily_cloud_ok": true,
+      "section": "ALIGNED"
+    },
+    "USDCAD": {
+      "pair": "USDCAD",
+      "direction": "BULL",
+      "chg_cc_d1": 0.31528553682084737,
+      "flame": false,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     }
   },
-  "telegram_retracing": {}
+  "telegram_retracing": {
+    "CADJPY": {
+      "pair": "CADJPY",
+      "w1d1_direction": "BULL",
+      "chg_cc_d1": 0.16565481352992412,
+      "retrace_flame": true,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    }
+  }
 }

@@ -1,12 +1,6 @@
 {
   "CONSOLIDATION": {
     "open_positions": {
-      "USDCAD": {
-        "pair": "USDCAD",
-        "direction": "BULL",
-        "entry_price": 1.3787749999999999,
-        "entry_at": "2026-03-25T09:11:54Z"
-      },
       "GBPUSD": {
         "pair": "GBPUSD",
         "direction": "BEAR",
@@ -344,9 +338,19 @@
         "exit_at": "2026-03-25T09:11:54Z",
         "pips": -23.6,
         "pnl_usd": -0.88
+      },
+      {
+        "pair": "USDCAD",
+        "direction": "BULL",
+        "entry_price": 1.3787749999999999,
+        "entry_at": "2026-03-25T09:11:54Z",
+        "exit_price": 1.380845,
+        "exit_at": "2026-03-25T20:41:15Z",
+        "pips": 20.7,
+        "pnl_usd": 0.75
       }
     ],
-    "total_realized_pnl": -23.02
+    "total_realized_pnl": -22.27
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
@@ -1275,5 +1279,5 @@
     ],
     "total_realized_pnl": -73.07
   },
-  "updated_at_utc": "2026-03-25T19:57:59Z"
+  "updated_at_utc": "2026-03-25T20:41:18Z"
 }
