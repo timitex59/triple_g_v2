@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-03-25T20:57:35Z",
+  "updated_at_utc": "2026-03-25T21:18:11Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
@@ -16,7 +16,7 @@
         "CAD"
       ],
       "sections": [
-        "break_line:retracing"
+        "break_line:exited"
       ]
     },
     {
@@ -26,7 +26,7 @@
         "CAD"
       ],
       "sections": [
-        "break_line:aligned"
+        "break_line:exited"
       ]
     }
   ],
@@ -40,7 +40,7 @@
         "break_line"
       ],
       "sections": [
-        "break_line:aligned"
+        "break_line:exited"
       ],
       "confirmation_count": 1,
       "stars": 1,
@@ -48,19 +48,19 @@
     }
   ],
   "tradable_by_section": {
-    "break_line:aligned": [
+    "break_line:aligned": [],
+    "break_line:retracing": [],
+    "break_line:exited": [
       {
         "pair": "GBPUSD",
         "direction": "BEAR",
         "strong_currency": "USD",
         "weak_currency": "GBP",
         "source": "break_line",
-        "section": "aligned",
+        "section": "exited",
         "chg_cc_d1": -0.35790446933205444
       }
     ],
-    "break_line:retracing": [],
-    "break_line:exited": [],
     "ichimoku:aligned": [],
     "ichimoku:mid_aligned": []
   },
