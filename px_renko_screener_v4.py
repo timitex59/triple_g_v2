@@ -444,7 +444,7 @@ def build_telegram_message(indices: list[IndexResult],
     active_bulls = sorted([r for r in active if "BULL" in r.role],
                           key=lambda x: x.daily_chg_pct, reverse=True)
 
-    lines.append("\U0001f4ca INDICES et PROXY VALIDE")
+    lines.append("\U0001f4ca INDICES")
     for r in active_bears:
         lines.append(f"\U0001f534 {r.ccy} ({r.daily_chg_pct:+.2f}%)")
     for r in active_bulls:
