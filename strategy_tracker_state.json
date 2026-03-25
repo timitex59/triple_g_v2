@@ -356,12 +356,6 @@
         "entry_price": 0.69755,
         "entry_at": "2026-03-25T05:41:52Z"
       },
-      "AUDJPY": {
-        "pair": "AUDJPY",
-        "direction": "BEAR",
-        "entry_price": 110.878,
-        "entry_at": "2026-03-25T09:11:55Z"
-      },
       "USDCHF": {
         "pair": "USDCHF",
         "direction": "BULL",
@@ -379,6 +373,12 @@
         "direction": "BULL",
         "entry_price": 1.3799249999999998,
         "entry_at": "2026-03-25T15:24:18Z"
+      },
+      "EURAUD": {
+        "pair": "EURAUD",
+        "direction": "BULL",
+        "entry_price": 1.662385,
+        "entry_at": "2026-03-25T17:21:04Z"
       }
     },
     "closed_history": [
@@ -1261,9 +1261,19 @@
         "exit_at": "2026-03-25T15:24:18Z",
         "pips": -20.2,
         "pnl_usd": -1.05
+      },
+      {
+        "pair": "AUDJPY",
+        "direction": "BEAR",
+        "entry_price": 110.878,
+        "entry_at": "2026-03-25T09:11:55Z",
+        "exit_price": 110.864,
+        "exit_at": "2026-03-25T17:21:04Z",
+        "pips": 1.4,
+        "pnl_usd": 0.06
       }
     ],
-    "total_realized_pnl": -73.13
+    "total_realized_pnl": -73.07
   },
-  "updated_at_utc": "2026-03-25T15:24:21Z"
+  "updated_at_utc": "2026-03-25T17:21:07Z"
 }
