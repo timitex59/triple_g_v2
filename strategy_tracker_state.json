@@ -1,6 +1,13 @@
 {
   "CONSOLIDATION": {
-    "open_positions": {},
+    "open_positions": {
+      "GBPUSD": {
+        "pair": "GBPUSD",
+        "direction": "BEAR",
+        "entry_price": 1.338505,
+        "entry_at": "2026-03-25T05:41:51Z"
+      }
+    },
     "closed_history": [
       {
         "pair": "EURGBP",
@@ -326,7 +333,38 @@
     "total_realized_pnl": -22.14
   },
   "HEIKEN_ICHI_V2": {
-    "open_positions": {},
+    "open_positions": {
+      "AUDUSD": {
+        "pair": "AUDUSD",
+        "direction": "BEAR",
+        "entry_price": 0.69755,
+        "entry_at": "2026-03-25T05:41:52Z"
+      },
+      "EURNZD": {
+        "pair": "EURNZD",
+        "direction": "BULL",
+        "entry_price": 1.994575,
+        "entry_at": "2026-03-25T05:41:52Z"
+      },
+      "NZDJPY": {
+        "pair": "NZDJPY",
+        "direction": "BEAR",
+        "entry_price": 92.4075,
+        "entry_at": "2026-03-25T05:41:52Z"
+      },
+      "EURAUD": {
+        "pair": "EURAUD",
+        "direction": "BULL",
+        "entry_price": 1.662485,
+        "entry_at": "2026-03-25T05:41:52Z"
+      },
+      "GBPNZD": {
+        "pair": "GBPNZD",
+        "direction": "BULL",
+        "entry_price": 2.302225,
+        "entry_at": "2026-03-25T05:41:52Z"
+      }
+    },
     "closed_history": [
       {
         "pair": "AUDCAD",
@@ -1121,5 +1159,5 @@
     ],
     "total_realized_pnl": -70.26
   },
-  "updated_at_utc": "2026-03-24T22:53:42Z"
+  "updated_at_utc": "2026-03-25T05:41:54Z"
 }
