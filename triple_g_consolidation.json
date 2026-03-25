@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-03-25T07:19:42Z",
+  "updated_at_utc": "2026-03-25T09:10:08Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
@@ -9,35 +9,35 @@
   "invalidated_pairs": [],
   "tradable_pairs": [
     {
-      "pair": "GBPUSD",
-      "direction": "BEAR",
+      "pair": "USDCAD",
+      "direction": "BULL",
       "strong_currency": "USD",
-      "weak_currency": "GBP",
+      "weak_currency": "CAD",
       "sources": [
         "break_line"
       ],
       "sections": [
-        "break_line:exited"
+        "break_line:aligned"
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.1961018238215183
+      "best_chg_cc_d1": 0.15691630403986398
     }
   ],
   "tradable_by_section": {
-    "break_line:aligned": [],
-    "break_line:retracing": [],
-    "break_line:exited": [
+    "break_line:aligned": [
       {
-        "pair": "GBPUSD",
-        "direction": "BEAR",
+        "pair": "USDCAD",
+        "direction": "BULL",
         "strong_currency": "USD",
-        "weak_currency": "GBP",
+        "weak_currency": "CAD",
         "source": "break_line",
-        "section": "exited",
-        "chg_cc_d1": -0.1961018238215183
+        "section": "aligned",
+        "chg_cc_d1": 0.15691630403986398
       }
     ],
+    "break_line:retracing": [],
+    "break_line:exited": [],
     "ichimoku:aligned": [],
     "ichimoku:mid_aligned": []
   },
