@@ -1,13 +1,6 @@
 {
   "CONSOLIDATION": {
-    "open_positions": {
-      "GBPUSD": {
-        "pair": "GBPUSD",
-        "direction": "BEAR",
-        "entry_price": 1.337575,
-        "entry_at": "2026-03-25T13:53:36Z"
-      }
-    },
+    "open_positions": {},
     "closed_history": [
       {
         "pair": "EURGBP",
@@ -348,9 +341,19 @@
         "exit_at": "2026-03-25T20:41:15Z",
         "pips": 20.7,
         "pnl_usd": 0.75
+      },
+      {
+        "pair": "GBPUSD",
+        "direction": "BEAR",
+        "entry_price": 1.337575,
+        "entry_at": "2026-03-25T13:53:36Z",
+        "exit_price": 1.336795,
+        "exit_at": "2026-03-25T21:57:23Z",
+        "pips": 7.8,
+        "pnl_usd": 0.29
       }
     ],
-    "total_realized_pnl": -22.27
+    "total_realized_pnl": -21.98
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {},
@@ -1298,5 +1301,5 @@
     ],
     "total_realized_pnl": -70.14
   },
-  "updated_at_utc": "2026-03-25T21:20:13Z"
+  "updated_at_utc": "2026-03-25T21:57:24Z"
 }
