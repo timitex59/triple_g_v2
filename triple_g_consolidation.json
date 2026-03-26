@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-03-26T13:59:58Z",
+  "updated_at_utc": "2026-03-26T15:42:36Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
@@ -8,21 +8,6 @@
   "conflicted_currencies": [],
   "invalidated_pairs": [],
   "tradable_pairs": [
-    {
-      "pair": "GBPUSD",
-      "direction": "BEAR",
-      "strong_currency": "USD",
-      "weak_currency": "GBP",
-      "sources": [
-        "break_line"
-      ],
-      "sections": [
-        "break_line:exited"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": -0.30078113309190385
-    },
     {
       "pair": "USDCAD",
       "direction": "BULL",
@@ -36,7 +21,22 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.17304294940485637
+      "best_chg_cc_d1": 0.3113325031133229
+    },
+    {
+      "pair": "GBPUSD",
+      "direction": "BEAR",
+      "strong_currency": "USD",
+      "weak_currency": "GBP",
+      "sources": [
+        "break_line"
+      ],
+      "sections": [
+        "break_line:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": -0.16984407266632706
     }
   ],
   "tradable_by_section": {
@@ -48,21 +48,20 @@
         "weak_currency": "CAD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.17304294940485637
-      }
-    ],
-    "break_line:retracing": [],
-    "break_line:exited": [
+        "chg_cc_d1": 0.3113325031133229
+      },
       {
         "pair": "GBPUSD",
         "direction": "BEAR",
         "strong_currency": "USD",
         "weak_currency": "GBP",
         "source": "break_line",
-        "section": "exited",
-        "chg_cc_d1": -0.30078113309190385
+        "section": "aligned",
+        "chg_cc_d1": -0.16984407266632706
       }
     ],
+    "break_line:retracing": [],
+    "break_line:exited": [],
     "ichimoku:aligned": [],
     "ichimoku:mid_aligned": []
   },
