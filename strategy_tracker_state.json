@@ -1,6 +1,19 @@
 {
   "CONSOLIDATION": {
-    "open_positions": {},
+    "open_positions": {
+      "AUDCAD": {
+        "pair": "AUDCAD",
+        "direction": "BULL",
+        "entry_price": 0.9608650000000001,
+        "entry_at": "2026-03-26T05:53:22Z"
+      },
+      "AUDNZD": {
+        "pair": "AUDNZD",
+        "direction": "BULL",
+        "entry_price": 1.19821,
+        "entry_at": "2026-03-26T05:53:22Z"
+      }
+    },
     "closed_history": [
       {
         "pair": "EURGBP",
@@ -356,7 +369,20 @@
     "total_realized_pnl": -21.98
   },
   "HEIKEN_ICHI_V2": {
-    "open_positions": {},
+    "open_positions": {
+      "USDCAD": {
+        "pair": "USDCAD",
+        "direction": "BULL",
+        "entry_price": 1.382645,
+        "entry_at": "2026-03-26T05:53:23Z"
+      },
+      "EURCAD": {
+        "pair": "EURCAD",
+        "direction": "BULL",
+        "entry_price": 1.598195,
+        "entry_at": "2026-03-26T05:53:23Z"
+      }
+    },
     "closed_history": [
       {
         "pair": "AUDCAD",
@@ -1301,5 +1327,5 @@
     ],
     "total_realized_pnl": -70.14
   },
-  "updated_at_utc": "2026-03-25T23:00:11Z"
+  "updated_at_utc": "2026-03-26T05:53:24Z"
 }
