@@ -420,11 +420,11 @@
         "entry_price": 4393.08,
         "entry_at": "2026-03-26T17:22:14Z"
       },
-      "AUDCAD": {
-        "pair": "AUDCAD",
-        "direction": "BEAR",
-        "entry_price": 0.9533349999999999,
-        "entry_at": "2026-03-26T19:35:52Z"
+      "EURAUD": {
+        "pair": "EURAUD",
+        "direction": "BULL",
+        "entry_price": 1.6740249999999999,
+        "entry_at": "2026-03-26T20:54:54Z"
       }
     },
     "closed_history": [
@@ -1437,9 +1437,19 @@
         "exit_at": "2026-03-26T19:35:52Z",
         "pips": 28.2,
         "pnl_usd": 1.53
+      },
+      {
+        "pair": "AUDCAD",
+        "direction": "BEAR",
+        "entry_price": 0.9533349999999999,
+        "entry_at": "2026-03-26T19:35:52Z",
+        "exit_price": 0.954905,
+        "exit_at": "2026-03-26T20:54:54Z",
+        "pips": -15.7,
+        "pnl_usd": -0.82
       }
     ],
-    "total_realized_pnl": -68.7
+    "total_realized_pnl": -69.52
   },
-  "updated_at_utc": "2026-03-26T19:35:54Z"
+  "updated_at_utc": "2026-03-26T20:54:57Z"
 }
