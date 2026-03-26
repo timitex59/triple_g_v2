@@ -1,25 +1,6 @@
 {
   "CONSOLIDATION": {
-    "open_positions": {
-      "USDCAD": {
-        "pair": "USDCAD",
-        "direction": "BULL",
-        "entry_price": 1.383765,
-        "entry_at": "2026-03-26T11:16:46Z"
-      },
-      "GBPUSD": {
-        "pair": "GBPUSD",
-        "direction": "BEAR",
-        "entry_price": 1.332465,
-        "entry_at": "2026-03-26T12:05:03Z"
-      },
-      "NZDJPY": {
-        "pair": "NZDJPY",
-        "direction": "BEAR",
-        "entry_price": 92.0595,
-        "entry_at": "2026-03-26T17:22:12Z"
-      }
-    },
+    "open_positions": {},
     "closed_history": [
       {
         "pair": "EURGBP",
@@ -390,19 +371,42 @@
         "exit_at": "2026-03-26T12:05:03Z",
         "pips": -13.5,
         "pnl_usd": -0.56
+      },
+      {
+        "pair": "USDCAD",
+        "direction": "BULL",
+        "entry_price": 1.383765,
+        "entry_at": "2026-03-26T11:16:46Z",
+        "exit_price": 1.384925,
+        "exit_at": "2026-03-26T22:54:01Z",
+        "pips": 11.6,
+        "pnl_usd": 0.42
+      },
+      {
+        "pair": "GBPUSD",
+        "direction": "BEAR",
+        "entry_price": 1.332465,
+        "entry_at": "2026-03-26T12:05:03Z",
+        "exit_price": 1.333895,
+        "exit_at": "2026-03-26T22:54:01Z",
+        "pips": -14.3,
+        "pnl_usd": -0.54
+      },
+      {
+        "pair": "NZDJPY",
+        "direction": "BEAR",
+        "entry_price": 92.0595,
+        "entry_at": "2026-03-26T17:22:12Z",
+        "exit_price": 92.0485,
+        "exit_at": "2026-03-26T22:54:01Z",
+        "pips": 1.1,
+        "pnl_usd": 0.06
       }
     ],
-    "total_realized_pnl": -23.08
+    "total_realized_pnl": -23.14
   },
   "HEIKEN_ICHI_V2": {
-    "open_positions": {
-      "XAUUSD": {
-        "pair": "XAUUSD",
-        "direction": "BEAR",
-        "entry_price": 4393.08,
-        "entry_at": "2026-03-26T17:22:14Z"
-      }
-    },
+    "open_positions": {},
     "closed_history": [
       {
         "pair": "AUDCAD",
@@ -1463,9 +1467,19 @@
         "exit_at": "2026-03-26T21:49:27Z",
         "pips": 1.8,
         "pnl_usd": 0.05
+      },
+      {
+        "pair": "XAUUSD",
+        "direction": "BEAR",
+        "entry_price": 4393.08,
+        "entry_at": "2026-03-26T17:22:14Z",
+        "exit_price": 4409.089999999999,
+        "exit_at": "2026-03-26T22:54:02Z",
+        "pips": -160.1,
+        "pnl_usd": -1.82
       }
     ],
-    "total_realized_pnl": -64.22
+    "total_realized_pnl": -66.04
   },
-  "updated_at_utc": "2026-03-26T21:49:29Z"
+  "updated_at_utc": "2026-03-26T22:54:03Z"
 }
