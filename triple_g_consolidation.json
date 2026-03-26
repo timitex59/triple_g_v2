@@ -1,13 +1,28 @@
 {
-  "updated_at_utc": "2026-03-26T15:42:36Z",
+  "updated_at_utc": "2026-03-26T17:20:08Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 2,
+  "entry_count": 3,
   "conflicted_currencies": [],
   "invalidated_pairs": [],
   "tradable_pairs": [
+    {
+      "pair": "NZDJPY",
+      "direction": "BEAR",
+      "strong_currency": "JPY",
+      "weak_currency": "NZD",
+      "sources": [
+        "break_line"
+      ],
+      "sections": [
+        "break_line:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": -0.5336732709634204
+    },
     {
       "pair": "USDCAD",
       "direction": "BULL",
@@ -21,7 +36,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.3113325031133229
+      "best_chg_cc_d1": 0.30409221234324635
     },
     {
       "pair": "GBPUSD",
@@ -36,11 +51,20 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.16984407266632706
+      "best_chg_cc_d1": -0.2274563792535788
     }
   ],
   "tradable_by_section": {
     "break_line:aligned": [
+      {
+        "pair": "NZDJPY",
+        "direction": "BEAR",
+        "strong_currency": "JPY",
+        "weak_currency": "NZD",
+        "source": "break_line",
+        "section": "aligned",
+        "chg_cc_d1": -0.5336732709634204
+      },
       {
         "pair": "USDCAD",
         "direction": "BULL",
@@ -48,7 +72,7 @@
         "weak_currency": "CAD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.3113325031133229
+        "chg_cc_d1": 0.30409221234324635
       },
       {
         "pair": "GBPUSD",
@@ -57,7 +81,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.16984407266632706
+        "chg_cc_d1": -0.2274563792535788
       }
     ],
     "break_line:retracing": [],
