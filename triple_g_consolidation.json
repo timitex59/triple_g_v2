@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-03-27T17:31:39Z",
+  "updated_at_utc": "2026-03-27T18:06:21Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
@@ -26,7 +26,7 @@
         "EUR"
       ],
       "sections": [
-        "break_line:aligned"
+        "break_line:exited"
       ]
     }
   ],
@@ -44,7 +44,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.5003488188917277
+      "best_chg_cc_d1": -0.4598408185616636
     },
     {
       "pair": "NZDUSD",
@@ -55,7 +55,7 @@
         "break_line"
       ],
       "sections": [
-        "break_line:aligned"
+        "break_line:exited"
       ],
       "confirmation_count": 1,
       "stars": 1,
@@ -74,7 +74,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.19985137406837794
+      "best_chg_cc_d1": 0.20850919532765072
     }
   ],
   "tradable_by_section": {
@@ -86,16 +86,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.5003488188917277
-      },
-      {
-        "pair": "NZDUSD",
-        "direction": "BEAR",
-        "strong_currency": "USD",
-        "weak_currency": "NZD",
-        "source": "break_line",
-        "section": "aligned",
-        "chg_cc_d1": -0.3748763428730002
+        "chg_cc_d1": -0.4598408185616636
       },
       {
         "pair": "USDCAD",
@@ -104,11 +95,21 @@
         "weak_currency": "CAD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.19985137406837794
+        "chg_cc_d1": 0.20850919532765072
       }
     ],
     "break_line:retracing": [],
-    "break_line:exited": [],
+    "break_line:exited": [
+      {
+        "pair": "NZDUSD",
+        "direction": "BEAR",
+        "strong_currency": "USD",
+        "weak_currency": "NZD",
+        "source": "break_line",
+        "section": "exited",
+        "chg_cc_d1": -0.3748763428730002
+      }
+    ],
     "ichimoku:aligned": [],
     "ichimoku:mid_aligned": []
   },
