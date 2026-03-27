@@ -24,7 +24,7 @@ import string
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 import requests as http_requests
@@ -99,6 +99,9 @@ class PairResult:
     trigger: int          # +1=LONG, -1=SHORT, 0=none
     raw_score: int
     weighted_score: float
+    sar15_event: str | None = None
+    sar15_value: float | None = None
+    sar15_time: datetime | None = None
 
 
 # ── TradingView websocket helpers ─────────────────────────────────────
@@ -129,7 +132,7 @@ def _frames(raw):
 
 def fetch_tv_ohlc(symbol: str, interval: str, n_candles: int,
                    timeout_s: int = 20, retries: int = 2) -> list[dict] | None:
-    """Fetch OHLC bars from TradingView. Returns list of {open,high,low,close} or None."""
+    """Fetch OHLC bars from TradingView. Returns list of {time,open,high,low,close} or None."""
     for attempt in range(retries + 1):
         ws = None
         try:
@@ -170,7 +173,13 @@ def fetch_tv_ohlc(symbol: str, interval: str, n_candles: int,
             for item in points:
                 v = item.get("v", [])
                 if len(v) >= 5:
-                    rows.append({"open": v[1], "high": v[2], "low": v[3], "close": v[4]})
+                    rows.append({
+                        "time": v[0],
+                        "open": v[1],
+                        "high": v[2],
+                        "low": v[3],
+                        "close": v[4],
+                    })
             if rows:
                 return rows
 
@@ -330,6 +339,122 @@ def compute_parabolic_sar(bars: list[dict], start: float = 0.1,
     elif c_last < sar_last:
         return -1
     return 0
+
+
+def compute_parabolic_sar_series(bars: list[dict], start: float = 0.1,
+                                 increment: float = 0.1, maximum: float = 0.2) -> list[float]:
+    """Return the full Parabolic SAR series for the provided OHLC bars."""
+    n = len(bars)
+    if n == 0:
+        return []
+    if n == 1:
+        return [bars[0]["low"]]
+
+    highs = [b["high"] for b in bars]
+    lows = [b["low"] for b in bars]
+    closes = [b["close"] for b in bars]
+
+    sar = [0.0] * n
+    af = start
+    is_long = closes[1] > closes[0]
+
+    if is_long:
+        ep = highs[0]
+        sar[0] = lows[0]
+    else:
+        ep = lows[0]
+        sar[0] = highs[0]
+
+    for i in range(1, n):
+        prev_sar = sar[i - 1]
+        sar[i] = prev_sar + af * (ep - prev_sar)
+
+        if is_long:
+            if i >= 2:
+                sar[i] = min(sar[i], lows[i - 1], lows[i - 2])
+            else:
+                sar[i] = min(sar[i], lows[i - 1])
+
+            if lows[i] < sar[i]:
+                is_long = False
+                sar[i] = ep
+                ep = lows[i]
+                af = start
+            else:
+                if highs[i] > ep:
+                    ep = highs[i]
+                    af = min(af + increment, maximum)
+        else:
+            if i >= 2:
+                sar[i] = max(sar[i], highs[i - 1], highs[i - 2])
+            else:
+                sar[i] = max(sar[i], highs[i - 1])
+
+            if highs[i] > sar[i]:
+                is_long = True
+                sar[i] = ep
+                ep = highs[i]
+                af = start
+            else:
+                if lows[i] < ep:
+                    ep = lows[i]
+                    af = min(af + increment, maximum)
+
+    return sar
+
+
+def sar_event_cutoff_paris(now_paris: datetime | None = None) -> datetime:
+    tz = pytz.timezone("Europe/Paris")
+    now_paris = now_paris or datetime.now(tz)
+    base = now_paris.replace(hour=23, minute=0, second=0, microsecond=0)
+    if now_paris < base:
+        base = base.replace(day=base.day) - timedelta(days=1)
+    return base
+
+
+def format_sar15_event(pair: PairResult) -> str:
+    if pair.sar15_value is None or pair.sar15_time is None or not pair.sar15_event:
+        return "n/a"
+    stamp = pair.sar15_time.strftime("%H:%M")
+    return f"{pair.sar15_event} {pair.sar15_value:.5f} @{stamp}"
+
+
+def find_first_sar15_event(pair: str, weighted_score: float, sar_start: float,
+                           sar_inc: float, sar_max: float,
+                           tz_name: str = "Europe/Paris") -> tuple[str | None, float | None, datetime | None]:
+    """Find first 15m SAR cross event since the latest 23:00 in Paris."""
+    if weighted_score == 0:
+        return None, None, None
+
+    tz = pytz.timezone(tz_name)
+    now_paris = datetime.now(tz)
+    cutoff = sar_event_cutoff_paris(now_paris)
+    minutes_back = max(180, int((now_paris - cutoff).total_seconds() // 60) + 60)
+    n_candles = max(40, min(500, minutes_back // 15 + 10))
+
+    bars = fetch_tv_ohlc(f"OANDA:{pair}", "15", n_candles)
+    if not bars or len(bars) < 3:
+        return None, None, None
+
+    sar = compute_parabolic_sar_series(bars, start=sar_start, increment=sar_inc, maximum=sar_max)
+    wanted = "X Under" if weighted_score > 0 else "X Over"
+
+    for i in range(1, len(bars)):
+        ts = datetime.fromtimestamp(bars[i]["time"], tz=pytz.UTC).astimezone(tz)
+        if ts < cutoff:
+            continue
+
+        c_prev, sar_prev = bars[i - 1]["close"], sar[i - 1]
+        c_last, sar_last = bars[i]["close"], sar[i]
+        cross_over = c_prev <= sar_prev and c_last > sar_last
+        cross_under = c_prev >= sar_prev and c_last < sar_last
+
+        if wanted == "X Under" and cross_under:
+            return wanted, sar_last, ts
+        if wanted == "X Over" and cross_over:
+            return wanted, sar_last, ts
+
+    return None, None, None
 
 
 # ── Core logic (mirrors Pine f_px_state / f_trigger / f_score) ────────
@@ -536,6 +661,9 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
     w1 = px_state(brick_w1["open"], brick_w1["close"], dc)
     trigger, bias = compute_trigger(d1, w1, chg_pct, sar_st, min_chg)
     raw_sc, weighted_sc = compute_score(d1, w1, chg_pct, sar_st)
+    sar15_event, sar15_value, sar15_time = find_first_sar15_event(
+        pair, weighted_sc, sar_start, sar_inc, sar_max
+    )
 
     return PairResult(
         pair=pair, expected_bias=expected_bias,
@@ -543,6 +671,7 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
         px_d1=d1, px_w1=w1, chg_pct=chg_pct, sar_state=sar_st,
         bias=bias, trigger=trigger,
         raw_score=raw_sc, weighted_score=weighted_sc,
+        sar15_event=sar15_event, sar15_value=sar15_value, sar15_time=sar15_time,
     )
 
 
@@ -592,8 +721,8 @@ def print_pairs_table(pairs: list[PairResult], title: str = "\U0001f3af PAIRS (T
         return
 
     hdr = (f"  {BOLD}{'Pair':<10} {'D1':<10} {'W1':<10} "
-           f"{'CHG%':<9} {'SAR':<10} {'Score':<8} {'Signal':<8}{RESET}")
-    sep = "  " + "-" * 67
+           f"{'CHG%':<9} {'SAR':<10} {'Score':<8} {'Signal':<8} {'SAR15 23H':<20}{RESET}")
+    sep = "  " + "-" * 88
     print(f"\n  {BOLD}{title}{RESET}")
     print(sep)
     print(hdr)
@@ -615,7 +744,8 @@ def print_pairs_table(pairs: list[PairResult], title: str = "\U0001f3af PAIRS (T
             f"{chg_c}{chg_str(r.chg_pct):<9}{RESET} "
             f"{sar_c}{SAR_TEXT.get(r.sar_state, '---'):<10}{RESET} "
             f"{sc_c}{score_str(r.weighted_score):<8}{RESET} "
-            f"{sig_c}{BOLD}{sig:<8}{RESET}"
+            f"{sig_c}{BOLD}{sig:<8}{RESET} "
+            f"{format_sar15_event(r):<20}"
         )
     print(sep)
     print()
@@ -745,7 +875,8 @@ def append_pairs_to_message(base_msg: str, candidate_pairs: list[PairResult],
             emoji = "\U0001f7e0"
         else:
             emoji = "\u26aa"
-        lines.append(f"{emoji} {r.pair} ({score_str(r.weighted_score)})")
+        sar15 = format_sar15_event(r)
+        lines.append(f"{emoji} {r.pair} ({score_str(r.weighted_score)}) | SAR15 {sar15}")
 
     parts = base_msg.rsplit("\n⏰", 1)
     if len(parts) == 2:
