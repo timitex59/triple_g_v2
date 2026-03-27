@@ -1,35 +1,12 @@
 {
-  "updated_at_utc": "2026-03-27T18:06:21Z",
+  "updated_at_utc": "2026-03-27T19:13:27Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
   "entry_count": 5,
-  "conflicted_currencies": [
-    "EUR"
-  ],
-  "invalidated_pairs": [
-    {
-      "pair": "EURJPY",
-      "direction": "BULL",
-      "blocked_by": [
-        "EUR"
-      ],
-      "sections": [
-        "break_line:retracing"
-      ]
-    },
-    {
-      "pair": "EURUSD",
-      "direction": "BEAR",
-      "blocked_by": [
-        "EUR"
-      ],
-      "sections": [
-        "break_line:exited"
-      ]
-    }
-  ],
+  "conflicted_currencies": [],
+  "invalidated_pairs": [],
   "tradable_pairs": [
     {
       "pair": "GBPUSD",
@@ -44,22 +21,22 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.4598408185616636
+      "best_chg_cc_d1": -0.4658420037957533
     },
     {
-      "pair": "NZDUSD",
-      "direction": "BEAR",
-      "strong_currency": "USD",
-      "weak_currency": "NZD",
+      "pair": "AUDCHF",
+      "direction": "BULL",
+      "strong_currency": "AUD",
+      "weak_currency": "CHF",
       "sources": [
         "break_line"
       ],
       "sections": [
-        "break_line:exited"
+        "break_line:retracing"
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.3748763428730002
+      "best_chg_cc_d1": 0.22096824266329432
     },
     {
       "pair": "USDCAD",
@@ -74,7 +51,37 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.20850919532765072
+      "best_chg_cc_d1": 0.19840840385848849
+    },
+    {
+      "pair": "EURJPY",
+      "direction": "BULL",
+      "strong_currency": "EUR",
+      "weak_currency": "JPY",
+      "sources": [
+        "break_line"
+      ],
+      "sections": [
+        "break_line:retracing"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": 0.15417019520987787
+    },
+    {
+      "pair": "AUDNZD",
+      "direction": "BULL",
+      "strong_currency": "AUD",
+      "weak_currency": "NZD",
+      "sources": [
+        "ichimoku"
+      ],
+      "sections": [
+        "ichimoku:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": 0.11964224458891112
     }
   ],
   "tradable_by_section": {
@@ -86,7 +93,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.4598408185616636
+        "chg_cc_d1": -0.4658420037957533
       },
       {
         "pair": "USDCAD",
@@ -95,22 +102,41 @@
         "weak_currency": "CAD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.20850919532765072
+        "chg_cc_d1": 0.19840840385848849
       }
     ],
-    "break_line:retracing": [],
-    "break_line:exited": [
+    "break_line:retracing": [
       {
-        "pair": "NZDUSD",
-        "direction": "BEAR",
-        "strong_currency": "USD",
-        "weak_currency": "NZD",
+        "pair": "AUDCHF",
+        "direction": "BULL",
+        "strong_currency": "AUD",
+        "weak_currency": "CHF",
         "source": "break_line",
-        "section": "exited",
-        "chg_cc_d1": -0.3748763428730002
+        "section": "retracing",
+        "chg_cc_d1": 0.22096824266329432
+      },
+      {
+        "pair": "EURJPY",
+        "direction": "BULL",
+        "strong_currency": "EUR",
+        "weak_currency": "JPY",
+        "source": "break_line",
+        "section": "retracing",
+        "chg_cc_d1": 0.15417019520987787
       }
     ],
-    "ichimoku:aligned": [],
+    "break_line:exited": [],
+    "ichimoku:aligned": [
+      {
+        "pair": "AUDNZD",
+        "direction": "BULL",
+        "strong_currency": "AUD",
+        "weak_currency": "NZD",
+        "source": "ichimoku",
+        "section": "aligned",
+        "chg_cc_d1": 0.11964224458891112
+      }
+    ],
     "ichimoku:mid_aligned": []
   },
   "best_opportunities": []
