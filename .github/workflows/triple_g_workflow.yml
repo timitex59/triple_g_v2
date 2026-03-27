@@ -99,9 +99,9 @@ jobs:
           fi
 
           if [ "$ENABLE_TELEGRAM_PX_RENKO_INDEX" = "true" ]; then
-            TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python px_renko_screener_index.py
+            TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python px_renko_screener_index.py --end-hour 22
           else
-            TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python px_renko_screener_index.py --no-telegram
+            TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python px_renko_screener_index.py --no-telegram --end-hour 22
           fi
 
           run_with_telegram "$ENABLE_TELEGRAM_TRACKER" strategy_tracker.py
