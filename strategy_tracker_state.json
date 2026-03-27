@@ -24,6 +24,12 @@
         "direction": "BEAR",
         "entry_price": 1.595285,
         "entry_at": "2026-03-27T09:11:58Z"
+      },
+      "EURUSD": {
+        "pair": "EURUSD",
+        "direction": "BEAR",
+        "entry_price": 1.15107,
+        "entry_at": "2026-03-27T11:10:58Z"
       }
     },
     "closed_history": [
@@ -459,12 +465,6 @@
         "direction": "BULL",
         "entry_price": 0.7967099999999999,
         "entry_at": "2026-03-27T07:39:03Z"
-      },
-      "GBPCHF": {
-        "pair": "GBPCHF",
-        "direction": "BULL",
-        "entry_price": 1.06154,
-        "entry_at": "2026-03-27T10:10:57Z"
       }
     },
     "closed_history": [
@@ -1557,9 +1557,19 @@
         "exit_at": "2026-03-27T09:12:00Z",
         "pips": -17.8,
         "pnl_usd": -0.75
+      },
+      {
+        "pair": "GBPCHF",
+        "direction": "BULL",
+        "entry_price": 1.06154,
+        "entry_at": "2026-03-27T10:10:57Z",
+        "exit_price": 1.0604,
+        "exit_at": "2026-03-27T11:11:00Z",
+        "pips": -11.4,
+        "pnl_usd": -0.54
       }
     ],
-    "total_realized_pnl": -67.11
+    "total_realized_pnl": -67.65
   },
-  "updated_at_utc": "2026-03-27T10:10:59Z"
+  "updated_at_utc": "2026-03-27T11:11:02Z"
 }

@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-03-27T10:08:52Z",
+  "updated_at_utc": "2026-03-27T11:08:54Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 4,
+  "entry_count": 5,
   "conflicted_currencies": [],
   "invalidated_pairs": [],
   "tradable_pairs": [
@@ -21,7 +21,52 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.4364579338556225
+      "best_chg_cc_d1": 0.3524534779670898
+    },
+    {
+      "pair": "GBPUSD",
+      "direction": "BEAR",
+      "strong_currency": "USD",
+      "weak_currency": "GBP",
+      "sources": [
+        "break_line"
+      ],
+      "sections": [
+        "break_line:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": -0.22879518704944204
+    },
+    {
+      "pair": "EURCAD",
+      "direction": "BEAR",
+      "strong_currency": "CAD",
+      "weak_currency": "EUR",
+      "sources": [
+        "break_line"
+      ],
+      "sections": [
+        "break_line:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": -0.22781324320941843
+    },
+    {
+      "pair": "EURUSD",
+      "direction": "BEAR",
+      "strong_currency": "USD",
+      "weak_currency": "EUR",
+      "sources": [
+        "break_line"
+      ],
+      "sections": [
+        "break_line:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": -0.16913282564575072
     },
     {
       "pair": "AUDJPY",
@@ -36,37 +81,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.20083970991839512
-    },
-    {
-      "pair": "GBPUSD",
-      "direction": "BEAR",
-      "strong_currency": "USD",
-      "weak_currency": "GBP",
-      "sources": [
-        "break_line"
-      ],
-      "sections": [
-        "break_line:exited"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": -0.18078570517677414
-    },
-    {
-      "pair": "EURCAD",
-      "direction": "BEAR",
-      "strong_currency": "CAD",
-      "weak_currency": "EUR",
-      "sources": [
-        "break_line"
-      ],
-      "sections": [
-        "break_line:exited"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": -0.16272374514959054
+      "best_chg_cc_d1": 0.14722186880896249
     }
   ],
   "tradable_by_section": {
@@ -78,19 +93,16 @@
         "weak_currency": "CHF",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": 0.4364579338556225
-      }
-    ],
-    "break_line:retracing": [],
-    "break_line:exited": [
+        "chg_cc_d1": 0.3524534779670898
+      },
       {
         "pair": "GBPUSD",
         "direction": "BEAR",
         "strong_currency": "USD",
         "weak_currency": "GBP",
         "source": "break_line",
-        "section": "exited",
-        "chg_cc_d1": -0.18078570517677414
+        "section": "aligned",
+        "chg_cc_d1": -0.22879518704944204
       },
       {
         "pair": "EURCAD",
@@ -98,10 +110,21 @@
         "strong_currency": "CAD",
         "weak_currency": "EUR",
         "source": "break_line",
-        "section": "exited",
-        "chg_cc_d1": -0.16272374514959054
+        "section": "aligned",
+        "chg_cc_d1": -0.22781324320941843
+      },
+      {
+        "pair": "EURUSD",
+        "direction": "BEAR",
+        "strong_currency": "USD",
+        "weak_currency": "EUR",
+        "source": "break_line",
+        "section": "aligned",
+        "chg_cc_d1": -0.16913282564575072
       }
     ],
+    "break_line:retracing": [],
+    "break_line:exited": [],
     "ichimoku:aligned": [
       {
         "pair": "AUDJPY",
@@ -110,7 +133,7 @@
         "weak_currency": "JPY",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": 0.20083970991839512
+        "chg_cc_d1": 0.14722186880896249
       }
     ],
     "ichimoku:mid_aligned": []
