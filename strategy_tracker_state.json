@@ -12,6 +12,24 @@
         "direction": "BULL",
         "entry_price": 110.149,
         "entry_at": "2026-03-27T14:39:48Z"
+      },
+      "GBPUSD": {
+        "pair": "GBPUSD",
+        "direction": "BEAR",
+        "entry_price": 1.3285449999999999,
+        "entry_at": "2026-03-27T16:11:17Z"
+      },
+      "EURJPY": {
+        "pair": "EURJPY",
+        "direction": "BULL",
+        "entry_price": 184.527,
+        "entry_at": "2026-03-27T16:11:17Z"
+      },
+      "AUDCAD": {
+        "pair": "AUDCAD",
+        "direction": "BULL",
+        "entry_price": 0.9554050000000001,
+        "entry_at": "2026-03-27T16:11:17Z"
       }
     },
     "closed_history": [
@@ -482,23 +500,23 @@
         "entry_price": 0.7964,
         "entry_at": "2026-03-27T14:39:50Z"
       },
-      "CHFJPY": {
-        "pair": "CHFJPY",
-        "direction": "BEAR",
-        "entry_price": 200.527,
-        "entry_at": "2026-03-27T15:13:49Z"
-      },
-      "GBPCHF": {
-        "pair": "GBPCHF",
-        "direction": "BULL",
-        "entry_price": 1.06174,
-        "entry_at": "2026-03-27T15:13:49Z"
-      },
       "EURJPY": {
         "pair": "EURJPY",
         "direction": "BULL",
         "entry_price": 184.40099999999998,
         "entry_at": "2026-03-27T15:13:49Z"
+      },
+      "USDJPY": {
+        "pair": "USDJPY",
+        "direction": "BULL",
+        "entry_price": 160.2055,
+        "entry_at": "2026-03-27T16:11:20Z"
+      },
+      "USDCAD": {
+        "pair": "USDCAD",
+        "direction": "BULL",
+        "entry_price": 1.387875,
+        "entry_at": "2026-03-27T16:11:20Z"
       }
     },
     "closed_history": [
@@ -1631,9 +1649,29 @@
         "exit_at": "2026-03-27T13:46:53Z",
         "pips": -10.5,
         "pnl_usd": -0.66
+      },
+      {
+        "pair": "CHFJPY",
+        "direction": "BEAR",
+        "entry_price": 200.527,
+        "entry_at": "2026-03-27T15:13:49Z",
+        "exit_price": 201.05,
+        "exit_at": "2026-03-27T16:11:20Z",
+        "pips": -52.3,
+        "pnl_usd": -1.3
+      },
+      {
+        "pair": "GBPCHF",
+        "direction": "BULL",
+        "entry_price": 1.06174,
+        "entry_at": "2026-03-27T15:13:49Z",
+        "exit_price": 1.05853,
+        "exit_at": "2026-03-27T16:11:20Z",
+        "pips": -32.1,
+        "pnl_usd": -1.51
       }
     ],
-    "total_realized_pnl": -69.4
+    "total_realized_pnl": -72.22
   },
-  "updated_at_utc": "2026-03-27T15:13:51Z"
+  "updated_at_utc": "2026-03-27T16:11:24Z"
 }
