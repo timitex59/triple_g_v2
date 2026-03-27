@@ -25,11 +25,11 @@
         "entry_price": 184.527,
         "entry_at": "2026-03-27T16:11:17Z"
       },
-      "AUDCAD": {
-        "pair": "AUDCAD",
+      "AUDNZD": {
+        "pair": "AUDNZD",
         "direction": "BULL",
-        "entry_price": 0.9554050000000001,
-        "entry_at": "2026-03-27T16:11:17Z"
+        "entry_price": 1.1968800000000002,
+        "entry_at": "2026-03-27T16:51:07Z"
       }
     },
     "closed_history": [
@@ -482,9 +482,19 @@
         "exit_at": "2026-03-27T15:13:47Z",
         "pips": -8.4,
         "pnl_usd": -0.32
+      },
+      {
+        "pair": "AUDCAD",
+        "direction": "BULL",
+        "entry_price": 0.9554050000000001,
+        "entry_at": "2026-03-27T16:11:17Z",
+        "exit_price": 0.955575,
+        "exit_at": "2026-03-27T16:51:07Z",
+        "pips": 1.7,
+        "pnl_usd": 0.09
       }
     ],
-    "total_realized_pnl": -27.3
+    "total_realized_pnl": -27.21
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
@@ -1673,5 +1683,5 @@
     ],
     "total_realized_pnl": -72.22
   },
-  "updated_at_utc": "2026-03-27T16:11:24Z"
+  "updated_at_utc": "2026-03-27T16:51:11Z"
 }
