@@ -53,32 +53,37 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           REVERSAL_TZ: Europe/Paris
+          ENABLE_TELEGRAM_BREAK_LINE: "false"
+          ENABLE_TELEGRAM_ICHIMOKU: "false"
+          ENABLE_TELEGRAM_CONSOLIDATION: "true"
+          ENABLE_TELEGRAM_BREAK_LINE_RENKO: "false"
           ENABLE_TELEGRAM_HEIKEN: "false"
+          ENABLE_TELEGRAM_PX_RENKO_V4: "true"
+          ENABLE_TELEGRAM_PX_RENKO_INDEX: "true"
           ENABLE_TELEGRAM_TRACKER: "false"
         run: |
           HOUR_MIN_PARIS=$(TZ="$REVERSAL_TZ" date +%H%M)
           export TG_BOT_TOKEN="$TELEGRAM_BOT_TOKEN"
           export TG_CHAT_ID="$TELEGRAM_CHAT_ID"
 
-          TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python break_line.py
-          TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python ichimoku_v4.py
-          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python triple_g_consolidation.py
-          TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python break_line_renko_strategy.py --telegram
+          run_with_telegram() {
+            ENABLE_FLAG="$1"
+            shift
+            if [ "$ENABLE_FLAG" = "true" ]; then
+              TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python "$@"
+            else
+              TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python "$@"
+            fi
+          }
 
-          if [ "$ENABLE_TELEGRAM_HEIKEN" = "true" ]; then
-            TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python heiken_ashi_aligned_v2.py
-          else
-            TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python heiken_ashi_aligned_v2.py
-          fi
-
-          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python px_renko_screener_v4.py
-          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python px_renko_screener_index.py
-
-          if [ "$ENABLE_TELEGRAM_TRACKER" = "true" ]; then
-            TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python strategy_tracker.py
-          else
-            TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python strategy_tracker.py
-          fi
+          run_with_telegram "$ENABLE_TELEGRAM_BREAK_LINE" break_line.py
+          run_with_telegram "$ENABLE_TELEGRAM_ICHIMOKU" ichimoku_v4.py
+          run_with_telegram "$ENABLE_TELEGRAM_CONSOLIDATION" triple_g_consolidation.py
+          run_with_telegram "$ENABLE_TELEGRAM_BREAK_LINE_RENKO" break_line_renko_strategy.py --telegram
+          run_with_telegram "$ENABLE_TELEGRAM_HEIKEN" heiken_ashi_aligned_v2.py
+          run_with_telegram "$ENABLE_TELEGRAM_PX_RENKO_V4" px_renko_screener_v4.py
+          run_with_telegram "$ENABLE_TELEGRAM_PX_RENKO_INDEX" px_renko_screener_index.py
+          run_with_telegram "$ENABLE_TELEGRAM_TRACKER" strategy_tracker.py
 
 
           #python annual_NDX100_V1.py
