@@ -417,11 +417,11 @@ def format_sar15_event(pair: PairResult) -> str:
     return f"{pair.sar15_event} {pair.sar15_value:.5f} @{stamp}"
 
 
-def find_first_sar15_event(pair: str, weighted_score: float, sar_start: float,
+def find_first_sar15_event(pair: str, bias: int, sar_start: float,
                            sar_inc: float, sar_max: float,
                            tz_name: str = "Europe/Paris") -> tuple[str | None, float | None, datetime | None]:
-    """Find first 15m SAR cross event since the latest 23:00 in Paris."""
-    if weighted_score == 0:
+    """Find first 15m SAR cross event since 23:00 yesterday in Paris, based on pair bias."""
+    if bias == 0:
         return None, None, None
 
     tz = pytz.timezone(tz_name)
@@ -435,7 +435,7 @@ def find_first_sar15_event(pair: str, weighted_score: float, sar_start: float,
         return None, None, None
 
     sar = compute_parabolic_sar_series(bars, start=sar_start, increment=sar_inc, maximum=sar_max)
-    wanted = "X Under" if weighted_score > 0 else "X Over"
+    wanted = "X Over" if bias > 0 else "X Under"
 
     for i in range(1, len(bars)):
         ts = datetime.fromtimestamp(bars[i]["time"], tz=pytz.UTC).astimezone(tz)
@@ -660,7 +660,7 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
     trigger, bias = compute_trigger(d1, w1, chg_pct, sar_st, min_chg)
     raw_sc, weighted_sc = compute_score(d1, w1, chg_pct, sar_st)
     sar15_event, sar15_value, sar15_time = find_first_sar15_event(
-        pair, weighted_sc, sar_start, sar_inc, sar_max
+        pair, bias, sar_start, sar_inc, sar_max
     )
 
     return PairResult(
