@@ -1,6 +1,25 @@
 {
   "CONSOLIDATION": {
-    "open_positions": {},
+    "open_positions": {
+      "AUDCHF": {
+        "pair": "AUDCHF",
+        "direction": "BULL",
+        "entry_price": 0.549285,
+        "entry_at": "2026-03-27T05:54:13Z"
+      },
+      "AUDCAD": {
+        "pair": "AUDCAD",
+        "direction": "BULL",
+        "entry_price": 0.9566450000000001,
+        "entry_at": "2026-03-27T05:54:13Z"
+      },
+      "AUDJPY": {
+        "pair": "AUDJPY",
+        "direction": "BULL",
+        "entry_price": 110.20400000000001,
+        "entry_at": "2026-03-27T05:54:13Z"
+      }
+    },
     "closed_history": [
       {
         "pair": "EURGBP",
@@ -406,7 +425,26 @@
     "total_realized_pnl": -23.14
   },
   "HEIKEN_ICHI_V2": {
-    "open_positions": {},
+    "open_positions": {
+      "EURCHF": {
+        "pair": "EURCHF",
+        "direction": "BULL",
+        "entry_price": 0.91825,
+        "entry_at": "2026-03-27T05:54:14Z"
+      },
+      "CHFJPY": {
+        "pair": "CHFJPY",
+        "direction": "BEAR",
+        "entry_price": 200.64499999999998,
+        "entry_at": "2026-03-27T05:54:14Z"
+      },
+      "GBPCHF": {
+        "pair": "GBPCHF",
+        "direction": "BULL",
+        "entry_price": 1.06147,
+        "entry_at": "2026-03-27T05:54:14Z"
+      }
+    },
     "closed_history": [
       {
         "pair": "AUDCAD",
@@ -1481,5 +1519,5 @@
     ],
     "total_realized_pnl": -66.04
   },
-  "updated_at_utc": "2026-03-26T22:54:03Z"
+  "updated_at_utc": "2026-03-27T05:54:16Z"
 }

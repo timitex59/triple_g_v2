@@ -1,18 +1,93 @@
 {
-  "updated_at_utc": "2026-03-26T22:52:03Z",
+  "updated_at_utc": "2026-03-27T05:52:14Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 0,
+  "entry_count": 3,
   "conflicted_currencies": [],
   "invalidated_pairs": [],
-  "tradable_pairs": [],
+  "tradable_pairs": [
+    {
+      "pair": "AUDCHF",
+      "direction": "BULL",
+      "strong_currency": "AUD",
+      "weak_currency": "CHF",
+      "sources": [
+        "break_line"
+      ],
+      "sections": [
+        "break_line:retracing"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": 0.30132033090449595
+    },
+    {
+      "pair": "AUDCAD",
+      "direction": "BULL",
+      "strong_currency": "AUD",
+      "weak_currency": "CAD",
+      "sources": [
+        "ichimoku"
+      ],
+      "sections": [
+        "ichimoku:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": 0.24305919329491765
+    },
+    {
+      "pair": "AUDJPY",
+      "direction": "BULL",
+      "strong_currency": "AUD",
+      "weak_currency": "JPY",
+      "sources": [
+        "ichimoku"
+      ],
+      "sections": [
+        "ichimoku:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": 0.1817553935913074
+    }
+  ],
   "tradable_by_section": {
     "break_line:aligned": [],
-    "break_line:retracing": [],
+    "break_line:retracing": [
+      {
+        "pair": "AUDCHF",
+        "direction": "BULL",
+        "strong_currency": "AUD",
+        "weak_currency": "CHF",
+        "source": "break_line",
+        "section": "retracing",
+        "chg_cc_d1": 0.30132033090449595
+      }
+    ],
     "break_line:exited": [],
-    "ichimoku:aligned": [],
+    "ichimoku:aligned": [
+      {
+        "pair": "AUDCAD",
+        "direction": "BULL",
+        "strong_currency": "AUD",
+        "weak_currency": "CAD",
+        "source": "ichimoku",
+        "section": "aligned",
+        "chg_cc_d1": 0.24305919329491765
+      },
+      {
+        "pair": "AUDJPY",
+        "direction": "BULL",
+        "strong_currency": "AUD",
+        "weak_currency": "JPY",
+        "source": "ichimoku",
+        "section": "aligned",
+        "chg_cc_d1": 0.1817553935913074
+      }
+    ],
     "ichimoku:mid_aligned": []
   },
   "best_opportunities": []
