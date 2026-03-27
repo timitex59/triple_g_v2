@@ -65,7 +65,8 @@ jobs:
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python heiken_ashi_aligned_v2.py
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python px_renko_screener_v4.py
           TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python px_renko_screener_index.py
-          TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python strategy_tracker.py
+          # Temporary: keep state updates, disable Telegram message for strategy tracker
+          TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python strategy_tracker.py
 
 
           #python annual_NDX100_V1.py
