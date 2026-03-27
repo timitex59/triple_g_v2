@@ -698,11 +698,21 @@ def print_table(results: list[IndexResult]) -> None:
 
 # ── Telegram message (exact Pine format) ──────────────────────────────
 def build_telegram_message(results: list[IndexResult]) -> str | None:
-    """Build simplified Telegram message."""
+    """Build message with ALL indices sorted by descending weighted score."""
     if not results:
         return None
 
+    # Sort by weighted score descending (strongest bull first, strongest bear last)
     sorted_results = sorted(results, key=lambda r: r.weighted_score, reverse=True)
+
+    # Average score
+    avg_sc = sum(r.weighted_score for r in results) / len(results)
+    above = sorted([r for r in results if r.weighted_score >= 0],
+                   key=lambda r: r.weighted_score, reverse=True)
+    below = sorted([r for r in results if r.weighted_score <= 0],
+                   key=lambda r: r.weighted_score)
+    top2 = above[:2]
+    last2 = below[:2]
 
     lines = ["📊 INDICES (score ↓)"]
     for r in sorted_results:
@@ -717,23 +727,30 @@ def build_telegram_message(results: list[IndexResult]) -> str | None:
             emoji = "🟠"
         else:
             emoji = "⚪"
-        lines.append(f"{emoji} {r.ccy} ({score_str(r.weighted_score)})")
+        lines.append(f"{emoji} {r.ccy} {sig} [{score_str(r.weighted_score)}] ({chg_str(r.chg_pct)})")
 
+    lines.append(f"\n📈 Avg: {score_str(avg_sc)}")
+    if top2:
+        lines.append("🔺 TOP 2: " + ", ".join(f"{r.ccy} [{score_str(r.weighted_score)}]" for r in top2))
+    if last2:
+        lines.append("🔻 LAST 2: " + ", ".join(f"{r.ccy} [{score_str(r.weighted_score)}]" for r in last2))
+
+    # Pairs section (appended by caller if available)
     lines.append("")
     now_paris = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
     lines.append(f"⏰ {now_paris} Paris")
     return "\n".join(lines)
 
 
-def append_pairs_to_message(base_msg: str, candidate_pairs: list[PairResult],
-                            other_pairs: list[PairResult]) -> str:
-    """Merge candidate + other pairs into a single PAIRS TO FOLLOW section."""
-    all_pairs = list(candidate_pairs) + list(other_pairs)
-    if not all_pairs:
-        return base_msg
-
-    lines = ["", "PAIRS TO FOLLOW"]
-    for r in all_pairs:
+def _pairs_section(pairs: list[PairResult], title: str, show_all: bool = False) -> list[str]:
+    """Build Telegram lines for a pair section.
+    show_all=True: include pairs without signal (with ⚪).
+    show_all=False: only include pairs with BULL/BEAR/LONG/SHORT.
+    """
+    if not pairs:
+        return []
+    lines = [f"\n{title}"]
+    for r in pairs:
         sig = signal_text(r.trigger, r.bias)
         if sig == "LONG":
             emoji = "\U0001f7e2"
@@ -744,13 +761,27 @@ def append_pairs_to_message(base_msg: str, candidate_pairs: list[PairResult],
         elif sig == "BEAR":
             emoji = "\U0001f7e0"
         else:
+            if not show_all:
+                continue
             emoji = "\u26aa"
-        lines.append(f"{emoji} {r.pair} ({score_str(r.weighted_score)})")
+        lines.append(f"{emoji} {r.pair} {sig} [{score_str(r.weighted_score)}] ({chg_str(r.chg_pct)})")
+    return lines
 
-    parts = base_msg.rsplit("\n⏰", 1)
-    if len(parts) == 2:
-        return parts[0] + "\n".join(lines) + "\n\n⏰" + parts[1]
-    return base_msg + "\n" + "\n".join(lines)
+
+def append_pairs_to_message(base_msg: str, candidate_pairs: list[PairResult],
+                            other_pairs: list[PairResult]) -> str:
+    """Insert pair sections before the timestamp line."""
+    section1 = _pairs_section(candidate_pairs, "\U0001f3af PAIRS (TOP2 \u00d7 LAST2)", show_all=True)
+    section2 = _pairs_section(other_pairs, "\U0001f50d OTHER PAIRS", show_all=False)
+    if not section1 and not section2:
+        return base_msg
+    parts = base_msg.rsplit("\n\u23f0", 1)
+    extra = ""
+    if section1:
+        extra += "\n".join(section1)
+    if section2:
+        extra += "\n" + "\n".join(section2)
+    return parts[0] + extra + "\n\n\u23f0" + parts[1]
 
 
 # ── Telegram ──────────────────────────────────────────────────────────
