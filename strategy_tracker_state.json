@@ -19,11 +19,17 @@
         "entry_price": 0.549045,
         "entry_at": "2026-03-27T19:16:42Z"
       },
-      "EURJPY": {
-        "pair": "EURJPY",
+      "AUDJPY": {
+        "pair": "AUDJPY",
         "direction": "BULL",
-        "entry_price": 184.49699999999999,
-        "entry_at": "2026-03-27T19:16:42Z"
+        "entry_price": 110.19600000000001,
+        "entry_at": "2026-03-27T21:00:23Z"
+      },
+      "AUDNZD": {
+        "pair": "AUDNZD",
+        "direction": "BULL",
+        "entry_price": 1.1965700000000001,
+        "entry_at": "2026-03-27T21:00:23Z"
       }
     },
     "closed_history": [
@@ -546,9 +552,19 @@
         "exit_at": "2026-03-27T19:57:04Z",
         "pips": -4.9,
         "pnl_usd": -0.2
+      },
+      {
+        "pair": "EURJPY",
+        "direction": "BULL",
+        "entry_price": 184.49699999999999,
+        "entry_at": "2026-03-27T19:16:42Z",
+        "exit_price": 184.52800000000002,
+        "exit_at": "2026-03-27T21:00:23Z",
+        "pips": 3.1,
+        "pnl_usd": 0.08
       }
     ],
-    "total_realized_pnl": -29.6
+    "total_realized_pnl": -29.52
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
@@ -570,17 +586,17 @@
         "entry_price": 0.57494,
         "entry_at": "2026-03-27T17:01:33Z"
       },
-      "AUDUSD": {
-        "pair": "AUDUSD",
-        "direction": "BEAR",
-        "entry_price": 0.68669,
-        "entry_at": "2026-03-27T17:34:56Z"
-      },
       "EURCHF": {
         "pair": "EURCHF",
         "direction": "BULL",
         "entry_price": 0.9197700000000001,
         "entry_at": "2026-03-27T19:16:45Z"
+      },
+      "USDCAD": {
+        "pair": "USDCAD",
+        "direction": "BULL",
+        "entry_price": 1.389495,
+        "entry_at": "2026-03-27T21:00:26Z"
       }
     },
     "closed_history": [
@@ -1773,9 +1789,19 @@
         "exit_at": "2026-03-27T19:16:45Z",
         "pips": 8.0,
         "pnl_usd": 0.29
+      },
+      {
+        "pair": "AUDUSD",
+        "direction": "BEAR",
+        "entry_price": 0.68669,
+        "entry_at": "2026-03-27T17:34:56Z",
+        "exit_price": 0.6873900000000001,
+        "exit_at": "2026-03-27T21:00:26Z",
+        "pips": -7.0,
+        "pnl_usd": -0.51
       }
     ],
-    "total_realized_pnl": -72.01
+    "total_realized_pnl": -72.52
   },
-  "updated_at_utc": "2026-03-27T19:57:09Z"
+  "updated_at_utc": "2026-03-27T21:00:28Z"
 }
