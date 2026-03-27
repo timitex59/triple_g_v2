@@ -407,9 +407,7 @@ def sar_event_cutoff_paris(now_paris: datetime | None = None) -> datetime:
     tz = pytz.timezone("Europe/Paris")
     now_paris = now_paris or datetime.now(tz)
     base = now_paris.replace(hour=23, minute=0, second=0, microsecond=0)
-    if now_paris < base:
-        base = base.replace(day=base.day) - timedelta(days=1)
-    return base
+    return base - timedelta(days=1)
 
 
 def format_sar15_event(pair: PairResult) -> str:
