@@ -76,6 +76,12 @@ jobs:
             fi
           }
 
+          if [ "$ENABLE_TELEGRAM_PX_RENKO_INDEX" = "true" ]; then
+            TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python px_renko_screener_index.py
+          else
+            TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python px_renko_screener_index.py --no-telegram
+          fi
+
           run_with_telegram "$ENABLE_TELEGRAM_BREAK_LINE" break_line.py
           run_with_telegram "$ENABLE_TELEGRAM_ICHIMOKU" ichimoku_v4.py
           run_with_telegram "$ENABLE_TELEGRAM_CONSOLIDATION" triple_g_consolidation.py
@@ -96,12 +102,6 @@ jobs:
             TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python px_renko_screener_v4.py
           else
             TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python px_renko_screener_v4.py --no-telegram
-          fi
-
-          if [ "$ENABLE_TELEGRAM_PX_RENKO_INDEX" = "true" ]; then
-            TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python px_renko_screener_index.py
-          else
-            TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python px_renko_screener_index.py --no-telegram
           fi
 
           run_with_telegram "$ENABLE_TELEGRAM_TRACKER" strategy_tracker.py
