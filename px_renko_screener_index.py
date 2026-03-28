@@ -13,7 +13,6 @@ For each of 8 currency indices (DXY, EXY, BXY, JXY, SXY, CXY, AXY, ZXY):
   4. Compute bias (BULL/BEAR), trigger (LONG/SHORT)
   5. Weighted score = (D1 + W1 + CHG% + SAR) × |CHG%|
   6. Alert: SHORT, BEAR (bias+SAR below), LONG, BULL (bias+SAR above)
-  7. Time window filter (default 7H-20H Europe/Paris)
 """
 
 import argparse
@@ -103,6 +102,7 @@ class PairResult:
     sar15_value: float | None = None
     sar15_time: datetime | None = None
     sar15_note: str | None = None
+    sar15_confirmed: bool = False
 
 
 # ── TradingView websocket helpers ─────────────────────────────────────
@@ -436,10 +436,12 @@ def format_sar15_event(pair: PairResult) -> str:
 def find_first_sar15_event(pair: str, weighted_score: float, sar_start: float,
                            sar_inc: float, sar_max: float,
                            cutoff_override: datetime | None = None,
-                           tz_name: str = "Europe/Paris") -> tuple[str | None, float | None, datetime | None, str | None]:
-    """Find first 15m SAR cross event since 23:00 yesterday in Paris, based on score sign."""
+                           tz_name: str = "Europe/Paris") -> tuple[str | None, float | None, datetime | None, str | None, bool]:
+    """Find first 15m SAR cross event since cutoff, based on score sign.
+    Also checks if the current (last) bar still confirms the direction.
+    Returns (event, value, time, note, confirmed)."""
     if weighted_score == 0:
-        return None, None, None, "score=0"
+        return None, None, None, "score=0", False
 
     tz = pytz.timezone(tz_name)
     now_paris = datetime.now(tz)
@@ -451,10 +453,16 @@ def find_first_sar15_event(pair: str, weighted_score: float, sar_start: float,
 
     bars = fetch_tv_ohlc(f"OANDA:{pair}", "15", n_candles)
     if not bars or len(bars) < 3:
-        return None, None, None, "no 15m data"
+        return None, None, None, "no 15m data", False
 
     sar = compute_parabolic_sar_series(bars, start=sar_start, increment=sar_inc, maximum=sar_max)
     wanted = "X Over" if weighted_score > 0 else "X Under"
+
+    # Find the most extreme cross in the signal direction since cutoff:
+    # BULL → X Over with lowest SAR value (strongest support floor)
+    # BEAR → X Under with highest SAR value (strongest resistance ceiling)
+    extreme_sar: float | None = None
+    extreme_ts: datetime | None = None
 
     for i in range(1, len(bars)):
         ts = datetime.fromtimestamp(bars[i]["time"], tz=pytz.UTC).astimezone(tz)
@@ -466,12 +474,23 @@ def find_first_sar15_event(pair: str, weighted_score: float, sar_start: float,
         cross_over = c_prev <= sar_prev and c_last > sar_last
         cross_under = c_prev >= sar_prev and c_last < sar_last
 
-        if wanted == "X Under" and cross_under:
-            return wanted, sar_last, ts, None
         if wanted == "X Over" and cross_over:
-            return wanted, sar_last, ts, None
+            if extreme_sar is None or sar_last < extreme_sar:
+                extreme_sar = sar_last
+                extreme_ts = ts
+        elif wanted == "X Under" and cross_under:
+            if extreme_sar is None or sar_last > extreme_sar:
+                extreme_sar = sar_last
+                extreme_ts = ts
 
-    return None, None, None, "no cross since cutoff"
+    if extreme_sar is None:
+        return None, None, None, "no cross since cutoff", False
+
+    # Confirmation: current price still on the right side of the extreme SAR level
+    current_close = bars[-1]["close"]
+    confirmed = (current_close > extreme_sar) if weighted_score > 0 else (current_close < extreme_sar)
+
+    return wanted, extreme_sar, extreme_ts, None, confirmed
 
 
 def list_sar15_events(pair: str, sar_start: float, sar_inc: float, sar_max: float,
@@ -785,7 +804,7 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
     w1 = px_state(brick_w1["open"], brick_w1["close"], dc)
     trigger, bias = compute_trigger(d1, w1, chg_pct, sar_st, min_chg)
     raw_sc, weighted_sc = compute_score(d1, w1, chg_pct, sar_st)
-    sar15_event, sar15_value, sar15_time, sar15_note = find_first_sar15_event(
+    sar15_event, sar15_value, sar15_time, sar15_note, sar15_confirmed = find_first_sar15_event(
         pair, weighted_sc, sar_start, sar_inc, sar_max, cutoff_override=sar15_cutoff
     )
 
@@ -796,7 +815,7 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
         bias=bias, trigger=trigger,
         raw_score=raw_sc, weighted_score=weighted_sc,
         sar15_event=sar15_event, sar15_value=sar15_value, sar15_time=sar15_time,
-        sar15_note=sar15_note,
+        sar15_note=sar15_note, sar15_confirmed=sar15_confirmed,
     )
 
 
@@ -990,6 +1009,8 @@ def append_pairs_to_message(base_msg: str, candidate_pairs: list[PairResult],
 
     lines = ["", "PAIRS TO FOLLOW"]
     for r in all_pairs:
+        if not r.sar15_confirmed:
+            continue
         sig = signal_text(r.trigger, r.bias)
         if sig == "LONG":
             emoji = "\U0001f7e2"
@@ -1001,8 +1022,7 @@ def append_pairs_to_message(base_msg: str, candidate_pairs: list[PairResult],
             emoji = "\U0001f7e0"
         else:
             emoji = "\u26aa"
-        sar15 = format_sar15_event(r)
-        lines.append(f"{emoji} {r.pair} ({score_str(r.weighted_score)}) | SAR15 {sar15}")
+        lines.append(f"{emoji} {r.pair} ({score_str(r.weighted_score)})")
 
     parts = base_msg.rsplit("\n⏰", 1)
     if len(parts) == 2:
@@ -1029,12 +1049,6 @@ def send_telegram(text: str) -> bool:
         return False
 
 
-# ── Time window check ─────────────────────────────────────────────────
-def in_time_window(tz_name: str, start_h: int, end_h: int) -> bool:
-    now = datetime.now(pytz.timezone(tz_name))
-    return start_h <= now.hour < end_h
-
-
 # ── CLI ───────────────────────────────────────────────────────────────
 def parse_args():
     p = argparse.ArgumentParser(
@@ -1047,9 +1061,6 @@ def parse_args():
     p.add_argument("--sar-start", type=float, default=SAR_START, help="SAR start (default: 0.1).")
     p.add_argument("--sar-inc", type=float, default=SAR_INCREMENT, help="SAR increment (default: 0.1).")
     p.add_argument("--sar-max", type=float, default=SAR_MAXIMUM, help="SAR maximum (default: 0.2).")
-    p.add_argument("--tz", type=str, default="Europe/Paris", help="Timezone for time window (default: Europe/Paris).")
-    p.add_argument("--start-hour", type=int, default=7, help="Alert start hour (default: 7).")
-    p.add_argument("--end-hour", type=int, default=20, help="Alert end hour (default: 20).")
     p.add_argument("--sar15-cutoff", type=str, default=None,
                    help='Force SAR15 search start in Paris time, format "YYYY-MM-DD HH:MM".')
     p.add_argument("--sar15-list-all", action="store_true",
@@ -1057,7 +1068,7 @@ def parse_args():
     p.add_argument("--sar15-debug-pair", type=str, default=None,
                    help="Print 15m close/SAR rows and cross events for one pair, e.g. USDJPY.")
     p.add_argument("--no-telegram", action="store_true", help="Skip Telegram, console only.")
-    p.add_argument("--force", action="store_true", help="Ignore time window, always send alert.")
+    p.add_argument("--force", action="store_true", help="Force scan even if no changes detected.")
     p.add_argument("--workers", type=int, default=4, help="Parallel threads (default: 4).")
     return p.parse_args()
 
@@ -1141,7 +1152,7 @@ def main() -> int:
             sar_inc=args.sar_inc,
             sar_max=args.sar_max,
             cutoff_override=sar15_cutoff,
-            tz_name=args.tz,
+            tz_name="Europe/Paris",
         )
 
     if args.sar15_debug_pair:
@@ -1151,16 +1162,8 @@ def main() -> int:
             sar_inc=args.sar_inc,
             sar_max=args.sar_max,
             cutoff_override=sar15_cutoff,
-            tz_name=args.tz,
+            tz_name="Europe/Paris",
         )
-
-    # Time window check
-    in_window = args.force or in_time_window(args.tz, args.start_hour, args.end_hour)
-    if not in_window:
-        now = datetime.now(pytz.timezone(args.tz)).strftime("%H:%M")
-        print(f"  ⏸ Outside time window ({args.start_hour}H-{args.end_hour}H {args.tz}), "
-              f"current: {now}. Use --force to override.\n")
-        return 0
 
     # Telegram
     msg = build_telegram_message(results)
