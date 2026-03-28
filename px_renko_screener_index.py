@@ -102,6 +102,7 @@ class PairResult:
     sar15_event: str | None = None
     sar15_value: float | None = None
     sar15_time: datetime | None = None
+    sar15_note: str | None = None
 
 
 # ── TradingView websocket helpers ─────────────────────────────────────
@@ -406,36 +407,54 @@ def compute_parabolic_sar_series(bars: list[dict], start: float = 0.1,
 def sar_event_cutoff_paris(now_paris: datetime | None = None) -> datetime:
     tz = pytz.timezone("Europe/Paris")
     now_paris = now_paris or datetime.now(tz)
-    base = now_paris.replace(hour=23, minute=0, second=0, microsecond=0)
-    return base - timedelta(days=1)
+    # Start of current trading day at 00:00 Paris.
+    # On weekends (Sat=5, Sun=6), roll back to last Friday.
+    base = now_paris.replace(hour=0, minute=0, second=0, microsecond=0)
+    if base.weekday() == 5:   # Saturday → Friday
+        base -= timedelta(days=1)
+    elif base.weekday() == 6:  # Sunday → Friday
+        base -= timedelta(days=2)
+    return base
+
+
+def parse_paris_datetime(value: str) -> datetime:
+    """Parse YYYY-MM-DD HH:MM as Europe/Paris local time."""
+    tz = pytz.timezone("Europe/Paris")
+    dt = datetime.strptime(value, "%Y-%m-%d %H:%M")
+    return tz.localize(dt)
 
 
 def format_sar15_event(pair: PairResult) -> str:
+    if pair.sar15_note:
+        return pair.sar15_note
     if pair.sar15_value is None or pair.sar15_time is None or not pair.sar15_event:
         return "n/a"
     stamp = pair.sar15_time.strftime("%H:%M")
     return f"{pair.sar15_event} {pair.sar15_value:.5f} @{stamp}"
 
 
-def find_first_sar15_event(pair: str, bias: int, sar_start: float,
+def find_first_sar15_event(pair: str, weighted_score: float, sar_start: float,
                            sar_inc: float, sar_max: float,
-                           tz_name: str = "Europe/Paris") -> tuple[str | None, float | None, datetime | None]:
-    """Find first 15m SAR cross event since 23:00 yesterday in Paris, based on pair bias."""
-    if bias == 0:
-        return None, None, None
+                           cutoff_override: datetime | None = None,
+                           tz_name: str = "Europe/Paris") -> tuple[str | None, float | None, datetime | None, str | None]:
+    """Find first 15m SAR cross event since 23:00 yesterday in Paris, based on score sign."""
+    if weighted_score == 0:
+        return None, None, None, "score=0"
 
     tz = pytz.timezone(tz_name)
     now_paris = datetime.now(tz)
-    cutoff = sar_event_cutoff_paris(now_paris)
+    cutoff = cutoff_override.astimezone(tz) if cutoff_override else sar_event_cutoff_paris(now_paris)
+    # Parabolic SAR is path-dependent. Load a large warm-up window so the
+    # computed SAR matches TradingView more closely before scanning from cutoff.
     minutes_back = max(180, int((now_paris - cutoff).total_seconds() // 60) + 60)
-    n_candles = max(40, min(500, minutes_back // 15 + 10))
+    n_candles = max(300, min(500, minutes_back // 15 + 200))
 
     bars = fetch_tv_ohlc(f"OANDA:{pair}", "15", n_candles)
     if not bars or len(bars) < 3:
-        return None, None, None
+        return None, None, None, "no 15m data"
 
     sar = compute_parabolic_sar_series(bars, start=sar_start, increment=sar_inc, maximum=sar_max)
-    wanted = "X Over" if bias > 0 else "X Under"
+    wanted = "X Over" if weighted_score > 0 else "X Under"
 
     for i in range(1, len(bars)):
         ts = datetime.fromtimestamp(bars[i]["time"], tz=pytz.UTC).astimezone(tz)
@@ -448,11 +467,117 @@ def find_first_sar15_event(pair: str, bias: int, sar_start: float,
         cross_under = c_prev >= sar_prev and c_last < sar_last
 
         if wanted == "X Under" and cross_under:
-            return wanted, sar_last, ts
+            return wanted, sar_last, ts, None
         if wanted == "X Over" and cross_over:
-            return wanted, sar_last, ts
+            return wanted, sar_last, ts, None
 
-    return None, None, None
+    return None, None, None, "no cross since cutoff"
+
+
+def list_sar15_events(pair: str, sar_start: float, sar_inc: float, sar_max: float,
+                      cutoff_override: datetime | None = None,
+                      tz_name: str = "Europe/Paris") -> tuple[list[tuple[str, float, datetime]], str | None]:
+    """List all 15m SAR cross events since cutoff for one pair."""
+    tz = pytz.timezone(tz_name)
+    now_paris = datetime.now(tz)
+    cutoff = cutoff_override.astimezone(tz) if cutoff_override else sar_event_cutoff_paris(now_paris)
+    minutes_back = max(180, int((now_paris - cutoff).total_seconds() // 60) + 60)
+    n_candles = max(300, min(500, minutes_back // 15 + 200))
+
+    bars = fetch_tv_ohlc(f"OANDA:{pair}", "15", n_candles)
+    if not bars or len(bars) < 3:
+        return [], "no 15m data"
+
+    sar = compute_parabolic_sar_series(bars, start=sar_start, increment=sar_inc, maximum=sar_max)
+    events: list[tuple[str, float, datetime]] = []
+
+    for i in range(1, len(bars)):
+        ts = datetime.fromtimestamp(bars[i]["time"], tz=pytz.UTC).astimezone(tz)
+        if ts < cutoff:
+            continue
+
+        c_prev, sar_prev = bars[i - 1]["close"], sar[i - 1]
+        c_last, sar_last = bars[i]["close"], sar[i]
+        cross_over = c_prev <= sar_prev and c_last > sar_last
+        cross_under = c_prev >= sar_prev and c_last < sar_last
+
+        if cross_over:
+            events.append(("X Over", sar_last, ts))
+        if cross_under:
+            events.append(("X Under", sar_last, ts))
+
+    return events, None
+
+
+def print_sar15_events_for_pairs(pairs: list[PairResult], sar_start: float, sar_inc: float,
+                                 sar_max: float, cutoff_override: datetime | None = None,
+                                 tz_name: str = "Europe/Paris") -> None:
+    """Print all detected SAR15 cross events for each pair in the list."""
+    if not pairs:
+        return
+
+    print("\n  SAR15 EVENTS BY PAIR")
+    print("  " + "-" * 88)
+    for pair_result in pairs:
+        events, note = list_sar15_events(
+            pair_result.pair,
+            sar_start=sar_start,
+            sar_inc=sar_inc,
+            sar_max=sar_max,
+            cutoff_override=cutoff_override,
+            tz_name=tz_name,
+        )
+        print(f"  {pair_result.pair} ({score_str(pair_result.weighted_score)})")
+        if note:
+            print(f"    {note}")
+            continue
+        if not events:
+            print("    no cross since cutoff")
+            continue
+        for event, sar_value, ts in events:
+            print(f"    {ts.strftime('%Y-%m-%d %H:%M')} | {event:<7} | SAR {sar_value:.5f}")
+
+
+def debug_sar15_pair(pair: str, sar_start: float, sar_inc: float, sar_max: float,
+                     cutoff_override: datetime | None = None,
+                     tz_name: str = "Europe/Paris") -> None:
+    """Print 15m bars, SAR values, and detected crosses for one pair."""
+    tz = pytz.timezone(tz_name)
+    now_paris = datetime.now(tz)
+    cutoff = cutoff_override.astimezone(tz) if cutoff_override else sar_event_cutoff_paris(now_paris)
+    minutes_back = max(180, int((now_paris - cutoff).total_seconds() // 60) + 60)
+    n_candles = max(300, min(500, minutes_back // 15 + 200))
+
+    bars = fetch_tv_ohlc(f"OANDA:{pair}", "15", n_candles)
+    print(f"\n  SAR15 DEBUG {pair}")
+    print("  " + "-" * 110)
+    print(f"  Cutoff: {cutoff.strftime('%Y-%m-%d %H:%M %Z')}")
+    if not bars or len(bars) < 3:
+        print("  no 15m data")
+        return
+
+    sar = compute_parabolic_sar_series(bars, start=sar_start, increment=sar_inc, maximum=sar_max)
+    print(f"  {'Time':<18} {'Close':<12} {'SAR':<12} {'State':<8} {'Cross':<10}")
+    print("  " + "-" * 110)
+
+    rows_printed = 0
+    for i in range(1, len(bars)):
+        ts = datetime.fromtimestamp(bars[i]["time"], tz=pytz.UTC).astimezone(tz)
+        if ts < cutoff:
+            continue
+
+        c_prev, sar_prev = bars[i - 1]["close"], sar[i - 1]
+        c_last, sar_last = bars[i]["close"], sar[i]
+        cross_over = c_prev <= sar_prev and c_last > sar_last
+        cross_under = c_prev >= sar_prev and c_last < sar_last
+
+        state = "above" if c_last > sar_last else "below" if c_last < sar_last else "on"
+        cross = "X Over" if cross_over else "X Under" if cross_under else ""
+        print(f"  {ts.strftime('%Y-%m-%d %H:%M'):<18} {c_last:<12.5f} {sar_last:<12.5f} {state:<8} {cross:<10}")
+        rows_printed += 1
+
+    if rows_printed == 0:
+        print("  no rows since cutoff")
 
 
 # ── Core logic (mirrors Pine f_px_state / f_trigger / f_score) ────────
@@ -630,7 +755,8 @@ def derive_pair_candidates(top2: list[IndexResult], last2: list[IndexResult]) ->
 
 def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
                atr_length: int, min_chg: float, sar_tf: str, sar_bars: int,
-               sar_start: float, sar_inc: float, sar_max: float) -> PairResult | None:
+               sar_start: float, sar_inc: float, sar_max: float,
+               sar15_cutoff: datetime | None = None) -> PairResult | None:
     """Scan one FX pair: Renko D1+W1, daily CHG%, SAR state."""
     symbol = f"OANDA:{pair}"
 
@@ -659,8 +785,8 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
     w1 = px_state(brick_w1["open"], brick_w1["close"], dc)
     trigger, bias = compute_trigger(d1, w1, chg_pct, sar_st, min_chg)
     raw_sc, weighted_sc = compute_score(d1, w1, chg_pct, sar_st)
-    sar15_event, sar15_value, sar15_time = find_first_sar15_event(
-        pair, bias, sar_start, sar_inc, sar_max
+    sar15_event, sar15_value, sar15_time, sar15_note = find_first_sar15_event(
+        pair, weighted_sc, sar_start, sar_inc, sar_max, cutoff_override=sar15_cutoff
     )
 
     return PairResult(
@@ -670,13 +796,15 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
         bias=bias, trigger=trigger,
         raw_score=raw_sc, weighted_score=weighted_sc,
         sar15_event=sar15_event, sar15_value=sar15_value, sar15_time=sar15_time,
+        sar15_note=sar15_note,
     )
 
 
 def scan_pairs(candidates: list[tuple[str, int, str, str]],
                atr_length: int, min_chg: float, sar_tf: str, sar_bars: int,
                sar_start: float, sar_inc: float, sar_max: float,
-               workers: int = 4, phase_label: str = "Phase 2") -> list[PairResult]:
+               workers: int = 4, phase_label: str = "Phase 2",
+               sar15_cutoff: datetime | None = None) -> list[PairResult]:
     """Scan candidate pairs and return only those with BULL/BEAR/LONG/SHORT signal."""
     total = len(candidates)
     results: list[PairResult] = []
@@ -689,7 +817,7 @@ def scan_pairs(candidates: list[tuple[str, int, str, str]],
             pool.submit(
                 _scan_pair, pair, exp_bias, strong, weak,
                 atr_length, min_chg, sar_tf, sar_bars,
-                sar_start, sar_inc, sar_max,
+                sar_start, sar_inc, sar_max, sar15_cutoff,
             ): pair
             for pair, exp_bias, strong, weak in candidates
         }
@@ -922,6 +1050,12 @@ def parse_args():
     p.add_argument("--tz", type=str, default="Europe/Paris", help="Timezone for time window (default: Europe/Paris).")
     p.add_argument("--start-hour", type=int, default=7, help="Alert start hour (default: 7).")
     p.add_argument("--end-hour", type=int, default=20, help="Alert end hour (default: 20).")
+    p.add_argument("--sar15-cutoff", type=str, default=None,
+                   help='Force SAR15 search start in Paris time, format "YYYY-MM-DD HH:MM".')
+    p.add_argument("--sar15-list-all", action="store_true",
+                   help="List all SAR15 X Over/X Under events for each pair in PAIRS TO FOLLOW.")
+    p.add_argument("--sar15-debug-pair", type=str, default=None,
+                   help="Print 15m close/SAR rows and cross events for one pair, e.g. USDJPY.")
     p.add_argument("--no-telegram", action="store_true", help="Skip Telegram, console only.")
     p.add_argument("--force", action="store_true", help="Ignore time window, always send alert.")
     p.add_argument("--workers", type=int, default=4, help="Parallel threads (default: 4).")
@@ -931,6 +1065,7 @@ def parse_args():
 def main() -> int:
     args = parse_args()
     t_start = time.time()
+    sar15_cutoff = parse_paris_datetime(args.sar15_cutoff) if args.sar15_cutoff else None
 
     # Scan all 8 indices
     results = scan_all_indices(
@@ -971,6 +1106,7 @@ def main() -> int:
                 sar_tf=args.sar_tf, sar_bars=args.sar_bars,
                 sar_start=args.sar_start, sar_inc=args.sar_inc,
                 sar_max=args.sar_max, workers=args.workers,
+                sar15_cutoff=sar15_cutoff,
             )
             n_sig = sum(1 for r in pair_results if r.bias != 0 or r.trigger != 0)
             elapsed2 = time.time() - t_start
@@ -988,7 +1124,7 @@ def main() -> int:
         sar_tf=args.sar_tf, sar_bars=args.sar_bars,
         sar_start=args.sar_start, sar_inc=args.sar_inc,
         sar_max=args.sar_max, workers=args.workers,
-        phase_label="Phase 3",
+        phase_label="Phase 3", sar15_cutoff=sar15_cutoff,
     )
     # Only keep pairs with BULL/BEAR signal for OTHER section
     other_results = [r for r in all_other if r.bias != 0 or r.trigger != 0]
@@ -996,6 +1132,27 @@ def main() -> int:
     print(f"  Phase 3 done in {elapsed3:.1f}s — {len(all_other)} scanned, {len(other_results)} with signal\n")
     if other_results:
         print_pairs_table(other_results, title="\U0001f50d OTHER PAIRS")
+
+    if args.sar15_list_all:
+        pairs_to_follow = list(pair_results) + list(other_results)
+        print_sar15_events_for_pairs(
+            pairs_to_follow,
+            sar_start=args.sar_start,
+            sar_inc=args.sar_inc,
+            sar_max=args.sar_max,
+            cutoff_override=sar15_cutoff,
+            tz_name=args.tz,
+        )
+
+    if args.sar15_debug_pair:
+        debug_sar15_pair(
+            args.sar15_debug_pair.upper(),
+            sar_start=args.sar_start,
+            sar_inc=args.sar_inc,
+            sar_max=args.sar_max,
+            cutoff_override=sar15_cutoff,
+            tz_name=args.tz,
+        )
 
     # Time window check
     in_window = args.force or in_time_window(args.tz, args.start_hour, args.end_hour)
