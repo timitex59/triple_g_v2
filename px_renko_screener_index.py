@@ -64,7 +64,7 @@ PAIRS = [
     "GBPAUD", "GBPCAD", "GBPNZD", "GBPCHF",
     "AUDNZD", "AUDCAD", "AUDCHF",
     "NZDCAD", "NZDCHF",
-    "CADCHF",
+    "CADCHF","XAUUSD"
 ]
 PAIR_SET = set(PAIRS)
 
