@@ -32,6 +32,9 @@ from websocket import WebSocketConnectionClosedException, create_connection
 
 load_dotenv()
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+SCAN_OUTPUT_PATH = os.path.join(SCRIPT_DIR, "px_renko_index_scan.json")
+
 # ── constants ──────────────────────────────────────────────────────────
 WS_URL = "wss://prodata.tradingview.com/socket.io/websocket"
 WS_HEADERS = {"Origin": "https://www.tradingview.com", "User-Agent": "Mozilla/5.0"}
@@ -1138,6 +1141,31 @@ def parse_args():
     return p.parse_args()
 
 
+def save_scan_output(candidate_pairs: list[PairResult], other_pairs: list[PairResult]) -> None:
+    """Save bl_confirmed + BULL/BEAR/LONG/SHORT pairs to JSON for the tracker."""
+    all_pairs = list(candidate_pairs) + list(other_pairs)
+    active = []
+    for r in all_pairs:
+        if not r.bl_confirmed:
+            continue
+        sig = signal_text(r.trigger, r.bias)
+        if sig not in ("BULL", "BEAR", "LONG", "SHORT"):
+            continue
+        active.append({
+            "pair": r.pair,
+            "direction": "BULL" if sig in ("BULL", "LONG") else "BEAR",
+            "signal": sig,
+            "score": round(r.weighted_score, 4),
+            "sar15_confirmed": r.sar15_confirmed,
+        })
+    output = {
+        "updated_at": datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%dT%H:%M:%S"),
+        "active_pairs": active,
+    }
+    with open(SCAN_OUTPUT_PATH, "w", encoding="utf-8") as f:
+        json.dump(output, f, ensure_ascii=False, indent=2)
+
+
 def main() -> int:
     args = parse_args()
     t_start = time.time()
@@ -1229,6 +1257,9 @@ def main() -> int:
             cutoff_override=sar15_cutoff,
             tz_name="Europe/Paris",
         )
+
+    # Save scan results for tracker
+    save_scan_output(pair_results, other_results)
 
     # Telegram
     msg = build_telegram_message(results)
