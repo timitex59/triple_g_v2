@@ -82,6 +82,7 @@ class IndexResult:
     trigger: int        # +1=LONG, -1=SHORT, 0=none
     raw_score: int      # D1+W1+CHG%+SAR (-4 to +4)
     weighted_score: float  # raw × |CHG%|
+    bl_confirmed: bool = False
 
 
 @dataclass
@@ -705,8 +706,8 @@ def _scan_index(name: str, symbol: str, ccy: str, atr_length: int,
     if not brick_w1:
         return None
 
-    # 3. Daily close + prev close for CHG%
-    daily_bars = fetch_tv_ohlc(symbol, "D", 5)
+    # 3. Daily close + prev close for CHG% + break line history
+    daily_bars = fetch_tv_ohlc(symbol, "D", 150)
     if not daily_bars or len(daily_bars) < 2:
         return None
     dc = daily_bars[-1]["close"]
@@ -730,11 +731,15 @@ def _scan_index(name: str, symbol: str, ccy: str, atr_length: int,
     # 7. Score
     raw_sc, weighted_sc = compute_score(d1, w1, chg_pct, sar_st)
 
+    # 8. Break line confirmation
+    bl = compute_break_line_confirmed(daily_bars, bias, sar_start, sar_inc, sar_max)
+
     return IndexResult(
         name=name, ccy=ccy, px_d1=d1, px_w1=w1,
         chg_pct=chg_pct, sar_state=sar_st,
         bias=bias, trigger=trigger,
         raw_score=raw_sc, weighted_score=weighted_sc,
+        bl_confirmed=bl,
     )
 
 
@@ -1050,7 +1055,8 @@ def build_telegram_message(results: list[IndexResult]) -> str | None:
             emoji = "🟠"
         else:
             emoji = "⚪"
-        lines.append(f"{emoji} {r.ccy} ({score_str(r.weighted_score)})")
+        flame = " 🔥" if r.bl_confirmed else ""
+        lines.append(f"{emoji} {r.ccy} ({score_str(r.weighted_score)}){flame}")
 
     lines.append("")
     now_paris = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
