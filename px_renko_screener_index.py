@@ -103,6 +103,7 @@ class PairResult:
     sar15_time: datetime | None = None
     sar15_note: str | None = None
     sar15_confirmed: bool = False
+    bl_confirmed: bool = False
 
 
 # ── TradingView websocket helpers ─────────────────────────────────────
@@ -402,6 +403,59 @@ def compute_parabolic_sar_series(bars: list[dict], start: float = 0.1,
                     af = min(af + increment, maximum)
 
     return sar
+
+
+def compute_break_line_confirmed(bars: list[dict], bias: int,
+                                  sar_start: float, sar_inc: float, sar_max: float) -> bool:
+    """Return True if price confirms break line direction.
+    BULL: current price > bear trend line (red line).
+    BEAR: current price < bull trend line (green line).
+    Lines are drawn between the last 2 valid SAR cross events of each direction.
+    """
+    if not bars or len(bars) < 5 or bias == 0:
+        return False
+
+    sar = compute_parabolic_sar_series(bars, start=sar_start, increment=sar_inc, maximum=sar_max)
+    closes = [b["close"] for b in bars]
+    n = len(bars)
+
+    last_bull_line: tuple[int, float, int, float] | None = None
+    last_bear_line: tuple[int, float, int, float] | None = None
+    bull_events: list[tuple[int, float]] = []
+    bear_events: list[tuple[int, float]] = []
+
+    for i in range(1, n):
+        c_prev, sar_prev = closes[i - 1], sar[i - 1]
+        c_last, sar_last = closes[i], sar[i]
+        if c_prev <= sar_prev and c_last > sar_last:
+            bull_events.append((i, sar_last))
+            if len(bull_events) >= 2:
+                (x1, y1), (x2, y2) = bull_events[-2], bull_events[-1]
+                if y2 > y1:  # ascending bull line only
+                    last_bull_line = (x1, y1, x2, y2)
+        elif c_prev >= sar_prev and c_last < sar_last:
+            bear_events.append((i, sar_last))
+            if len(bear_events) >= 2:
+                (x1, y1), (x2, y2) = bear_events[-2], bear_events[-1]
+                if y2 < y1:  # descending bear line only
+                    last_bear_line = (x1, y1, x2, y2)
+
+    def project_line(line: tuple[int, float, int, float] | None) -> float | None:
+        if line is None:
+            return None
+        x1, y1, x2, y2 = line
+        if x2 == x1:
+            return None
+        return y1 + (y2 - y1) * (n - 1 - x1) / (x2 - x1)
+
+    current_close = closes[-1]
+
+    if bias == 1:  # BULL: price must be above red line (bear trend line)
+        bear_line = project_line(last_bear_line)
+        return bear_line is not None and current_close > bear_line
+    else:          # BEAR: price must be below green line (bull trend line)
+        bull_line = project_line(last_bull_line)
+        return bull_line is not None and current_close < bull_line
 
 
 def sar_event_cutoff_paris(now_paris: datetime | None = None) -> datetime:
@@ -787,7 +841,8 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
     if not brick_w1:
         return None
 
-    daily_bars = fetch_tv_ohlc(symbol, "D", 5)
+    # Fetch 150 D1 bars: enough history for break line + CHG%
+    daily_bars = fetch_tv_ohlc(symbol, "D", 150)
     if not daily_bars or len(daily_bars) < 2:
         return None
     dc = daily_bars[-1]["close"]
@@ -807,6 +862,7 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
     sar15_event, sar15_value, sar15_time, sar15_note, sar15_confirmed = find_first_sar15_event(
         pair, weighted_sc, sar_start, sar_inc, sar_max, cutoff_override=sar15_cutoff
     )
+    bl_confirmed = compute_break_line_confirmed(daily_bars, bias, sar_start, sar_inc, sar_max)
 
     return PairResult(
         pair=pair, expected_bias=expected_bias,
@@ -816,6 +872,7 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
         raw_score=raw_sc, weighted_score=weighted_sc,
         sar15_event=sar15_event, sar15_value=sar15_value, sar15_time=sar15_time,
         sar15_note=sar15_note, sar15_confirmed=sar15_confirmed,
+        bl_confirmed=bl_confirmed,
     )
 
 
@@ -866,8 +923,8 @@ def print_pairs_table(pairs: list[PairResult], title: str = "\U0001f3af PAIRS (T
         return
 
     hdr = (f"  {BOLD}{'Pair':<10} {'D1':<10} {'W1':<10} "
-           f"{'CHG%':<9} {'SAR':<10} {'Score':<8} {'Signal':<8} {'SAR15 23H':<20}{RESET}")
-    sep = "  " + "-" * 88
+           f"{'CHG%':<9} {'SAR':<10} {'Score':<8} {'Signal':<8} {'SAR15 23H':<20} {'BL':<4}{RESET}")
+    sep = "  " + "-" * 94
     print(f"\n  {BOLD}{title}{RESET}")
     print(sep)
     print(hdr)
@@ -890,7 +947,8 @@ def print_pairs_table(pairs: list[PairResult], title: str = "\U0001f3af PAIRS (T
             f"{sar_c}{SAR_TEXT.get(r.sar_state, '---'):<10}{RESET} "
             f"{sc_c}{score_str(r.weighted_score):<8}{RESET} "
             f"{sig_c}{BOLD}{sig:<8}{RESET} "
-            f"{format_sar15_event(r):<20}"
+            f"{format_sar15_event(r):<20} "
+            f"{GREEN if r.bl_confirmed else GRAY}{'✓' if r.bl_confirmed else '-':<4}{RESET}"
         )
     print(sep)
     print()
@@ -1022,7 +1080,8 @@ def append_pairs_to_message(base_msg: str, candidate_pairs: list[PairResult],
             emoji = "\U0001f7e0"
         else:
             emoji = "\u26aa"
-        lines.append(f"{emoji} {r.pair} ({score_str(r.weighted_score)})")
+        flame = " 🔥" if r.bl_confirmed else ""
+        lines.append(f"{emoji} {r.pair} ({score_str(r.weighted_score)}){flame}")
 
     parts = base_msg.rsplit("\n⏰", 1)
     if len(parts) == 2:
