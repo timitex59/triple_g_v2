@@ -1146,7 +1146,7 @@ def save_scan_output(candidate_pairs: list[PairResult], other_pairs: list[PairRe
     all_pairs = list(candidate_pairs) + list(other_pairs)
     active = []
     for r in all_pairs:
-        if not r.bl_confirmed:
+        if not r.bl_confirmed or not r.sar15_confirmed:
             continue
         sig = signal_text(r.trigger, r.bias)
         if sig not in ("BULL", "BEAR", "LONG", "SHORT"):
