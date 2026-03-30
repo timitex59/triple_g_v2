@@ -25,7 +25,7 @@ STARTING_CAPITAL = 10_000.0   # USD
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SCAN_PATH = os.path.join(SCRIPT_DIR, "px_renko_index_scan.json")
-STATE_PATH = os.path.join(SCRIPT_DIR, "px_renko_index_tracker_state.json")
+STATE_PATH = os.path.join(SCRIPT_DIR, "px_renko_tracker.json")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
