@@ -150,19 +150,32 @@ jobs:
           git config --global user.email "actions@github.com"
           BRANCH="${GITHUB_REF_NAME:-main}"
           STATE_FILES="runner_history.json opportunity_stats.json trend_follower.json rubbeon_state.json rubbeon_MTF_IMP_state.json annual_v2_data.json annual_v2_state.json chg_cc_indices.json annual_ndx100_portfolio_state.json annual_ndx100_scan_state.json btc_dca_state.json signal_v7_exit_state.json break_line_state.json break_line_scan.json break_line_renko_state.json break_line_renko_scan.json renko_lists_tracker_state.json ichimoku_scan.json triple_g_consolidation.json heiken_ashi_scan.json strategy_tracker_state.json px_renko_index_scan.json px_renko_tracker.json"
+
+          # ── Save state files to /tmp before any git operation ──
+          for f in $STATE_FILES; do
+            [ -f "$f" ] && cp "$f" "/tmp/ci_state_$(basename $f)" 2>/dev/null || true
+          done
+
+          # ── Abort any leftover rebase state from previous run ──
+          if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
+            echo "WARNING: rebase in progress, aborting..."
+            git rebase --abort 2>/dev/null || true
+          fi
+
+          # ── Fetch + reset to latest remote (clean base) ──
+          git fetch origin "$BRANCH"
+          git reset --hard "origin/$BRANCH"
+
+          # ── Restore our freshly-computed state files ──
+          for f in $STATE_FILES; do
+            [ -f "/tmp/ci_state_$(basename $f)" ] && cp "/tmp/ci_state_$(basename $f)" "$f" 2>/dev/null || true
+          done
+
+          # ── Stage and commit if anything changed ──
           git add --force $STATE_FILES 2>/dev/null || true
-          # Ne commiter que s'il y a des changements indexes
           if git diff --staged --quiet; then
             echo "No staged changes to commit"
           else
             git commit -m "Update runner and stats history [skip ci]"
-            if ! git pull --rebase --autostash origin "$BRANCH"; then
-              echo "Rebase conflict on generated state files. Keep current run values and continue."
-              git checkout --theirs $STATE_FILES 2>/dev/null || true
-              git add --force $STATE_FILES 2>/dev/null || true
-              if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
-                GIT_EDITOR=true git rebase --continue || true
-              fi
-            fi
-            git push origin "HEAD:$BRANCH"
+            git push origin "HEAD:$BRANCH" && echo "Push OK" || echo "WARNING: push failed"
           fi
