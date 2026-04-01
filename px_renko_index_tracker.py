@@ -25,7 +25,8 @@ STARTING_CAPITAL = 10_000.0   # USD
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SCAN_PATH = os.path.join(SCRIPT_DIR, "px_renko_index_scan.json")
-STATE_PATH = os.path.join(SCRIPT_DIR, "px_renko_tracker.json")
+STATE_PATH = os.path.join(SCRIPT_DIR, "px_renko_index_tracker_state.json")
+LEGACY_STATE_PATH = os.path.join(SCRIPT_DIR, "px_renko_tracker.json")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -99,18 +100,49 @@ def fetch_price(pair: str) -> float | None:
 # ---------------------------------------------------------------------------
 
 def load_state() -> dict:
-    if not os.path.exists(STATE_PATH):
-        return {"open_positions": {}, "closed_history": [], "total_realized_pnl": 0.0}
-    try:
-        with open(STATE_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {"open_positions": {}, "closed_history": [], "total_realized_pnl": 0.0}
+    default_state = {
+        "open_positions": {},
+        "closed_history": [],
+        "total_realized_pnl": 0.0,
+        "next_trade_id": 1,
+    }
+    for path in (STATE_PATH, LEGACY_STATE_PATH):
+        if not os.path.exists(path):
+            continue
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                continue
+            state = {
+                "open_positions": dict(data.get("open_positions", {})),
+                "closed_history": list(data.get("closed_history", [])),
+                "total_realized_pnl": float(data.get("total_realized_pnl", 0.0)),
+                "next_trade_id": int(data.get("next_trade_id", 1)),
+            }
+            known_ids = []
+            for pos in state["open_positions"].values():
+                trade_id = pos.get("trade_id")
+                if isinstance(trade_id, int):
+                    known_ids.append(trade_id)
+            for item in state["closed_history"]:
+                trade_id = item.get("trade_id")
+                if isinstance(trade_id, int):
+                    known_ids.append(trade_id)
+            next_trade_id = max(known_ids, default=0) + 1
+            if state["next_trade_id"] < next_trade_id:
+                state["next_trade_id"] = next_trade_id
+            state["updated_at"] = data.get("updated_at")
+            return state
+        except Exception:
+            continue
+    return default_state
 
 
 def save_state(state: dict) -> None:
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+    for path in (STATE_PATH, LEGACY_STATE_PATH):
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +169,13 @@ def process(current_signals: dict[str, str], state: dict) -> dict:
     open_positions: dict = dict(state.get("open_positions", {}))
     closed_history: list = list(state.get("closed_history", []))
     total_realized: float = float(state.get("total_realized_pnl", 0.0))
+    next_trade_id: int = int(state.get("next_trade_id", 1))
     now_utc = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    for pos in open_positions.values():
+        if pos.get("trade_id") is None:
+            pos["trade_id"] = next_trade_id
+            next_trade_id += 1
 
     all_pairs = set(open_positions.keys()) | set(current_signals.keys())
     prices = {p: fetch_price(p) for p in all_pairs}
@@ -156,6 +194,7 @@ def process(current_signals: dict[str, str], state: dict) -> dict:
         pips = calc_pips(pair, pos["direction"], pos["entry_price"], exit_price)
         pnl = calc_pnl(pos["direction"], pos["entry_price"], exit_price)
         entry = {
+            "trade_id": pos.get("trade_id"),
             "pair": pair,
             "direction": pos["direction"],
             "entry_price": pos["entry_price"],
@@ -181,11 +220,13 @@ def process(current_signals: dict[str, str], state: dict) -> dict:
         half = spread_cost(pair) / 2
         entry_price = raw + half if direction == "BULL" else raw - half
         open_positions[pair] = {
+            "trade_id": next_trade_id,
             "pair": pair,
             "direction": direction,
             "entry_price": round(entry_price, 6),
             "entry_at": now_utc,
         }
+        next_trade_id += 1
         new_opened.append(pair)
 
     # Latent P&L on open positions
@@ -199,17 +240,20 @@ def process(current_signals: dict[str, str], state: dict) -> dict:
         entry_dt = datetime.fromisoformat(pos["entry_at"].replace("Z", "+00:00"))
         days = (datetime.now(timezone.utc) - entry_dt).days
         open_with_pnl.append({
+            "trade_id": pos.get("trade_id"),
             "pair": pair,
             "direction": pos["direction"],
             "pips": round(pips, 1),
             "pnl_usd": round(pnl, 2),
             "days": days,
+            "entry_at": pos["entry_at"],
         })
     open_with_pnl.sort(key=lambda x: x["pnl_usd"], reverse=True)
 
     state["open_positions"] = open_positions
     state["closed_history"] = closed_history
     state["total_realized_pnl"] = round(total_realized, 2)
+    state["next_trade_id"] = next_trade_id
 
     return {
         "new_closed": new_closed,
@@ -232,7 +276,8 @@ def build_message(result: dict) -> str:
         for c in result["new_closed"]:
             icon = "✅" if c["pnl_usd"] >= 0 else "❌"
             dir_icon = "🟢" if c["direction"] == "BULL" else "🔴"
-            lines.append(f"{icon} {c['pair']} {dir_icon} {c['pips']:+.0f} pips ({c['pnl_usd']:+.2f}$)")
+            trade_tag = f" #{c['trade_id']}" if c.get("trade_id") else ""
+            lines.append(f"{icon} {c['pair']}{trade_tag} {dir_icon} {c['pips']:+.0f} pips ({c['pnl_usd']:+.2f}$)")
 
     open_pnl = result["open_with_pnl"]
     lines.append(f"\nOPEN ({len(open_pnl)})")
@@ -240,7 +285,8 @@ def build_message(result: dict) -> str:
         for o in open_pnl:
             dir_icon = "🟢" if o["direction"] == "BULL" else "🔴"
             new_tag = " 🆕" if o["pair"] in result["new_opened"] else ""
-            lines.append(f"{dir_icon} {o['pair']} {o['pips']:+.0f} pips ({o['pnl_usd']:+.2f}$){new_tag}")
+            trade_tag = f" #{o['trade_id']}" if o.get("trade_id") else ""
+            lines.append(f"{dir_icon} {o['pair']}{trade_tag} {o['pips']:+.0f} pips ({o['pnl_usd']:+.2f}$){new_tag}")
     else:
         lines.append("Aucune position ouverte")
 
