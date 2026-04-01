@@ -187,7 +187,11 @@ jobs:
           for attempt in 1 2 3; do
             echo "---- git status before add (attempt $attempt) ----"
             git status --short
-            git add --force $STATE_FILES 2>/dev/null || true
+            for f in $STATE_FILES; do
+              if [ -f "$f" ]; then
+                git add --force "$f" 2>/dev/null || true
+              fi
+            done
             echo "---- staged files after add (attempt $attempt) ----"
             git diff --staged --name-only
             if git diff --staged --quiet; then
