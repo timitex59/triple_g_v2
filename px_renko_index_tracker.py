@@ -149,14 +149,28 @@ def save_state(state: dict) -> None:
 # Signal reader
 # ---------------------------------------------------------------------------
 
-def read_signals() -> dict[str, str]:
+def read_signals() -> dict[str, dict]:
     """Read active pairs from px_renko_index_scan.json → {pair: direction}."""
     if not os.path.exists(SCAN_PATH):
         return {}
     try:
         with open(SCAN_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return {row["pair"]: row["direction"] for row in data.get("active_pairs", [])}
+        updated_at = data.get("updated_at")
+        signals = {}
+        for row in data.get("active_pairs", []):
+            pair = row.get("pair")
+            direction = row.get("direction")
+            signal = row.get("signal") or direction
+            if not pair or not direction:
+                continue
+            signals[pair] = {
+                "direction": direction,
+                "signal": signal,
+                "score": row.get("score"),
+                "updated_at": updated_at,
+            }
+        return signals
     except Exception:
         return {}
 
@@ -165,7 +179,7 @@ def read_signals() -> dict[str, str]:
 # Core tracking
 # ---------------------------------------------------------------------------
 
-def process(current_signals: dict[str, str], state: dict) -> dict:
+def process(current_signals: dict[str, dict], state: dict) -> dict:
     open_positions: dict = dict(state.get("open_positions", {}))
     closed_history: list = list(state.get("closed_history", []))
     total_realized: float = float(state.get("total_realized_pnl", 0.0))
@@ -186,7 +200,12 @@ def process(current_signals: dict[str, str], state: dict) -> dict:
     # Close positions no longer in signals
     for pair in list(open_positions.keys()):
         pos = open_positions[pair]
-        if pair in current_signals and current_signals[pair] == pos["direction"]:
+        current = current_signals.get(pair)
+        if (
+            current
+            and current.get("direction") == pos["direction"]
+            and current.get("signal", current.get("direction")) == pos.get("source_signal", pos["direction"])
+        ):
             continue
         half = spread_cost(pair) / 2
         raw = prices.get(pair, pos["entry_price"])
@@ -211,7 +230,8 @@ def process(current_signals: dict[str, str], state: dict) -> dict:
 
     # Open new positions
     new_opened: list[str] = []
-    for pair, direction in current_signals.items():
+    for pair, signal_data in current_signals.items():
+        direction = signal_data["direction"]
         if pair in open_positions:
             continue
         raw = prices.get(pair)
@@ -223,6 +243,8 @@ def process(current_signals: dict[str, str], state: dict) -> dict:
             "trade_id": next_trade_id,
             "pair": pair,
             "direction": direction,
+            "source_signal": signal_data.get("signal", direction),
+            "source_updated_at": signal_data.get("updated_at"),
             "entry_price": round(entry_price, 6),
             "entry_at": now_utc,
         }
