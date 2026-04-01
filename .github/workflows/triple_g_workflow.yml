@@ -84,6 +84,16 @@ jobs:
 
           run_with_telegram "$ENABLE_TELEGRAM_PX_RENKO_INDEX" px_renko_index_tracker.py
 
+          echo "---- px_renko_index_tracker_state.json after tracker ----"
+          if [ -f px_renko_index_tracker_state.json ]; then
+            cat px_renko_index_tracker_state.json
+          else
+            echo "px_renko_index_tracker_state.json missing"
+          fi
+
+          echo "---- git status after tracker ----"
+          git status --short
+
           run_with_telegram "$ENABLE_TELEGRAM_BREAK_LINE" break_line.py
           run_with_telegram "$ENABLE_TELEGRAM_ICHIMOKU" ichimoku_v4.py
           run_with_telegram "$ENABLE_TELEGRAM_CONSOLIDATION" triple_g_consolidation.py
@@ -175,7 +185,11 @@ jobs:
           # ── Stage and commit if anything changed ──
           PUSH_OK=0
           for attempt in 1 2 3; do
+            echo "---- git status before add (attempt $attempt) ----"
+            git status --short
             git add --force $STATE_FILES 2>/dev/null || true
+            echo "---- staged files after add (attempt $attempt) ----"
+            git diff --staged --name-only
             if git diff --staged --quiet; then
               echo "No staged changes to commit"
               PUSH_OK=1
