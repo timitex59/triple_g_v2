@@ -26,7 +26,6 @@ STARTING_CAPITAL = 10_000.0   # USD
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SCAN_PATH = os.path.join(SCRIPT_DIR, "px_renko_index_scan.json")
 STATE_PATH = os.path.join(SCRIPT_DIR, "px_renko_index_tracker_state.json")
-LEGACY_STATE_PATH = os.path.join(SCRIPT_DIR, "px_renko_tracker.json")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -106,43 +105,40 @@ def load_state() -> dict:
         "total_realized_pnl": 0.0,
         "next_trade_id": 1,
     }
-    for path in (STATE_PATH, LEGACY_STATE_PATH):
-        if not os.path.exists(path):
-            continue
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if not isinstance(data, dict):
-                continue
-            state = {
-                "open_positions": dict(data.get("open_positions", {})),
-                "closed_history": list(data.get("closed_history", [])),
-                "total_realized_pnl": float(data.get("total_realized_pnl", 0.0)),
-                "next_trade_id": int(data.get("next_trade_id", 1)),
-            }
-            known_ids = []
-            for pos in state["open_positions"].values():
-                trade_id = pos.get("trade_id")
-                if isinstance(trade_id, int):
-                    known_ids.append(trade_id)
-            for item in state["closed_history"]:
-                trade_id = item.get("trade_id")
-                if isinstance(trade_id, int):
-                    known_ids.append(trade_id)
-            next_trade_id = max(known_ids, default=0) + 1
-            if state["next_trade_id"] < next_trade_id:
-                state["next_trade_id"] = next_trade_id
-            state["updated_at"] = data.get("updated_at")
-            return state
-        except Exception:
-            continue
-    return default_state
+    if not os.path.exists(STATE_PATH):
+        return default_state
+    try:
+        with open(STATE_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, dict):
+            return default_state
+        state = {
+            "open_positions": dict(data.get("open_positions", {})),
+            "closed_history": list(data.get("closed_history", [])),
+            "total_realized_pnl": float(data.get("total_realized_pnl", 0.0)),
+            "next_trade_id": int(data.get("next_trade_id", 1)),
+        }
+        known_ids = []
+        for pos in state["open_positions"].values():
+            trade_id = pos.get("trade_id")
+            if isinstance(trade_id, int):
+                known_ids.append(trade_id)
+        for item in state["closed_history"]:
+            trade_id = item.get("trade_id")
+            if isinstance(trade_id, int):
+                known_ids.append(trade_id)
+        next_trade_id = max(known_ids, default=0) + 1
+        if state["next_trade_id"] < next_trade_id:
+            state["next_trade_id"] = next_trade_id
+        state["updated_at"] = data.get("updated_at")
+        return state
+    except Exception:
+        return default_state
 
 
 def save_state(state: dict) -> None:
-    for path in (STATE_PATH, LEGACY_STATE_PATH):
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
+    with open(STATE_PATH, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2)
 
 
 # ---------------------------------------------------------------------------
