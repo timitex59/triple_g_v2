@@ -54,14 +54,14 @@
       "entry_price": 1.319965,
       "entry_at": "2026-04-02T09:16:21Z"
     },
-    "EURNZD": {
-      "trade_id": 12,
-      "pair": "EURNZD",
+    "USDCHF": {
+      "trade_id": 13,
+      "pair": "USDCHF",
       "direction": "BULL",
       "source_signal": "BULL",
-      "source_updated_at": "2026-04-02T11:16:21",
-      "entry_price": 2.019495,
-      "entry_at": "2026-04-02T09:16:21Z"
+      "source_updated_at": "2026-04-02T12:15:06",
+      "entry_price": 0.8005,
+      "entry_at": "2026-04-02T10:15:06Z"
     }
   },
   "closed_history": [
@@ -119,9 +119,20 @@
       "exit_at": "2026-04-02T07:42:50Z",
       "pips": -64.9,
       "pnl_usd": -1.4
+    },
+    {
+      "trade_id": 12,
+      "pair": "EURNZD",
+      "direction": "BULL",
+      "entry_price": 2.019495,
+      "entry_at": "2026-04-02T09:16:21Z",
+      "exit_price": 2.017285,
+      "exit_at": "2026-04-02T10:15:06Z",
+      "pips": -22.1,
+      "pnl_usd": -0.55
     }
   ],
-  "total_realized_pnl": -22.02,
-  "next_trade_id": 13,
-  "updated_at": "2026-04-02T09:16:25Z"
+  "total_realized_pnl": -22.57,
+  "next_trade_id": 14,
+  "updated_at": "2026-04-02T10:15:10Z"
 }

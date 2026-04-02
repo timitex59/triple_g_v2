@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-04-02T09:17:53Z",
+  "updated_at_utc": "2026-04-02T10:16:38Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 5,
+  "entry_count": 6,
   "conflicted_currencies": [
     "CAD"
   ],
@@ -44,7 +44,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.8063425264898104
+      "best_chg_cc_d1": -0.8581949349966173
     },
     {
       "pair": "NZDUSD",
@@ -59,7 +59,22 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.7890986199464646
+      "best_chg_cc_d1": -0.804741544130412
+    },
+    {
+      "pair": "USDCHF",
+      "direction": "BULL",
+      "strong_currency": "USD",
+      "weak_currency": "CHF",
+      "sources": [
+        "break_line"
+      ],
+      "sections": [
+        "break_line:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": 0.7881351664400518
     },
     {
       "pair": "NZDJPY",
@@ -74,7 +89,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.20913629992992563
+      "best_chg_cc_d1": -0.25512438682551253
     }
   ],
   "tradable_by_section": {
@@ -86,7 +101,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.8063425264898104
+        "chg_cc_d1": -0.8581949349966173
       },
       {
         "pair": "NZDUSD",
@@ -95,7 +110,16 @@
         "weak_currency": "NZD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.7890986199464646
+        "chg_cc_d1": -0.804741544130412
+      },
+      {
+        "pair": "USDCHF",
+        "direction": "BULL",
+        "strong_currency": "USD",
+        "weak_currency": "CHF",
+        "source": "break_line",
+        "section": "aligned",
+        "chg_cc_d1": 0.7881351664400518
       },
       {
         "pair": "NZDJPY",
@@ -104,7 +128,7 @@
         "weak_currency": "NZD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.20913629992992563
+        "chg_cc_d1": -0.25512438682551253
       }
     ],
     "break_line:retracing": [],
