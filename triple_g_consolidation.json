@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-04-02T07:44:24Z",
+  "updated_at_utc": "2026-04-02T09:17:53Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 6,
+  "entry_count": 5,
   "conflicted_currencies": [
     "CAD"
   ],
@@ -44,7 +44,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.7815435485083013
+      "best_chg_cc_d1": -0.8063425264898104
     },
     {
       "pair": "NZDUSD",
@@ -59,22 +59,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.7317412312719325
-    },
-    {
-      "pair": "NZDCHF",
-      "direction": "BEAR",
-      "strong_currency": "CHF",
-      "weak_currency": "NZD",
-      "sources": [
-        "break_line"
-      ],
-      "sections": [
-        "break_line:exited"
-      ],
-      "confirmation_count": 1,
-      "stars": 1,
-      "best_chg_cc_d1": -0.22978444031075507
+      "best_chg_cc_d1": -0.7890986199464646
     },
     {
       "pair": "NZDJPY",
@@ -89,7 +74,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.18723721093203233
+      "best_chg_cc_d1": -0.20913629992992563
     }
   ],
   "tradable_by_section": {
@@ -101,7 +86,7 @@
         "weak_currency": "GBP",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.7815435485083013
+        "chg_cc_d1": -0.8063425264898104
       },
       {
         "pair": "NZDUSD",
@@ -110,7 +95,7 @@
         "weak_currency": "NZD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.7317412312719325
+        "chg_cc_d1": -0.7890986199464646
       },
       {
         "pair": "NZDJPY",
@@ -119,21 +104,11 @@
         "weak_currency": "NZD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.18723721093203233
+        "chg_cc_d1": -0.20913629992992563
       }
     ],
     "break_line:retracing": [],
-    "break_line:exited": [
-      {
-        "pair": "NZDCHF",
-        "direction": "BEAR",
-        "strong_currency": "CHF",
-        "weak_currency": "NZD",
-        "source": "break_line",
-        "section": "exited",
-        "chg_cc_d1": -0.22978444031075507
-      }
-    ],
+    "break_line:exited": [],
     "ichimoku:aligned": [],
     "ichimoku:mid_aligned": []
   },

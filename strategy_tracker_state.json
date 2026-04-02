@@ -18,16 +18,21 @@
         "direction": "BEAR",
         "entry_price": 90.9165,
         "entry_at": "2026-04-02T05:54:11Z"
-      },
-      "NZDCHF": {
+      }
+    },
+    "closed_history": [
+      {
         "pair": "NZDCHF",
         "direction": "BEAR",
         "entry_price": 0.45576500000000003,
-        "entry_at": "2026-04-02T05:54:11Z"
+        "entry_at": "2026-04-02T05:54:11Z",
+        "exit_price": 0.456675,
+        "exit_at": "2026-04-02T09:19:51Z",
+        "pips": -9.1,
+        "pnl_usd": -1.0
       }
-    },
-    "closed_history": [],
-    "total_realized_pnl": 0.0
+    ],
+    "total_realized_pnl": -1.0
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
@@ -43,23 +48,23 @@
         "entry_price": 0.7936449999999999,
         "entry_at": "2026-04-02T05:54:13Z"
       },
-      "EURNZD": {
-        "pair": "EURNZD",
-        "direction": "BULL",
-        "entry_price": 2.0208150000000002,
-        "entry_at": "2026-04-02T05:54:13Z"
-      },
       "GBPUSD": {
         "pair": "GBPUSD",
         "direction": "BEAR",
         "entry_price": 1.320725,
         "entry_at": "2026-04-02T07:46:24Z"
       },
-      "EURGBP": {
-        "pair": "EURGBP",
-        "direction": "BULL",
-        "entry_price": 0.87277,
-        "entry_at": "2026-04-02T07:46:24Z"
+      "AUDUSD": {
+        "pair": "AUDUSD",
+        "direction": "BEAR",
+        "entry_price": 0.68681,
+        "entry_at": "2026-04-02T09:19:53Z"
+      },
+      "AUDCAD": {
+        "pair": "AUDCAD",
+        "direction": "BEAR",
+        "entry_price": 0.9557749999999999,
+        "entry_at": "2026-04-02T09:19:53Z"
       }
     },
     "closed_history": [
@@ -82,9 +87,29 @@
         "exit_at": "2026-04-02T07:46:24Z",
         "pips": -27.4,
         "pnl_usd": -1.51
+      },
+      {
+        "pair": "EURNZD",
+        "direction": "BULL",
+        "entry_price": 2.0208150000000002,
+        "entry_at": "2026-04-02T05:54:13Z",
+        "exit_price": 2.018785,
+        "exit_at": "2026-04-02T09:19:53Z",
+        "pips": -20.3,
+        "pnl_usd": -0.5
+      },
+      {
+        "pair": "EURGBP",
+        "direction": "BULL",
+        "entry_price": 0.87277,
+        "entry_at": "2026-04-02T07:46:24Z",
+        "exit_price": 0.87313,
+        "exit_at": "2026-04-02T09:19:53Z",
+        "pips": 3.6,
+        "pnl_usd": 0.21
       }
     ],
-    "total_realized_pnl": -2.24
+    "total_realized_pnl": -2.54
   },
-  "updated_at_utc": "2026-04-02T07:46:26Z"
+  "updated_at_utc": "2026-04-02T09:19:56Z"
 }
