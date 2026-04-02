@@ -37,13 +37,13 @@
       "entry_at": "2026-04-02T15:17:52Z"
     },
     "USDJPY": {
-      "trade_id": 18,
+      "trade_id": 19,
       "pair": "USDJPY",
       "direction": "BULL",
-      "source_signal": "LONG",
-      "source_updated_at": "2026-04-02T19:10:47",
-      "entry_price": 159.5995,
-      "entry_at": "2026-04-02T17:10:47Z"
+      "source_signal": "BULL",
+      "source_updated_at": "2026-04-02T20:02:31",
+      "entry_price": 159.6155,
+      "entry_at": "2026-04-02T18:02:32Z"
     }
   },
   "closed_history": [
@@ -189,9 +189,20 @@
       "exit_at": "2026-04-02T17:10:47Z",
       "pips": 17.3,
       "pnl_usd": 0.54
+    },
+    {
+      "trade_id": 18,
+      "pair": "USDJPY",
+      "direction": "BULL",
+      "entry_price": 159.5995,
+      "entry_at": "2026-04-02T17:10:47Z",
+      "exit_price": 159.6005,
+      "exit_at": "2026-04-02T18:02:32Z",
+      "pips": 0.1,
+      "pnl_usd": 0.0
     }
   ],
   "total_realized_pnl": -28.54,
-  "next_trade_id": 19,
-  "updated_at": "2026-04-02T17:10:50Z"
+  "next_trade_id": 20,
+  "updated_at": "2026-04-02T18:02:34Z"
 }
