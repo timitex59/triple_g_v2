@@ -45,32 +45,14 @@
       "entry_price": 1.391655,
       "entry_at": "2026-04-02T05:50:42Z"
     },
-    "GBPUSD": {
-      "trade_id": 11,
-      "pair": "GBPUSD",
-      "direction": "BEAR",
-      "source_signal": "BEAR",
-      "source_updated_at": "2026-04-02T11:16:21",
-      "entry_price": 1.319965,
-      "entry_at": "2026-04-02T09:16:21Z"
-    },
-    "USDCHF": {
-      "trade_id": 13,
-      "pair": "USDCHF",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-02T12:15:06",
-      "entry_price": 0.8005,
-      "entry_at": "2026-04-02T10:15:06Z"
-    },
     "EURNZD": {
-      "trade_id": 14,
+      "trade_id": 15,
       "pair": "EURNZD",
       "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-02T13:12:43",
-      "entry_price": 2.018675,
-      "entry_at": "2026-04-02T11:12:43Z"
+      "source_signal": "LONG",
+      "source_updated_at": "2026-04-02T13:59:37",
+      "entry_price": 2.019245,
+      "entry_at": "2026-04-02T11:59:38Z"
     }
   },
   "closed_history": [
@@ -139,9 +121,42 @@
       "exit_at": "2026-04-02T10:15:06Z",
       "pips": -22.1,
       "pnl_usd": -0.55
+    },
+    {
+      "trade_id": 11,
+      "pair": "GBPUSD",
+      "direction": "BEAR",
+      "entry_price": 1.319965,
+      "entry_at": "2026-04-02T09:16:21Z",
+      "exit_price": 1.320295,
+      "exit_at": "2026-04-02T11:59:38Z",
+      "pips": -3.3,
+      "pnl_usd": -0.13
+    },
+    {
+      "trade_id": 13,
+      "pair": "USDCHF",
+      "direction": "BULL",
+      "entry_price": 0.8005,
+      "entry_at": "2026-04-02T10:15:06Z",
+      "exit_price": 0.7998,
+      "exit_at": "2026-04-02T11:59:38Z",
+      "pips": -7.0,
+      "pnl_usd": -0.44
+    },
+    {
+      "trade_id": 14,
+      "pair": "EURNZD",
+      "direction": "BULL",
+      "entry_price": 2.018675,
+      "entry_at": "2026-04-02T11:12:43Z",
+      "exit_price": 2.018895,
+      "exit_at": "2026-04-02T11:59:38Z",
+      "pips": 2.2,
+      "pnl_usd": 0.05
     }
   ],
-  "total_realized_pnl": -22.57,
-  "next_trade_id": 15,
-  "updated_at": "2026-04-02T11:12:48Z"
+  "total_realized_pnl": -23.08,
+  "next_trade_id": 16,
+  "updated_at": "2026-04-02T11:59:42Z"
 }
