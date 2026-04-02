@@ -9,15 +9,6 @@
       "entry_price": 0.57024,
       "entry_at": "2026-04-02T05:50:42Z"
     },
-    "USDJPY": {
-      "trade_id": 6,
-      "pair": "USDJPY",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-02T07:50:41",
-      "entry_price": 159.4115,
-      "entry_at": "2026-04-02T05:50:42Z"
-    },
     "USDCAD": {
       "trade_id": 8,
       "pair": "USDCAD",
@@ -44,6 +35,15 @@
       "source_updated_at": "2026-04-02T17:17:52",
       "entry_price": 1.20685,
       "entry_at": "2026-04-02T15:17:52Z"
+    },
+    "USDJPY": {
+      "trade_id": 18,
+      "pair": "USDJPY",
+      "direction": "BULL",
+      "source_signal": "LONG",
+      "source_updated_at": "2026-04-02T19:10:47",
+      "entry_price": 159.5995,
+      "entry_at": "2026-04-02T17:10:47Z"
     }
   },
   "closed_history": [
@@ -178,9 +178,20 @@
       "exit_at": "2026-04-02T15:17:52Z",
       "pips": -46.2,
       "pnl_usd": -3.36
+    },
+    {
+      "trade_id": 6,
+      "pair": "USDJPY",
+      "direction": "BULL",
+      "entry_price": 159.4115,
+      "entry_at": "2026-04-02T05:50:42Z",
+      "exit_price": 159.5845,
+      "exit_at": "2026-04-02T17:10:47Z",
+      "pips": 17.3,
+      "pnl_usd": 0.54
     }
   ],
-  "total_realized_pnl": -29.08,
-  "next_trade_id": 18,
-  "updated_at": "2026-04-02T15:17:55Z"
+  "total_realized_pnl": -28.54,
+  "next_trade_id": 19,
+  "updated_at": "2026-04-02T17:10:50Z"
 }
