@@ -1,60 +1,5 @@
 {
-  "open_positions": {
-    "NZDUSD": {
-      "trade_id": 3,
-      "pair": "NZDUSD",
-      "direction": "BEAR",
-      "source_signal": "BEAR",
-      "source_updated_at": "2026-04-02T07:50:41",
-      "entry_price": 0.57024,
-      "entry_at": "2026-04-02T05:50:42Z"
-    },
-    "USDCAD": {
-      "trade_id": 8,
-      "pair": "USDCAD",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-02T07:50:41",
-      "entry_price": 1.391655,
-      "entry_at": "2026-04-02T05:50:42Z"
-    },
-    "GBPAUD": {
-      "trade_id": 16,
-      "pair": "GBPAUD",
-      "direction": "BEAR",
-      "source_signal": "BEAR",
-      "source_updated_at": "2026-04-02T15:58:27",
-      "entry_price": 1.916885,
-      "entry_at": "2026-04-02T13:58:28Z"
-    },
-    "AUDNZD": {
-      "trade_id": 17,
-      "pair": "AUDNZD",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-02T17:17:52",
-      "entry_price": 1.20685,
-      "entry_at": "2026-04-02T15:17:52Z"
-    },
-    "USDJPY": {
-      "trade_id": 19,
-      "pair": "USDJPY",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-02T20:02:31",
-      "entry_price": 159.6155,
-      "entry_at": "2026-04-02T18:02:32Z"
-    },
-    "EURNZD": {
-      "trade_id": 20,
-      "pair": "EURNZD",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-02T22:00:39",
-      "entry_price": 2.017745,
-      "entry_at": "2026-04-02T20:00:40Z"
-    }
-  },
+  "open_positions": {},
   "closed_history": [
     {
       "trade_id": 1,
@@ -209,9 +154,75 @@
       "exit_at": "2026-04-02T18:02:32Z",
       "pips": 0.1,
       "pnl_usd": 0.0
+    },
+    {
+      "trade_id": 3,
+      "pair": "NZDUSD",
+      "direction": "BEAR",
+      "entry_price": 0.57024,
+      "entry_at": "2026-04-02T05:50:42Z",
+      "exit_price": 0.57173,
+      "exit_at": "2026-04-02T21:53:46Z",
+      "pips": -14.9,
+      "pnl_usd": -1.31
+    },
+    {
+      "trade_id": 8,
+      "pair": "USDCAD",
+      "direction": "BULL",
+      "entry_price": 1.391655,
+      "entry_at": "2026-04-02T05:50:42Z",
+      "exit_price": 1.391825,
+      "exit_at": "2026-04-02T21:53:46Z",
+      "pips": 1.7,
+      "pnl_usd": 0.06
+    },
+    {
+      "trade_id": 16,
+      "pair": "GBPAUD",
+      "direction": "BEAR",
+      "entry_price": 1.916885,
+      "entry_at": "2026-04-02T13:58:28Z",
+      "exit_price": 1.913785,
+      "exit_at": "2026-04-02T21:53:46Z",
+      "pips": 31.0,
+      "pnl_usd": 0.81
+    },
+    {
+      "trade_id": 17,
+      "pair": "AUDNZD",
+      "direction": "BULL",
+      "entry_price": 1.20685,
+      "entry_at": "2026-04-02T15:17:52Z",
+      "exit_price": 1.20867,
+      "exit_at": "2026-04-02T21:53:46Z",
+      "pips": 18.2,
+      "pnl_usd": 0.75
+    },
+    {
+      "trade_id": 19,
+      "pair": "USDJPY",
+      "direction": "BULL",
+      "entry_price": 159.6155,
+      "entry_at": "2026-04-02T18:02:32Z",
+      "exit_price": 159.5525,
+      "exit_at": "2026-04-02T21:53:46Z",
+      "pips": -6.3,
+      "pnl_usd": -0.2
+    },
+    {
+      "trade_id": 20,
+      "pair": "EURNZD",
+      "direction": "BULL",
+      "entry_price": 2.017745,
+      "entry_at": "2026-04-02T20:00:40Z",
+      "exit_price": 2.018945,
+      "exit_at": "2026-04-02T21:53:46Z",
+      "pips": 12.0,
+      "pnl_usd": 0.3
     }
   ],
-  "total_realized_pnl": -28.54,
+  "total_realized_pnl": -28.12,
   "next_trade_id": 21,
-  "updated_at": "2026-04-02T20:55:44Z"
+  "updated_at": "2026-04-02T21:53:50Z"
 }
