@@ -1,10 +1,10 @@
 {
-  "updated_at_utc": "2026-04-03T05:52:36Z",
+  "updated_at_utc": "2026-04-03T07:40:06Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
   },
-  "entry_count": 1,
+  "entry_count": 2,
   "conflicted_currencies": [],
   "invalidated_pairs": [],
   "tradable_pairs": [
@@ -21,7 +21,22 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.1882991767384891
+      "best_chg_cc_d1": -0.20581537922578305
+    },
+    {
+      "pair": "AUDNZD",
+      "direction": "BULL",
+      "strong_currency": "AUD",
+      "weak_currency": "NZD",
+      "sources": [
+        "ichimoku"
+      ],
+      "sections": [
+        "ichimoku:aligned"
+      ],
+      "confirmation_count": 1,
+      "stars": 1,
+      "best_chg_cc_d1": 0.14229929181282214
     }
   ],
   "tradable_by_section": {
@@ -33,12 +48,22 @@
         "weak_currency": "NZD",
         "source": "break_line",
         "section": "aligned",
-        "chg_cc_d1": -0.1882991767384891
+        "chg_cc_d1": -0.20581537922578305
       }
     ],
     "break_line:retracing": [],
     "break_line:exited": [],
-    "ichimoku:aligned": [],
+    "ichimoku:aligned": [
+      {
+        "pair": "AUDNZD",
+        "direction": "BULL",
+        "strong_currency": "AUD",
+        "weak_currency": "NZD",
+        "source": "ichimoku",
+        "section": "aligned",
+        "chg_cc_d1": 0.14229929181282214
+      }
+    ],
     "ichimoku:mid_aligned": []
   },
   "best_opportunities": []

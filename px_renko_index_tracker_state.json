@@ -1,14 +1,5 @@
 {
   "open_positions": {
-    "NZDUSD": {
-      "trade_id": 21,
-      "pair": "NZDUSD",
-      "direction": "BEAR",
-      "source_signal": "BEAR",
-      "source_updated_at": "2026-04-03T07:51:00",
-      "entry_price": 0.57078,
-      "entry_at": "2026-04-03T05:51:01Z"
-    },
     "NZDCHF": {
       "trade_id": 22,
       "pair": "NZDCHF",
@@ -248,9 +239,20 @@
       "exit_at": "2026-04-02T21:53:46Z",
       "pips": 12.0,
       "pnl_usd": 0.3
+    },
+    {
+      "trade_id": 21,
+      "pair": "NZDUSD",
+      "direction": "BEAR",
+      "entry_price": 0.57078,
+      "entry_at": "2026-04-03T05:51:01Z",
+      "exit_price": 0.57126,
+      "exit_at": "2026-04-03T07:38:36Z",
+      "pips": -4.8,
+      "pnl_usd": -0.42
     }
   ],
-  "total_realized_pnl": -28.12,
+  "total_realized_pnl": -28.54,
   "next_trade_id": 24,
-  "updated_at": "2026-04-03T05:51:02Z"
+  "updated_at": "2026-04-03T07:38:38Z"
 }
