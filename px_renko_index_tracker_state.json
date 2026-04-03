@@ -26,24 +26,6 @@
       "source_updated_at": "2026-04-03T11:11:10",
       "entry_price": 2.023335,
       "entry_at": "2026-04-03T09:11:11Z"
-    },
-    "NZDJPY": {
-      "trade_id": 26,
-      "pair": "NZDJPY",
-      "direction": "BEAR",
-      "source_signal": "BEAR",
-      "source_updated_at": "2026-04-03T11:11:10",
-      "entry_price": 91.0495,
-      "entry_at": "2026-04-03T09:11:11Z"
-    },
-    "NZDUSD": {
-      "trade_id": 27,
-      "pair": "NZDUSD",
-      "direction": "BEAR",
-      "source_signal": "BEAR",
-      "source_updated_at": "2026-04-03T11:11:10",
-      "entry_price": 0.57051,
-      "entry_at": "2026-04-03T09:11:11Z"
     }
   },
   "closed_history": [
@@ -288,9 +270,31 @@
       "exit_at": "2026-04-03T10:04:58Z",
       "pips": -9.3,
       "pnl_usd": -0.38
+    },
+    {
+      "trade_id": 26,
+      "pair": "NZDJPY",
+      "direction": "BEAR",
+      "entry_price": 91.0495,
+      "entry_at": "2026-04-03T09:11:11Z",
+      "exit_price": 91.1125,
+      "exit_at": "2026-04-03T11:04:48Z",
+      "pips": -6.3,
+      "pnl_usd": -0.35
+    },
+    {
+      "trade_id": 27,
+      "pair": "NZDUSD",
+      "direction": "BEAR",
+      "entry_price": 0.57051,
+      "entry_at": "2026-04-03T09:11:11Z",
+      "exit_price": 0.57097,
+      "exit_at": "2026-04-03T11:04:48Z",
+      "pips": -4.6,
+      "pnl_usd": -0.4
     }
   ],
-  "total_realized_pnl": -28.92,
+  "total_realized_pnl": -29.67,
   "next_trade_id": 28,
-  "updated_at": "2026-04-03T10:05:02Z"
+  "updated_at": "2026-04-03T11:04:51Z"
 }
