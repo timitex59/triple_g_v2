@@ -7,12 +7,6 @@
         "entry_price": 0.45566500000000004,
         "entry_at": "2026-04-03T05:54:37Z"
       },
-      "NZDUSD": {
-        "pair": "NZDUSD",
-        "direction": "BEAR",
-        "entry_price": 0.5704400000000001,
-        "entry_at": "2026-04-03T09:14:51Z"
-      },
       "NZDJPY": {
         "pair": "NZDJPY",
         "direction": "BEAR",
@@ -130,9 +124,19 @@
         "exit_at": "2026-04-03T11:08:23Z",
         "pips": -10.8,
         "pnl_usd": -0.45
+      },
+      {
+        "pair": "NZDUSD",
+        "direction": "BEAR",
+        "entry_price": 0.5704400000000001,
+        "entry_at": "2026-04-03T09:14:51Z",
+        "exit_price": 0.57131,
+        "exit_at": "2026-04-03T11:58:12Z",
+        "pips": -8.7,
+        "pnl_usd": -0.76
       }
     ],
-    "total_realized_pnl": -4.56
+    "total_realized_pnl": -5.32
   },
   "HEIKEN_ICHI_V2": {
     "open_positions": {
@@ -159,12 +163,6 @@
         "direction": "BEAR",
         "entry_price": 0.5704400000000001,
         "entry_at": "2026-04-03T09:14:53Z"
-      },
-      "NZDJPY": {
-        "pair": "NZDJPY",
-        "direction": "BEAR",
-        "entry_price": 91.0795,
-        "entry_at": "2026-04-03T11:08:25Z"
       }
     },
     "closed_history": [
@@ -377,9 +375,19 @@
         "exit_at": "2026-04-03T11:08:25Z",
         "pips": -3.4,
         "pnl_usd": -0.21
+      },
+      {
+        "pair": "NZDJPY",
+        "direction": "BEAR",
+        "entry_price": 91.0795,
+        "entry_at": "2026-04-03T11:08:25Z",
+        "exit_price": 91.1375,
+        "exit_at": "2026-04-03T11:58:14Z",
+        "pips": -5.8,
+        "pnl_usd": -0.32
       }
     ],
-    "total_realized_pnl": -11.15
+    "total_realized_pnl": -11.47
   },
-  "updated_at_utc": "2026-04-03T11:08:26Z"
+  "updated_at_utc": "2026-04-03T11:58:15Z"
 }
