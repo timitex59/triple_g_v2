@@ -54,14 +54,23 @@
       "entry_price": 1.394445,
       "entry_at": "2026-04-03T15:03:43Z"
     },
-    "GBPUSD": {
-      "trade_id": 35,
-      "pair": "GBPUSD",
-      "direction": "BEAR",
-      "source_signal": "BEAR",
-      "source_updated_at": "2026-04-03T17:55:31",
-      "entry_price": 1.319685,
-      "entry_at": "2026-04-03T15:55:32Z"
+    "USDCHF": {
+      "trade_id": 36,
+      "pair": "USDCHF",
+      "direction": "BULL",
+      "source_signal": "BULL",
+      "source_updated_at": "2026-04-03T18:58:33",
+      "entry_price": 0.80091,
+      "entry_at": "2026-04-03T16:58:34Z"
+    },
+    "GBPNZD": {
+      "trade_id": 37,
+      "pair": "GBPNZD",
+      "direction": "BULL",
+      "source_signal": "BULL",
+      "source_updated_at": "2026-04-03T18:58:33",
+      "entry_price": 2.318925,
+      "entry_at": "2026-04-03T16:58:34Z"
     }
   },
   "closed_history": [
@@ -372,9 +381,20 @@
       "exit_at": "2026-04-03T15:55:32Z",
       "pips": -22.6,
       "pnl_usd": -0.49
+    },
+    {
+      "trade_id": 35,
+      "pair": "GBPUSD",
+      "direction": "BEAR",
+      "entry_price": 1.319685,
+      "entry_at": "2026-04-03T15:55:32Z",
+      "exit_price": 1.320215,
+      "exit_at": "2026-04-03T16:58:34Z",
+      "pips": -5.3,
+      "pnl_usd": -0.2
     }
   ],
-  "total_realized_pnl": -31.76,
-  "next_trade_id": 36,
-  "updated_at": "2026-04-03T15:55:36Z"
+  "total_realized_pnl": -31.96,
+  "next_trade_id": 38,
+  "updated_at": "2026-04-03T16:58:39Z"
 }

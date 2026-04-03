@@ -1,12 +1,6 @@
 {
   "CONSOLIDATION": {
     "open_positions": {
-      "NZDCHF": {
-        "pair": "NZDCHF",
-        "direction": "BEAR",
-        "entry_price": 0.45566500000000004,
-        "entry_at": "2026-04-03T05:54:37Z"
-      },
       "NZDJPY": {
         "pair": "NZDJPY",
         "direction": "BEAR",
@@ -158,18 +152,22 @@
         "exit_at": "2026-04-03T11:58:12Z",
         "pips": -8.7,
         "pnl_usd": -0.76
-      }
-    ],
-    "total_realized_pnl": -5.32
-  },
-  "HEIKEN_ICHI_V2": {
-    "open_positions": {
-      "NZDCHF": {
+      },
+      {
         "pair": "NZDCHF",
         "direction": "BEAR",
         "entry_price": 0.45566500000000004,
-        "entry_at": "2026-04-03T05:54:38Z"
-      },
+        "entry_at": "2026-04-03T05:54:37Z",
+        "exit_price": 0.456095,
+        "exit_at": "2026-04-03T17:02:10Z",
+        "pips": -4.3,
+        "pnl_usd": -0.47
+      }
+    ],
+    "total_realized_pnl": -5.79
+  },
+  "HEIKEN_ICHI_V2": {
+    "open_positions": {
       "NZDUSD": {
         "pair": "NZDUSD",
         "direction": "BEAR",
@@ -193,6 +191,12 @@
         "direction": "BEAR",
         "entry_price": 0.793825,
         "entry_at": "2026-04-03T15:59:12Z"
+      },
+      "USDCHF": {
+        "pair": "USDCHF",
+        "direction": "BULL",
+        "entry_price": 0.8008799999999999,
+        "entry_at": "2026-04-03T17:02:13Z"
       }
     },
     "closed_history": [
@@ -445,9 +449,19 @@
         "exit_at": "2026-04-03T15:59:12Z",
         "pips": 15.5,
         "pnl_usd": 0.38
+      },
+      {
+        "pair": "NZDCHF",
+        "direction": "BEAR",
+        "entry_price": 0.45566500000000004,
+        "entry_at": "2026-04-03T05:54:38Z",
+        "exit_price": 0.456095,
+        "exit_at": "2026-04-03T17:02:13Z",
+        "pips": -4.3,
+        "pnl_usd": -0.47
       }
     ],
-    "total_realized_pnl": -11.51
+    "total_realized_pnl": -11.98
   },
-  "updated_at_utc": "2026-04-03T15:59:13Z"
+  "updated_at_utc": "2026-04-03T17:02:14Z"
 }
