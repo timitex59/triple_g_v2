@@ -36,33 +36,6 @@
       "entry_price": 0.68941,
       "entry_at": "2026-04-03T15:03:43Z"
     },
-    "EURNZD": {
-      "trade_id": 32,
-      "pair": "EURNZD",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-03T17:03:42",
-      "entry_price": 2.023255,
-      "entry_at": "2026-04-03T15:03:43Z"
-    },
-    "USDCAD": {
-      "trade_id": 33,
-      "pair": "USDCAD",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-03T17:03:42",
-      "entry_price": 1.394445,
-      "entry_at": "2026-04-03T15:03:43Z"
-    },
-    "USDCHF": {
-      "trade_id": 36,
-      "pair": "USDCHF",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-03T18:58:33",
-      "entry_price": 0.80091,
-      "entry_at": "2026-04-03T16:58:34Z"
-    },
     "GBPNZD": {
       "trade_id": 37,
       "pair": "GBPNZD",
@@ -80,6 +53,24 @@
       "source_updated_at": "2026-04-03T19:53:51",
       "entry_price": 1.319705,
       "entry_at": "2026-04-03T17:53:52Z"
+    },
+    "AUDNZD": {
+      "trade_id": 40,
+      "pair": "AUDNZD",
+      "direction": "BULL",
+      "source_signal": "BULL",
+      "source_updated_at": "2026-04-03T22:55:17",
+      "entry_price": 1.21247,
+      "entry_at": "2026-04-03T20:55:18Z"
+    },
+    "EURNZD": {
+      "trade_id": 41,
+      "pair": "EURNZD",
+      "direction": "BULL",
+      "source_signal": "LONG",
+      "source_updated_at": "2026-04-03T22:55:17",
+      "entry_price": 2.023235,
+      "entry_at": "2026-04-03T20:55:18Z"
     }
   },
   "closed_history": [
@@ -412,9 +403,42 @@
       "exit_at": "2026-04-03T19:06:51Z",
       "pips": 3.9,
       "pnl_usd": 0.16
+    },
+    {
+      "trade_id": 32,
+      "pair": "EURNZD",
+      "direction": "BULL",
+      "entry_price": 2.023255,
+      "entry_at": "2026-04-03T15:03:43Z",
+      "exit_price": 2.022885,
+      "exit_at": "2026-04-03T20:55:18Z",
+      "pips": -3.7,
+      "pnl_usd": -0.09
+    },
+    {
+      "trade_id": 33,
+      "pair": "USDCAD",
+      "direction": "BULL",
+      "entry_price": 1.394445,
+      "entry_at": "2026-04-03T15:03:43Z",
+      "exit_price": 1.393875,
+      "exit_at": "2026-04-03T20:55:18Z",
+      "pips": -5.7,
+      "pnl_usd": -0.2
+    },
+    {
+      "trade_id": 36,
+      "pair": "USDCHF",
+      "direction": "BULL",
+      "entry_price": 0.80091,
+      "entry_at": "2026-04-03T16:58:34Z",
+      "exit_price": 0.79979,
+      "exit_at": "2026-04-03T20:55:18Z",
+      "pips": -11.2,
+      "pnl_usd": -0.7
     }
   ],
-  "total_realized_pnl": -31.8,
-  "next_trade_id": 40,
-  "updated_at": "2026-04-03T19:54:54Z"
+  "total_realized_pnl": -32.8,
+  "next_trade_id": 42,
+  "updated_at": "2026-04-03T20:55:23Z"
 }
