@@ -80,15 +80,6 @@
       "source_updated_at": "2026-04-03T19:53:51",
       "entry_price": 1.319705,
       "entry_at": "2026-04-03T17:53:52Z"
-    },
-    "AUDNZD": {
-      "trade_id": 39,
-      "pair": "AUDNZD",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-03T19:53:51",
-      "entry_price": 1.21093,
-      "entry_at": "2026-04-03T17:53:52Z"
     }
   },
   "closed_history": [
@@ -410,9 +401,20 @@
       "exit_at": "2026-04-03T16:58:34Z",
       "pips": -5.3,
       "pnl_usd": -0.2
+    },
+    {
+      "trade_id": 39,
+      "pair": "AUDNZD",
+      "direction": "BULL",
+      "entry_price": 1.21093,
+      "entry_at": "2026-04-03T17:53:52Z",
+      "exit_price": 1.21132,
+      "exit_at": "2026-04-03T19:06:51Z",
+      "pips": 3.9,
+      "pnl_usd": 0.16
     }
   ],
-  "total_realized_pnl": -31.96,
+  "total_realized_pnl": -31.8,
   "next_trade_id": 40,
-  "updated_at": "2026-04-03T17:53:57Z"
+  "updated_at": "2026-04-03T19:06:56Z"
 }
