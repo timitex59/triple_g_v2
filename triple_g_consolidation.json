@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-04-06T08:04:55Z",
+  "updated_at_utc": "2026-04-06T09:44:34Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
@@ -41,12 +41,12 @@
         "ichimoku"
       ],
       "sections": [
-        "break_line:exited",
+        "break_line:retracing",
         "ichimoku:mid_aligned"
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.21756472550583414
+      "best_chg_cc_d1": 0.23569511929798528
     },
     {
       "pair": "AUDCAD",
@@ -61,7 +61,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.3276096972470371
+      "best_chg_cc_d1": 0.3588106207943822
     },
     {
       "pair": "GBPAUD",
@@ -76,23 +76,23 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.11334019293948079
+      "best_chg_cc_d1": -0.1499015455005995
     }
   ],
   "tradable_by_section": {
     "break_line:aligned": [],
-    "break_line:retracing": [],
-    "break_line:exited": [
+    "break_line:retracing": [
       {
         "pair": "AUDCHF",
         "direction": "BULL",
         "strong_currency": "AUD",
         "weak_currency": "CHF",
         "source": "break_line",
-        "section": "exited",
-        "chg_cc_d1": 0.21756472550583414
+        "section": "retracing",
+        "chg_cc_d1": 0.23569511929798528
       }
     ],
+    "break_line:exited": [],
     "ichimoku:aligned": [
       {
         "pair": "AUDCAD",
@@ -101,7 +101,7 @@
         "weak_currency": "CAD",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": 0.3276096972470371
+        "chg_cc_d1": 0.3588106207943822
       }
     ],
     "ichimoku:mid_aligned": [
@@ -112,7 +112,7 @@
         "weak_currency": "CHF",
         "source": "ichimoku",
         "section": "mid_aligned",
-        "chg_cc_d1": 0.1341649140619267
+        "chg_cc_d1": 0.23569511929798528
       },
       {
         "pair": "GBPAUD",
@@ -121,7 +121,7 @@
         "weak_currency": "GBP",
         "source": "ichimoku",
         "section": "mid_aligned",
-        "chg_cc_d1": -0.11334019293948079
+        "chg_cc_d1": -0.1499015455005995
       }
     ]
   },
@@ -136,12 +136,12 @@
         "ichimoku"
       ],
       "sections": [
-        "break_line:exited",
+        "break_line:retracing",
         "ichimoku:mid_aligned"
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.21756472550583414
+      "best_chg_cc_d1": 0.23569511929798528
     }
   ]
 }

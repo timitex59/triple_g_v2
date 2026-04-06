@@ -1,14 +1,24 @@
 {
-  "updated_at_utc": "2026-04-06T08:04:08Z",
+  "updated_at_utc": "2026-04-06T09:43:50Z",
   "telegram_aligned": {
     "EURJPY": {
       "pair": "EURJPY",
       "direction": "BULL",
-      "chg_cc_d1": 0.2724884559531411,
+      "chg_cc_d1": 0.17350063363084986,
       "flame": true,
       "daily_cloud_ok": true,
       "section": "ALIGNED"
     }
   },
-  "telegram_retracing": {}
+  "telegram_retracing": {
+    "AUDCHF": {
+      "pair": "AUDCHF",
+      "w1d1_direction": "BULL",
+      "chg_cc_d1": 0.23569511929798528,
+      "retrace_flame": false,
+      "daily_cloud_ok": false,
+      "retrace_daily_cloud_ok": true,
+      "section": "RETRACING"
+    }
+  }
 }
