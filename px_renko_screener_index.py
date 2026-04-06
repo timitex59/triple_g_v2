@@ -1219,26 +1219,9 @@ def main() -> int:
     else:
         print("  Not enough indices above/below average for pair derivation.\n")
 
-    # Phase 3: scan ALL remaining pairs for any BULL/BEAR signal
-    remaining_pairs = [(p, 0, "", "") for p in PAIRS if p not in candidate_pair_names]
-    all_other = scan_pairs(
-        remaining_pairs, atr_length=args.length, min_chg=args.min_chg,
-        sar_tf=args.sar_tf, sar_bars=args.sar_bars,
-        sar_start=args.sar_start, sar_inc=args.sar_inc,
-        sar_max=args.sar_max, workers=args.workers,
-        phase_label="Phase 3", sar15_cutoff=sar15_cutoff,
-    )
-    # Only keep pairs with BULL/BEAR signal for OTHER section
-    other_results = [r for r in all_other if r.bias != 0 or r.trigger != 0]
-    elapsed3 = time.time() - t_start
-    print(f"  Phase 3 done in {elapsed3:.1f}s — {len(all_other)} scanned, {len(other_results)} with signal\n")
-    if other_results:
-        print_pairs_table(other_results, title="\U0001f50d OTHER PAIRS")
-
     if args.sar15_list_all:
-        pairs_to_follow = list(pair_results) + list(other_results)
         print_sar15_events_for_pairs(
-            pairs_to_follow,
+            pair_results,
             sar_start=args.sar_start,
             sar_inc=args.sar_inc,
             sar_max=args.sar_max,
@@ -1257,12 +1240,12 @@ def main() -> int:
         )
 
     # Save scan results for tracker
-    save_scan_output(pair_results, other_results)
+    save_scan_output(pair_results, [])
 
     # Telegram
     msg = build_telegram_message(results)
     if msg:
-        msg = append_pairs_to_message(msg, pair_results, other_results)
+        msg = append_pairs_to_message(msg, pair_results, [])
 
     if not args.no_telegram:
         if msg:
