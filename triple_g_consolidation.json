@@ -1,5 +1,5 @@
 {
-  "updated_at_utc": "2026-04-06T09:44:34Z",
+  "updated_at_utc": "2026-04-06T11:15:41Z",
   "input_files": {
     "break_line": "/home/runner/work/triple_g_v2/triple_g_v2/break_line_scan.json",
     "ichimoku": "/home/runner/work/triple_g_v2/triple_g_v2/ichimoku_scan.json"
@@ -46,7 +46,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.23569511929798528
+      "best_chg_cc_d1": 0.22481688302268252
     },
     {
       "pair": "AUDCAD",
@@ -61,7 +61,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": 0.3588106207943822
+      "best_chg_cc_d1": 0.25896766544289634
     },
     {
       "pair": "GBPAUD",
@@ -76,7 +76,7 @@
       ],
       "confirmation_count": 1,
       "stars": 1,
-      "best_chg_cc_d1": -0.1499015455005995
+      "best_chg_cc_d1": -0.1504238505371904
     }
   ],
   "tradable_by_section": {
@@ -89,7 +89,7 @@
         "weak_currency": "CHF",
         "source": "break_line",
         "section": "retracing",
-        "chg_cc_d1": 0.23569511929798528
+        "chg_cc_d1": 0.22481688302268252
       }
     ],
     "break_line:exited": [],
@@ -101,7 +101,7 @@
         "weak_currency": "CAD",
         "source": "ichimoku",
         "section": "aligned",
-        "chg_cc_d1": 0.3588106207943822
+        "chg_cc_d1": 0.25896766544289634
       }
     ],
     "ichimoku:mid_aligned": [
@@ -112,7 +112,7 @@
         "weak_currency": "CHF",
         "source": "ichimoku",
         "section": "mid_aligned",
-        "chg_cc_d1": 0.23569511929798528
+        "chg_cc_d1": 0.21756472550583414
       },
       {
         "pair": "GBPAUD",
@@ -121,7 +121,7 @@
         "weak_currency": "GBP",
         "source": "ichimoku",
         "section": "mid_aligned",
-        "chg_cc_d1": -0.1499015455005995
+        "chg_cc_d1": -0.1504238505371904
       }
     ]
   },
@@ -141,7 +141,7 @@
       ],
       "confirmation_count": 2,
       "stars": 2,
-      "best_chg_cc_d1": 0.23569511929798528
+      "best_chg_cc_d1": 0.22481688302268252
     }
   ]
 }
