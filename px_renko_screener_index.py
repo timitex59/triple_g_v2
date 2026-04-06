@@ -1076,8 +1076,6 @@ def append_pairs_to_message(base_msg: str, candidate_pairs: list[PairResult],
 
     lines = ["", "PAIRS TO FOLLOW"]
     for r in all_pairs:
-        if not r.sar15_confirmed:
-            continue
         sig = signal_text(r.trigger, r.bias)
         if sig == "LONG":
             emoji = "\U0001f7e2"
