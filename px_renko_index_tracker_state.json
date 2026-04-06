@@ -1,14 +1,5 @@
 {
   "open_positions": {
-    "XAUUSD": {
-      "trade_id": 43,
-      "pair": "XAUUSD",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-06T10:03:21",
-      "entry_price": 4686.04,
-      "entry_at": "2026-04-06T08:03:22Z"
-    },
     "GBPAUD": {
       "trade_id": 44,
       "pair": "GBPAUD",
@@ -481,9 +472,20 @@
       "exit_at": "2026-04-05T22:35:09Z",
       "pips": -0.7,
       "pnl_usd": -0.03
+    },
+    {
+      "trade_id": 43,
+      "pair": "XAUUSD",
+      "direction": "BULL",
+      "entry_price": 4686.04,
+      "entry_at": "2026-04-06T08:03:22Z",
+      "exit_price": 4681.705,
+      "exit_at": "2026-04-06T12:01:27Z",
+      "pips": -43.4,
+      "pnl_usd": -0.46
     }
   ],
-  "total_realized_pnl": -28.42,
+  "total_realized_pnl": -28.88,
   "next_trade_id": 45,
-  "updated_at": "2026-04-06T11:14:13Z"
+  "updated_at": "2026-04-06T12:01:29Z"
 }
