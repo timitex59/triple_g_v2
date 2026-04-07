@@ -8,24 +8,6 @@
       "source_updated_at": "2026-04-07T14:05:11",
       "entry_price": 0.92405,
       "entry_at": "2026-04-07T12:05:11Z"
-    },
-    "EURJPY": {
-      "trade_id": 48,
-      "pair": "EURJPY",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-07T17:43:43",
-      "entry_price": 185.076,
-      "entry_at": "2026-04-07T15:43:43Z"
-    },
-    "AUDJPY": {
-      "trade_id": 49,
-      "pair": "AUDJPY",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-07T19:16:15",
-      "entry_price": 111.118,
-      "entry_at": "2026-04-07T17:16:16Z"
     }
   },
   "closed_history": [
@@ -534,9 +516,31 @@
       "exit_at": "2026-04-07T15:43:43Z",
       "pips": 42.2,
       "pnl_usd": 1.04
+    },
+    {
+      "trade_id": 48,
+      "pair": "EURJPY",
+      "direction": "BULL",
+      "entry_price": 185.076,
+      "entry_at": "2026-04-07T15:43:43Z",
+      "exit_price": 185.007,
+      "exit_at": "2026-04-07T19:32:12Z",
+      "pips": -6.9,
+      "pnl_usd": -0.19
+    },
+    {
+      "trade_id": 49,
+      "pair": "AUDJPY",
+      "direction": "BULL",
+      "entry_price": 111.118,
+      "entry_at": "2026-04-07T17:16:16Z",
+      "exit_price": 111.1,
+      "exit_at": "2026-04-07T19:32:12Z",
+      "pips": -1.8,
+      "pnl_usd": -0.08
     }
   ],
-  "total_realized_pnl": -27.84,
+  "total_realized_pnl": -28.11,
   "next_trade_id": 50,
-  "updated_at": "2026-04-07T17:16:17Z"
+  "updated_at": "2026-04-07T19:32:13Z"
 }
