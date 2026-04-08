@@ -1,15 +1,5 @@
 {
-  "open_positions": {
-    "AUDCHF": {
-      "trade_id": 50,
-      "pair": "AUDCHF",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-08T00:58:55",
-      "entry_price": 0.559035,
-      "entry_at": "2026-04-07T22:58:56Z"
-    }
-  },
+  "open_positions": {},
   "closed_history": [
     {
       "trade_id": 1,
@@ -549,9 +539,20 @@
       "exit_at": "2026-04-07T21:58:54Z",
       "pips": 8.4,
       "pnl_usd": 0.45
+    },
+    {
+      "trade_id": 50,
+      "pair": "AUDCHF",
+      "direction": "BULL",
+      "entry_price": 0.559035,
+      "entry_at": "2026-04-07T22:58:56Z",
+      "exit_price": 0.557555,
+      "exit_at": "2026-04-08T05:58:16Z",
+      "pips": -14.8,
+      "pnl_usd": -1.32
     }
   ],
-  "total_realized_pnl": -27.66,
+  "total_realized_pnl": -28.98,
   "next_trade_id": 51,
-  "updated_at": "2026-04-07T22:58:56Z"
+  "updated_at": "2026-04-08T05:58:16Z"
 }
