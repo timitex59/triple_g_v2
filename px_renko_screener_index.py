@@ -925,7 +925,7 @@ def scan_pairs(candidates: list[tuple[str, int, str, str]],
     return results
 
 
-def print_pairs_table(pairs: list[PairResult], title: str = "\U0001f3af PAIRS (TOP2 \u00d7 LAST2)") -> None:
+def print_pairs_table(pairs: list[PairResult], title: str = "\U0001f3af PAIRS (TOP1 \u00d7 LAST1)") -> None:
     if not pairs:
         print("  No pairs with BULL/BEAR signal.\n")
         return
@@ -1026,14 +1026,14 @@ def print_table(results: list[IndexResult]) -> None:
                    key=lambda r: r.weighted_score, reverse=True)
     below = sorted([r for r in results if r.weighted_score <= 0],
                    key=lambda r: r.weighted_score)
-    top2 = above[:2]
-    last2 = below[:2]
+    top2 = above[:1]
+    last2 = below[:1]
 
     print(f"  Avg score: {score_str(avg_sc)}")
     if top2:
-        print(f"  {GREEN}{BOLD}🔺 TOP 2:{RESET} " + ", ".join(f"{r.ccy} [{score_str(r.weighted_score)}]" for r in top2))
+        print(f"  {GREEN}{BOLD}🔺 TOP 1:{RESET} " + ", ".join(f"{r.ccy} [{score_str(r.weighted_score)}]" for r in top2))
     if last2:
-        print(f"  {RED}{BOLD}🔻 LAST 2:{RESET} " + ", ".join(f"{r.ccy} [{score_str(r.weighted_score)}]" for r in last2))
+        print(f"  {RED}{BOLD}🔻 LAST 1:{RESET} " + ", ".join(f"{r.ccy} [{score_str(r.weighted_score)}]" for r in last2))
     print()
 
 
@@ -1192,10 +1192,10 @@ def main() -> int:
                    key=lambda r: r.weighted_score, reverse=True)
     below = sorted([r for r in results if r.weighted_score <= 0],
                    key=lambda r: r.weighted_score)
-    top2 = above[:2]
-    last2 = below[:2]
+    top2 = above[:1]
+    last2 = below[:1]
 
-    # Phase 2: derive & scan candidate pairs from TOP2 × LAST2
+    # Phase 2: derive & scan candidate pair from TOP1 × LAST1
     pair_results = []
     candidate_pair_names = set()
     if top2 and last2:
