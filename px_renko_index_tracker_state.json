@@ -1,14 +1,5 @@
 {
   "open_positions": {
-    "NZDUSD": {
-      "trade_id": 53,
-      "pair": "NZDUSD",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-09T11:40:41",
-      "entry_price": 0.58338,
-      "entry_at": "2026-04-09T09:40:42Z"
-    },
     "AUDJPY": {
       "trade_id": 54,
       "pair": "AUDJPY",
@@ -591,9 +582,20 @@
       "exit_at": "2026-04-08T22:01:00Z",
       "pips": -0.4,
       "pnl_usd": -0.01
+    },
+    {
+      "trade_id": 53,
+      "pair": "NZDUSD",
+      "direction": "BULL",
+      "entry_price": 0.58338,
+      "entry_at": "2026-04-09T09:40:42Z",
+      "exit_price": 0.58586,
+      "exit_at": "2026-04-09T20:14:04Z",
+      "pips": 24.8,
+      "pnl_usd": 2.13
     }
   ],
-  "total_realized_pnl": -30.27,
+  "total_realized_pnl": -28.14,
   "next_trade_id": 55,
-  "updated_at": "2026-04-09T19:37:18Z"
+  "updated_at": "2026-04-09T20:14:05Z"
 }
