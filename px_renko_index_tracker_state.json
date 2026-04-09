@@ -1,15 +1,5 @@
 {
-  "open_positions": {
-    "AUDJPY": {
-      "trade_id": 54,
-      "pair": "AUDJPY",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-09T16:15:06",
-      "entry_price": 112.222,
-      "entry_at": "2026-04-09T14:15:06Z"
-    }
-  },
+  "open_positions": {},
   "closed_history": [
     {
       "trade_id": 1,
@@ -593,9 +583,20 @@
       "exit_at": "2026-04-09T20:14:04Z",
       "pips": 24.8,
       "pnl_usd": 2.13
+    },
+    {
+      "trade_id": 54,
+      "pair": "AUDJPY",
+      "direction": "BULL",
+      "entry_price": 112.222,
+      "entry_at": "2026-04-09T14:15:06Z",
+      "exit_price": 112.61,
+      "exit_at": "2026-04-09T21:04:04Z",
+      "pips": 38.8,
+      "pnl_usd": 1.73
     }
   ],
-  "total_realized_pnl": -28.14,
+  "total_realized_pnl": -26.41,
   "next_trade_id": 55,
-  "updated_at": "2026-04-09T20:14:05Z"
+  "updated_at": "2026-04-09T21:04:05Z"
 }
