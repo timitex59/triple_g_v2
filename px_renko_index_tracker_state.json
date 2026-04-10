@@ -1,15 +1,5 @@
 {
-  "open_positions": {
-    "EURJPY": {
-      "trade_id": 57,
-      "pair": "EURJPY",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-10T22:56:22",
-      "entry_price": 186.813,
-      "entry_at": "2026-04-10T20:56:23Z"
-    }
-  },
+  "open_positions": {},
   "closed_history": [
     {
       "trade_id": 1,
@@ -626,9 +616,20 @@
       "exit_at": "2026-04-10T20:56:23Z",
       "pips": -12.5,
       "pnl_usd": -0.29
+    },
+    {
+      "trade_id": 57,
+      "pair": "EURJPY",
+      "direction": "BULL",
+      "entry_price": 186.813,
+      "entry_at": "2026-04-10T20:56:23Z",
+      "exit_price": 186.746,
+      "exit_at": "2026-04-10T21:54:42Z",
+      "pips": -6.7,
+      "pnl_usd": -0.18
     }
   ],
-  "total_realized_pnl": -26.38,
+  "total_realized_pnl": -26.56,
   "next_trade_id": 58,
-  "updated_at": "2026-04-10T20:56:24Z"
+  "updated_at": "2026-04-10T21:54:43Z"
 }
