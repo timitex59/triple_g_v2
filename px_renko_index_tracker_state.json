@@ -1,15 +1,5 @@
 {
-  "open_positions": {
-    "CHFJPY": {
-      "trade_id": 58,
-      "pair": "CHFJPY",
-      "direction": "BULL",
-      "source_signal": "BULL",
-      "source_updated_at": "2026-04-13T17:45:20",
-      "entry_price": 202.818,
-      "entry_at": "2026-04-13T15:45:21Z"
-    }
-  },
+  "open_positions": {},
   "closed_history": [
     {
       "trade_id": 1,
@@ -637,9 +627,20 @@
       "exit_at": "2026-04-10T21:54:42Z",
       "pips": -6.7,
       "pnl_usd": -0.18
+    },
+    {
+      "trade_id": 58,
+      "pair": "CHFJPY",
+      "direction": "BULL",
+      "entry_price": 202.818,
+      "entry_at": "2026-04-13T15:45:21Z",
+      "exit_price": 203.059,
+      "exit_at": "2026-04-13T17:19:17Z",
+      "pips": 24.1,
+      "pnl_usd": 0.59
     }
   ],
-  "total_realized_pnl": -26.56,
+  "total_realized_pnl": -25.97,
   "next_trade_id": 59,
-  "updated_at": "2026-04-13T15:45:21Z"
+  "updated_at": "2026-04-13T17:19:18Z"
 }
