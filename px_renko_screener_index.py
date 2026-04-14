@@ -1087,8 +1087,15 @@ def append_pairs_to_message(base_msg: str, candidate_pairs: list[PairResult],
             emoji = "\U0001f7e0"
         else:
             emoji = "\u26aa"
+        # 2ème boule = biais attendu depuis les indices (expected_bias)
+        if r.expected_bias == 1:
+            bias_emoji = "\U0001f7e2"  # 🟢 BULL
+        elif r.expected_bias == -1:
+            bias_emoji = "\U0001f534"  # 🔴 BEAR
+        else:
+            bias_emoji = "\u26aa"      # ⚪ neutre
         flame = " 🔥" if r.bl_confirmed else ""
-        lines.append(f"{emoji} {r.pair} ({score_str(r.weighted_score)}){flame}")
+        lines.append(f"{emoji}{bias_emoji} {r.pair} ({score_str(r.weighted_score)}){flame}")
 
     parts = base_msg.rsplit("\n⏰", 1)
     if len(parts) == 2:
