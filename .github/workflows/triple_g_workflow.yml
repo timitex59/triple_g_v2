@@ -77,7 +77,6 @@ jobs:
           }
 
           run_with_telegram "$ENABLE_TELEGRAM_PX_RENKO_INDEX" px_renko_screener_index.py
-          run_with_telegram "$ENABLE_TELEGRAM_PX_RENKO_INDEX" px_renko_index_tracker.py
 
           echo "---- px_renko_index_tracker_state.json after tracker ----"
           if [ -f px_renko_index_tracker_state.json ]; then
