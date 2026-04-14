@@ -1249,24 +1249,34 @@ def main() -> int:
     # Save scan results for tracker
     save_scan_output(pair_results, [])
 
+    # Validate pairs: expected_bias must be confirmed by weighted_score sign
+    valid_pairs = [
+        r for r in pair_results
+        if (r.expected_bias == 1 and r.weighted_score > 0)
+        or (r.expected_bias == -1 and r.weighted_score < 0)
+    ]
+    invalidated = len(pair_results) - len(valid_pairs)
+    if invalidated:
+        print(f"  {invalidated} pair(s) invalidated (bias/score mismatch) — no Telegram.\n")
+
     # Telegram
     msg = build_telegram_message(results)
-    if msg:
-        msg = append_pairs_to_message(msg, pair_results, [])
+    if msg and valid_pairs:
+        msg = append_pairs_to_message(msg, valid_pairs, [])
 
     if not args.no_telegram:
-        if msg:
+        if msg and valid_pairs:
             print(msg)
             print()
             send_telegram(msg)
         else:
-            print("  No signals — no Telegram sent.\n")
+            print("  No valid pairs — no Telegram sent.\n")
     else:
-        if msg:
+        if msg and valid_pairs:
             print(msg)
             print()
         else:
-            print("  No signals.\n")
+            print("  No valid pairs.\n")
 
     return 0
 
