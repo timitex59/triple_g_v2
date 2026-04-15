@@ -1099,8 +1099,8 @@ def _pair_line(r: PairResult, first_score: float | None, first_price: float | No
 
     if first_score is not None and first_price is not None and first_price != 0:
         delta_score = r.weighted_score - first_score
-        delta_price = r.current_price - first_price
-        score_part = f"({score_str(delta_score)} / {delta_price:+.5f})"
+        delta_price_pct = (r.current_price - first_price) / first_price * 100
+        score_part = f"({score_str(delta_score)} / {delta_price_pct:+.2f}%)"
     else:
         score_part = f"({score_str(r.weighted_score)})"
 
