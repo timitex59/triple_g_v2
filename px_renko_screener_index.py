@@ -34,6 +34,10 @@ load_dotenv()
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SCAN_OUTPUT_PATH = os.path.join(SCRIPT_DIR, "px_renko_index_scan.json")
+DAILY_FOLLOW_PATH = os.path.join(SCRIPT_DIR, "px_renko_daily_follow.json")
+
+DAILY_START_HOUR = 7   # Paris — accumulation démarre à 7H
+DAILY_END_HOUR = 22    # Paris — accumulation s'arrête à 22H
 
 # ── constants ──────────────────────────────────────────────────────────
 WS_URL = "wss://prodata.tradingview.com/socket.io/websocket"
@@ -1067,40 +1071,125 @@ def build_telegram_message(results: list[IndexResult]) -> str | None:
     return "\n".join(lines)
 
 
-def append_pairs_to_message(base_msg: str, candidate_pairs: list[PairResult],
-                            other_pairs: list[PairResult]) -> str:
-    """Merge candidate + other pairs into a single PAIRS TO FOLLOW section."""
-    all_pairs = list(candidate_pairs) + list(other_pairs)
-    if not all_pairs:
+def _pair_line(r: PairResult, first_score: float | None, expected_bias: int) -> str:
+    """Format one pair line for Telegram: emoji1 emoji2 PAIR (score / delta)."""
+    sig = signal_text(r.trigger, r.bias)
+    if sig == "LONG":
+        emoji = "\U0001f7e2"
+    elif sig == "SHORT":
+        emoji = "\U0001f534"
+    elif sig == "BULL":
+        emoji = "\U0001f535"
+    elif sig == "BEAR":
+        emoji = "\U0001f7e0"
+    else:
+        emoji = "\u26aa"
+
+    if expected_bias == 1:
+        bias_emoji = "\U0001f7e2"
+    elif expected_bias == -1:
+        bias_emoji = "\U0001f534"
+    else:
+        bias_emoji = "\u26aa"
+
+    flame = " \U0001f525" if r.bl_confirmed else ""
+
+    if first_score is not None:
+        delta = r.weighted_score - first_score
+        score_part = f"({score_str(r.weighted_score)} / {score_str(delta)})"
+    else:
+        score_part = f"({score_str(r.weighted_score)})"
+
+    return f"{emoji}{bias_emoji} {r.pair} {score_part}{flame}"
+
+
+def append_pairs_to_message(base_msg: str, valid_pairs: list[PairResult],
+                            _unused: list,
+                            daily_data: dict | None = None,
+                            current_scores: dict | None = None) -> str:
+    """Build PAIRS TO FOLLOW section from all pairs seen today."""
+    # Build a map of current PairResult by pair name
+    current_map: dict[str, PairResult] = {r.pair: r for r in valid_pairs}
+
+    # Merge daily pairs + current valid pairs (current takes precedence for display)
+    all_entries: list[tuple[str, PairResult | None, float | None, int]] = []
+
+    if daily_data:
+        for pair, info in daily_data.get("pairs", {}).items():
+            r = current_map.get(pair)
+            if r is None and current_scores and pair in current_scores:
+                r = current_scores[pair]
+            all_entries.append((pair, r, info["first_score"], info["expected_bias"]))
+    else:
+        for r in valid_pairs:
+            all_entries.append((r.pair, r, None, r.expected_bias))
+
+    if not all_entries:
         return base_msg
 
+    # Sort by |current weighted_score| descending
+    def sort_key(entry):
+        _, r, first_score, _ = entry
+        return abs(r.weighted_score) if r else 0.0
+
+    all_entries.sort(key=sort_key, reverse=True)
+
     lines = ["", "PAIRS TO FOLLOW"]
-    for r in all_pairs:
-        sig = signal_text(r.trigger, r.bias)
-        if sig == "LONG":
-            emoji = "\U0001f7e2"
-        elif sig == "SHORT":
-            emoji = "\U0001f534"
-        elif sig == "BULL":
-            emoji = "\U0001f535"
-        elif sig == "BEAR":
-            emoji = "\U0001f7e0"
+    for pair, r, first_score, expected_bias in all_entries:
+        if r is not None:
+            lines.append(_pair_line(r, first_score, expected_bias))
         else:
-            emoji = "\u26aa"
-        # 2ème boule = biais attendu depuis les indices (expected_bias)
-        if r.expected_bias == 1:
-            bias_emoji = "\U0001f7e2"  # 🟢 BULL
-        elif r.expected_bias == -1:
-            bias_emoji = "\U0001f534"  # 🔴 BEAR
-        else:
-            bias_emoji = "\u26aa"      # ⚪ neutre
-        flame = " 🔥" if r.bl_confirmed else ""
-        lines.append(f"{emoji}{bias_emoji} {r.pair} ({score_str(r.weighted_score)}){flame}")
+            # Paire vue aujourd'hui mais absente du scan actuel — afficher avec score initial
+            if expected_bias == 1:
+                bias_emoji = "\U0001f7e2"
+            elif expected_bias == -1:
+                bias_emoji = "\U0001f534"
+            else:
+                bias_emoji = "\u26aa"
+            lines.append(f"\u26aa{bias_emoji} {pair} ({score_str(first_score or 0.0)} / n/a)")
 
     parts = base_msg.rsplit("\n⏰", 1)
     if len(parts) == 2:
         return parts[0] + "\n".join(lines) + "\n\n⏰" + parts[1]
     return base_msg + "\n" + "\n".join(lines)
+
+
+# ── Daily follow accumulation ─────────────────────────────────────────
+def load_daily_follow(now_paris: datetime) -> dict:
+    """Load daily follow state, reset if date changed or before DAILY_START_HOUR."""
+    today = now_paris.strftime("%Y-%m-%d")
+    hour = now_paris.hour
+    empty = {"date": today, "pairs": {}}
+
+    if hour < DAILY_START_HOUR or hour >= DAILY_END_HOUR:
+        return empty
+
+    try:
+        with open(DAILY_FOLLOW_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if data.get("date") != today:
+            return empty
+        return data
+    except (FileNotFoundError, json.JSONDecodeError):
+        return empty
+
+
+def save_daily_follow(data: dict) -> None:
+    with open(DAILY_FOLLOW_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def update_daily_follow(data: dict, valid_pairs: list, now_paris: datetime) -> dict:
+    """Add new pairs to daily follow; existing pairs keep their first_score/first_time."""
+    time_str = now_paris.strftime("%H:%M")
+    for r in valid_pairs:
+        if r.pair not in data["pairs"]:
+            data["pairs"][r.pair] = {
+                "first_score": round(r.weighted_score, 4),
+                "first_time": time_str,
+                "expected_bias": r.expected_bias,
+            }
+    return data
 
 
 # ── Telegram ──────────────────────────────────────────────────────────
@@ -1259,24 +1348,31 @@ def main() -> int:
     if invalidated:
         print(f"  {invalidated} pair(s) invalidated (bias/score mismatch) — no Telegram.\n")
 
-    # Telegram
+    # Daily follow accumulation
+    now_paris = datetime.now(pytz.timezone("Europe/Paris"))
+    daily_data = load_daily_follow(now_paris)
+    daily_data = update_daily_follow(daily_data, valid_pairs, now_paris)
+    save_daily_follow(daily_data)
+
+    # Telegram — toujours envoyer si daily_data a des paires (même sans nouvelle paire valide)
+    has_daily_pairs = bool(daily_data.get("pairs"))
     msg = build_telegram_message(results)
-    if msg and valid_pairs:
-        msg = append_pairs_to_message(msg, valid_pairs, [])
+    if msg and has_daily_pairs:
+        msg = append_pairs_to_message(msg, valid_pairs, [], daily_data=daily_data)
 
     if not args.no_telegram:
-        if msg and valid_pairs:
+        if msg and has_daily_pairs:
             print(msg)
             print()
             send_telegram(msg)
         else:
-            print("  No valid pairs — no Telegram sent.\n")
+            print("  No pairs to follow today — no Telegram sent.\n")
     else:
-        if msg and valid_pairs:
+        if msg and has_daily_pairs:
             print(msg)
             print()
         else:
-            print("  No valid pairs.\n")
+            print("  No pairs to follow today.\n")
 
     return 0
 
