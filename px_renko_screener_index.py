@@ -112,6 +112,7 @@ class PairResult:
     sar15_note: str | None = None
     sar15_confirmed: bool = False
     bl_confirmed: bool = False
+    current_price: float = 0.0
 
 
 # ── TradingView websocket helpers ─────────────────────────────────────
@@ -885,6 +886,7 @@ def _scan_pair(pair: str, expected_bias: int, strong_ccy: str, weak_ccy: str,
         sar15_event=sar15_event, sar15_value=sar15_value, sar15_time=sar15_time,
         sar15_note=sar15_note, sar15_confirmed=sar15_confirmed,
         bl_confirmed=bl_confirmed,
+        current_price=dc,
     )
 
 
@@ -1071,8 +1073,9 @@ def build_telegram_message(results: list[IndexResult]) -> str | None:
     return "\n".join(lines)
 
 
-def _pair_line(r: PairResult, first_score: float | None, expected_bias: int) -> str:
-    """Format one pair line for Telegram: emoji1 emoji2 PAIR (score / delta)."""
+def _pair_line(r: PairResult, first_score: float | None, first_price: float | None,
+               expected_bias: int) -> str:
+    """Format one pair line for Telegram: emoji1 emoji2 PAIR (delta_score / delta_price)."""
     sig = signal_text(r.trigger, r.bias)
     if sig == "LONG":
         emoji = "\U0001f7e2"
@@ -1094,9 +1097,10 @@ def _pair_line(r: PairResult, first_score: float | None, expected_bias: int) -> 
 
     flame = " \U0001f525" if r.bl_confirmed else ""
 
-    if first_score is not None:
-        delta = r.weighted_score - first_score
-        score_part = f"({score_str(r.weighted_score)} / {score_str(delta)})"
+    if first_score is not None and first_price is not None and first_price != 0:
+        delta_score = r.weighted_score - first_score
+        delta_price = r.current_price - first_price
+        score_part = f"({score_str(delta_score)} / {delta_price:+.5f})"
     else:
         score_part = f"({score_str(r.weighted_score)})"
 
@@ -1112,41 +1116,43 @@ def append_pairs_to_message(base_msg: str, valid_pairs: list[PairResult],
     current_map: dict[str, PairResult] = {r.pair: r for r in valid_pairs}
 
     # Merge daily pairs + current valid pairs (current takes precedence for display)
-    all_entries: list[tuple[str, PairResult | None, float | None, int]] = []
+    all_entries: list[tuple[str, PairResult | None, float | None, float | None, int]] = []
 
     if daily_data:
         for pair, info in daily_data.get("pairs", {}).items():
             r = current_map.get(pair)
             if r is None and current_scores and pair in current_scores:
                 r = current_scores[pair]
-            all_entries.append((pair, r, info["first_score"], info["expected_bias"]))
+            all_entries.append((pair, r, info["first_score"], info.get("first_price"), info["expected_bias"]))
     else:
         for r in valid_pairs:
-            all_entries.append((r.pair, r, None, r.expected_bias))
+            all_entries.append((r.pair, r, None, None, r.expected_bias))
 
     if not all_entries:
         return base_msg
 
-    # Sort by |current weighted_score| descending
+    # Sort by |delta_score| descending
     def sort_key(entry):
-        _, r, first_score, _ = entry
-        return abs(r.weighted_score) if r else 0.0
+        _, r, first_score, _, _ = entry
+        if r is None:
+            return 0.0
+        return abs(r.weighted_score - (first_score or r.weighted_score))
 
     all_entries.sort(key=sort_key, reverse=True)
 
     lines = ["", "PAIRS TO FOLLOW"]
-    for pair, r, first_score, expected_bias in all_entries:
+    for pair, r, first_score, first_price, expected_bias in all_entries:
         if r is not None:
-            lines.append(_pair_line(r, first_score, expected_bias))
+            lines.append(_pair_line(r, first_score, first_price, expected_bias))
         else:
-            # Paire vue aujourd'hui mais absente du scan actuel — afficher avec score initial
+            # Paire vue aujourd'hui mais absente du scan actuel
             if expected_bias == 1:
                 bias_emoji = "\U0001f7e2"
             elif expected_bias == -1:
                 bias_emoji = "\U0001f534"
             else:
                 bias_emoji = "\u26aa"
-            lines.append(f"\u26aa{bias_emoji} {pair} ({score_str(first_score or 0.0)} / n/a)")
+            lines.append(f"\u26aa{bias_emoji} {pair} (n/a)")
 
     parts = base_msg.rsplit("\n⏰", 1)
     if len(parts) == 2:
@@ -1180,12 +1186,13 @@ def save_daily_follow(data: dict) -> None:
 
 
 def update_daily_follow(data: dict, valid_pairs: list, now_paris: datetime) -> dict:
-    """Add new pairs to daily follow; existing pairs keep their first_score/first_time."""
+    """Add new pairs to daily follow; existing pairs keep their first_score/first_price/first_time."""
     time_str = now_paris.strftime("%H:%M")
     for r in valid_pairs:
         if r.pair not in data["pairs"]:
             data["pairs"][r.pair] = {
                 "first_score": round(r.weighted_score, 4),
+                "first_price": round(r.current_price, 6),
                 "first_time": time_str,
                 "expected_bias": r.expected_bias,
             }
