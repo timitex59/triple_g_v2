@@ -1196,6 +1196,9 @@ def update_daily_follow(data: dict, valid_pairs: list, now_paris: datetime) -> d
                 "first_time": time_str,
                 "expected_bias": r.expected_bias,
             }
+        elif data["pairs"][r.pair].get("first_price") is None:
+            # Patch entrées créées sans first_price (migration)
+            data["pairs"][r.pair]["first_price"] = round(r.current_price, 6)
     return data
 
 
