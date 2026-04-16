@@ -1155,14 +1155,10 @@ def append_pairs_to_message(base_msg: str, valid_pairs: list[PairResult],
                 bias_emoji = "\U0001f534"
             else:
                 bias_emoji = "\u26aa"
-            if first_price and last_price:
+            if first_price and last_price and first_score is not None and last_score is not None:
+                delta_score = last_score - first_score
                 delta_price_pct = (last_price - first_price) / first_price * 100
-                if last_score is not None and first_score is not None:
-                    delta_score = last_score - first_score
-                    score_part = f"{score_str(delta_score)} / {delta_price_pct:+.2f}%"
-                else:
-                    score_part = f"- / {delta_price_pct:+.2f}%"
-                lines.append(f"\u26aa{bias_emoji} {pair} ({score_part})")
+                lines.append(f"\u26aa{bias_emoji} {pair} ({score_str(delta_score)} / {delta_price_pct:+.2f}%)")
             else:
                 lines.append(f"\u26aa{bias_emoji} {pair} (n/a)")
 
@@ -1198,8 +1194,8 @@ def save_daily_follow(data: dict) -> None:
 
 
 def update_daily_follow(data: dict, valid_pairs: list, all_pair_results: list,
-                        now_paris: datetime) -> dict:
-    """Add new valid pairs; update last_score/last_price for all scanned pairs."""
+                        now_paris: datetime, scan_params: dict) -> dict:
+    """Add new valid pairs; rescan all tracked pairs absent from current scan."""
     time_str = now_paris.strftime("%H:%M")
 
     # Add new valid pairs (first appearance)
@@ -1223,22 +1219,28 @@ def update_daily_follow(data: dict, valid_pairs: list, all_pair_results: list,
             info["last_price"] = round(r.current_price, 6)
             info["last_time"] = time_str
 
-    # Fetch current price for tracked pairs absent from current scan
+    # Full rescan for tracked pairs absent from current scan
     missing = [p for p in data["pairs"] if p not in current_map]
     if missing:
-        def _fetch_price(pair: str) -> tuple[str, float | None]:
-            bars = fetch_tv_ohlc(f"OANDA:{pair}", "D", 2)
-            if bars and len(bars) >= 1:
-                return pair, bars[-1]["close"]
-            return pair, None
-
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            futures = {pool.submit(_fetch_price, p): p for p in missing}
-            for future in as_completed(futures):
-                pair, price = future.result()
-                if price is not None:
-                    data["pairs"][pair]["last_price"] = round(price, 6)
-                    data["pairs"][pair]["last_time"] = time_str
+        print(f"  Rescanning {len(missing)} tracked pair(s) not in current scan: {', '.join(missing)}")
+        rescan_candidates = [(p, data["pairs"][p]["expected_bias"], "", "") for p in missing]
+        rescanned = scan_pairs(
+            rescan_candidates,
+            atr_length=scan_params["atr_length"],
+            min_chg=scan_params["min_chg"],
+            sar_tf=scan_params["sar_tf"],
+            sar_bars=scan_params["sar_bars"],
+            sar_start=scan_params["sar_start"],
+            sar_inc=scan_params["sar_inc"],
+            sar_max=scan_params["sar_max"],
+            workers=scan_params["workers"],
+            phase_label="Tracked rescan",
+        )
+        for r in rescanned:
+            if r.pair in data["pairs"]:
+                data["pairs"][r.pair]["last_score"] = round(r.weighted_score, 4)
+                data["pairs"][r.pair]["last_price"] = round(r.current_price, 6)
+                data["pairs"][r.pair]["last_time"] = time_str
 
     return data
 
@@ -1403,7 +1405,13 @@ def main() -> int:
     now_paris = datetime.now(pytz.timezone("Europe/Paris"))
     daily_data = load_daily_follow(now_paris)
     if now_paris.hour >= DAILY_START_HOUR and now_paris.hour < DAILY_END_HOUR:
-        daily_data = update_daily_follow(daily_data, valid_pairs, pair_results, now_paris)
+        scan_params = {
+            "atr_length": args.length, "min_chg": args.min_chg,
+            "sar_tf": args.sar_tf, "sar_bars": args.sar_bars,
+            "sar_start": args.sar_start, "sar_inc": args.sar_inc,
+            "sar_max": args.sar_max, "workers": args.workers,
+        }
+        daily_data = update_daily_follow(daily_data, valid_pairs, pair_results, now_paris, scan_params)
         save_daily_follow(daily_data)
 
     # Telegram — toujours envoyer si daily_data a des paires (même sans nouvelle paire valide)
