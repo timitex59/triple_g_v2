@@ -1210,7 +1210,7 @@ def update_daily_follow(data: dict, valid_pairs: list, all_pair_results: list,
         elif data["pairs"][r.pair].get("first_price") is None:
             data["pairs"][r.pair]["first_price"] = round(r.current_price, 6)
 
-    # Update last_score/last_price for all tracked pairs that appear in current scan
+    # Update last_score/last_price for pairs in current scan
     current_map = {r.pair: r for r in all_pair_results}
     for pair, info in data["pairs"].items():
         r = current_map.get(pair)
@@ -1218,6 +1218,23 @@ def update_daily_follow(data: dict, valid_pairs: list, all_pair_results: list,
             info["last_score"] = round(r.weighted_score, 4)
             info["last_price"] = round(r.current_price, 6)
             info["last_time"] = time_str
+
+    # Fetch current price for tracked pairs absent from current scan
+    missing = [p for p in data["pairs"] if p not in current_map]
+    if missing:
+        def _fetch_price(pair: str) -> tuple[str, float | None]:
+            bars = fetch_tv_ohlc(f"OANDA:{pair}", "D", 2)
+            if bars and len(bars) >= 1:
+                return pair, bars[-1]["close"]
+            return pair, None
+
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            futures = {pool.submit(_fetch_price, p): p for p in missing}
+            for future in as_completed(futures):
+                pair, price = future.result()
+                if price is not None:
+                    data["pairs"][pair]["last_price"] = round(price, 6)
+                    data["pairs"][pair]["last_time"] = time_str
 
     return data
 
