@@ -1155,10 +1155,14 @@ def append_pairs_to_message(base_msg: str, valid_pairs: list[PairResult],
                 bias_emoji = "\U0001f534"
             else:
                 bias_emoji = "\u26aa"
-            if first_score is not None and first_price and last_score is not None and last_price:
-                delta_score = last_score - first_score
+            if first_price and last_price:
                 delta_price_pct = (last_price - first_price) / first_price * 100
-                lines.append(f"\u26aa{bias_emoji} {pair} ({score_str(delta_score)} / {delta_price_pct:+.2f}%)")
+                if last_score is not None and first_score is not None:
+                    delta_score = last_score - first_score
+                    score_part = f"{score_str(delta_score)} / {delta_price_pct:+.2f}%"
+                else:
+                    score_part = f"- / {delta_price_pct:+.2f}%"
+                lines.append(f"\u26aa{bias_emoji} {pair} ({score_part})")
             else:
                 lines.append(f"\u26aa{bias_emoji} {pair} (n/a)")
 
