@@ -1145,14 +1145,22 @@ def append_pairs_to_message(base_msg: str, valid_pairs: list[PairResult],
         if r is not None:
             lines.append(_pair_line(r, first_score, first_price, expected_bias))
         else:
-            # Paire vue aujourd'hui mais absente du scan actuel
+            # Paire vue aujourd'hui mais absente du scan actuel — utiliser last_score/last_price
+            info = daily_data.get("pairs", {}).get(pair, {}) if daily_data else {}
+            last_score = info.get("last_score")
+            last_price = info.get("last_price")
             if expected_bias == 1:
                 bias_emoji = "\U0001f7e2"
             elif expected_bias == -1:
                 bias_emoji = "\U0001f534"
             else:
                 bias_emoji = "\u26aa"
-            lines.append(f"\u26aa{bias_emoji} {pair} (n/a)")
+            if first_score is not None and first_price and last_score is not None and last_price:
+                delta_score = last_score - first_score
+                delta_price_pct = (last_price - first_price) / first_price * 100
+                lines.append(f"\u26aa{bias_emoji} {pair} ({score_str(delta_score)} / {delta_price_pct:+.2f}%)")
+            else:
+                lines.append(f"\u26aa{bias_emoji} {pair} (n/a)")
 
     parts = base_msg.rsplit("\n⏰", 1)
     if len(parts) == 2:
@@ -1185,9 +1193,12 @@ def save_daily_follow(data: dict) -> None:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
-def update_daily_follow(data: dict, valid_pairs: list, now_paris: datetime) -> dict:
-    """Add new pairs to daily follow; existing pairs keep their first_score/first_price/first_time."""
+def update_daily_follow(data: dict, valid_pairs: list, all_pair_results: list,
+                        now_paris: datetime) -> dict:
+    """Add new valid pairs; update last_score/last_price for all scanned pairs."""
     time_str = now_paris.strftime("%H:%M")
+
+    # Add new valid pairs (first appearance)
     for r in valid_pairs:
         if r.pair not in data["pairs"]:
             data["pairs"][r.pair] = {
@@ -1197,8 +1208,17 @@ def update_daily_follow(data: dict, valid_pairs: list, now_paris: datetime) -> d
                 "expected_bias": r.expected_bias,
             }
         elif data["pairs"][r.pair].get("first_price") is None:
-            # Patch entrées créées sans first_price (migration)
             data["pairs"][r.pair]["first_price"] = round(r.current_price, 6)
+
+    # Update last_score/last_price for all tracked pairs that appear in current scan
+    current_map = {r.pair: r for r in all_pair_results}
+    for pair, info in data["pairs"].items():
+        r = current_map.get(pair)
+        if r is not None:
+            info["last_score"] = round(r.weighted_score, 4)
+            info["last_price"] = round(r.current_price, 6)
+            info["last_time"] = time_str
+
     return data
 
 
@@ -1358,11 +1378,12 @@ def main() -> int:
     if invalidated:
         print(f"  {invalidated} pair(s) invalidated (bias/score mismatch) — no Telegram.\n")
 
-    # Daily follow accumulation
+    # Daily follow accumulation (only during active window)
     now_paris = datetime.now(pytz.timezone("Europe/Paris"))
     daily_data = load_daily_follow(now_paris)
-    daily_data = update_daily_follow(daily_data, valid_pairs, now_paris)
-    save_daily_follow(daily_data)
+    if now_paris.hour >= DAILY_START_HOUR and now_paris.hour < DAILY_END_HOUR:
+        daily_data = update_daily_follow(daily_data, valid_pairs, pair_results, now_paris)
+        save_daily_follow(daily_data)
 
     # Telegram — toujours envoyer si daily_data a des paires (même sans nouvelle paire valide)
     has_daily_pairs = bool(daily_data.get("pairs"))
