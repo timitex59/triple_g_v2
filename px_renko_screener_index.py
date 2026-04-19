@@ -1101,18 +1101,20 @@ def _pair_line(r: PairResult, first_score: float | None, first_price: float | No
         score_part = f"({score_str(delta_score)} / {delta_price_pct:+.2f}%)"
 
         # Warning si contradiction entre biais coloré, delta score et delta prix
+        # Exclure le premier run où les deux deltas sont à 0 (première apparition)
         warning = False
-        if expected_bias == 1:  # BULL attendu
-            if delta_score < 0 or delta_price_pct < 0:
+        if delta_score != 0.0 or delta_price_pct != 0.0:
+            if expected_bias == 1:  # BULL attendu
+                if delta_score < 0 or delta_price_pct < 0:
+                    warning = True
+            elif expected_bias == -1:  # BEAR attendu
+                if delta_score > 0 or delta_price_pct > 0:
+                    warning = True
+            # Vérifier aussi la 1ère boule (signal actuel de la paire)
+            if sig in ("LONG", "BULL") and (delta_score < 0 or delta_price_pct < 0):
                 warning = True
-        elif expected_bias == -1:  # BEAR attendu
-            if delta_score > 0 or delta_price_pct > 0:
+            if sig in ("SHORT", "BEAR") and (delta_score > 0 or delta_price_pct > 0):
                 warning = True
-        # Vérifier aussi la 1ère boule (signal actuel de la paire)
-        if sig in ("LONG", "BULL") and (delta_score < 0 or delta_price_pct < 0):
-            warning = True
-        if sig in ("SHORT", "BEAR") and (delta_score > 0 or delta_price_pct > 0):
-            warning = True
 
         suffix = " \u26a0\ufe0f" if warning else (" \U0001f525" if r.bl_confirmed else "")
     else:
