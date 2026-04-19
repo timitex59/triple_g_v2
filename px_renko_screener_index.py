@@ -1104,13 +1104,17 @@ def _pair_line(r: PairResult, first_score: float | None, first_price: float | No
         # Exclure le premier run où les deux deltas sont à 0 (première apparition)
         warning = False
         if delta_score != 0.0 or delta_price_pct != 0.0:
-            if expected_bias == 1 and delta_score < 0 and delta_price_pct < 0:
+            # Règle 1 : les deux deltas ont des signes opposés → incohérence interne
+            if (delta_score > 0 and delta_price_pct < 0) or (delta_score < 0 and delta_price_pct > 0):
+                warning = True
+            # Règle 2 : les deux deltas cohérents entre eux mais contredisent le biais
+            elif expected_bias == 1 and delta_score < 0 and delta_price_pct < 0:
                 warning = True
             elif expected_bias == -1 and delta_score > 0 and delta_price_pct > 0:
                 warning = True
-            if sig in ("LONG", "BULL") and delta_score < 0 and delta_price_pct < 0:
+            elif sig in ("LONG", "BULL") and delta_score < 0 and delta_price_pct < 0:
                 warning = True
-            if sig in ("SHORT", "BEAR") and delta_score > 0 and delta_price_pct > 0:
+            elif sig in ("SHORT", "BEAR") and delta_score > 0 and delta_price_pct > 0:
                 warning = True
 
         suffix = " \u26a0\ufe0f" if warning else (" \U0001f525" if r.bl_confirmed else "")
@@ -1173,7 +1177,9 @@ def append_pairs_to_message(base_msg: str, valid_pairs: list[PairResult],
                 delta_score = last_score - first_score
                 delta_price_pct = (last_price - first_price) / first_price * 100
                 warning = False
-                if expected_bias == 1 and delta_score < 0 and delta_price_pct < 0:
+                if (delta_score > 0 and delta_price_pct < 0) or (delta_score < 0 and delta_price_pct > 0):
+                    warning = True
+                elif expected_bias == 1 and delta_score < 0 and delta_price_pct < 0:
                     warning = True
                 elif expected_bias == -1 and delta_score > 0 and delta_price_pct > 0:
                     warning = True
