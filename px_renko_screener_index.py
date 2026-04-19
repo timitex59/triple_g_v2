@@ -1095,16 +1095,31 @@ def _pair_line(r: PairResult, first_score: float | None, first_price: float | No
     else:
         bias_emoji = "\u26aa"
 
-    flame = " \U0001f525" if r.bl_confirmed else ""
-
     if first_score is not None and first_price is not None and first_price != 0:
         delta_score = r.weighted_score - first_score
         delta_price_pct = (r.current_price - first_price) / first_price * 100
         score_part = f"({score_str(delta_score)} / {delta_price_pct:+.2f}%)"
+
+        # Warning si contradiction entre biais coloré, delta score et delta prix
+        warning = False
+        if expected_bias == 1:  # BULL attendu
+            if delta_score < 0 or delta_price_pct < 0:
+                warning = True
+        elif expected_bias == -1:  # BEAR attendu
+            if delta_score > 0 or delta_price_pct > 0:
+                warning = True
+        # Vérifier aussi la 1ère boule (signal actuel de la paire)
+        if sig in ("LONG", "BULL") and (delta_score < 0 or delta_price_pct < 0):
+            warning = True
+        if sig in ("SHORT", "BEAR") and (delta_score > 0 or delta_price_pct > 0):
+            warning = True
+
+        suffix = " \u26a0\ufe0f" if warning else (" \U0001f525" if r.bl_confirmed else "")
     else:
         score_part = f"({score_str(r.weighted_score)})"
+        suffix = " \U0001f525" if r.bl_confirmed else ""
 
-    return f"{emoji}{bias_emoji} {r.pair} {score_part}{flame}"
+    return f"{emoji}{bias_emoji} {r.pair} {score_part}{suffix}"
 
 
 def append_pairs_to_message(base_msg: str, valid_pairs: list[PairResult],
@@ -1158,7 +1173,13 @@ def append_pairs_to_message(base_msg: str, valid_pairs: list[PairResult],
             if first_price and last_price and first_score is not None and last_score is not None:
                 delta_score = last_score - first_score
                 delta_price_pct = (last_price - first_price) / first_price * 100
-                lines.append(f"\u26aa{bias_emoji} {pair} ({score_str(delta_score)} / {delta_price_pct:+.2f}%)")
+                warning = False
+                if expected_bias == 1 and (delta_score < 0 or delta_price_pct < 0):
+                    warning = True
+                elif expected_bias == -1 and (delta_score > 0 or delta_price_pct > 0):
+                    warning = True
+                suffix = " \u26a0\ufe0f" if warning else ""
+                lines.append(f"\u26aa{bias_emoji} {pair} ({score_str(delta_score)} / {delta_price_pct:+.2f}%){suffix}")
             else:
                 lines.append(f"\u26aa{bias_emoji} {pair} (n/a)")
 
