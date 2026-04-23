@@ -796,8 +796,8 @@ def main() -> int:
         daily_data = update_daily_follow(daily_data, valid_pairs, all_results, now_paris, scan_params)
         save_daily_follow(daily_data)
 
-    # Build Telegram message
-    has_daily_pairs = bool(daily_data.get("pairs"))
+    # Build Telegram message (evaluate AFTER update_daily_follow)
+    has_daily_pairs = bool(daily_data.get("pairs") or valid_pairs)
     msg = build_telegram_indices(index_results)
     if has_daily_pairs:
         pairs_section = build_pairs_to_follow_message(daily_data, valid_pairs)
