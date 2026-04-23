@@ -37,7 +37,7 @@ SCAN_OUTPUT_PATH = os.path.join(SCRIPT_DIR, "px_renko_index_scan.json")
 DAILY_FOLLOW_PATH = os.path.join(SCRIPT_DIR, "px_renko_daily_follow.json")
 
 DAILY_START_HOUR = 7   # Paris — accumulation démarre à 7H
-DAILY_END_HOUR = 22    # Paris — accumulation s'arrête à 22H
+DAILY_END_HOUR = 23    # Paris — accumulation s'arrête à 23H
 
 # ── constants ──────────────────────────────────────────────────────────
 WS_URL = "wss://prodata.tradingview.com/socket.io/websocket"

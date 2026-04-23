@@ -31,7 +31,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DAILY_FOLLOW_PATH = os.path.join(SCRIPT_DIR, "px_renko_daily_follow_v2.json")
 
 DAILY_START_HOUR = 7
-DAILY_END_HOUR = 22
+DAILY_END_HOUR = 23
 
 WS_URL = "wss://prodata.tradingview.com/socket.io/websocket"
 WS_HEADERS = {"Origin": "https://www.tradingview.com", "User-Agent": "Mozilla/5.0"}
