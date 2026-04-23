@@ -63,7 +63,7 @@ PAIRS = [
     "GBPAUD", "GBPCAD", "GBPNZD", "GBPCHF",
     "AUDNZD", "AUDCAD", "AUDCHF",
     "NZDCAD", "NZDCHF",
-    "CADCHF", "XAUUSD",
+    "CADCHF",
 ]
 
 RESET  = "\033[0m"
@@ -780,7 +780,21 @@ def main() -> int:
 
     # Filter pairs with BULL/BEAR signal
     valid_pairs = [r for r in all_results if r.bias != 0 or r.trigger != 0]
-    print(f"  {len(valid_pairs)} pairs with signal\n")
+
+    # Index score validation: base/quote index scores must confirm bias
+    CCY_INDEX = {"USD": "DXY", "EUR": "EXY", "GBP": "BXY", "JPY": "JXY",
+                 "CHF": "SXY", "CAD": "CXY", "AUD": "AXY", "NZD": "ZXY"}
+    index_scores = {r.ccy: r.weighted_score for r in index_results}
+    def index_confirms(r: PairResult) -> bool:
+        base, quote = r.pair[:3], r.pair[3:]
+        s_base = index_scores.get(base)
+        s_quote = index_scores.get(quote)
+        if s_base is None or s_quote is None:
+            return False
+        return (r.bias == 1 and s_base > s_quote) or (r.bias == -1 and s_base < s_quote)
+    before = len(valid_pairs)
+    valid_pairs = [r for r in valid_pairs if index_confirms(r)]
+    print(f"  {len(valid_pairs)} pairs with signal ({before - len(valid_pairs)} rejected by index filter)\n")
 
     # Daily follow accumulation
     now_paris = datetime.now(pytz.timezone("Europe/Paris"))
