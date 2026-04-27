@@ -688,11 +688,13 @@ def _pair_line_v2(pair: str, r: PairResult | None, info: dict) -> str:
     return f"{emoji}{bias_emoji} {pair} {score_part}{suffix}"
 
 
-def build_pairs_to_follow_message(daily_data: dict, valid_pairs: list[PairResult]) -> str:
+def build_pairs_to_follow_message(daily_data: dict, valid_pairs: list[PairResult],
+                                   all_results: list[PairResult] | None = None) -> str:
     if not daily_data.get("pairs"):
         return ""
 
     current_map = {r.pair: r for r in valid_pairs}
+    all_map = {r.pair: r for r in (all_results or valid_pairs)}
 
     # Sort by |delta_score| descending
     def sort_key(item):
@@ -742,7 +744,12 @@ def build_pairs_to_follow_message(daily_data: dict, valid_pairs: list[PairResult
                         best.append(f"🟢 {b}{t}")
             if best:
                 lines.append("\n🏆 BEST TRADES")
-                lines.extend(best)
+                for entry in best:
+                    # entry is like "🟢 AUDUSD" or "🟢 AUDJPY"
+                    pair_name = entry.split()[-1]
+                    r = all_map.get(pair_name)
+                    chg = f" ({r.chg_pct:+.2f}%)" if r else ""
+                    lines.append(f"{entry}{chg}")
 
     return "\n".join(lines)
 
@@ -835,7 +842,7 @@ def main() -> int:
     has_daily_pairs = bool(daily_data.get("pairs") or valid_pairs)
     msg = build_telegram_indices(index_results)
     if has_daily_pairs:
-        pairs_section = build_pairs_to_follow_message(daily_data, valid_pairs)
+        pairs_section = build_pairs_to_follow_message(daily_data, valid_pairs, all_results)
         if pairs_section:
             parts = msg.rsplit("\n⏰", 1)
             if len(parts) == 2:
