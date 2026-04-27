@@ -630,8 +630,21 @@ def update_daily_follow(data: dict, valid_pairs: list[PairResult],
 
 # ── Telegram builders ─────────────────────────────────────────────────
 def build_telegram_indices(results: list[IndexResult]) -> str:
+    sorted_results = sorted(results, key=lambda r: r.weighted_score, reverse=True)
+    lines = ["📊 INDICES V2 (score ↓)"]
+    for r in sorted_results:
+        sig = signal_text(r.trigger, r.bias)
+        if sig == "LONG":    emoji = "🟢"
+        elif sig == "SHORT": emoji = "🔴"
+        elif sig == "BULL":  emoji = "🔵"
+        elif sig == "BEAR":  emoji = "🟠"
+        else:                emoji = "⚪"
+        flame = " 🔥" if r.bl_confirmed else ""
+        lines.append(f"{emoji} {r.ccy} ({score_str(r.weighted_score)}){flame}")
+    lines.append("")
     now_paris = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
-    return f"📊 INDICES V2\n\n⏰ {now_paris} Paris"
+    lines.append(f"⏰ {now_paris} Paris")
+    return "\n".join(lines)
 
 
 def _pair_line_v2(pair: str, r: PairResult | None, info: dict) -> str:
