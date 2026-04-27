@@ -709,6 +709,24 @@ def build_pairs_to_follow_message(daily_data: dict, valid_pairs: list[PairResult
         r = current_map.get(pair)
         lines.append(_pair_line_v2(pair, r, info))
 
+    # Currency bias section
+    ccy_scores: dict[str, int] = {}
+    for pair, info in daily_data["pairs"].items():
+        if len(pair) != 6:
+            continue
+        base, quote = pair[:3], pair[3:]
+        bias = info.get("expected_bias", 0)
+        if bias == 0:
+            continue
+        ccy_scores[base]  = ccy_scores.get(base, 0)  + bias
+        ccy_scores[quote] = ccy_scores.get(quote, 0) - bias
+
+    if ccy_scores:
+        lines.append("\n💱 CURRENCY BIAS")
+        for ccy, score in sorted(ccy_scores.items(), key=lambda x: x[1], reverse=True):
+            emoji = "🔵" if score > 0 else ("🔴" if score < 0 else "⚪")
+            lines.append(f"{emoji} {ccy} {score:+d}")
+
     return "\n".join(lines)
 
 
