@@ -757,27 +757,36 @@ def build_pairs_to_follow_message(daily_data: dict, valid_pairs: list[PairResult
                     emoji = "🔵" if st > 0 else ("🔴" if st < 0 else "⚪")
                     lines.append(f"{emoji} {ccy} {st:+.2f}")
 
-        # Best trades: TOP × BOTTOM combinations
-        max_score = max(ccy_scores.values())
-        min_score = min(ccy_scores.values())
-        if max_score > 0 and min_score < 0:
-            tops    = [c for c, s in ccy_scores.items() if s == max_score]
-            bottoms = [c for c, s in ccy_scores.items() if s == min_score]
-            best = []
+        # Best trades: TOP × BOTTOM from BIAS + STRENGTH
+        def find_best(scores: dict) -> list[str]:
+            vals = [v for v in scores.values() if v != 0]
+            if not vals:
+                return []
+            mx, mn = max(vals), min(vals)
+            if mx <= 0 or mn >= 0:
+                return []
+            tops    = [c for c, s in scores.items() if s == mx]
+            bottoms = [c for c, s in scores.items() if s == mn]
+            found = []
             for t in tops:
                 for b in bottoms:
                     if t + b in PAIRS:
-                        best.append(f"🟢 {t}{b}")
+                        found.append(t + b)
                     elif b + t in PAIRS:
-                        best.append(f"🟢 {b}{t}")
-            if best:
-                lines.append("\n🏆 BEST TRADES")
-                for entry in best:
-                    # entry is like "🟢 AUDUSD" or "🟢 AUDJPY"
-                    pair_name = entry.split()[-1]
-                    r = all_map.get(pair_name)
-                    chg = f" ({r.chg_pct:+.2f}%)" if r else ""
-                    lines.append(f"{entry}{chg}")
+                        found.append(b + t)
+            return found
+
+        best_bias     = find_best(ccy_scores)
+        best_strength = find_best(strengths) if index_results and strengths else []
+        best_all = list(dict.fromkeys(best_bias + best_strength))  # deduplicate, keep order
+
+        if best_all:
+            lines.append("\n🏆 BEST TRADES")
+            for pair_name in best_all:
+                r = all_map.get(pair_name)
+                chg = f" ({r.chg_pct:+.2f}%)" if r else ""
+                tag = " [S]" if pair_name in best_strength and pair_name not in best_bias else ""
+                lines.append(f"🟢 {pair_name}{chg}{tag}")
 
     return "\n".join(lines)
 
