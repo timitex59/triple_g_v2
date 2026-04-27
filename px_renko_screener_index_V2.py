@@ -780,15 +780,68 @@ def build_pairs_to_follow_message(daily_data: dict, valid_pairs: list[PairResult
         best_strength = find_best(strengths) if index_results and strengths else []
         best_all = list(dict.fromkeys(best_bias + best_strength))  # deduplicate, keep order
 
-        if best_all:
-            lines.append("\n🏆 BEST TRADES")
-            for pair_name in best_all:
-                r = all_map.get(pair_name)
-                chg = f" ({r.chg_pct:+.2f}%)" if r else ""
-                tag = " [S]" if pair_name in best_strength and pair_name not in best_bias else ""
-                lines.append(f"🟢 {pair_name}{chg}{tag}")
-
     return "\n".join(lines)
+
+
+def build_best_trades(daily_data: dict, valid_pairs: list[PairResult],
+                      all_results: list[PairResult] | None = None,
+                      index_results: list[IndexResult] | None = None) -> list[str]:
+    if not daily_data.get("pairs"):
+        return []
+    all_map = {r.pair: r for r in (all_results or valid_pairs)}
+
+    # Currency bias from tracked pairs
+    ccy_scores: dict[str, int] = {}
+    for pair, info in daily_data["pairs"].items():
+        if len(pair) != 6:
+            continue
+        base, quote = pair[:3], pair[3:]
+        bias = info.get("expected_bias", 0)
+        if bias == 0:
+            continue
+        ccy_scores[base]  = ccy_scores.get(base, 0)  + bias
+        ccy_scores[quote] = ccy_scores.get(quote, 0) - bias
+
+    if not ccy_scores:
+        return []
+
+    # Currency strength: abs(index_score) × currency_bias
+    strengths: dict[str, float] = {}
+    if index_results:
+        idx_scores = {r.ccy: r.weighted_score for r in index_results}
+        for ccy, bias in ccy_scores.items():
+            idx = idx_scores.get(ccy)
+            if idx is not None:
+                strengths[ccy] = abs(idx) * bias
+
+    def find_best(scores: dict) -> list[str]:
+        vals = [v for v in scores.values() if v != 0]
+        if not vals:
+            return []
+        mx, mn = max(vals), min(vals)
+        if mx <= 0 or mn >= 0:
+            return []
+        tops    = [c for c, s in scores.items() if s == mx]
+        bottoms = [c for c, s in scores.items() if s == mn]
+        found = []
+        for t in tops:
+            for b in bottoms:
+                if t + b in PAIRS:
+                    found.append(t + b)
+                elif b + t in PAIRS:
+                    found.append(b + t)
+        return found
+
+    best_bias     = find_best(ccy_scores)
+    best_strength = find_best(strengths) if strengths else []
+    best_all = list(dict.fromkeys(best_bias + best_strength))
+
+    lines = []
+    for pair_name in best_all:
+        r = all_map.get(pair_name)
+        chg = f" ({r.chg_pct:+.2f}%)" if r else ""
+        lines.append(f"🟢 {pair_name}{chg}")
+    return lines
 
 
 # ── Telegram send ─────────────────────────────────────────────────────
@@ -877,23 +930,22 @@ def main() -> int:
 
     # Build Telegram message (evaluate AFTER update_daily_follow)
     has_daily_pairs = bool(daily_data.get("pairs") or valid_pairs)
-    msg = build_telegram_indices(index_results)
-    if has_daily_pairs:
-        pairs_section = build_pairs_to_follow_message(daily_data, valid_pairs, all_results, index_results)
-        if pairs_section:
-            parts = msg.rsplit("\n⏰", 1)
-            if len(parts) == 2:
-                msg = parts[0] + pairs_section + "\n\n⏰" + parts[1]
-            else:
-                msg = msg + "\n" + pairs_section
+    best_trades = build_best_trades(daily_data, valid_pairs, all_results, index_results)
+    now_paris_str = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
+    if best_trades:
+        msg = "📊 FOREX ANALYSIS\n\n" + "\n".join(best_trades) + f"\n\n⏰ {now_paris_str} Paris"
+    elif has_daily_pairs:
+        msg = f"📊 FOREX ANALYSIS\n\nAucun best trade identifié.\n\n⏰ {now_paris_str} Paris"
+    else:
+        msg = ""
 
     if not args.no_telegram:
-        if msg and has_daily_pairs:
+        if msg:
             print(msg)
             print()
             send_telegram(msg)
         else:
-            print("  No pairs to follow today — no Telegram sent.\n")
+            print("  No best trades identified — no Telegram sent.\n")
     else:
         print(msg)
         print()
