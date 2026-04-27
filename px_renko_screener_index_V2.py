@@ -702,7 +702,8 @@ def _pair_line_v2(pair: str, r: PairResult | None, info: dict) -> str:
 
 
 def build_pairs_to_follow_message(daily_data: dict, valid_pairs: list[PairResult],
-                                   all_results: list[PairResult] | None = None) -> str:
+                                   all_results: list[PairResult] | None = None,
+                                   index_results: list[IndexResult] | None = None) -> str:
     if not daily_data.get("pairs"):
         return ""
 
@@ -741,6 +742,20 @@ def build_pairs_to_follow_message(daily_data: dict, valid_pairs: list[PairResult
         for ccy, score in sorted(ccy_scores.items(), key=lambda x: x[1], reverse=True):
             emoji = "🔵" if score > 0 else ("🔴" if score < 0 else "⚪")
             lines.append(f"{emoji} {ccy} {score:+d}")
+
+        # Currency strength: abs(index_score) × currency_bias
+        if index_results:
+            idx_scores = {r.ccy: r.weighted_score for r in index_results}
+            strengths = {}
+            for ccy, bias in ccy_scores.items():
+                idx = idx_scores.get(ccy)
+                if idx is not None:
+                    strengths[ccy] = abs(idx) * bias
+            if strengths:
+                lines.append("\n💪 CURRENCY STRENGTH")
+                for ccy, st in sorted(strengths.items(), key=lambda x: x[1], reverse=True):
+                    emoji = "🔵" if st > 0 else ("🔴" if st < 0 else "⚪")
+                    lines.append(f"{emoji} {ccy} {st:+.2f}")
 
         # Best trades: TOP × BOTTOM combinations
         max_score = max(ccy_scores.values())
@@ -855,7 +870,7 @@ def main() -> int:
     has_daily_pairs = bool(daily_data.get("pairs") or valid_pairs)
     msg = build_telegram_indices(index_results)
     if has_daily_pairs:
-        pairs_section = build_pairs_to_follow_message(daily_data, valid_pairs, all_results)
+        pairs_section = build_pairs_to_follow_message(daily_data, valid_pairs, all_results, index_results)
         if pairs_section:
             parts = msg.rsplit("\n⏰", 1)
             if len(parts) == 2:
