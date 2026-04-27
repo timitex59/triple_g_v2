@@ -727,6 +727,23 @@ def build_pairs_to_follow_message(daily_data: dict, valid_pairs: list[PairResult
             emoji = "🔵" if score > 0 else ("🔴" if score < 0 else "⚪")
             lines.append(f"{emoji} {ccy} {score:+d}")
 
+        # Best trades: TOP × BOTTOM combinations
+        max_score = max(ccy_scores.values())
+        min_score = min(ccy_scores.values())
+        if max_score > 0 and min_score < 0:
+            tops    = [c for c, s in ccy_scores.items() if s == max_score]
+            bottoms = [c for c, s in ccy_scores.items() if s == min_score]
+            best = []
+            for t in tops:
+                for b in bottoms:
+                    if t + b in PAIRS:
+                        best.append(f"🟢 {t}{b}")
+                    elif b + t in PAIRS:
+                        best.append(f"🟢 {b}{t}")
+            if best:
+                lines.append("\n🏆 BEST TRADES")
+                lines.extend(best)
+
     return "\n".join(lines)
 
 
