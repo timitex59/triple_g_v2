@@ -279,7 +279,7 @@ def _market_status(individuals: list[dict], avg_score: float | None = None, metr
     return ("\n" + "\n".join(lines)) if lines else ""
 
 
-def build_full_console(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str, metrics_roc14: dict | None = None) -> str:
+def build_full_console(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str, metrics_roc14: dict | None = None, etf_score_trend: dict | None = None) -> str:
     bull = [r for r in results if is_full_bull(r)]
     bull.sort(key=lambda r: r["chg_pct"], reverse=True)
 
@@ -309,17 +309,19 @@ def build_full_console(results: list[dict], individuals: list[dict], ratios: lis
 
     valid_scores = [s for s in scores if s["score"] is not None]
     avg_score = sum(s["score"] for s in valid_scores) / len(valid_scores) if valid_scores else 0
+    trend = etf_score_trend or {}
     lines += ["", f"🎯 SCORE DE PERFORMANCE (ROC14 × Multiplicateur RSI) — moy. {avg_score:+.2f}"]
     for s in scores:
         score_str = f"{s['score']:+.2f}" if s["score"] is not None else "N/A"
         marker = " ★" if s["score"] is not None and s["score"] >= avg_score else ""
-        lines.append(f"  {s['name']:<6}  {score_str}{marker}")
+        dot = trend.get(s["name"], "")
+        lines.append(f"  {s['name']:<6}  {score_str}{marker} {dot}")
 
     lines += ["", f"⏰ {now_str} Paris"]
     return "\n".join(lines)
 
 
-def build_message(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str, metrics_roc14: dict | None = None) -> str:
+def build_message(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str, metrics_roc14: dict | None = None, etf_score_trend: dict | None = None) -> str:
     bull = [r for r in results if is_full_bull(r)]
     bull.sort(key=lambda r: r["chg_pct"], reverse=True)
 
@@ -336,10 +338,12 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
             lines.append(f"🟢 {label}")
 
     above_avg = [s for s in scores if s["score"] is not None and s["score"] >= avg_score]
+    trend = etf_score_trend or {}
 
     lines += ["", "🎯 ETF DYNAMIQUE"]
     for s in above_avg:
-        label = f"  {s['name']:<6}  {s['score']:+.2f}"
+        dot = trend.get(s["name"], "")
+        label = f"  {s['name']:<6}  {s['score']:+.2f} {dot}"
         if s["name"] in HIGHLIGHT_ETFs:
             label = f"<b>{label}</b>"
         lines.append(label)
@@ -406,18 +410,30 @@ def main() -> int:
     avg_rsi = sum(rsi_values) / len(rsi_values) if rsi_values else None
     avg_roc = sum(roc_values) / len(roc_values) if roc_values else None
 
-    # Load history, append current entry, save
+    # Load history, append current entry (globals + per-ETF scores), save
     history = load_metrics_history()
-    history.append({"ts": now_str, "rsi": avg_rsi, "roc": avg_roc, "perf": avg_score})
+    entry = {"ts": now_str, "rsi": avg_rsi, "roc": avg_roc, "perf": avg_score,
+             "scores": {s["name"]: s["score"] for s in scores if s["score"] is not None}}
+    history.append(entry)
     save_metrics_history(history)
     metrics_roc14 = compute_metrics_roc14(history)
 
+    # Per-ETF score ROC-14: compare score now vs 14 runs ago
+    etf_score_trend: dict[str, str] = {}
+    if len(history) > METRICS_ROC_PERIOD:
+        now_scores = history[-1].get("scores", {})
+        ref_scores = history[-(METRICS_ROC_PERIOD + 1)].get("scores", {})
+        for name, val_now in now_scores.items():
+            val_ref = ref_scores.get(name)
+            if val_ref is not None:
+                etf_score_trend[name] = "🟢" if val_now >= val_ref else "🔴"
+
     # Affichage complet dans le terminal
-    console = build_full_console(results, individuals, ratios, scores, avg_score, now_str, metrics_roc14)
+    console = build_full_console(results, individuals, ratios, scores, avg_score, now_str, metrics_roc14, etf_score_trend)
     print(f"\n{console}\n")
 
     # Telegram : message résumé uniquement
-    telegram_msg = build_message(results, individuals, ratios, scores, avg_score, now_str, metrics_roc14)
+    telegram_msg = build_message(results, individuals, ratios, scores, avg_score, now_str, metrics_roc14, etf_score_trend)
     if not args.no_telegram:
         send_telegram_html(telegram_msg)
 
