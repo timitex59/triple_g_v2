@@ -9,6 +9,7 @@ Output format mirrors renko_alignment_nasdaq_V2.py.
 import sys
 import argparse
 import itertools
+import json
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from datetime import datetime
 
@@ -207,6 +208,41 @@ def compute_ratios(etf_list: list[tuple[str, str]], debug: bool = False) -> list
     return ratios
 
 
+METRICS_HISTORY_FILE = "etf_v1_metrics_history.json"
+METRICS_ROC_PERIOD   = 14
+
+
+def load_metrics_history() -> list[dict]:
+    try:
+        with open(METRICS_HISTORY_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, list) else []
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
+
+
+def save_metrics_history(history: list[dict]) -> None:
+    with open(METRICS_HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(history[-200:], f, indent=2)
+
+
+def compute_metrics_roc14(history: list[dict]) -> dict:
+    """Return ROC-14 (%) and trend label for rsi/roc/perf using last METRICS_ROC_PERIOD entries."""
+    result = {}
+    if len(history) <= METRICS_ROC_PERIOD:
+        return result
+    now   = history[-1]
+    ref   = history[-(METRICS_ROC_PERIOD + 1)]
+    for key in ("rsi", "roc", "perf"):
+        v_now = now.get(key)
+        v_ref = ref.get(key)
+        if v_now is None or v_ref is None or v_ref == 0:
+            continue
+        roc14 = (v_now - v_ref) / abs(v_ref) * 100
+        result[key] = {"now": v_now, "ref": v_ref, "roc14": roc14, "label": "FORT" if roc14 >= 0 else "FAIBLE"}
+    return result
+
+
 def _rsi_label(v: float) -> str:
     if v > 70:  return "SURACHETÉ"
     if v >= 50: return "HAUSSIER"
@@ -219,26 +255,30 @@ def _roc_label(v: float) -> str:
     if v >= 0:  return "FRAGILE"
     return "BAISSIER"
 
-def _market_status(individuals: list[dict], avg_score: float | None = None) -> str:
+def _market_status(individuals: list[dict], avg_score: float | None = None, metrics_roc14: dict | None = None) -> str:
     rsi_values = [x["rsi14"] for x in individuals if x["rsi14"] is not None]
     roc_values = [x["roc14"] for x in individuals if x["roc14"] is not None]
+    mr = metrics_roc14 or {}
     lines = []
     if rsi_values:
         avg_rsi = sum(rsi_values) / len(rsi_values)
-        lines.append(f"💹 RSI {avg_rsi:.1f} ({_rsi_label(avg_rsi)})")
+        rsi_trend = f" | ROC14: {mr['rsi']['roc14']:+.1f}% → {mr['rsi']['label']}" if "rsi" in mr else ""
+        lines.append(f"💹 RSI {avg_rsi:.1f} ({_rsi_label(avg_rsi)}){rsi_trend}")
     if roc_values:
         avg_roc = sum(roc_values) / len(roc_values)
-        lines.append(f"⚡ ROC {avg_roc:+.1f}% ({_roc_label(avg_roc)})")
+        roc_trend = f" | ROC14: {mr['roc']['roc14']:+.1f}% → {mr['roc']['label']}" if "roc" in mr else ""
+        lines.append(f"⚡ ROC {avg_roc:+.1f}% ({_roc_label(avg_roc)}){roc_trend}")
     if avg_score is not None:
-        lines.append(f"📊 PERF MOYEN {avg_score:+.2f}")
+        perf_trend = f" | ROC14: {mr['perf']['roc14']:+.1f}% → {mr['perf']['label']}" if "perf" in mr else ""
+        lines.append(f"📊 PERF MOYEN {avg_score:+.2f}{perf_trend}")
     return ("\n" + "\n".join(lines)) if lines else ""
 
 
-def build_full_console(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str) -> str:
+def build_full_console(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str, metrics_roc14: dict | None = None) -> str:
     bull = [r for r in results if is_full_bull(r)]
     bull.sort(key=lambda r: r["chg_pct"], reverse=True)
 
-    lines = ["📊 ETF V1" + _market_status(individuals, avg_score), "", "MEILLEUR HEBDO"]
+    lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "MEILLEUR HEBDO"]
     if not bull:
         lines.append("(aucun)")
     else:
@@ -274,11 +314,11 @@ def build_full_console(results: list[dict], individuals: list[dict], ratios: lis
     return "\n".join(lines)
 
 
-def build_message(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str) -> str:
+def build_message(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str, metrics_roc14: dict | None = None) -> str:
     bull = [r for r in results if is_full_bull(r)]
     bull.sort(key=lambda r: r["chg_pct"], reverse=True)
 
-    lines = ["📊 ETF V1" + _market_status(individuals, avg_score), "", "MEILLEUR HEBDO"]
+    lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "MEILLEUR HEBDO"]
     if not bull:
         lines.append("(aucun)")
     else:
@@ -355,12 +395,24 @@ def main() -> int:
     valid_scores = [s for s in scores if s["score"] is not None]
     avg_score = sum(s["score"] for s in valid_scores) / len(valid_scores) if valid_scores else 0.0
 
+    # Compute avg_rsi / avg_roc for history
+    rsi_values = [x["rsi14"] for x in individuals if x["rsi14"] is not None]
+    roc_values = [x["roc14"] for x in individuals if x["roc14"] is not None]
+    avg_rsi = sum(rsi_values) / len(rsi_values) if rsi_values else None
+    avg_roc = sum(roc_values) / len(roc_values) if roc_values else None
+
+    # Load history, append current entry, save
+    history = load_metrics_history()
+    history.append({"ts": now_str, "rsi": avg_rsi, "roc": avg_roc, "perf": avg_score})
+    save_metrics_history(history)
+    metrics_roc14 = compute_metrics_roc14(history)
+
     # Affichage complet dans le terminal
-    console = build_full_console(results, individuals, ratios, scores, avg_score, now_str)
+    console = build_full_console(results, individuals, ratios, scores, avg_score, now_str, metrics_roc14)
     print(f"\n{console}\n")
 
     # Telegram : message résumé uniquement
-    telegram_msg = build_message(results, individuals, ratios, scores, avg_score, now_str)
+    telegram_msg = build_message(results, individuals, ratios, scores, avg_score, now_str, metrics_roc14)
     if not args.no_telegram:
         send_telegram_html(telegram_msg)
 

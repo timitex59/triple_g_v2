@@ -145,7 +145,7 @@ jobs:
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
           BRANCH="${GITHUB_REF_NAME:-main}"
-          STATE_FILES="runner_history.json opportunity_stats.json trend_follower.json rubbeon_state.json rubbeon_MTF_IMP_state.json annual_v2_data.json annual_v2_state.json chg_cc_indices.json annual_ndx100_portfolio_state.json annual_ndx100_scan_state.json btc_dca_state.json signal_v7_exit_state.json break_line_state.json break_line_scan.json break_line_renko_state.json break_line_renko_scan.json renko_lists_tracker_state.json ichimoku_scan.json triple_g_consolidation.json heiken_ashi_scan.json strategy_tracker_state.json px_renko_index_scan.json px_renko_index_tracker_state.json px_renko_daily_follow.json px_renko_daily_follow_v2.json"
+          STATE_FILES="runner_history.json opportunity_stats.json trend_follower.json rubbeon_state.json rubbeon_MTF_IMP_state.json annual_v2_data.json annual_v2_state.json chg_cc_indices.json annual_ndx100_portfolio_state.json annual_ndx100_scan_state.json btc_dca_state.json signal_v7_exit_state.json break_line_state.json break_line_scan.json break_line_renko_state.json break_line_renko_scan.json renko_lists_tracker_state.json ichimoku_scan.json triple_g_consolidation.json heiken_ashi_scan.json strategy_tracker_state.json px_renko_index_scan.json px_renko_index_tracker_state.json px_renko_daily_follow.json px_renko_daily_follow_v2.json etf_v1_metrics_history.json"
 
           # ── Save state files to /tmp before any git operation ──
           for f in $STATE_FILES; do
