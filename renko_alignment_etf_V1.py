@@ -255,6 +255,11 @@ def _roc_label(v: float) -> str:
     if v >= 0:  return "FRAGILE"
     return "BAISSIER"
 
+def _trend_dot(key: str, current_val: float, mr: dict) -> str:
+    if key in mr:
+        return "🟢" if mr[key]["label"] == "FORT" else "🔴"
+    return "🟢" if current_val >= 0 else "🔴"
+
 def _market_status(individuals: list[dict], avg_score: float | None = None, metrics_roc14: dict | None = None) -> str:
     rsi_values = [x["rsi14"] for x in individuals if x["rsi14"] is not None]
     roc_values = [x["roc14"] for x in individuals if x["roc14"] is not None]
@@ -262,15 +267,15 @@ def _market_status(individuals: list[dict], avg_score: float | None = None, metr
     lines = []
     if rsi_values:
         avg_rsi = sum(rsi_values) / len(rsi_values)
-        rsi_trend = f" | ROC14: {mr['rsi']['roc14']:+.1f}% → {mr['rsi']['label']}" if "rsi" in mr else ""
-        lines.append(f"💹 RSI {avg_rsi:.1f} ({_rsi_label(avg_rsi)}){rsi_trend}")
+        dot = _trend_dot("rsi", avg_rsi - 50, mr)
+        lines.append(f"💹 RSI {avg_rsi:.1f} ({_rsi_label(avg_rsi)}){dot}")
     if roc_values:
         avg_roc = sum(roc_values) / len(roc_values)
-        roc_trend = f" | ROC14: {mr['roc']['roc14']:+.1f}% → {mr['roc']['label']}" if "roc" in mr else ""
-        lines.append(f"⚡ ROC {avg_roc:+.1f}% ({_roc_label(avg_roc)}){roc_trend}")
+        dot = _trend_dot("roc", avg_roc, mr)
+        lines.append(f"⚡ ROC {avg_roc:+.1f}% ({_roc_label(avg_roc)}){dot}")
     if avg_score is not None:
-        perf_trend = f" | ROC14: {mr['perf']['roc14']:+.1f}% → {mr['perf']['label']}" if "perf" in mr else ""
-        lines.append(f"📊 PERF MOYEN {avg_score:+.2f}{perf_trend}")
+        dot = _trend_dot("perf", avg_score, mr)
+        lines.append(f"📊 PERF MOYEN {avg_score:+.2f}{dot}")
     return ("\n" + "\n".join(lines)) if lines else ""
 
 
