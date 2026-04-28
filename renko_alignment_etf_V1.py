@@ -279,7 +279,7 @@ def _market_status(individuals: list[dict], avg_score: float | None = None, metr
     return ("\n" + "\n".join(lines)) if lines else ""
 
 
-def build_full_console(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str, metrics_roc14: dict | None = None, etf_score_trend: dict | None = None) -> str:
+def build_full_console(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str, metrics_roc14: dict | None = None, etf_score_trend: dict | None = None, etf_score_delta: dict | None = None) -> str:
     bull = [r for r in results if is_full_bull(r)]
     bull.sort(key=lambda r: r["chg_pct"], reverse=True)
 
@@ -310,18 +310,24 @@ def build_full_console(results: list[dict], individuals: list[dict], ratios: lis
     valid_scores = [s for s in scores if s["score"] is not None]
     avg_score = sum(s["score"] for s in valid_scores) / len(valid_scores) if valid_scores else 0
     trend = etf_score_trend or {}
+    deltas = etf_score_delta or {}
     lines += ["", f"🎯 SCORE DE PERFORMANCE (ROC14 × Multiplicateur RSI) — moy. {avg_score:+.2f}"]
+    all_deltas = list(deltas.values())
+    avg_delta = sum(all_deltas) / len(all_deltas) if all_deltas else None
     for s in scores:
         score_str = f"{s['score']:+.2f}" if s["score"] is not None else "N/A"
         marker = " ★" if s["score"] is not None and s["score"] >= avg_score else ""
         dot = trend.get(s["name"], "")
-        lines.append(f"  {s['name']:<6}  {score_str}{marker} {dot}")
+        rising_marker = " 🚀" if (avg_delta is not None and s["score"] is not None
+                                   and s["score"] < avg_score
+                                   and deltas.get(s["name"], float("-inf")) > avg_delta) else ""
+        lines.append(f"  {s['name']:<6}  {score_str}{marker} {dot}{rising_marker}")
 
     lines += ["", f"⏰ {now_str} Paris"]
     return "\n".join(lines)
 
 
-def build_message(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str, metrics_roc14: dict | None = None, etf_score_trend: dict | None = None) -> str:
+def build_message(results: list[dict], individuals: list[dict], ratios: list[dict], scores: list[dict], avg_score: float, now_str: str, metrics_roc14: dict | None = None, etf_score_trend: dict | None = None, etf_score_delta: dict | None = None) -> str:
     bull = [r for r in results if is_full_bull(r)]
     bull.sort(key=lambda r: r["chg_pct"], reverse=True)
 
@@ -338,7 +344,9 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
             lines.append(f"🟢 {label}")
 
     above_avg = [s for s in scores if s["score"] is not None and s["score"] >= avg_score]
+    below_avg = [s for s in scores if s["score"] is not None and s["score"] < avg_score]
     trend = etf_score_trend or {}
+    deltas = etf_score_delta or {}
 
     lines += ["", "🎯 ETF DYNAMIQUE"]
     for s in above_avg:
@@ -347,6 +355,20 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
         if s["name"] in HIGHLIGHT_ETFs:
             label = f"<b>{label}</b>"
         lines.append(label)
+
+    # ETFs non-dynamiques mais dont la progression dépasse la moyenne de tous les deltas
+    if deltas:
+        all_deltas = list(deltas.values())
+        avg_delta = sum(all_deltas) / len(all_deltas)
+        rising = [s for s in below_avg if deltas.get(s["name"], float("-inf")) > avg_delta]
+        if rising:
+            lines += ["", "🚀 EN PROGRESSION"]
+            for s in rising:
+                d = deltas[s["name"]]
+                label = f"  {s['name']:<6}  {s['score']:+.2f} (Δ{d:+.2f})"
+                if s["name"] in HIGHLIGHT_ETFs:
+                    label = f"<b>{label}</b>"
+                lines.append(label)
 
     lines += ["", f"⏰ {now_str} Paris"]
     return "\n".join(lines)
@@ -418,22 +440,25 @@ def main() -> int:
     save_metrics_history(history)
     metrics_roc14 = compute_metrics_roc14(history)
 
-    # Per-ETF score ROC-14: compare score now vs 14 runs ago
+    # Per-ETF score delta vs 14 runs ago → trend dot + rising ETFs detection
     etf_score_trend: dict[str, str] = {}
+    etf_score_delta: dict[str, float] = {}
     if len(history) > METRICS_ROC_PERIOD:
         now_scores = history[-1].get("scores", {})
         ref_scores = history[-(METRICS_ROC_PERIOD + 1)].get("scores", {})
         for name, val_now in now_scores.items():
             val_ref = ref_scores.get(name)
             if val_ref is not None:
-                etf_score_trend[name] = "🟢" if val_now >= val_ref else "🔴"
+                delta = val_now - val_ref
+                etf_score_delta[name] = delta
+                etf_score_trend[name] = "🟢" if delta >= 0 else "🔴"
 
     # Affichage complet dans le terminal
-    console = build_full_console(results, individuals, ratios, scores, avg_score, now_str, metrics_roc14, etf_score_trend)
+    console = build_full_console(results, individuals, ratios, scores, avg_score, now_str, metrics_roc14, etf_score_trend, etf_score_delta)
     print(f"\n{console}\n")
 
     # Telegram : message résumé uniquement
-    telegram_msg = build_message(results, individuals, ratios, scores, avg_score, now_str, metrics_roc14, etf_score_trend)
+    telegram_msg = build_message(results, individuals, ratios, scores, avg_score, now_str, metrics_roc14, etf_score_trend, etf_score_delta)
     if not args.no_telegram:
         send_telegram_html(telegram_msg)
 
