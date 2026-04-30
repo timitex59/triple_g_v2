@@ -351,7 +351,9 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
     lines += ["", "🎯 ETF DYNAMIQUE"]
     for s in above_avg:
         dot = trend.get(s["name"], "")
-        label = f"  {s['name']:<6}  {s['score']:+.2f} {dot}"
+        d = deltas.get(s["name"])
+        delta_str = f" (Δ{d:+.2f})" if d is not None else ""
+        label = f"  {s['name']:<6}  {s['score']:+.2f}{delta_str} {dot}"
         if s["name"] in HIGHLIGHT_ETFs:
             label = f"<b>{label}</b>"
         lines.append(label)
