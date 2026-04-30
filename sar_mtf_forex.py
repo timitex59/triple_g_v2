@@ -254,12 +254,14 @@ def scan_pair(pair: str, debug: bool = False) -> dict:
         ts_raw = bars_h1[i].get("time") or bars_h1[i].get("timestamp")
         if ts_raw:
             ts_dt = datetime.fromtimestamp(int(ts_raw), tz=paris_tz)
-            ts_str = ts_dt.strftime("%H:%M")
+            ts_str  = ts_dt.strftime("%H:%M")
+            ts_date = ts_dt.strftime("%Y-%m-%d")
         else:
-            ts_str = "?"
+            ts_str  = "?"
+            ts_date = ""
 
         if i >= n - LOOKBACK_HOURS:
-            entry = {"signal": sig, "time": ts_str, "bar_idx": i}
+            entry = {"signal": sig, "time": ts_str, "date": ts_date, "bar_idx": i}
             if i == n - 1:
                 signal_now = sig
             past_signals.append(entry)
@@ -348,12 +350,16 @@ def main() -> int:
         print(f"  {r['pair']:<10} {r['status']}")
     print()
 
-    # Collect all signals from 07:00 to 23:00, sorted by time
+    today_paris = datetime.now(paris_tz).strftime("%Y-%m-%d")
+
+    # Collect signals from 07:00 to 22:00 today only
     all_day_signals = []
     for r in all_results:
         for ps in r.get("past_signals", []):
+            if ps.get("date") != today_paris:
+                continue
             hour = int(ps["time"].split(":")[0]) if ps["time"] != "?" else -1
-            if 7 <= hour <= 23:
+            if 7 <= hour <= 22:
                 all_day_signals.append({"pair": r["pair"], **ps})
     all_day_signals.sort(key=lambda x: x["bar_idx"])
 
