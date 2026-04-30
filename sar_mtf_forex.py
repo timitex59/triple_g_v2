@@ -326,11 +326,11 @@ def main() -> int:
     print(f"Scanning {len(PAIRS)} pairs...\n")
 
     all_results = []
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=3) as pool:
         futures = {pool.submit(scan_pair, pair, args.debug): pair for pair in PAIRS}
         for future, pair in futures.items():
             try:
-                result = future.result(timeout=20)
+                result = future.result(timeout=90)
             except FuturesTimeoutError:
                 future.cancel()
                 print(f"  {pair}: timeout — skipped")
