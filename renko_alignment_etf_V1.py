@@ -362,7 +362,7 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
     if deltas:
         all_deltas = list(deltas.values())
         avg_delta = sum(all_deltas) / len(all_deltas)
-        rising = [s for s in below_avg if deltas.get(s["name"], float("-inf")) > avg_delta]
+        rising = [s for s in below_avg if deltas.get(s["name"], float("-inf")) > avg_delta and deltas.get(s["name"], float("-inf")) > 0]
         if rising:
             lines += ["", "🚀 EN PROGRESSION"]
             for s in rising:
