@@ -136,21 +136,16 @@ def compute_ichimoku_cloud(bars: list[dict],
     return span_a, span_b
 
 
-DISPLACEMENT = 26
-
 def cloud_state(bars: list[dict]) -> int:
     """1 = price above cloud, -1 = below, 0 = inside.
-    Uses displaced cloud (offset=25) matching TradingView visual."""
+    Mirrors Pine f_cloud_state: compare close against current leadLine1/leadLine2
+    (no displacement — displacement only affects visual plot, not MTF security values)."""
     if not bars:
         return 0
     span_a, span_b = compute_ichimoku_cloud(bars)
     close = float(bars[-1]["close"])
-    # The visual cloud at current bar = values calculated DISPLACEMENT-1 bars ago
-    idx = -(DISPLACEMENT - 1) - 1  # = -26
-    if len(span_a) < abs(idx):
-        return 0
-    top = max(span_a[idx], span_b[idx])
-    bot = min(span_a[idx], span_b[idx])
+    top = max(span_a[-1], span_b[-1])
+    bot = min(span_a[-1], span_b[-1])
     if close > top:
         return 1
     if close < bot:
@@ -181,15 +176,19 @@ def tf_state(bars: list[dict]) -> int:
     return 0
 
 
-def valuewhen(condition: list[bool], values: list[float], occurrence: int = 0) -> float:
-    """Pine Script ta.valuewhen equivalent."""
-    count = 0
-    for i in range(len(condition) - 1, -1, -1):
+def valuewhen_series(condition: list[bool], values: list[float]) -> list[float]:
+    """Returns a series: at each bar i, the value at the most recent True in condition up to i."""
+    n = len(condition)
+    result = [float("nan")] * n
+    last = float("nan")
+    for i in range(n):
         if condition[i]:
-            if count == occurrence:
-                return values[i]
-            count += 1
-    return float("nan")
+            last = values[i]
+        result[i] = last
+    return result
+
+
+LOOKBACK_HOURS = 24
 
 
 # ─── Scan ─────────────────────────────────────────────────────────────────────
@@ -197,12 +196,12 @@ def valuewhen(condition: list[bool], values: list[float], occurrence: int = 0) -
 def scan_pair(pair: str, debug: bool = False) -> dict:
     symbol = f"OANDA:{pair}"
 
-    bars_h1 = fetch_tv_ohlc(symbol, "60", 300)
-    bars_d  = fetch_tv_ohlc(symbol, "D",  200)
-    bars_w  = fetch_tv_ohlc(symbol, "W",  200)
+    bars_h1 = fetch_tv_ohlc(symbol, "60", 300, session="extended")
+    bars_d  = fetch_tv_ohlc(symbol, "D",  200, session="extended")
+    bars_w  = fetch_tv_ohlc(symbol, "W",  200, session="extended")
 
     if not bars_h1 or not bars_d or not bars_w:
-        return {"pair": pair, "signal": None, "status": "no data", "global_state": 0}
+        return {"pair": pair, "signal": None, "past_signals": [], "status": "no data", "global_state": 0}
 
     state_d = tf_state(bars_d)
     state_w = tf_state(bars_w)
@@ -216,46 +215,75 @@ def scan_pair(pair: str, debug: bool = False) -> dict:
     if global_state == 0:
         label_w = "BULL" if state_w == 1 else "BEAR" if state_w == -1 else "MIX"
         label_d = "BULL" if state_d == 1 else "BEAR" if state_d == -1 else "MIX"
-        return {"pair": pair, "signal": None, "status": f"MIXED W={label_w} D={label_d}", "global_state": 0}
+        return {"pair": pair, "signal": None, "past_signals": [], "status": f"MIXED W={label_w} D={label_d}", "global_state": 0}
 
-    # Compute SAR on H1
+    # Full H1 series
     sar_h1    = compute_sar(bars_h1)
     closes_h1 = [float(b["close"]) for b in bars_h1]
-    opens_h1  = [float(b["open"])  for b in bars_h1]
+    n = len(bars_h1)
 
-    cross_over  = [i > 0 and closes_h1[i - 1] <= sar_h1[i - 1] and closes_h1[i] > sar_h1[i]
-                   for i in range(len(bars_h1))]
-    cross_under = [i > 0 and closes_h1[i - 1] >= sar_h1[i - 1] and closes_h1[i] < sar_h1[i]
-                   for i in range(len(bars_h1))]
+    cross_over  = [i > 0 and closes_h1[i-1] <= sar_h1[i-1] and closes_h1[i] > sar_h1[i] for i in range(n)]
+    cross_under = [i > 0 and closes_h1[i-1] >= sar_h1[i-1] and closes_h1[i] < sar_h1[i] for i in range(n)]
 
-    bull_vw0 = valuewhen(cross_over,  sar_h1, 0)
-    bear_vw0 = valuewhen(cross_under, sar_h1, 0)
+    # Compute valuewhen as a full series (needed for retroactive crossover detection)
+    bull_vw0_series = valuewhen_series(cross_over,  sar_h1)
+    bear_vw0_series = valuewhen_series(cross_under, sar_h1)
 
-    open_prev  = opens_h1[-2]
+    # Detect signal at each bar i using bar i-1 and i
+    paris_tz = pytz.timezone("Europe/Paris")
+    past_signals = []
+    signal_now   = None
+
+    for i in range(1, n):
+        bv = bull_vw0_series[i]
+        bev = bear_vw0_series[i]
+        c_prev = closes_h1[i - 1]
+        c_now  = closes_h1[i]
+
+        sig = None
+        if global_state == 1 and bev == bev:
+            if c_prev <= bev and c_now > bev:
+                sig = "LONG"
+        if global_state == -1 and bv == bv:
+            if c_prev >= bv and c_now < bv:
+                sig = "SHORT"
+
+        if sig is None:
+            continue
+
+        ts_raw = bars_h1[i].get("time") or bars_h1[i].get("timestamp")
+        if ts_raw:
+            ts_dt = datetime.fromtimestamp(int(ts_raw), tz=paris_tz)
+            ts_str = ts_dt.strftime("%H:%M")
+        else:
+            ts_str = "?"
+
+        if i >= n - LOOKBACK_HOURS:
+            entry = {"signal": sig, "time": ts_str, "bar_idx": i}
+            if i == n - 1:
+                signal_now = sig
+            past_signals.append(entry)
+
     close_now  = closes_h1[-1]
-
-    signal = None
-    # LONG : bougie précédente ouvre sous bear_vw0, bougie actuelle ferme au-dessus
-    if global_state == 1 and bear_vw0 == bear_vw0:
-        if open_prev <= bear_vw0 and close_now > bear_vw0:
-            signal = "LONG"
-    # SHORT : bougie précédente ouvre au-dessus de bull_vw0, bougie actuelle ferme en-dessous
-    if global_state == -1 and bull_vw0 == bull_vw0:
-        if open_prev >= bull_vw0 and close_now < bull_vw0:
-            signal = "SHORT"
+    bull_vw0   = bull_vw0_series[-1]
+    bear_vw0   = bear_vw0_series[-1]
 
     direction = "BULL" if global_state == 1 else "BEAR"
     level     = bear_vw0 if global_state == 1 else bull_vw0
     level_lbl = "bear_vw0" if global_state == 1 else "bull_vw0"
-    status = f"{direction} | close={close_now:.5f} | {level_lbl}={level:.5f} | open[-2]={open_prev:.5f}"
-    if signal:
-        status += f" → {signal} ✅"
+    status = f"{direction} | close={close_now:.5f} | {level_lbl}={level:.5f}"
+    if signal_now:
+        status += f" → {signal_now} ✅"
+    elif past_signals:
+        last = past_signals[-1]
+        status += f" → passé {last['signal']} @ {last['time']}"
     else:
-        status += " → no crossover"
+        status += " → no signal"
 
     return {
         "pair":         pair,
-        "signal":       signal,
+        "signal":       signal_now,
+        "past_signals": past_signals,
         "status":       status,
         "close":        close_now,
         "global_state": global_state,
@@ -320,27 +348,23 @@ def main() -> int:
         print(f"  {r['pair']:<10} {r['status']}")
     print()
 
-    signals = [r for r in all_results if r["signal"]]
-    longs   = [s for s in signals if s["signal"] == "LONG"]
-    shorts  = [s for s in signals if s["signal"] == "SHORT"]
+    # Collect all signals from 07:00 to 23:00, sorted by time
+    all_day_signals = []
+    for r in all_results:
+        for ps in r.get("past_signals", []):
+            hour = int(ps["time"].split(":")[0]) if ps["time"] != "?" else -1
+            if 7 <= hour <= 23:
+                all_day_signals.append({"pair": r["pair"], **ps})
+    all_day_signals.sort(key=lambda x: x["bar_idx"])
 
     lines = ["📡 SAR MTF FOREX", ""]
 
-    if longs:
-        lines.append("🟢 LONG")
-        for s in longs:
-            lines.append(f"  {s['pair']:<10} close={s['close']:.5f}")
+    if all_day_signals:
+        for s in all_day_signals:
+            emoji = "🟢" if s["signal"] == "LONG" else "🔴"
+            lines.append(f"  {emoji} {s['pair']:<10} @ {s['time']}")
     else:
-        lines.append("🟢 LONG\n  (aucun)")
-
-    lines.append("")
-
-    if shorts:
-        lines.append("🔴 SHORT")
-        for s in shorts:
-            lines.append(f"  {s['pair']:<10} close={s['close']:.5f}")
-    else:
-        lines.append("🔴 SHORT\n  (aucun)")
+        lines.append("  (aucun signal)")
 
     lines += ["", f"⏰ {now_str} Paris"]
     msg = "\n".join(lines)

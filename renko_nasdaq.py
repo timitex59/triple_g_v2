@@ -172,7 +172,8 @@ def _frames(raw: str) -> list[str]:
 # ─── OHLC fetch ───────────────────────────────────────────────────────────────
 
 def fetch_tv_ohlc(symbol: str, interval: str, n_candles: int,
-                  timeout_s: int = 20, retries: int = 2) -> list[dict] | None:
+                  timeout_s: int = 20, retries: int = 2,
+                  session: str = "regular") -> list[dict] | None:
     for attempt in range(retries + 1):
         ws = None
         try:
@@ -182,7 +183,7 @@ def fetch_tv_ohlc(symbol: str, interval: str, n_candles: int,
             ws.send(_msg("chart_create_session", [sid, ""]))
             ws.send(_msg("resolve_symbol", [
                 sid, "sds_sym_1",
-                f'={{"symbol":"{symbol}","adjustment":"splits","session":"regular"}}'
+                f'={{"symbol":"{symbol}","adjustment":"splits","session":"{session}"}}'
             ]))
             ws.send(_msg("create_series", [sid, "sds_1", "s1", "sds_sym_1", interval, n_candles, ""]))
 
