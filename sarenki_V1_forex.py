@@ -470,6 +470,46 @@ def backfill_today(pairs, paris_tz, start_hour=7, debug=False):
     return found
 
 
+# ─── Index filter ────────────────────────────────────────────────────────────
+
+CCY_INDEX = {
+    "USD": "TVC:DXY", "EUR": "TVC:EXY", "GBP": "TVC:BXY", "JPY": "TVC:JXY",
+    "CHF": "TVC:SXY", "CAD": "TVC:CXY", "AUD": "TVC:AXY", "NZD": "TVC:ZXY",
+}
+
+def _scan_one_index(ccy: str, symbol: str) -> tuple[str, int]:
+    bars_d = fetch_tv_ohlc(symbol, "D", 200)
+    bars_w = fetch_tv_ohlc(symbol, "W", 200)
+    if bars_d and bars_w:
+        s_d = mtf_state(bars_d)
+        s_w = mtf_state(bars_w)
+        return ccy, (s_d if s_w == s_d else 0)
+    return ccy, 0
+
+def scan_index_states() -> dict[str, int]:
+    """Returns {ccy: mtf_state} for each currency index (D+W cloud+SAR)."""
+    states = {}
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {pool.submit(_scan_one_index, ccy, sym): ccy for ccy, sym in CCY_INDEX.items()}
+        for future in futures:
+            try:
+                ccy, state = future.result(timeout=25)
+                states[ccy] = state
+            except Exception:
+                states[futures[future]] = 0
+    return states
+
+def index_confirms(pair: str, signal: str, idx_states: dict[str, int]) -> bool:
+    base, quote = pair[:3], pair[3:]
+    s_base  = idx_states.get(base,  0)
+    s_quote = idx_states.get(quote, 0)
+    if signal == "LONG":
+        return s_base == 1 and s_quote == -1
+    if signal == "SHORT":
+        return s_base == -1 and s_quote == 1
+    return False
+
+
 # ─── Daily log ────────────────────────────────────────────────────────────────
 
 LOG_FILE = os.path.join(os.path.dirname(__file__), "sarenki_V1_forex_log.json")
@@ -505,6 +545,10 @@ def main():
     today    = now.strftime("%Y-%m-%d")
     hour_str = now.strftime("%H:%M")
     now_str  = now.strftime("%Y-%m-%d %H:%M")
+
+    print("Scanning currency indices...")
+    idx_states = scan_index_states()
+    print(f"  {', '.join(f'{c}={v:+d}' for c, v in idx_states.items())}\n")
 
     print(f"Scanning {len(PAIRS)} pairs...\n")
 
@@ -577,7 +621,8 @@ def main():
     if deduped:
         for entry in deduped:
             emoji = "🟢" if entry["signal"] == "LONG" else "🔴"
-            lines.append(f"  {emoji} {entry['pair']:<10} @ {entry['time']}")
+            flame = " 🔥" if index_confirms(entry["pair"], entry["signal"], idx_states) else ""
+            lines.append(f"  {emoji} {entry['pair']:<10} @ {entry['time']}{flame}")
     else:
         lines.append("  (aucun signal aujourd'hui)")
 
