@@ -566,11 +566,16 @@ def main():
 
     save_log(today, daily_log)
 
-    # ── Build Telegram message (full day log) ──────────────────────────────────
+    # ── Build Telegram message (full day log, deduplicated by pair+signal → last occurrence) ──
+    seen = {}
+    for entry in daily_log:
+        seen[(entry["pair"], entry["signal"])] = entry
+    deduped = sorted(seen.values(), key=lambda e: e["time"])
+
     lines = ["📡 SARENKI V1 FOREX", ""]
 
-    if daily_log:
-        for entry in daily_log:
+    if deduped:
+        for entry in deduped:
             emoji = "🟢" if entry["signal"] == "LONG" else "🔴"
             lines.append(f"  {emoji} {entry['pair']:<10} @ {entry['time']}")
     else:
