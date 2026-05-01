@@ -483,7 +483,8 @@ def _scan_one_index(ccy: str, symbol: str) -> tuple[str, int]:
     if bars_d and bars_w:
         s_d = mtf_state(bars_d)
         s_w = mtf_state(bars_w)
-        return ccy, (s_d if s_w == s_d else 0)
+        score = s_w + s_d  # -2/-1 → BEAR, +1/+2 → BULL, 0 → MIX
+        return ccy, (1 if score >= 1 else -1 if score <= -1 else 0)
     return ccy, 0
 
 def scan_index_states() -> dict[str, int]:
