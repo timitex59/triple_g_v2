@@ -303,9 +303,8 @@ def build_full_console(results: list[dict], individuals: list[dict], ratios: lis
         m = r.get("chg_pct_m")
         if m is None or r["chg_pct"] * m <= 0:
             continue
-        w_str = f"{'+' if r['chg_pct'] >= 0 else ''}{r['chg_pct']:.2f}%"
-        m_str = f"{'+' if m >= 0 else ''}{m:.2f}%"
-        lines.append(f"🟢 {r['name']} (W:{w_str} M:{m_str})")
+        score = int(round(r["chg_pct"] * m))
+        lines.append(f"🟢 {r['name']} ({score})")
     if len(lines) == 3:
         lines.append("(aucun)")
 
@@ -360,9 +359,8 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
         m = r.get("chg_pct_m")
         if m is None or r["chg_pct"] * m <= 0:
             continue
-        w_str = f"{'+' if r['chg_pct'] >= 0 else ''}{r['chg_pct']:.2f}%"
-        m_str = f"{'+' if m >= 0 else ''}{m:.2f}%"
-        label = f"{r['name']} (W:{w_str} M:{m_str})"
+        score = int(round(r["chg_pct"] * m))
+        label = f"{r['name']} ({score})"
         if r["name"] in HIGHLIGHT_ETFs:
             label = f"<b>{label}</b>"
         lines.append(f"🟢 {label}")
