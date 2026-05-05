@@ -91,7 +91,7 @@ def scan_one(tv_sym: str, name: str, atr_length: int, debug: bool):
     if not bars_w or len(bars_w) < 2:
         return None
 
-    bars_m_raw = fetch_tv_ohlc(tv_sym, "M", 3)
+    bars_d = fetch_tv_ohlc(tv_sym, "D", 30)
 
     curr_close = float(bars_w[-1]["close"])
     prev_close = float(bars_w[-2]["close"])
@@ -114,10 +114,10 @@ def scan_one(tv_sym: str, name: str, atr_length: int, debug: bool):
     chg_pct = (chg_abs / prev_close * 100) if prev_close else 0.0
 
     chg_pct_m = None
-    if bars_m_raw and len(bars_m_raw) >= 2:
-        m_curr = float(bars_m_raw[-1]["close"])
-        m_prev = float(bars_m_raw[-2]["close"])
-        chg_pct_m = (m_curr - m_prev) / abs(m_prev) * 100 if m_prev else None
+    if bars_d and len(bars_d) >= 23:
+        d_curr = float(bars_d[-1]["close"])
+        d_prev = float(bars_d[-22]["close"])
+        chg_pct_m = (d_curr - d_prev) / abs(d_prev) * 100 if d_prev else None
 
     return {
         "symbol":    tv_sym,
@@ -301,7 +301,7 @@ def build_full_console(results: list[dict], individuals: list[dict], ratios: lis
     lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "🏆 MEILLEUR HEBDO × MONTHLY"]
     for r in ranked:
         m = r.get("chg_pct_m")
-        if m is None or r["chg_pct"] * m <= 0:
+        if m is None or r["chg_pct"] <= 0 or m <= 0:
             continue
         w_str = f"{'+' if r['chg_pct'] >= 0 else ''}{r['chg_pct']:.2f}%"
         m_str = f"{'+' if m >= 0 else ''}{m:.2f}%"
@@ -358,7 +358,7 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
     added = 0
     for r in ranked:
         m = r.get("chg_pct_m")
-        if m is None or r["chg_pct"] * m <= 0:
+        if m is None or r["chg_pct"] <= 0 or m <= 0:
             continue
         w_str = f"{'+' if r['chg_pct'] >= 0 else ''}{r['chg_pct']:.2f}%"
         m_str = f"{'+' if m >= 0 else ''}{m:.2f}%"
