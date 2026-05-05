@@ -91,6 +91,8 @@ def scan_one(tv_sym: str, name: str, atr_length: int, debug: bool):
     if not bars_w or len(bars_w) < 2:
         return None
 
+    bars_m_raw = fetch_tv_ohlc(tv_sym, "M", 3)
+
     curr_close = float(bars_w[-1]["close"])
     prev_close = float(bars_w[-2]["close"])
 
@@ -111,19 +113,26 @@ def scan_one(tv_sym: str, name: str, atr_length: int, debug: bool):
     chg_abs = curr_close - prev_close
     chg_pct = (chg_abs / prev_close * 100) if prev_close else 0.0
 
+    chg_pct_m = None
+    if bars_m_raw and len(bars_m_raw) >= 2:
+        m_curr = float(bars_m_raw[-1]["close"])
+        m_prev = float(bars_m_raw[-2]["close"])
+        chg_pct_m = (m_curr - m_prev) / abs(m_prev) * 100 if m_prev else None
+
     return {
-        "symbol":   tv_sym,
-        "name":     name,
-        "close":    curr_close,
-        "dir_3m":   dir_3m,
-        "dir_m":    dir_m,
-        "dir_w":    dir_w,
-        "px_3m":    px_3m,
-        "px_m":     px_m,
-        "px_w":     px_w,
-        "streak_w": streak_w,
-        "chg_abs":  chg_abs,
-        "chg_pct":  chg_pct,
+        "symbol":    tv_sym,
+        "name":      name,
+        "close":     curr_close,
+        "dir_3m":    dir_3m,
+        "dir_m":     dir_m,
+        "dir_w":     dir_w,
+        "px_3m":     px_3m,
+        "px_m":      px_m,
+        "px_w":      px_w,
+        "streak_w":  streak_w,
+        "chg_abs":   chg_abs,
+        "chg_pct":   chg_pct,
+        "chg_pct_m": chg_pct_m,
     }
 
 
@@ -283,14 +292,22 @@ def build_full_console(results: list[dict], individuals: list[dict], ratios: lis
     bull = [r for r in results if is_full_bull(r)]
     bull.sort(key=lambda r: r["chg_pct"], reverse=True)
 
-    lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "MEILLEUR HEBDO"]
-    if not bull:
+    def _combo_score(r):
+        m = r.get("chg_pct_m")
+        return r["chg_pct"] * m if m is not None else float("-inf")
+
+    ranked = sorted(results, key=_combo_score, reverse=True)
+
+    lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "🏆 MEILLEUR HEBDO × MONTHLY"]
+    for r in ranked:
+        m = r.get("chg_pct_m")
+        if m is None or r["chg_pct"] * m <= 0:
+            continue
+        w_str = f"{'+' if r['chg_pct'] >= 0 else ''}{r['chg_pct']:.2f}%"
+        m_str = f"{'+' if m >= 0 else ''}{m:.2f}%"
+        lines.append(f"🟢 {r['name']} (W:{w_str} M:{m_str})")
+    if len(lines) == 3:
         lines.append("(aucun)")
-    else:
-        for r in bull:
-            fire = " 🔥" if r["chg_pct"] > 2.0 else ""
-            sign = "+" if r["chg_pct"] >= 0 else ""
-            lines.append(f"🟢 {r['name']} ({sign}{r['chg_pct']:.2f}%){fire}")
 
     lines += ["", "📊 ROC(14) & RSI(14) INDIVIDUELS"]
     ind_sorted = sorted(individuals, key=lambda x: x["roc14"] if x["roc14"] is not None else float("-inf"), reverse=True)
@@ -331,17 +348,27 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
     bull = [r for r in results if is_full_bull(r)]
     bull.sort(key=lambda r: r["chg_pct"], reverse=True)
 
-    lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "MEILLEUR HEBDO"]
-    if not bull:
+    def _combo_score(r):
+        m = r.get("chg_pct_m")
+        return r["chg_pct"] * m if m is not None else float("-inf")
+
+    ranked = sorted(results, key=_combo_score, reverse=True)
+
+    lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "🏆 MEILLEUR HEBDO × MONTHLY"]
+    added = 0
+    for r in ranked:
+        m = r.get("chg_pct_m")
+        if m is None or r["chg_pct"] * m <= 0:
+            continue
+        w_str = f"{'+' if r['chg_pct'] >= 0 else ''}{r['chg_pct']:.2f}%"
+        m_str = f"{'+' if m >= 0 else ''}{m:.2f}%"
+        label = f"{r['name']} (W:{w_str} M:{m_str})"
+        if r["name"] in HIGHLIGHT_ETFs:
+            label = f"<b>{label}</b>"
+        lines.append(f"🟢 {label}")
+        added += 1
+    if added == 0:
         lines.append("(aucun)")
-    else:
-        for r in bull:
-            fire = " 🔥" if r["chg_pct"] > 2.0 else ""
-            sign = "+" if r["chg_pct"] >= 0 else ""
-            label = f"{r['name']} ({sign}{r['chg_pct']:.2f}%){fire}"
-            if r["name"] in HIGHLIGHT_ETFs:
-                label = f"<b>{label}</b>"
-            lines.append(f"🟢 {label}")
 
     above_avg = [s for s in scores if s["score"] is not None and s["score"] >= avg_score]
     below_avg = [s for s in scores if s["score"] is not None and s["score"] < avg_score]
