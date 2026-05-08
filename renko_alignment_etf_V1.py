@@ -375,8 +375,9 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
     trend = etf_score_trend or {}
     deltas = etf_score_delta or {}
 
+    above_avg_sorted = sorted(above_avg, key=lambda s: deltas.get(s["name"], float("-inf")), reverse=True)
     lines += ["", "🎯 ETF DYNAMIQUE"]
-    for s in above_avg:
+    for s in above_avg_sorted:
         d = deltas.get(s["name"])
         if d is not None and d < 0:
             continue
@@ -392,6 +393,7 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
         all_deltas = list(deltas.values())
         avg_delta = sum(all_deltas) / len(all_deltas)
         rising = [s for s in below_avg if deltas.get(s["name"], float("-inf")) > avg_delta and deltas.get(s["name"], float("-inf")) > 0]
+        rising.sort(key=lambda s: deltas.get(s["name"], float("-inf")), reverse=True)
         if rising:
             lines += ["", "🚀 EN PROGRESSION"]
             for s in rising:
