@@ -1,0 +1,80 @@
+{
+  "initial_capital": 10000.0,
+  "cash": 8092.83639563336,
+  "fees_paid": 0.0306043666407863,
+  "positions": {
+    "OANDA:AUDJPY": {
+      "name": "AUDJPY",
+      "side": "LONG",
+      "qty": 8,
+      "avg_price": 113.431,
+      "margin": 907.448,
+      "entry_time": "2026-05-11 00:15",
+      "last_price": 113.431
+    },
+    "OANDA:EURUSD": {
+      "name": "EURUSD",
+      "side": "LONG",
+      "qty": 850,
+      "avg_price": 1.1761,
+      "margin": 999.685,
+      "entry_time": "2026-05-11 00:15",
+      "last_price": 1.1761
+    }
+  },
+  "history": [
+    {
+      "time": "2026-05-11 00:15",
+      "equity": 9999.97,
+      "cash": 8092.84,
+      "pnl": -0.03,
+      "pnl_pct": -0.0,
+      "gross_pnl_before_fees": 0.0,
+      "fees_paid": 0.03,
+      "fee_drag_pct": 0.0,
+      "positions": 2
+    }
+  ],
+  "trades": [
+    {
+      "time": "2026-05-11 00:15",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDJPY",
+      "name": "AUDJPY",
+      "qty": 8,
+      "price": 113.431,
+      "gross": 907.45,
+      "fee": 0.0005,
+      "fee_detail": {
+        "spread_pips": 2.478407,
+        "spread_cost_eur": 0.0005372337439237851,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 907.45,
+      "cash_after": 9092.55
+    },
+    {
+      "time": "2026-05-11 00:15",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:EURUSD",
+      "name": "EURUSD",
+      "qty": 850,
+      "price": 1.1761,
+      "gross": 999.68,
+      "fee": 0.0301,
+      "fee_detail": {
+        "spread_pips": 0.832046,
+        "spread_cost_eur": 0.030067132896862515,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.72,
+      "cash_after": 8092.84
+    }
+  ],
+  "first_run": "2026-05-11 00:15",
+  "last_update": "2026-05-11 00:15"
+}
