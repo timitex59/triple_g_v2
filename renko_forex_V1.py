@@ -1129,14 +1129,17 @@ def update_portfolio_simulation(
             ordered_positions.append((sym, positions[sym]))
 
     for sym, pos in ordered_positions:
-        qty = int(pos.get("qty", 0) or 0)
         new_txt = " 🆕" if sym in bought_symbols else ""
-        snap = snap_map.get(sym)
-        roc = snap.price_roc7 if snap else None
-        roc_txt = f" {roc:+.2f}%" if roc is not None else ""
         side = pos.get("side", "LONG")
         side_icon = "🟢" if side == "LONG" else "🔴"
-        summary.append(f"{side_icon}{side} {pos.get('name', sym)} ({qty}){roc_txt}{new_txt}")
+        entry = float(pos.get("avg_price", 0) or 0)
+        last  = float(pos.get("last_price", entry) or entry)
+        pip_size = 0.01 if "JPY" in sym or "XAU" in sym else 0.0001
+        raw_pips = (last - entry) / pip_size if side == "LONG" else (entry - last) / pip_size
+        pips = round(raw_pips, 1)
+        pips_txt = f"{pips:+.1f} pips"
+        entry_fmt = f"{entry:.3f}" if "JPY" in sym else f"{entry:.5f}" if "XAU" not in sym else f"{entry:.2f}"
+        summary.append(f"{side_icon}{pos.get('name', sym)} ({entry_fmt}) {pips_txt}{new_txt}")
 
     if sold_trades:
         summary.append("🚨 FOREX CLOSE ALERTS")
