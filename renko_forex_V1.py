@@ -1414,8 +1414,6 @@ def main() -> int:
     if parts:
         msg = "\n\n".join(parts) + f"\n\n📅 First run {portfolio_first_run}\n⏰ {now_str} Paris"
         print(f"\n{msg}\n")
-        if not args.no_telegram:
-            send_telegram(msg)
 
     # ── Detailed output ──
     if not args.filter_positive:
