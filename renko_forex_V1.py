@@ -1356,7 +1356,7 @@ def main() -> int:
         added_day = (entry.get("added_at") or "")[:10]
         new_tag = " 🆕" if added_day == today_str else ""
         side = trade_side_label(s)
-        lines_top10.append(f"{i:>2}. {dot} {side} {s.name} (+{s.pnl_pct:.2f}%){new_tag}{tag}")
+        lines_top10.append(f"{i:>2}. {dot} {s.name} (+{s.pnl_pct:.2f}%){new_tag}{tag}")
         if roc is not None and roc < 0:
             weakening.append(s)
 
