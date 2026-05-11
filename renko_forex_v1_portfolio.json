@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
   "cash": 5286.296995298598,
-  "fees_paid": 0.15692470140262643,
+  "fees_paid": 0.16,
   "positions": {
     "OANDA:AUDJPY": {
       "name": "AUDJPY",
@@ -10,7 +10,7 @@
       "avg_price": 113.431,
       "margin": 907.448,
       "entry_time": "2026-05-11 00:15",
-      "last_price": 113.842
+      "last_price": 113.966
     },
     "OANDA:EURUSD": {
       "name": "EURUSD",
@@ -19,7 +19,7 @@
       "avg_price": 1.1761,
       "margin": 999.685,
       "entry_time": "2026-05-11 00:15",
-      "last_price": 1.1772
+      "last_price": 1.17826
     },
     "OANDA:CHFJPY": {
       "name": "CHFJPY",
@@ -28,7 +28,7 @@
       "avg_price": 201.871,
       "margin": 807.484,
       "entry_time": "2026-05-11 09:55",
-      "last_price": 201.855
+      "last_price": 202.012
     },
     "OANDA:AUDCAD": {
       "name": "AUDCAD",
@@ -37,7 +37,7 @@
       "avg_price": 0.99004,
       "margin": 999.9404000000001,
       "entry_time": "2026-05-11 13:38",
-      "last_price": 0.99004
+      "last_price": 0.99201
     },
     "OANDA:GBPUSD": {
       "name": "GBPUSD",
@@ -46,7 +46,7 @@
       "avg_price": 1.36102,
       "margin": 998.9886799999999,
       "entry_time": "2026-05-11 13:38",
-      "last_price": 1.36102
+      "last_price": 1.36462
     }
   },
   "history": [
@@ -79,6 +79,17 @@
       "pnl": 4.0,
       "pnl_pct": 0.04,
       "gross_pnl_before_fees": 4.16,
+      "fees_paid": 0.16,
+      "fee_drag_pct": 0.0,
+      "positions": 5
+    },
+    {
+      "time": "2026-05-11 17:37",
+      "equity": 10011.16,
+      "cash": 5286.3,
+      "pnl": 11.16,
+      "pnl_pct": 0.11,
+      "gross_pnl_before_fees": 11.32,
       "fees_paid": 0.16,
       "fee_drag_pct": 0.0,
       "positions": 5
@@ -182,5 +193,5 @@
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-11 13:38"
+  "last_update": "2026-05-11 17:37"
 }
