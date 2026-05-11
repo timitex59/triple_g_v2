@@ -4,7 +4,7 @@
     "side": "LONG",
     "added_at": "2026-05-11T00:15:56.090323+02:00",
     "added_pnl": 0.307,
-    "current_pnl": 0.307,
+    "current_pnl": 0.3991,
     "alert_triggered": false,
     "alert_at": null,
     "alert_day": null,
@@ -15,27 +15,44 @@
     "side": "LONG",
     "added_at": "2026-05-11T00:15:56.090323+02:00",
     "added_pnl": 0.824,
-    "current_pnl": 0.824,
+    "current_pnl": 1.0915,
     "alert_triggered": false,
     "alert_at": null,
     "alert_day": null,
     "removed": false
   },
   "_meta": {
-    "last_ranked_at": "2026-05-11T00:15:56.090388+02:00",
+    "last_ranked_at": "2026-05-11T09:55:34.744137+02:00",
     "last_ranked_symbols": [
       {
         "symbol": "OANDA:AUDJPY",
         "name": "AUDJPY",
         "rank": 1,
-        "pnl": 0.824
+        "pnl": 1.0915
       },
       {
         "symbol": "OANDA:EURUSD",
         "name": "EURUSD",
         "rank": 2,
-        "pnl": 0.307
+        "pnl": 0.3991
+      },
+      {
+        "symbol": "OANDA:CHFJPY",
+        "name": "CHFJPY",
+        "rank": 3,
+        "pnl": 0.0213
       }
     ]
+  },
+  "OANDA:CHFJPY": {
+    "name": "CHFJPY",
+    "side": "LONG",
+    "added_at": "2026-05-11T09:55:34.744024+02:00",
+    "added_pnl": 0.0213,
+    "current_pnl": 0.0213,
+    "alert_triggered": false,
+    "alert_at": null,
+    "alert_day": null,
+    "removed": false
   }
 }
