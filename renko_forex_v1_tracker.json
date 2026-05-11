@@ -4,7 +4,7 @@
     "side": "LONG",
     "added_at": "2026-05-11T00:15:56.090323+02:00",
     "added_pnl": 0.307,
-    "current_pnl": 0.3991,
+    "current_pnl": 0.4009,
     "alert_triggered": false,
     "alert_at": null,
     "alert_day": null,
@@ -15,32 +15,44 @@
     "side": "LONG",
     "added_at": "2026-05-11T00:15:56.090323+02:00",
     "added_pnl": 0.824,
-    "current_pnl": 1.0915,
+    "current_pnl": 1.1893,
     "alert_triggered": false,
     "alert_at": null,
     "alert_day": null,
     "removed": false
   },
   "_meta": {
-    "last_ranked_at": "2026-05-11T09:55:34.744137+02:00",
+    "last_ranked_at": "2026-05-11T13:38:09.090782+02:00",
     "last_ranked_symbols": [
+      {
+        "symbol": "OANDA:AUDCAD",
+        "name": "AUDCAD",
+        "rank": 1,
+        "pnl": 1.2559
+      },
       {
         "symbol": "OANDA:AUDJPY",
         "name": "AUDJPY",
-        "rank": 1,
-        "pnl": 1.0915
+        "rank": 2,
+        "pnl": 1.1893
       },
       {
         "symbol": "OANDA:EURUSD",
         "name": "EURUSD",
-        "rank": 2,
-        "pnl": 0.3991
+        "rank": 3,
+        "pnl": 0.4009
+      },
+      {
+        "symbol": "OANDA:GBPUSD",
+        "name": "GBPUSD",
+        "rank": 4,
+        "pnl": 0.2593
       },
       {
         "symbol": "OANDA:CHFJPY",
         "name": "CHFJPY",
-        "rank": 3,
-        "pnl": 0.0213
+        "rank": 5,
+        "pnl": 0.0134
       }
     ]
   },
@@ -49,7 +61,29 @@
     "side": "LONG",
     "added_at": "2026-05-11T09:55:34.744024+02:00",
     "added_pnl": 0.0213,
-    "current_pnl": 0.0213,
+    "current_pnl": 0.0134,
+    "alert_triggered": false,
+    "alert_at": null,
+    "alert_day": null,
+    "removed": false
+  },
+  "OANDA:AUDCAD": {
+    "name": "AUDCAD",
+    "side": "LONG",
+    "added_at": "2026-05-11T13:38:09.090708+02:00",
+    "added_pnl": 1.2559,
+    "current_pnl": 1.2559,
+    "alert_triggered": false,
+    "alert_at": null,
+    "alert_day": null,
+    "removed": false
+  },
+  "OANDA:GBPUSD": {
+    "name": "GBPUSD",
+    "side": "LONG",
+    "added_at": "2026-05-11T13:38:09.090708+02:00",
+    "added_pnl": 0.2593,
+    "current_pnl": 0.2593,
     "alert_triggered": false,
     "alert_at": null,
     "alert_day": null,
