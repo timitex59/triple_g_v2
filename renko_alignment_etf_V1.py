@@ -298,7 +298,7 @@ def build_full_console(results: list[dict], individuals: list[dict], ratios: lis
 
     ranked = sorted(results, key=_combo_score, reverse=True)
 
-    lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "🏆 MEILLEUR HEBDO × MONTHLY"]
+    lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "🏆 MEILLEUR DU MOIS"]
     for r in ranked:
         m = r.get("chg_pct_m")
         if m is None or r["chg_pct"] <= 0 or m <= 0:
@@ -355,7 +355,7 @@ def build_message(results: list[dict], individuals: list[dict], ratios: list[dic
 
     ranked = sorted(results, key=_combo_score, reverse=True)
 
-    lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "🏆 MEILLEUR HEBDO × MONTHLY"]
+    lines = ["📊 ETF V1" + _market_status(individuals, avg_score, metrics_roc14), "", "🏆 MEILLEUR DU MOIS"]
     added = 0
     for r in ranked:
         m = r.get("chg_pct_m")
