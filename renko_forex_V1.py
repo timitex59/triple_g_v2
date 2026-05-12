@@ -1152,7 +1152,20 @@ def update_portfolio_simulation(
         roc14 = snap.price_roc14 if snap else None
         roc7_fmt  = f"{roc7:+.2f}%"  if roc7  is not None else "N/A"
         roc14_fmt = f"{roc14:+.2f}%" if roc14 is not None else "N/A"
-        pos_lines.append(f"{side_icon}{pos.get('name', sym)} (R7:{roc7_fmt} R14:{roc14_fmt}) {pips_txt}{new_txt}")
+        signal_tag = ""
+        if roc7 is not None and roc14 is not None:
+            is_long = (side == "LONG")
+            r7_bull = roc7 > 0
+            r14_bull = roc14 > 0
+            if r7_bull == is_long and r14_bull == is_long:
+                signal_tag = " 🔥"
+            elif r7_bull != is_long and r14_bull != is_long:
+                signal_tag = " ⚠️"
+            elif r7_bull != is_long and r14_bull == is_long:
+                signal_tag = " 💚"
+            else:
+                signal_tag = " 🔶"
+        pos_lines.append(f"{side_icon}{pos.get('name', sym)} (R7:{roc7_fmt} R14:{roc14_fmt}) {pips_txt}{new_txt}{signal_tag}")
 
     pips_icon = "🟢" if total_pips >= 0 else "🔴"
     summary.insert(3, f"{pips_icon} Pips {total_pips:+.1f}")
