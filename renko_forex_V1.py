@@ -376,6 +376,7 @@ class ForexSnapshot:
     pnl_pct: float | None
     price_roc7: float | None
     price_roc14: float | None
+    price_roc21: float | None
     last_event_time: int | None
     last_event_price: float | None
     close: float
@@ -417,7 +418,8 @@ def scan_symbol(symbol: str, name: str, atr_length: int,
     bar_time   = int(bars_d[-1]["time"])
     price_roc7: float | None = None
     price_roc14: float | None = None
-    bars_roc = fetch_tv_ohlc(symbol, "D", 17)
+    price_roc21: float | None = None
+    bars_roc = fetch_tv_ohlc(symbol, "D", 24)
     if bars_roc and len(bars_roc) >= 8:
         roc_close = float(bars_roc[-1]["close"])
         prev7  = float(bars_roc[-8]["close"])
@@ -427,6 +429,10 @@ def scan_symbol(symbol: str, name: str, atr_length: int,
             prev14 = float(bars_roc[-15]["close"])
             if prev14:
                 price_roc14 = (roc_close - prev14) / prev14 * 100
+        if len(bars_roc) >= 22:
+            prev21 = float(bars_roc[-22]["close"])
+            if prev21:
+                price_roc21 = (roc_close - prev21) / prev21 * 100
 
     last_3m = brick_mn[-1]
     last_m  = brick_w1[-1]
@@ -483,7 +489,7 @@ def scan_symbol(symbol: str, name: str, atr_length: int,
         streak_3m=streak_3m, streak_m=streak_m, streak_w=streak_w,
         aligned=aligned,
         bias_state_before=bias_before, bias_state_after=bias_after,
-        bias_entry=bias_entry, pnl_pct=pnl_pct, price_roc7=price_roc7, price_roc14=price_roc14,
+        bias_entry=bias_entry, pnl_pct=pnl_pct, price_roc7=price_roc7, price_roc14=price_roc14, price_roc21=price_roc21,
         last_event_time=last_t, last_event_price=last_p,
         close=curr_close, ts_utc=bar_time,
     )
@@ -1150,22 +1156,26 @@ def update_portfolio_simulation(
         snap = snap_map.get(sym)
         roc7  = snap.price_roc7  if snap else None
         roc14 = snap.price_roc14 if snap else None
+        roc21 = snap.price_roc21 if snap else None
         roc7_fmt  = f"{roc7:+.2f}%"  if roc7  is not None else "N/A"
         roc14_fmt = f"{roc14:+.2f}%" if roc14 is not None else "N/A"
+        roc21_fmt = f"{roc21:+.2f}%" if roc21 is not None else "N/A"
         signal_tag = ""
-        if roc7 is not None and roc14 is not None:
+        rocs = [r for r in (roc7, roc14, roc21) if r is not None]
+        if rocs:
             is_long = (side == "LONG")
-            r7_bull = roc7 > 0
-            r14_bull = roc14 > 0
-            if r7_bull == is_long and r14_bull == is_long:
+            bulls = [r > 0 for r in rocs]
+            aligned_with = [b == is_long for b in bulls]
+            score = sum(aligned_with)
+            if score == len(rocs):
                 signal_tag = " 🔥"
-            elif r7_bull != is_long and r14_bull != is_long:
+            elif score == 0:
                 signal_tag = " ⚠️"
-            elif r7_bull != is_long and r14_bull == is_long:
+            elif bulls[-1] == is_long:
                 signal_tag = " 💚"
             else:
                 signal_tag = " 🔶"
-        pos_lines.append(f"{side_icon}{pos.get('name', sym)} (R7:{roc7_fmt} R14:{roc14_fmt}) {pips_txt}{new_txt}{signal_tag}")
+        pos_lines.append(f"{side_icon}{pos.get('name', sym)} (R7:{roc7_fmt} R14:{roc14_fmt} R21:{roc21_fmt}) {pips_txt}{new_txt}{signal_tag}")
 
     pips_icon = "🟢" if total_pips >= 0 else "🔴"
     summary.insert(3, f"{pips_icon} Pips {total_pips:+.1f}")
