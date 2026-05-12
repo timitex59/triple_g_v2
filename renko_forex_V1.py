@@ -375,6 +375,7 @@ class ForexSnapshot:
     bias_entry: float | None
     pnl_pct: float | None
     price_roc7: float | None
+    price_roc14: float | None
     last_event_time: int | None
     last_event_price: float | None
     close: float
@@ -415,12 +416,17 @@ def scan_symbol(symbol: str, name: str, atr_length: int,
     curr_close = float(bars_d[-1]["close"])
     bar_time   = int(bars_d[-1]["time"])
     price_roc7: float | None = None
-    bars_roc = fetch_tv_ohlc(symbol, "D", 10)
+    price_roc14: float | None = None
+    bars_roc = fetch_tv_ohlc(symbol, "D", 17)
     if bars_roc and len(bars_roc) >= 8:
         roc_close = float(bars_roc[-1]["close"])
-        prev_close = float(bars_roc[-8]["close"])
-        if prev_close:
-            price_roc7 = (roc_close - prev_close) / prev_close * 100
+        prev7  = float(bars_roc[-8]["close"])
+        if prev7:
+            price_roc7 = (roc_close - prev7) / prev7 * 100
+        if len(bars_roc) >= 15:
+            prev14 = float(bars_roc[-15]["close"])
+            if prev14:
+                price_roc14 = (roc_close - prev14) / prev14 * 100
 
     last_3m = brick_mn[-1]
     last_m  = brick_w1[-1]
@@ -477,7 +483,7 @@ def scan_symbol(symbol: str, name: str, atr_length: int,
         streak_3m=streak_3m, streak_m=streak_m, streak_w=streak_w,
         aligned=aligned,
         bias_state_before=bias_before, bias_state_after=bias_after,
-        bias_entry=bias_entry, pnl_pct=pnl_pct, price_roc7=price_roc7,
+        bias_entry=bias_entry, pnl_pct=pnl_pct, price_roc7=price_roc7, price_roc14=price_roc14,
         last_event_time=last_t, last_event_price=last_p,
         close=curr_close, ts_utc=bar_time,
     )
@@ -1142,9 +1148,11 @@ def update_portfolio_simulation(
         total_pips += pips
         pips_txt = f"{pips:+.1f} pips"
         snap = snap_map.get(sym)
-        roc = snap.price_roc7 if snap else None
-        roc_fmt = f"{roc:+.2f}%" if roc is not None else "N/A"
-        pos_lines.append(f"{side_icon}{pos.get('name', sym)} ({roc_fmt}) {pips_txt}{new_txt}")
+        roc7  = snap.price_roc7  if snap else None
+        roc14 = snap.price_roc14 if snap else None
+        roc7_fmt  = f"{roc7:+.2f}%"  if roc7  is not None else "N/A"
+        roc14_fmt = f"{roc14:+.2f}%" if roc14 is not None else "N/A"
+        pos_lines.append(f"{side_icon}{pos.get('name', sym)} (R7:{roc7_fmt} R14:{roc14_fmt}) {pips_txt}{new_txt}")
 
     pips_icon = "🟢" if total_pips >= 0 else "🔴"
     summary.insert(3, f"{pips_icon} Pips {total_pips:+.1f}")
