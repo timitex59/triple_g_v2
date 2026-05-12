@@ -1141,8 +1141,10 @@ def update_portfolio_simulation(
         pips = round(raw_pips, 1)
         total_pips += pips
         pips_txt = f"{pips:+.1f} pips"
-        entry_fmt = f"{entry:.3f}" if "JPY" in sym else f"{entry:.5f}" if "XAU" not in sym else f"{entry:.2f}"
-        pos_lines.append(f"{side_icon}{pos.get('name', sym)} ({entry_fmt}) {pips_txt}{new_txt}")
+        snap = snap_map.get(sym)
+        roc = snap.price_roc7 if snap else None
+        roc_fmt = f"{roc:+.2f}%" if roc is not None else "N/A"
+        pos_lines.append(f"{side_icon}{pos.get('name', sym)} ({roc_fmt}) {pips_txt}{new_txt}")
 
     pips_icon = "🟢" if total_pips >= 0 else "🔴"
     summary.insert(3, f"{pips_icon} Pips {total_pips:+.1f}")
