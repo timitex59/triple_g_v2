@@ -467,19 +467,22 @@ def scan_currency_indices(atr_length: int = 14) -> list[str]:
         s3m = px_state(b3m[-1]["open"], b3m[-1]["close"], price)
         sm  = px_state(bm[-1]["open"],  bm[-1]["close"],  price)
         sw  = px_state(bw[-1]["open"],  bw[-1]["close"],  price)
+        streak_3m = green_streak(b3m)
+        streak_m  = green_streak(bm)
+        streak_w  = green_streak(bw)
         bull_count = sum(1 for s in (s3m, sm, sw) if s == 1)
         bear_count = sum(1 for s in (s3m, sm, sw) if s == -1)
         if bull_count >= 2 and sw == 1:
-            results.append((bull_count, 1, currency))
+            results.append((bull_count, 1, currency, streak_3m, streak_m, streak_w))
         elif bear_count >= 2 and sw == -1:
-            results.append((bear_count, -1, currency))
-    bull = sorted([(c, cur) for c, d, cur in results if d == 1], reverse=True)
-    bear = sorted([(c, cur) for c, d, cur in results if d == -1], reverse=True)
+            results.append((bear_count, -1, currency, streak_3m, streak_m, streak_w))
+    bull = sorted([(c, cur, s3, sm, sw) for c, d, cur, s3, sm, sw in results if d == 1], reverse=True)
+    bear = sorted([(c, cur, s3, sm, sw) for c, d, cur, s3, sm, sw in results if d == -1], reverse=True)
     lines = []
-    for count, currency in bull:
-        lines.append(f"🟢 {currency} ({count})")
-    for count, currency in bear:
-        lines.append(f"🔴 {currency} ({count})")
+    for count, currency, s3, sm, sw in bull:
+        lines.append(f"🟢 {currency} ({count}) [3M:{s3} M:{sm} W:{sw}]")
+    for count, currency, s3, sm, sw in bear:
+        lines.append(f"🔴 {currency} ({count}) [3M:{s3} M:{sm} W:{sw}]")
     return lines
 
 
