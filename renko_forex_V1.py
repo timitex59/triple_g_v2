@@ -469,9 +469,9 @@ def scan_currency_indices(atr_length: int = 14) -> list[str]:
         sw  = px_state(bw[-1]["open"],  bw[-1]["close"],  price)
         bull_count = sum(1 for s in (s3m, sm, sw) if s == 1)
         bear_count = sum(1 for s in (s3m, sm, sw) if s == -1)
-        if bull_count >= 2:
+        if bull_count >= 2 and sw == 1:
             results.append((bull_count, 1, currency))
-        elif bear_count >= 2:
+        elif bear_count >= 2 and sw == -1:
             results.append((bear_count, -1, currency))
     bull = sorted([(c, cur) for c, d, cur in results if d == 1], reverse=True)
     bear = sorted([(c, cur) for c, d, cur in results if d == -1], reverse=True)
