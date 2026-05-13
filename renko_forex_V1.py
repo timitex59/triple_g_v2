@@ -310,6 +310,83 @@ def px_state(renko_open: float, renko_close: float, price: float) -> int:
     return 1 if price > h else (-1 if price < l else 0)
 
 
+def _compute_psar(bars: list[dict], start: float = 0.1, increment: float = 0.1, maximum: float = 0.2) -> list[float]:
+    """Parabolic SAR — same defaults as sarenki_V3.pine."""
+    n = len(bars)
+    if n < 2:
+        return [float("nan")] * n
+    sar = [float("nan")] * n
+    highs = [float(b["high"]) for b in bars]
+    lows  = [float(b["low"])  for b in bars]
+    closes = [float(b["close"]) for b in bars]
+    bull = closes[1] >= closes[0]
+    af = start
+    ep = highs[1] if bull else lows[1]
+    sar[0] = lows[0] if bull else highs[0]
+    sar[1] = lows[0] if bull else highs[0]
+    for i in range(2, n):
+        prev_sar = sar[i - 1]
+        if bull:
+            new_sar = prev_sar + af * (ep - prev_sar)
+            new_sar = min(new_sar, lows[i - 1], lows[i - 2])
+            if lows[i] < new_sar:
+                bull = False
+                new_sar = ep
+                ep = lows[i]
+                af = start
+            else:
+                if highs[i] > ep:
+                    ep = highs[i]
+                    af = min(af + increment, maximum)
+        else:
+            new_sar = prev_sar + af * (ep - prev_sar)
+            new_sar = max(new_sar, highs[i - 1], highs[i - 2])
+            if highs[i] > new_sar:
+                bull = True
+                new_sar = ep
+                ep = highs[i]
+                af = start
+            else:
+                if lows[i] < ep:
+                    ep = lows[i]
+                    af = min(af + increment, maximum)
+        sar[i] = new_sar
+    return sar
+
+
+def sar_h1_breakout(symbol: str, direction: int) -> bool:
+    """Return True if current H1 close crosses one of the 3 last opposite SAR levels."""
+    bars = fetch_tv_ohlc(symbol, "60", 150)
+    if not bars or len(bars) < 10:
+        return False
+    sar_vals = _compute_psar(bars)
+    closes = [float(b["close"]) for b in bars]
+    n = len(bars)
+    # Identify last 3 crossunder (close goes below SAR → bearish flip → bear_vw0)
+    # and last 3 crossover (close goes above SAR → bullish flip → bull_vw0)
+    bear_levels: list[float] = []  # SAR at last crossunders
+    bull_levels: list[float] = []  # SAR at last crossovers
+    for i in range(1, n):
+        if float("nan") in (sar_vals[i], sar_vals[i - 1]):
+            continue
+        cross_over  = closes[i] > sar_vals[i] and closes[i - 1] <= sar_vals[i - 1]
+        cross_under = closes[i] < sar_vals[i] and closes[i - 1] >= sar_vals[i - 1]
+        if cross_over:
+            bull_levels.append(sar_vals[i])
+        if cross_under:
+            bear_levels.append(sar_vals[i])
+    # Keep last 3 of each
+    bear_levels = bear_levels[-3:]
+    bull_levels = bull_levels[-3:]
+    curr  = closes[-1]
+    prev  = closes[-2]
+    if direction == 1:   # LONG: price crosses above any bear level
+        return any(prev <= lvl < curr for lvl in bear_levels)
+    elif direction == -1:  # SHORT: price crosses below any bull level
+        return any(curr < lvl <= prev for lvl in bull_levels)
+    return False
+
+
 def _fetch_renko_with_fallback(symbol: str, interval: str, atr_length: int,
                                 n_candles: int, debug: bool = False) -> list[dict] | None:
     """Return list of renko bricks [{open, close}, ...] or None."""
@@ -1182,7 +1259,9 @@ def update_portfolio_simulation(
                 signal_tag = " 💚"
             else:
                 signal_tag = " 🔶"
-        pos_lines.append(f"{side_icon}{pos.get('name', sym)} {pips_txt}{new_txt}{signal_tag}")
+        sar_dir = 1 if side == "LONG" else -1
+        sar_tag = " ⚡" if sar_h1_breakout(sym, sar_dir) else ""
+        pos_lines.append(f"{side_icon}{pos.get('name', sym)} {pips_txt}{new_txt}{signal_tag}{sar_tag}")
 
     pips_icon = "🟢" if total_pips >= 0 else "🔴"
     summary.insert(3, f"{pips_icon} Pips {total_pips:+.1f}")
