@@ -1007,9 +1007,13 @@ def update_portfolio_simulation(
         snap_side = trade_side_label(snap) if snap else "MIXED"
         if snap and snap_side != "MIXED" and snap_side != pos_side:
             sell_symbols.add(sym)
-        elif snap and snap.price_roc7 is not None:
-            if (pos_side == "LONG" and snap.price_roc7 < 0) or (pos_side == "SHORT" and snap.price_roc7 > 0):
-                sell_symbols.add(sym)
+        elif snap:
+            rocs = [r for r in (snap.price_roc7, snap.price_roc14, snap.price_roc21) if r is not None]
+            if rocs:
+                if pos_side == "LONG" and not all(r >= 0 for r in rocs):
+                    sell_symbols.add(sym)
+                elif pos_side == "SHORT" and not all(r <= 0 for r in rocs):
+                    sell_symbols.add(sym)
         margin = float(positions[sym].get("margin", 0.0) or 0.0)
         if margin <= 0:
             qty = int(positions[sym].get("qty", 0) or 0)
@@ -1029,8 +1033,10 @@ def update_portfolio_simulation(
             snap_side = trade_side_label(snap)
             if snap_side != "MIXED" and snap_side != pos_side:
                 return "SIDE CHANGED"
-            if snap.price_roc7 is not None:
-                if (pos_side == "LONG" and snap.price_roc7 < 0) or (pos_side == "SHORT" and snap.price_roc7 > 0):
+            rocs = [r for r in (snap.price_roc7, snap.price_roc14, snap.price_roc21) if r is not None]
+            if rocs:
+                if (pos_side == "LONG" and not all(r >= 0 for r in rocs)) or \
+                   (pos_side == "SHORT" and not all(r <= 0 for r in rocs)):
                     return "ROC OPPOSE"
         return "CLOSE ALERT"
 
