@@ -611,13 +611,18 @@ def scan_symbol(symbol: str, name: str, atr_length: int,
     px_w1 = px_state(last_m["open"],  last_m["close"],  curr_close)
     px_d1 = px_state(last_w["open"],  last_w["close"],  curr_close)
 
-    streak_3m = green_streak(brick_mn)
-    streak_m  = green_streak(brick_w1)
-    streak_w  = green_streak(brick_d1)
-
     aligned_bull = px_mn == 1 and px_w1 == 1 and px_d1 == 1
     aligned_bear = px_mn == -1 and px_w1 == -1 and px_d1 == -1
     aligned = 1 if aligned_bull else (-1 if aligned_bear else 0)
+
+    if aligned_bear:
+        streak_3m = red_streak(brick_mn)
+        streak_m  = red_streak(brick_w1)
+        streak_w  = red_streak(brick_d1)
+    else:
+        streak_3m = green_streak(brick_mn)
+        streak_m  = green_streak(brick_w1)
+        streak_w  = green_streak(brick_d1)
 
     bias_before = int(_get(state, symbol, "biasState", 0))
     bias_entry  = _get(state, symbol, "biasEntry")
