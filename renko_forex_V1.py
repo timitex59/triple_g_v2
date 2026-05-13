@@ -69,6 +69,17 @@ FOREX_ASSETS: list[tuple[str, str]] = [
     (f"OANDA:{pair}", pair) for pair in PAIRS_29
 ]
 
+CURRENCY_INDICES: list[tuple[str, str, str]] = [
+    ("DXY", "TVC:DXY", "USD"),
+    ("EXY", "TVC:EXY", "EUR"),
+    ("BXY", "TVC:BXY", "GBP"),
+    ("JXY", "TVC:JXY", "JPY"),
+    ("SXY", "TVC:SXY", "CHF"),
+    ("CXY", "TVC:CXY", "CAD"),
+    ("AXY", "TVC:AXY", "AUD"),
+    ("ZXY", "TVC:ZXY", "NZD"),
+]
+
 
 # ─── WebSocket helpers ────────────────────────────────────────────────────────
 
@@ -436,6 +447,40 @@ def _fetch_renko_with_fallback(symbol: str, interval: str, atr_length: int,
     if debug and series:
         print(f"  [{symbol}] renko {interval} fallback box={atr:.4f} bricks={len(series)}")
     return series if series else None
+
+
+# ─── Currency index scan ─────────────────────────────────────────────────────
+
+def scan_currency_indices(atr_length: int = 14) -> list[str]:
+    """Scan CURRENCY_INDICES, return Telegram lines for those with ≥2/3 Renko TFs aligned."""
+    results = []
+    for ticker, tv_sym, currency in CURRENCY_INDICES:
+        b3m = _fetch_renko_with_fallback(tv_sym, "3M", atr_length, 100)
+        bm  = _fetch_renko_with_fallback(tv_sym, "M",  atr_length, 200)
+        bw  = _fetch_renko_with_fallback(tv_sym, "W",  atr_length, 200)
+        if not b3m or not bm or not bw:
+            continue
+        bars = fetch_tv_ohlc(tv_sym, "W", 4)
+        if not bars:
+            continue
+        price = float(bars[-1]["close"])
+        s3m = px_state(b3m[-1]["open"], b3m[-1]["close"], price)
+        sm  = px_state(bm[-1]["open"],  bm[-1]["close"],  price)
+        sw  = px_state(bw[-1]["open"],  bw[-1]["close"],  price)
+        bull_count = sum(1 for s in (s3m, sm, sw) if s == 1)
+        bear_count = sum(1 for s in (s3m, sm, sw) if s == -1)
+        if bull_count >= 2:
+            results.append((bull_count, 1, currency))
+        elif bear_count >= 2:
+            results.append((bear_count, -1, currency))
+    bull = sorted([(c, cur) for c, d, cur in results if d == 1], reverse=True)
+    bear = sorted([(c, cur) for c, d, cur in results if d == -1], reverse=True)
+    lines = []
+    for count, currency in bull:
+        lines.append(f"🟢 {currency} ({count})")
+    for count, currency in bear:
+        lines.append(f"🔴 {currency} ({count})")
+    return lines
 
 
 # ─── State / tracker persistence ─────────────────────────────────────────────
@@ -1604,10 +1649,15 @@ def main() -> int:
         if not args.no_telegram:
             send_telegram(close_msg)
 
+    index_lines = scan_currency_indices(args.length)
+
     portfolio_lines, _portfolio_info = update_portfolio_simulation(
         portfolio, buy_targets, close_alerts, snaps, now_str, paris_tz
     )
     _save_json(PORTFOLIO_PATH, portfolio)
+
+    if index_lines:
+        portfolio_lines += ["", "📊 INDICES FOREX"] + index_lines
 
     if portfolio_lines:
         portfolio_msg = "\n".join(portfolio_lines) + f"\n\n⏰ {now_str} Paris"
