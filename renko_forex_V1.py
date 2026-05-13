@@ -8,6 +8,7 @@ Logic mirrors renko_monster_V5.pine — no SAR filter, triple alignment only.
 
 import argparse
 import json
+import math
 import os
 import random
 import string
@@ -367,7 +368,7 @@ def sar_h1_breakout(symbol: str, direction: int) -> bool:
     bear_levels: list[float] = []  # SAR at last crossunders
     bull_levels: list[float] = []  # SAR at last crossovers
     for i in range(1, n):
-        if float("nan") in (sar_vals[i], sar_vals[i - 1]):
+        if math.isnan(sar_vals[i]) or math.isnan(sar_vals[i - 1]):
             continue
         cross_over  = closes[i] > sar_vals[i] and closes[i - 1] <= sar_vals[i - 1]
         cross_under = closes[i] < sar_vals[i] and closes[i - 1] >= sar_vals[i - 1]
@@ -385,6 +386,33 @@ def sar_h1_breakout(symbol: str, direction: int) -> bool:
     elif direction == -1:  # SHORT: price crosses below any bull level
         return any(curr < lvl <= prev for lvl in bull_levels)
     return False
+
+
+def sar_h1_cross_events_24h(symbol: str, direction: int, paris_tz) -> list[dict]:
+    """Return SAR H1 cross events (closed candles only) in the last 24h, filtered by bias direction."""
+    bars = fetch_tv_ohlc(symbol, "60", 150)
+    if not bars or len(bars) < 10:
+        return []
+    sar_vals = _compute_psar(bars)
+    closes = [float(b["close"]) for b in bars]
+    n = len(bars)
+    cutoff = time.time() - 86400
+    events = []
+    for i in range(1, n - 1):  # exclude last (unclosed) candle
+        bar_time = int(bars[i]["time"])
+        if bar_time < cutoff:
+            continue
+        if math.isnan(sar_vals[i]) or math.isnan(sar_vals[i - 1]):
+            continue
+        cross_over  = closes[i] > sar_vals[i] and closes[i - 1] <= sar_vals[i - 1]
+        cross_under = closes[i] < sar_vals[i] and closes[i - 1] >= sar_vals[i - 1]
+        if direction == 1 and cross_over:
+            dt = datetime.fromtimestamp(bar_time, tz=paris_tz).strftime("%H:%M")
+            events.append({"time_paris": dt, "type": "crossover ↑", "sar": sar_vals[i], "close": closes[i]})
+        elif direction == -1 and cross_under:
+            dt = datetime.fromtimestamp(bar_time, tz=paris_tz).strftime("%H:%M")
+            events.append({"time_paris": dt, "type": "crossunder ↓", "sar": sar_vals[i], "close": closes[i]})
+    return events
 
 
 def _fetch_renko_with_fallback(symbol: str, interval: str, atr_length: int,
@@ -1021,6 +1049,7 @@ def update_portfolio_simulation(
     close_alerts: list[str],
     snaps: list[ForexSnapshot],
     now_str: str,
+    paris_tz=None,
 ) -> tuple[list[str], dict]:
     price_map = {s.symbol: s.close for s in snaps if s.close is not None}
     price_map.update({compact_symbol(s.symbol): s.close for s in snaps if s.close is not None})
@@ -1260,7 +1289,13 @@ def update_portfolio_simulation(
             else:
                 signal_tag = " 🔶"
         sar_dir = 1 if side == "LONG" else -1
-        sar_tag = " ⚡" if sar_h1_breakout(sym, sar_dir) else ""
+        sar_events = sar_h1_cross_events_24h(sym, sar_dir, paris_tz) if paris_tz else []
+        if sar_events:
+            sar_tag = f" ⚡{sar_events[-1]['time_paris']}"
+        elif sar_h1_breakout(sym, sar_dir):
+            sar_tag = " ⚡"
+        else:
+            sar_tag = ""
         pos_lines.append(f"{side_icon}{pos.get('name', sym)} {pips_txt}{new_txt}{signal_tag}{sar_tag}")
 
     pips_icon = "🟢" if total_pips >= 0 else "🔴"
@@ -1570,7 +1605,7 @@ def main() -> int:
             send_telegram(close_msg)
 
     portfolio_lines, _portfolio_info = update_portfolio_simulation(
-        portfolio, buy_targets, close_alerts, snaps, now_str
+        portfolio, buy_targets, close_alerts, snaps, now_str, paris_tz
     )
     _save_json(PORTFOLIO_PATH, portfolio)
 
