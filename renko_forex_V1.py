@@ -260,6 +260,17 @@ def green_streak(bricks: list[dict]) -> int:
     return count
 
 
+def red_streak(bricks: list[dict]) -> int:
+    """Count consecutive red (close < open) bricks from the most recent."""
+    count = 0
+    for b in reversed(bricks):
+        if float(b["close"]) < float(b["open"]):
+            count += 1
+        else:
+            break
+    return count
+
+
 # ─── Local Renko fallback ─────────────────────────────────────────────────────
 
 def _atr_from_ohlc(bars: list[dict], length: int) -> float | None:
@@ -467,15 +478,20 @@ def scan_currency_indices(atr_length: int = 14) -> list[str]:
         s3m = px_state(b3m[-1]["open"], b3m[-1]["close"], price)
         sm  = px_state(bm[-1]["open"],  bm[-1]["close"],  price)
         sw  = px_state(bw[-1]["open"],  bw[-1]["close"],  price)
-        streak_3m = green_streak(b3m)
-        streak_m  = green_streak(bm)
-        streak_w  = green_streak(bw)
         bull_count = sum(1 for s in (s3m, sm, sw) if s == 1)
         bear_count = sum(1 for s in (s3m, sm, sw) if s == -1)
-        if bull_count >= 2 and sw == 1 and streak_w >= 1:
-            results.append((bull_count, 1, currency, streak_3m, streak_m, streak_w))
-        elif bear_count >= 2 and sw == -1 and streak_w >= 1:
-            results.append((bear_count, -1, currency, streak_3m, streak_m, streak_w))
+        if bull_count >= 2 and sw == 1:
+            st3 = green_streak(b3m)
+            stm = green_streak(bm)
+            stw = green_streak(bw)
+            if stw >= 1:
+                results.append((bull_count, 1, currency, st3, stm, stw))
+        elif bear_count >= 2 and sw == -1:
+            st3 = red_streak(b3m)
+            stm = red_streak(bm)
+            stw = red_streak(bw)
+            if stw >= 1:
+                results.append((bear_count, -1, currency, st3, stm, stw))
     bull = sorted([(c, cur, s3, sm, sw) for c, d, cur, s3, sm, sw in results if d == 1], reverse=True)
     bear = sorted([(c, cur, s3, sm, sw) for c, d, cur, s3, sm, sw in results if d == -1], reverse=True)
     lines = []
