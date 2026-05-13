@@ -679,9 +679,13 @@ def is_trade_candidate(s: ForexSnapshot) -> bool:
         return False
     if s.streak_w < 1:
         return False
-    if s.price_roc7 is None:
+    rocs = [r for r in (s.price_roc7, s.price_roc14, s.price_roc21) if r is not None]
+    if not rocs:
         return True
-    return s.price_roc7 >= 0 if direction == 1 else s.price_roc7 <= 0
+    if direction == 1:
+        return all(r >= 0 for r in rocs)
+    else:
+        return all(r <= 0 for r in rocs)
 
 
 def compact_symbol(symbol: str) -> str:
