@@ -496,9 +496,9 @@ def scan_currency_indices(atr_length: int = 14) -> list[str]:
     bear = sorted([(c, cur, s3, sm, sw) for c, d, cur, s3, sm, sw in results if d == -1], reverse=True)
     lines = []
     for count, currency, s3, sm, sw in bull:
-        lines.append(f"🟢 {currency} ({count}) [3M:{s3} M:{sm} W:{sw}]")
+        lines.append(f"🟢 {currency} ({count})")
     for count, currency, s3, sm, sw in bear:
-        lines.append(f"🔴 {currency} ({count}) [3M:{s3} M:{sm} W:{sw}]")
+        lines.append(f"🔴 {currency} ({count})")
     return lines
 
 
