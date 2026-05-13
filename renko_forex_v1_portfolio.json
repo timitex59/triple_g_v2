@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
-  "cash": 6280.504505794414,
-  "fees_paid": 0.20470950418354134,
+  "cash": 5280.884468967468,
+  "fees_paid": 0.26146633112998874,
   "positions": {
     "OANDA:AUDJPY": {
       "name": "AUDJPY",
@@ -10,7 +10,7 @@
       "avg_price": 113.431,
       "margin": 907.448,
       "entry_time": "2026-05-11 00:15",
-      "last_price": 114.146
+      "last_price": 114.36
     },
     "OANDA:EURUSD": {
       "name": "EURUSD",
@@ -19,7 +19,7 @@
       "avg_price": 1.1761,
       "margin": 999.685,
       "entry_time": "2026-05-11 00:15",
-      "last_price": 1.17184
+      "last_price": 1.17098
     },
     "OANDA:AUDCAD": {
       "name": "AUDCAD",
@@ -28,7 +28,7 @@
       "avg_price": 0.99004,
       "margin": 999.9404000000001,
       "entry_time": "2026-05-11 13:38",
-      "last_price": 0.99204
+      "last_price": 0.99226
     },
     "OANDA:CHFJPY": {
       "name": "CHFJPY",
@@ -37,7 +37,16 @@
       "avg_price": 201.958,
       "margin": 807.832,
       "entry_time": "2026-05-12 22:51",
-      "last_price": 201.87
+      "last_price": 201.866
+    },
+    "OANDA:AUDNZD": {
+      "name": "AUDNZD",
+      "side": "LONG",
+      "qty": 818,
+      "avg_price": 1.22196,
+      "margin": 999.56328,
+      "entry_time": "2026-05-13 12:44",
+      "last_price": 1.22196
     }
   },
   "history": [
@@ -293,6 +302,17 @@
       "fees_paid": 0.2,
       "fee_drag_pct": 0.0,
       "positions": 4
+    },
+    {
+      "time": "2026-05-13 12:44",
+      "equity": 10000.31,
+      "cash": 5280.88,
+      "pnl": 0.31,
+      "pnl_pct": 0.0,
+      "gross_pnl_before_fees": 0.57,
+      "fees_paid": 0.26,
+      "fee_drag_pct": 0.0,
+      "positions": 5
     }
   ],
   "trades": [
@@ -451,8 +471,27 @@
       },
       "notional": 807.83,
       "cash_after": 6280.5
+    },
+    {
+      "time": "2026-05-13 12:44",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDNZD",
+      "name": "AUDNZD",
+      "qty": 818,
+      "price": 1.222,
+      "gross": 999.56,
+      "fee": 0.0568,
+      "fee_detail": {
+        "spread_pips": 2.740536,
+        "spread_cost_eur": 0.056756826946447375,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.62,
+      "cash_after": 5280.88
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-13 09:28"
+  "last_update": "2026-05-13 12:44"
 }
