@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
-  "cash": 7082.9028044248125,
-  "fees_paid": 0.2921308737851619,
+  "cash": 8080.920525607328,
+  "fees_paid": 0.3489296912695291,
   "positions": {
     "OANDA:AUDJPY": {
       "name": "AUDJPY",
@@ -10,7 +10,7 @@
       "avg_price": 113.431,
       "margin": 907.448,
       "entry_time": "2026-05-11 00:15",
-      "last_price": 114.397
+      "last_price": 114.243
     },
     "OANDA:AUDCAD": {
       "name": "AUDCAD",
@@ -19,16 +19,7 @@
       "avg_price": 0.99004,
       "margin": 999.9404000000001,
       "entry_time": "2026-05-11 13:38",
-      "last_price": 0.99336
-    },
-    "OANDA:AUDNZD": {
-      "name": "AUDNZD",
-      "side": "LONG",
-      "qty": 818,
-      "avg_price": 1.22196,
-      "margin": 999.56328,
-      "entry_time": "2026-05-13 12:44",
-      "last_price": 1.22052
+      "last_price": 0.9924
     }
   },
   "history": [
@@ -471,6 +462,17 @@
       "fees_paid": 0.29,
       "fee_drag_pct": 0.0,
       "positions": 3
+    },
+    {
+      "time": "2026-05-14 15:06",
+      "equity": 9997.19,
+      "cash": 8080.92,
+      "pnl": -2.81,
+      "pnl_pct": -0.03,
+      "gross_pnl_before_fees": -2.46,
+      "fees_paid": 0.35,
+      "fee_drag_pct": 0.0,
+      "positions": 2
     }
   ],
   "trades": [
@@ -690,8 +692,29 @@
       "realized_pnl": -4.31,
       "cash_after": 7082.9,
       "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-14 15:06",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDNZD",
+      "name": "AUDNZD",
+      "qty": 818,
+      "price": 1.2201,
+      "gross": 998.07,
+      "fee": 0.0568,
+      "fee_detail": {
+        "spread_pips": 2.740536,
+        "spread_cost_eur": 0.05679881748436724,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 998.02,
+      "realized_pnl": -1.55,
+      "cash_after": 8080.92,
+      "reason": "ROC OPPOSE"
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-14 12:35"
+  "last_update": "2026-05-14 15:06"
 }
