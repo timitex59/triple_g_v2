@@ -475,9 +475,11 @@ def scan_currency_indices(atr_length: int = 14) -> list[str]:
         b3m = _fetch_renko_with_fallback(tv_sym, "3M", atr_length, 100, session=None)
         bm  = _fetch_renko_with_fallback(tv_sym, "M",  atr_length, 200, session=None)
         bw  = _fetch_renko_with_fallback(tv_sym, "W",  atr_length, 200, session=None)
+        print(f"[INDEX] {ticker}: 3M={'OK' if b3m else 'FAIL'} M={'OK' if bm else 'FAIL'} W={'OK' if bw else 'FAIL'}")
         if not b3m or not bm or not bw:
             continue
         bars = fetch_tv_ohlc(tv_sym, "W", 4, session=None)
+        print(f"[INDEX] {ticker}: bars={'OK' if bars else 'FAIL'}")
         if not bars:
             continue
         price = float(bars[-1]["close"])
