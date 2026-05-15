@@ -173,7 +173,7 @@ def fetch_tv_ohlc(symbol: str, interval: str, n_candles: int,
 
 def fetch_tv_renko_ohlc(symbol: str, interval: str, atr_length: int = 14,
                         n_bricks: int = 20, timeout_s: int = 25, retries: int = 2,
-                        debug: bool = False) -> dict | None:
+                        debug: bool = False, session: str | None = "regular") -> dict | None:
     wait_s = 18  # M/W/D are non-intraday
     for attempt in range(retries + 1):
         ws = None
@@ -183,8 +183,11 @@ def fetch_tv_renko_ohlc(symbol: str, interval: str, atr_length: int = 14,
             ws.settimeout(timeout_s)
             sid = _gen_sid()
             ws.send(_msg("chart_create_session", [sid, ""]))
+            sym_dict: dict = {"symbol": symbol, "adjustment": "splits"}
+            if session:
+                sym_dict["session"] = session
             sym_payload = json.dumps({
-                "symbol": {"symbol": symbol, "adjustment": "splits", "session": "regular"},
+                "symbol": sym_dict,
                 "type": "BarSetRenko@tv-prostudies-40!",
                 "inputs": {
                     "source": "close", "sources": "Close",
@@ -440,12 +443,13 @@ def sar_h1_cross_events_24h(symbol: str, direction: int, paris_tz) -> list[dict]
 
 
 def _fetch_renko_with_fallback(symbol: str, interval: str, atr_length: int,
-                                n_candles: int, debug: bool = False) -> list[dict] | None:
+                                n_candles: int, debug: bool = False,
+                                session: str | None = "regular") -> list[dict] | None:
     """Return list of renko bricks [{open, close}, ...] or None."""
-    bricks = fetch_tv_renko_ohlc(symbol, interval, atr_length=atr_length, n_bricks=n_candles, debug=debug)
+    bricks = fetch_tv_renko_ohlc(symbol, interval, atr_length=atr_length, n_bricks=n_candles, debug=debug, session=session)
     if bricks:
         return bricks
-    bars = fetch_tv_ohlc(symbol, interval, n_candles)
+    bars = fetch_tv_ohlc(symbol, interval, n_candles, session=session)
     if not bars:
         if debug:
             print(f"  [{symbol}] no OHLC for {interval}")
@@ -468,9 +472,9 @@ def scan_currency_indices(atr_length: int = 14) -> list[str]:
     """Scan CURRENCY_INDICES, return Telegram lines for those with ≥2/3 Renko TFs aligned."""
     results = []
     for ticker, tv_sym, currency in CURRENCY_INDICES:
-        b3m = _fetch_renko_with_fallback(tv_sym, "3M", atr_length, 100)
-        bm  = _fetch_renko_with_fallback(tv_sym, "M",  atr_length, 200)
-        bw  = _fetch_renko_with_fallback(tv_sym, "W",  atr_length, 200)
+        b3m = _fetch_renko_with_fallback(tv_sym, "3M", atr_length, 100, session=None)
+        bm  = _fetch_renko_with_fallback(tv_sym, "M",  atr_length, 200, session=None)
+        bw  = _fetch_renko_with_fallback(tv_sym, "W",  atr_length, 200, session=None)
         if not b3m or not bm or not bw:
             continue
         bars = fetch_tv_ohlc(tv_sym, "W", 4, session=None)
@@ -506,9 +510,9 @@ def scan_currency_indices(atr_length: int = 14) -> list[str]:
     express_bull = []
     express_bear = []
     for ticker, tv_sym, currency in CURRENCY_INDICES:
-        b3m = _fetch_renko_with_fallback(tv_sym, "3M", atr_length, 100)
-        bm  = _fetch_renko_with_fallback(tv_sym, "M",  atr_length, 200)
-        bw  = _fetch_renko_with_fallback(tv_sym, "W",  atr_length, 200)
+        b3m = _fetch_renko_with_fallback(tv_sym, "3M", atr_length, 100, session=None)
+        bm  = _fetch_renko_with_fallback(tv_sym, "M",  atr_length, 200, session=None)
+        bw  = _fetch_renko_with_fallback(tv_sym, "W",  atr_length, 200, session=None)
         if not bw:
             continue
         bars = fetch_tv_ohlc(tv_sym, "W", 4, session=None)
