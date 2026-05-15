@@ -109,7 +109,8 @@ def _frames(raw: str) -> list[str]:
 # ─── OHLC fetch ───────────────────────────────────────────────────────────────
 
 def fetch_tv_ohlc(symbol: str, interval: str, n_candles: int,
-                  timeout_s: int = 20, retries: int = 2) -> list[dict] | None:
+                  timeout_s: int = 20, retries: int = 2,
+                  session: str | None = "regular") -> list[dict] | None:
     for attempt in range(retries + 1):
         ws = None
         try:
@@ -117,10 +118,11 @@ def fetch_tv_ohlc(symbol: str, interval: str, n_candles: int,
             ws.settimeout(timeout_s)
             sid = _gen_sid()
             ws.send(_msg("chart_create_session", [sid, ""]))
-            ws.send(_msg("resolve_symbol", [
-                sid, "sds_sym_1",
-                f'={{"symbol":"{symbol}","adjustment":"splits","session":"regular"}}'
-            ]))
+            if session:
+                sym_spec = f'={{"symbol":"{symbol}","adjustment":"splits","session":"{session}"}}'
+            else:
+                sym_spec = f'={{"symbol":"{symbol}","adjustment":"splits"}}'
+            ws.send(_msg("resolve_symbol", [sid, "sds_sym_1", sym_spec]))
             ws.send(_msg("create_series", [sid, "sds_1", "s1", "sds_sym_1", interval, n_candles, ""]))
 
             points: list[dict] = []
@@ -471,7 +473,7 @@ def scan_currency_indices(atr_length: int = 14) -> list[str]:
         bw  = _fetch_renko_with_fallback(tv_sym, "W",  atr_length, 200)
         if not b3m or not bm or not bw:
             continue
-        bars = fetch_tv_ohlc(tv_sym, "W", 4)
+        bars = fetch_tv_ohlc(tv_sym, "W", 4, session=None)
         if not bars:
             continue
         price = float(bars[-1]["close"])
@@ -509,7 +511,7 @@ def scan_currency_indices(atr_length: int = 14) -> list[str]:
         bw  = _fetch_renko_with_fallback(tv_sym, "W",  atr_length, 200)
         if not bw:
             continue
-        bars = fetch_tv_ohlc(tv_sym, "W", 4)
+        bars = fetch_tv_ohlc(tv_sym, "W", 4, session=None)
         if not bars:
             continue
         price = float(bars[-1]["close"])
