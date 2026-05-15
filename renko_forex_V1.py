@@ -499,6 +499,39 @@ def scan_currency_indices(atr_length: int = 14) -> list[str]:
         lines.append(f"🟢 {currency} ({count})")
     for count, currency, s3, sm, sw in bear:
         lines.append(f"🔴 {currency} ({count})")
+
+    # ── EXPRESS : weekly seul suffit ──
+    express_bull = []
+    express_bear = []
+    for ticker, tv_sym, currency in CURRENCY_INDICES:
+        b3m = _fetch_renko_with_fallback(tv_sym, "3M", atr_length, 100)
+        bm  = _fetch_renko_with_fallback(tv_sym, "M",  atr_length, 200)
+        bw  = _fetch_renko_with_fallback(tv_sym, "W",  atr_length, 200)
+        if not bw:
+            continue
+        bars = fetch_tv_ohlc(tv_sym, "W", 4)
+        if not bars:
+            continue
+        price = float(bars[-1]["close"])
+        last_w = bw[-1]
+        sw = px_state(last_w["open"], last_w["close"], price)
+        if sw == 1:
+            stw = green_streak(bw)
+            if stw >= 1:
+                express_bull.append(currency)
+        elif sw == -1:
+            stw = red_streak(bw)
+            if stw >= 1:
+                express_bear.append(currency)
+
+    if express_bull or express_bear:
+        lines.append("")
+        lines.append("⚡ EXPRESS")
+        for currency in express_bull:
+            lines.append(f"🟢 {currency}")
+        for currency in express_bear:
+            lines.append(f"🔴 {currency}")
+
     return lines
 
 
