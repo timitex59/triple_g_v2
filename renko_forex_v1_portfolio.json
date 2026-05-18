@@ -1,18 +1,8 @@
 {
   "initial_capital": 10000.0,
-  "cash": 8988.89515241886,
-  "fees_paid": 1.8015531884669915,
-  "positions": {
-    "OANDA:GBPCHF": {
-      "name": "GBPCHF",
-      "side": "SHORT",
-      "qty": 952,
-      "avg_price": 1.04937,
-      "margin": 999.00024,
-      "entry_time": "2026-05-15 09:34",
-      "last_price": 1.05344
-    }
-  },
+  "cash": 9983.753409906745,
+  "fees_paid": 1.935615700581276,
+  "positions": {},
   "history": [
     {
       "time": "2026-05-11 00:15",
@@ -739,6 +729,17 @@
       "fees_paid": 1.8,
       "fee_drag_pct": 0.02,
       "positions": 1
+    },
+    {
+      "time": "2026-05-19 01:20",
+      "equity": 9983.75,
+      "cash": 9983.75,
+      "pnl": -16.25,
+      "pnl_pct": -0.16,
+      "gross_pnl_before_fees": -14.31,
+      "fees_paid": 1.94,
+      "fee_drag_pct": 0.02,
+      "positions": 0
     }
   ],
   "trades": [
@@ -1200,8 +1201,29 @@
       "realized_pnl": -0.43,
       "cash_after": 8988.9,
       "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-19 01:20",
+      "side": "COVER",
+      "position_side": "SHORT",
+      "symbol": "OANDA:GBPCHF",
+      "name": "GBPCHF",
+      "qty": 952,
+      "price": 1.0536,
+      "gross": 1003.01,
+      "fee": 0.1341,
+      "fee_detail": {
+        "spread_pips": 2.574817,
+        "spread_cost_eur": 0.1340625121142845,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 994.86,
+      "realized_pnl": -4.14,
+      "cash_after": 9983.75,
+      "reason": "ROC OPPOSE"
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-18 23:39"
+  "last_update": "2026-05-19 01:20"
 }
