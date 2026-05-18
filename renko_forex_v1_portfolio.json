@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
-  "cash": 6990.870094087879,
-  "fees_paid": 1.5579715194484984,
+  "cash": 7989.771704871542,
+  "fees_paid": 1.7450007357851267,
   "positions": {
     "OANDA:AUDNZD": {
       "name": "AUDNZD",
@@ -10,7 +10,7 @@
       "avg_price": 1.22046,
       "margin": 999.5567400000001,
       "entry_time": "2026-05-14 17:34",
-      "last_price": 1.22414
+      "last_price": 1.22151
     },
     "OANDA:GBPCHF": {
       "name": "GBPCHF",
@@ -19,16 +19,7 @@
       "avg_price": 1.04937,
       "margin": 999.00024,
       "entry_time": "2026-05-15 09:34",
-      "last_price": 1.04854
-    },
-    "OANDA:NZDCHF": {
-      "name": "NZDCHF",
-      "side": "SHORT",
-      "qty": 2176,
-      "avg_price": 0.45938,
-      "margin": 999.6108800000001,
-      "entry_time": "2026-05-15 21:56",
-      "last_price": 0.4595
+      "last_price": 1.04862
     }
   },
   "history": [
@@ -691,6 +682,17 @@
       "fees_paid": 1.56,
       "fee_drag_pct": 0.02,
       "positions": 3
+    },
+    {
+      "time": "2026-05-18 10:16",
+      "equity": 9989.9,
+      "cash": 7989.77,
+      "pnl": -10.1,
+      "pnl_pct": -0.1,
+      "gross_pnl_before_fees": -8.35,
+      "fees_paid": 1.75,
+      "fee_drag_pct": 0.02,
+      "positions": 2
     }
   ],
   "trades": [
@@ -1110,8 +1112,29 @@
       },
       "notional": 999.8,
       "cash_after": 6990.87
+    },
+    {
+      "time": "2026-05-18 10:16",
+      "side": "COVER",
+      "position_side": "SHORT",
+      "symbol": "OANDA:NZDCHF",
+      "name": "NZDCHF",
+      "qty": 2176,
+      "price": 0.4596,
+      "gross": 1000.13,
+      "fee": 0.187,
+      "fee_detail": {
+        "spread_pips": 1.570375,
+        "spread_cost_eur": 0.18702921633662828,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 998.9,
+      "realized_pnl": -0.71,
+      "cash_after": 7989.77,
+      "reason": "CLOSE ALERT"
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-16 01:13"
+  "last_update": "2026-05-18 10:16"
 }
