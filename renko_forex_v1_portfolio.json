@@ -1,8 +1,18 @@
 {
   "initial_capital": 10000.0,
-  "cash": 9983.753409906745,
-  "fees_paid": 1.935615700581276,
-  "positions": {},
+  "cash": 8983.821596391488,
+  "fees_paid": 1.992229215837836,
+  "positions": {
+    "OANDA:AUDNZD": {
+      "name": "AUDNZD",
+      "side": "LONG",
+      "qty": 820,
+      "avg_price": 1.21936,
+      "margin": 999.8752,
+      "entry_time": "2026-05-20 13:21",
+      "last_price": 1.21936
+    }
+  },
   "history": [
     {
       "time": "2026-05-11 00:15",
@@ -817,6 +827,17 @@
       "fees_paid": 1.94,
       "fee_drag_pct": 0.02,
       "positions": 0
+    },
+    {
+      "time": "2026-05-20 13:21",
+      "equity": 9983.7,
+      "cash": 8983.82,
+      "pnl": -16.3,
+      "pnl_pct": -0.16,
+      "gross_pnl_before_fees": -14.31,
+      "fees_paid": 1.99,
+      "fee_drag_pct": 0.02,
+      "positions": 1
     }
   ],
   "trades": [
@@ -1299,8 +1320,27 @@
       "realized_pnl": -4.14,
       "cash_after": 9983.75,
       "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-20 13:21",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDNZD",
+      "name": "AUDNZD",
+      "qty": 820,
+      "price": 1.2194,
+      "gross": 999.88,
+      "fee": 0.0566,
+      "fee_detail": {
+        "spread_pips": 2.740536,
+        "spread_cost_eur": 0.056613515256560124,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.93,
+      "cash_after": 8983.82
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-20 09:57"
+  "last_update": "2026-05-20 13:21"
 }
