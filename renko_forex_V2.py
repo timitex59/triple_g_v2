@@ -1337,7 +1337,7 @@ def update_portfolio_simulation(
     bought_symbols = {t["symbol"] for t in trades if t["side"] == "OPEN"}
     sold_trades = [t for t in trades if t["side"] in ("SELL", "COVER")]
     summary = [
-        "💼 FOREX PORTFOLIO SIM",
+        "💼 FOREX PORTFOLIO SIM V2",
         f"{equity_icon} Equity {equity_after:.2f}",
         f"{pnl_icon} PnL {pnl:+.2f} ({pnl_pct:+.2f}%)",
         f"📅 First run {first_run}",
