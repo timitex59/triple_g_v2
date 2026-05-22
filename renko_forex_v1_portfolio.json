@@ -1,17 +1,8 @@
 {
   "initial_capital": 10000.0,
-  "cash": 7983.238159669347,
-  "fees_paid": 2.386285383184034,
+  "cash": 8982.311753187987,
+  "fees_paid": 2.5350918645435385,
   "positions": {
-    "OANDA:CADCHF": {
-      "name": "CADCHF",
-      "side": "SHORT",
-      "qty": 1760,
-      "avg_price": 0.56801,
-      "margin": 999.6976000000001,
-      "entry_time": "2026-05-22 20:05",
-      "last_price": 0.56801
-    },
     "OANDA:NZDCHF": {
       "name": "NZDCHF",
       "side": "SHORT",
@@ -19,7 +10,7 @@
       "avg_price": 0.4596,
       "margin": 999.63,
       "entry_time": "2026-05-22 20:05",
-      "last_price": 0.4596
+      "last_price": 0.4595
     }
   },
   "history": [
@@ -1034,6 +1025,17 @@
       "fees_paid": 2.39,
       "fee_drag_pct": 0.02,
       "positions": 2
+    },
+    {
+      "time": "2026-05-22 22:12",
+      "equity": 9982.16,
+      "cash": 8982.31,
+      "pnl": -17.84,
+      "pnl_pct": -0.18,
+      "gross_pnl_before_fees": -15.31,
+      "fees_paid": 2.54,
+      "fee_drag_pct": 0.03,
+      "positions": 1
     }
   ],
   "trades": [
@@ -1594,8 +1596,29 @@
       },
       "notional": 999.82,
       "cash_after": 7983.24
+    },
+    {
+      "time": "2026-05-22 22:12",
+      "side": "COVER",
+      "position_side": "SHORT",
+      "symbol": "OANDA:CADCHF",
+      "name": "CADCHF",
+      "qty": 1760,
+      "price": 0.5683,
+      "gross": 1000.17,
+      "fee": 0.1488,
+      "fee_detail": {
+        "spread_pips": 1.54035,
+        "spread_cost_eur": 0.1488064813595047,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.07,
+      "realized_pnl": -0.62,
+      "cash_after": 8982.31,
+      "reason": "CLOSE ALERT"
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-22 20:05"
+  "last_update": "2026-05-22 22:12"
 }
