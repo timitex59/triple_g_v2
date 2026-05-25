@@ -1,17 +1,8 @@
 {
   "initial_capital": 10000.0,
-  "cash": 6169.617145733202,
-  "fees_paid": 2.7663993193284844,
+  "cash": 7979.833639251809,
+  "fees_paid": 3.09292580072154,
   "positions": {
-    "OANDA:NZDCHF": {
-      "name": "NZDCHF",
-      "side": "SHORT",
-      "qty": 2175,
-      "avg_price": 0.4596,
-      "margin": 999.63,
-      "entry_time": "2026-05-22 20:05",
-      "last_price": 0.45902
-    },
     "OANDA:CADCHF": {
       "name": "CADCHF",
       "side": "SHORT",
@@ -19,25 +10,16 @@
       "avg_price": 0.56808,
       "margin": 999.8208000000001,
       "entry_time": "2026-05-22 23:36",
-      "last_price": 0.56564
+      "last_price": 0.56746
     },
-    "OANDA:CHFJPY": {
-      "name": "CHFJPY",
+    "OANDA:AUDNZD": {
+      "name": "AUDNZD",
       "side": "LONG",
-      "qty": 4,
-      "avg_price": 203.307,
-      "margin": 813.228,
-      "entry_time": "2026-05-25 10:40",
-      "last_price": 203.464
-    },
-    "OANDA:AUDCAD": {
-      "name": "AUDCAD",
-      "side": "LONG",
-      "qty": 1009,
-      "avg_price": 0.9905,
-      "margin": 999.4145000000001,
-      "entry_time": "2026-05-25 14:45",
-      "last_price": 0.9905
+      "qty": 818,
+      "avg_price": 1.22146,
+      "margin": 999.15428,
+      "entry_time": "2026-05-25 18:04",
+      "last_price": 1.22146
     }
   },
   "history": [
@@ -1107,6 +1089,17 @@
       "fees_paid": 2.77,
       "fee_drag_pct": 0.03,
       "positions": 4
+    },
+    {
+      "time": "2026-05-25 18:04",
+      "equity": 9979.9,
+      "cash": 7979.83,
+      "pnl": -20.1,
+      "pnl_pct": -0.2,
+      "gross_pnl_before_fees": -17.01,
+      "fees_paid": 3.09,
+      "fee_drag_pct": 0.03,
+      "positions": 2
     }
   ],
   "trades": [
@@ -1745,8 +1738,90 @@
       },
       "notional": 999.5,
       "cash_after": 6169.62
+    },
+    {
+      "time": "2026-05-25 18:04",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDCAD",
+      "name": "AUDCAD",
+      "qty": 1009,
+      "price": 0.9897,
+      "gross": 998.61,
+      "fee": 0.0822,
+      "fee_detail": {
+        "spread_pips": 2.616277,
+        "spread_cost_eur": 0.08216786688538061,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 998.53,
+      "realized_pnl": -0.89,
+      "cash_after": 7168.14,
+      "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-25 18:04",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:CHFJPY",
+      "name": "CHFJPY",
+      "qty": 4,
+      "price": 202.952,
+      "gross": 811.81,
+      "fee": 0.0005,
+      "fee_detail": {
+        "spread_pips": 4.322396,
+        "spread_cost_eur": 0.00046729615775476234,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 811.81,
+      "realized_pnl": -1.42,
+      "cash_after": 7979.95,
+      "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-25 18:04",
+      "side": "COVER",
+      "position_side": "SHORT",
+      "symbol": "OANDA:NZDCHF",
+      "name": "NZDCHF",
+      "qty": 2175,
+      "price": 0.4598,
+      "gross": 999.98,
+      "fee": 0.1874,
+      "fee_detail": {
+        "spread_pips": 1.570375,
+        "spread_cost_eur": 0.18735549549104794,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.09,
+      "realized_pnl": -0.54,
+      "cash_after": 8979.04,
+      "reason": "CLOSE ALERT"
+    },
+    {
+      "time": "2026-05-25 18:04",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDNZD",
+      "name": "AUDNZD",
+      "qty": 818,
+      "price": 1.2215,
+      "gross": 999.15,
+      "fee": 0.0565,
+      "fee_detail": {
+        "spread_pips": 2.740536,
+        "spread_cost_eur": 0.05653582285887219,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.21,
+      "cash_after": 7979.83
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-25 14:45"
+  "last_update": "2026-05-25 18:04"
 }
