@@ -1,16 +1,16 @@
 {
   "initial_capital": 10000.0,
-  "cash": 9000.78918389198,
-  "fees_paid": 0.06,
+  "cash": 9001.08092408785,
+  "fees_paid": 0.1840998041305344,
   "positions": {
-    "OANDA:AUDNZD": {
-      "name": "AUDNZD",
+    "OANDA:GBPCAD": {
+      "name": "GBPCAD",
       "side": "LONG",
-      "qty": 818,
-      "avg_price": 1.22146,
-      "margin": 999.15428,
-      "entry_time": "2026-05-25 18:06",
-      "last_price": 1.22181
+      "qty": 536,
+      "avg_price": 1.86402,
+      "margin": 999.11472,
+      "entry_time": "2026-05-25 23:36",
+      "last_price": 1.86402
     }
   },
   "history": [
@@ -167,6 +167,17 @@
       "fees_paid": 0.06,
       "fee_drag_pct": 0.0,
       "positions": 1
+    },
+    {
+      "time": "2026-05-25 23:36",
+      "equity": 10000.2,
+      "cash": 9001.08,
+      "pnl": 0.2,
+      "pnl_pct": 0.0,
+      "gross_pnl_before_fees": 0.38,
+      "fees_paid": 0.18,
+      "fee_drag_pct": 0.0,
+      "positions": 1
     }
   ],
   "trades": [
@@ -188,8 +199,48 @@
       },
       "notional": 999.21,
       "cash_after": 9000.79
+    },
+    {
+      "time": "2026-05-25 23:36",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDNZD",
+      "name": "AUDNZD",
+      "qty": 818,
+      "price": 1.2219,
+      "gross": 999.53,
+      "fee": 0.0565,
+      "fee_detail": {
+        "spread_pips": 2.740536,
+        "spread_cost_eur": 0.05651529879192465,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.47,
+      "realized_pnl": 0.32,
+      "cash_after": 10000.26,
+      "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-25 23:36",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:GBPCAD",
+      "name": "GBPCAD",
+      "qty": 536,
+      "price": 1.864,
+      "gross": 999.11,
+      "fee": 0.0676,
+      "fee_detail": {
+        "spread_pips": 4.052952,
+        "spread_cost_eur": 0.06758450533860973,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.18,
+      "cash_after": 9001.08
     }
   ],
   "first_run": "2026-05-22 01:26",
-  "last_update": "2026-05-25 22:01"
+  "last_update": "2026-05-25 23:36"
 }
