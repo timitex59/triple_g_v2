@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
-  "cash": 8992.7267249146,
-  "fees_paid": 0.2966989773807459,
+  "cash": 8052.705980149146,
+  "fees_paid": 0.297443742835605,
   "positions": {
     "OANDA:GBPCAD": {
       "name": "GBPCAD",
@@ -10,7 +10,16 @@
       "avg_price": 1.86402,
       "margin": 999.11472,
       "entry_time": "2026-05-25 23:36",
-      "last_price": 1.85875
+      "last_price": 1.85656
+    },
+    "OANDA:NZDJPY": {
+      "name": "NZDJPY",
+      "side": "LONG",
+      "qty": 10,
+      "avg_price": 94.002,
+      "margin": 940.02,
+      "entry_time": "2026-05-27 18:15",
+      "last_price": 94.002
     }
   },
   "history": [
@@ -266,6 +275,17 @@
       "fees_paid": 0.3,
       "fee_drag_pct": 0.0,
       "positions": 1
+    },
+    {
+      "time": "2026-05-27 18:15",
+      "equity": 9987.84,
+      "cash": 8052.71,
+      "pnl": -12.16,
+      "pnl_pct": -0.12,
+      "gross_pnl_before_fees": -11.86,
+      "fees_paid": 0.3,
+      "fee_drag_pct": 0.0,
+      "positions": 2
     }
   ],
   "trades": [
@@ -367,8 +387,27 @@
       "realized_pnl": -8.3,
       "cash_after": 8992.73,
       "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-27 18:15",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:NZDJPY",
+      "name": "NZDJPY",
+      "qty": 10,
+      "price": 94.002,
+      "gross": 940.02,
+      "fee": 0.0007,
+      "fee_detail": {
+        "spread_pips": 2.763199,
+        "spread_cost_eur": 0.0007447654548590896,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 940.02,
+      "cash_after": 8052.71
     }
   ],
   "first_run": "2026-05-22 01:26",
-  "last_update": "2026-05-27 13:52"
+  "last_update": "2026-05-27 18:15"
 }
