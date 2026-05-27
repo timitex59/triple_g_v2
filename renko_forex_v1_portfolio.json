@@ -1,17 +1,8 @@
 {
   "initial_capital": 10000.0,
-  "cash": 6167.049461259877,
-  "fees_paid": 3.7904665295196978,
+  "cash": 7154.303467514012,
+  "fees_paid": 4.181680275385267,
   "positions": {
-    "OANDA:NZDCHF": {
-      "name": "NZDCHF",
-      "side": "SHORT",
-      "qty": 2175,
-      "avg_price": 0.4596,
-      "margin": 999.63,
-      "entry_time": "2026-05-25 22:00",
-      "last_price": 0.45853
-    },
     "OANDA:AUDCAD": {
       "name": "AUDCAD",
       "side": "LONG",
@@ -19,16 +10,7 @@
       "avg_price": 0.99009,
       "margin": 999.9909,
       "entry_time": "2026-05-25 23:34",
-      "last_price": 0.98996
-    },
-    "OANDA:AUDNZD": {
-      "name": "AUDNZD",
-      "side": "LONG",
-      "qty": 816,
-      "avg_price": 1.22494,
-      "margin": 999.55104,
-      "entry_time": "2026-05-26 10:01",
-      "last_price": 1.22791
+      "last_price": 0.98702
     },
     "OANDA:CHFJPY": {
       "name": "CHFJPY",
@@ -37,7 +19,16 @@
       "avg_price": 202.784,
       "margin": 811.136,
       "entry_time": "2026-05-27 00:40",
-      "last_price": 202.784
+      "last_price": 202.846
+    },
+    "OANDA:CADCHF": {
+      "name": "CADCHF",
+      "side": "SHORT",
+      "qty": 1759,
+      "avg_price": 0.56822,
+      "margin": 999.49898,
+      "entry_time": "2026-05-27 10:13",
+      "last_price": 0.56822
     }
   },
   "history": [
@@ -1217,6 +1208,17 @@
       "fees_paid": 3.79,
       "fee_drag_pct": 0.04,
       "positions": 4
+    },
+    {
+      "time": "2026-05-27 10:13",
+      "equity": 9962.08,
+      "cash": 7154.3,
+      "pnl": -37.92,
+      "pnl_pct": -0.38,
+      "gross_pnl_before_fees": -33.74,
+      "fees_paid": 4.18,
+      "fee_drag_pct": 0.04,
+      "positions": 3
     }
   ],
   "trades": [
@@ -2175,8 +2177,69 @@
       },
       "notional": 811.14,
       "cash_after": 6167.05
+    },
+    {
+      "time": "2026-05-27 10:13",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDNZD",
+      "name": "AUDNZD",
+      "qty": 816,
+      "price": 1.2152,
+      "gross": 991.6,
+      "fee": 0.0564,
+      "fee_detail": {
+        "spread_pips": 2.740536,
+        "spread_cost_eur": 0.05641324325824272,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 991.55,
+      "realized_pnl": -8.0,
+      "cash_after": 7158.6,
+      "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-27 10:13",
+      "side": "COVER",
+      "position_side": "SHORT",
+      "symbol": "OANDA:NZDCHF",
+      "name": "NZDCHF",
+      "qty": 2175,
+      "price": 0.4615,
+      "gross": 1003.72,
+      "fee": 0.1867,
+      "fee_detail": {
+        "spread_pips": 1.570375,
+        "spread_cost_eur": 0.18669802154734186,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 995.35,
+      "realized_pnl": -4.28,
+      "cash_after": 8153.95,
+      "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-27 10:13",
+      "side": "OPEN",
+      "position_side": "SHORT",
+      "symbol": "OANDA:CADCHF",
+      "name": "CADCHF",
+      "qty": 1759,
+      "price": 0.5682,
+      "gross": 999.5,
+      "fee": 0.1481,
+      "fee_detail": {
+        "spread_pips": 1.54035,
+        "spread_cost_eur": 0.14810248105998491,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.65,
+      "cash_after": 7154.3
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-27 00:40"
+  "last_update": "2026-05-27 10:13"
 }
