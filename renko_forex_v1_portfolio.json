@@ -1,17 +1,8 @@
 {
   "initial_capital": 10000.0,
-  "cash": 8153.372984325598,
-  "fees_paid": 4.329703463798982,
+  "cash": 9151.797106704335,
+  "fees_paid": 4.411781085062307,
   "positions": {
-    "OANDA:AUDCAD": {
-      "name": "AUDCAD",
-      "side": "LONG",
-      "qty": 1010,
-      "avg_price": 0.99009,
-      "margin": 999.9909,
-      "entry_time": "2026-05-25 23:34",
-      "last_price": 0.98712
-    },
     "OANDA:CHFJPY": {
       "name": "CHFJPY",
       "side": "LONG",
@@ -19,7 +10,7 @@
       "avg_price": 202.784,
       "margin": 811.136,
       "entry_time": "2026-05-27 00:40",
-      "last_price": 202.674
+      "last_price": 202.696
     }
   },
   "history": [
@@ -1243,6 +1234,17 @@
       "fees_paid": 4.33,
       "fee_drag_pct": 0.04,
       "positions": 2
+    },
+    {
+      "time": "2026-05-27 23:13",
+      "equity": 9962.58,
+      "cash": 9151.8,
+      "pnl": -37.42,
+      "pnl_pct": -0.37,
+      "gross_pnl_before_fees": -33.01,
+      "fees_paid": 4.41,
+      "fee_drag_pct": 0.04,
+      "positions": 1
     }
   ],
   "trades": [
@@ -2283,8 +2285,29 @@
       "realized_pnl": -0.43,
       "cash_after": 8153.37,
       "reason": "CLOSE ALERT"
+    },
+    {
+      "time": "2026-05-27 23:13",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDCAD",
+      "name": "AUDCAD",
+      "qty": 1010,
+      "price": 0.9886,
+      "gross": 998.51,
+      "fee": 0.0821,
+      "fee_detail": {
+        "spread_pips": 2.616277,
+        "spread_cost_eur": 0.0820776212633253,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 998.42,
+      "realized_pnl": -1.57,
+      "cash_after": 9151.8,
+      "reason": "ROC OPPOSE"
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-27 20:36"
+  "last_update": "2026-05-27 23:13"
 }
