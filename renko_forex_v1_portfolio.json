@@ -1,8 +1,18 @@
 {
   "initial_capital": 10000.0,
-  "cash": 9962.476640552164,
-  "fees_paid": 4.4122472372327035,
-  "positions": {},
+  "cash": 9149.90017479179,
+  "fees_paid": 4.412712997606829,
+  "positions": {
+    "OANDA:CHFJPY": {
+      "name": "CHFJPY",
+      "side": "LONG",
+      "qty": 4,
+      "avg_price": 203.144,
+      "margin": 812.576,
+      "entry_time": "2026-05-28 18:35",
+      "last_price": 203.144
+    }
+  },
   "history": [
     {
       "time": "2026-05-11 00:15",
@@ -1268,6 +1278,17 @@
       "fees_paid": 4.41,
       "fee_drag_pct": 0.04,
       "positions": 0
+    },
+    {
+      "time": "2026-05-28 18:35",
+      "equity": 9962.48,
+      "cash": 9149.9,
+      "pnl": -37.52,
+      "pnl_pct": -0.38,
+      "gross_pnl_before_fees": -33.11,
+      "fees_paid": 4.41,
+      "fee_drag_pct": 0.04,
+      "positions": 1
     }
   ],
   "trades": [
@@ -2350,8 +2371,27 @@
       "realized_pnl": -0.46,
       "cash_after": 9962.48,
       "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-28 18:35",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:CHFJPY",
+      "name": "CHFJPY",
+      "qty": 4,
+      "price": 203.144,
+      "gross": 812.58,
+      "fee": 0.0005,
+      "fee_detail": {
+        "spread_pips": 4.322396,
+        "spread_cost_eur": 0.0004657603741258365,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 812.58,
+      "cash_after": 9149.9
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-28 13:52"
+  "last_update": "2026-05-28 18:35"
 }
