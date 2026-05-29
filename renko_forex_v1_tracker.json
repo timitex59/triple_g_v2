@@ -4,7 +4,7 @@
     "side": "LONG",
     "added_at": "2026-05-11T00:15:56.090323+02:00",
     "added_pnl": 0.307,
-    "current_pnl": -0.6277,
+    "current_pnl": -0.6721,
     "alert_triggered": true,
     "alert_at": "2026-05-13T09:28:20.835994+02:00",
     "alert_day": "2026-05-13",
@@ -15,26 +15,32 @@
     "side": "LONG",
     "added_at": "2026-05-11T00:15:56.090323+02:00",
     "added_pnl": 0.824,
-    "current_pnl": 1.4142,
+    "current_pnl": 1.4426,
     "alert_triggered": false,
     "alert_at": null,
     "alert_day": null,
     "removed": false
   },
   "_meta": {
-    "last_ranked_at": "2026-05-29T01:44:08.364935+02:00",
+    "last_ranked_at": "2026-05-29T13:42:17.568073+02:00",
     "last_ranked_symbols": [
       {
         "symbol": "OANDA:AUDJPY",
         "name": "AUDJPY",
         "rank": 1,
-        "pnl": 1.4142
+        "pnl": 1.4426
       },
       {
         "symbol": "OANDA:CHFJPY",
         "name": "CHFJPY",
         "rank": 2,
-        "pnl": 0.6669
+        "pnl": 0.8671
+      },
+      {
+        "symbol": "OANDA:CADCHF",
+        "name": "CADCHF",
+        "rank": 3,
+        "pnl": 0.2745
       }
     ]
   },
@@ -43,7 +49,7 @@
     "side": "LONG",
     "added_at": "2026-05-11T09:55:34.744024+02:00",
     "added_pnl": 0.0213,
-    "current_pnl": 0.6669,
+    "current_pnl": 0.8671,
     "alert_triggered": true,
     "alert_at": "2026-05-12T17:47:14.998465+02:00",
     "alert_day": "2026-05-12",
@@ -54,7 +60,7 @@
     "side": "LONG",
     "added_at": "2026-05-11T13:38:09.090708+02:00",
     "added_pnl": 1.2559,
-    "current_pnl": 0.9818,
+    "current_pnl": 1.1762,
     "alert_triggered": true,
     "alert_at": "2026-05-19T17:50:43.816018+02:00",
     "alert_day": "2026-05-19",
@@ -65,7 +71,7 @@
     "side": "LONG",
     "added_at": "2026-05-11T13:38:09.090708+02:00",
     "added_pnl": 0.2593,
-    "current_pnl": -0.9709,
+    "current_pnl": -1.1153,
     "alert_triggered": true,
     "alert_at": "2026-05-12T08:50:48.639569+02:00",
     "alert_day": "2026-05-12",
@@ -76,7 +82,7 @@
     "side": "LONG",
     "added_at": "2026-05-13T12:44:48.351098+02:00",
     "added_pnl": 0.265,
-    "current_pnl": -1.0888,
+    "current_pnl": -1.4909,
     "alert_triggered": true,
     "alert_at": "2026-05-19T09:58:30.180849+02:00",
     "alert_day": "2026-05-19",
@@ -109,21 +115,20 @@
   "OANDA:CADCHF": {
     "name": "CADCHF",
     "side": "SHORT",
-    "added_at": "2026-05-27T10:13:23.997741+02:00",
-    "added_pnl": 0.0106,
-    "current_pnl": -0.0282,
-    "alert_triggered": true,
-    "alert_at": "2026-05-27T18:13:53.863236+02:00",
-    "alert_day": "2026-05-27",
-    "removed": true,
-    "removed_at": "2026-05-27T23:13:58.037531+02:00"
+    "added_at": "2026-05-29T10:10:36.418030+02:00",
+    "added_pnl": 0.0246,
+    "current_pnl": 0.2745,
+    "alert_triggered": false,
+    "alert_at": null,
+    "alert_day": null,
+    "removed": false
   },
   "OANDA:XAUUSD": {
     "name": "XAUUSD",
     "side": "SHORT",
     "added_at": "2026-05-28T13:52:08.752538+02:00",
     "added_pnl": 0.2436,
-    "current_pnl": -2.2024,
+    "current_pnl": -3.1084,
     "alert_triggered": true,
     "alert_at": "2026-05-28T18:35:51.531322+02:00",
     "alert_day": "2026-05-28",

@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
-  "cash": 8135.966287533274,
-  "fees_paid": 0.3654563587073618,
+  "cash": 7134.420716715812,
+  "fees_paid": 0.4760271761697265,
   "positions": {
     "OANDA:NZDJPY": {
       "name": "NZDJPY",
@@ -10,16 +10,25 @@
       "avg_price": 94.002,
       "margin": 940.02,
       "entry_time": "2026-05-27 18:15",
-      "last_price": 94.616
+      "last_price": 95.049
     },
     "OANDA:AUDJPY": {
       "name": "AUDJPY",
       "side": "LONG",
       "qty": 8,
-      "avg_price": 114.078,
-      "margin": 912.624,
-      "entry_time": "2026-05-29 00:09",
-      "last_price": 114.089
+      "avg_price": 114.13,
+      "margin": 913.04,
+      "entry_time": "2026-05-29 13:44",
+      "last_price": 114.13
+    },
+    "OANDA:NZDUSD": {
+      "name": "NZDUSD",
+      "side": "LONG",
+      "qty": 1675,
+      "avg_price": 0.59684,
+      "margin": 999.7070000000001,
+      "entry_time": "2026-05-29 13:44",
+      "last_price": 0.59684
     }
   },
   "history": [
@@ -385,6 +394,39 @@
       "fees_paid": 0.37,
       "fee_drag_pct": 0.0,
       "positions": 2
+    },
+    {
+      "time": "2026-05-29 08:17",
+      "equity": 9998.96,
+      "cash": 8135.97,
+      "pnl": -1.04,
+      "pnl_pct": -0.01,
+      "gross_pnl_before_fees": -0.67,
+      "fees_paid": 0.37,
+      "fee_drag_pct": 0.0,
+      "positions": 2
+    },
+    {
+      "time": "2026-05-29 10:12",
+      "equity": 9995.62,
+      "cash": 9047.28,
+      "pnl": -4.38,
+      "pnl_pct": -0.04,
+      "gross_pnl_before_fees": -4.02,
+      "fees_paid": 0.37,
+      "fee_drag_pct": 0.0,
+      "positions": 1
+    },
+    {
+      "time": "2026-05-29 13:44",
+      "equity": 9997.66,
+      "cash": 7134.42,
+      "pnl": -2.34,
+      "pnl_pct": -0.02,
+      "gross_pnl_before_fees": -1.87,
+      "fees_paid": 0.48,
+      "fee_drag_pct": 0.0,
+      "positions": 3
     }
   ],
   "trades": [
@@ -545,8 +587,67 @@
       },
       "notional": 912.62,
       "cash_after": 8135.97
+    },
+    {
+      "time": "2026-05-29 10:12",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDJPY",
+      "name": "AUDJPY",
+      "qty": 8,
+      "price": 113.914,
+      "gross": 911.31,
+      "fee": 0.0005,
+      "fee_detail": {
+        "spread_pips": 2.478407,
+        "spread_cost_eur": 0.0005351023933155571,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 911.31,
+      "realized_pnl": -1.31,
+      "cash_after": 9047.28,
+      "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-29 13:44",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDJPY",
+      "name": "AUDJPY",
+      "qty": 8,
+      "price": 114.13,
+      "gross": 913.04,
+      "fee": 0.0005,
+      "fee_detail": {
+        "spread_pips": 2.478407,
+        "spread_cost_eur": 0.000534485011861117,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 913.04,
+      "cash_after": 8134.24
+    },
+    {
+      "time": "2026-05-29 13:44",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:NZDUSD",
+      "name": "NZDUSD",
+      "qty": 1675,
+      "price": 0.5968,
+      "gross": 999.71,
+      "fee": 0.1095,
+      "fee_detail": {
+        "spread_pips": 1.522662,
+        "spread_cost_eur": 0.10950123005718802,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.82,
+      "cash_after": 7134.42
     }
   ],
   "first_run": "2026-05-22 01:26",
-  "last_update": "2026-05-29 01:45"
+  "last_update": "2026-05-29 13:44"
 }
