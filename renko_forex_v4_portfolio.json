@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
   "cash": 8048.983346433747,
-  "fees_paid": 0.08929356625269362,
+  "fees_paid": 0.09,
   "positions": {
     "OANDA:NZDJPY": {
       "name": "NZDJPY",
@@ -10,7 +10,7 @@
       "avg_price": 95.264,
       "margin": 952.64,
       "entry_time": "2026-05-29 20:00",
-      "last_price": 95.264
+      "last_price": 95.315
     },
     "OANDA:EURNZD": {
       "name": "EURNZD",
@@ -19,7 +19,7 @@
       "avg_price": 1.94978,
       "margin": 998.28736,
       "entry_time": "2026-05-29 20:00",
-      "last_price": 1.94978
+      "last_price": 1.94904
     }
   },
   "history": [
@@ -30,6 +30,17 @@
       "pnl": -0.09,
       "pnl_pct": -0.0,
       "gross_pnl_before_fees": 0.0,
+      "fees_paid": 0.09,
+      "fee_drag_pct": 0.0,
+      "positions": 2
+    },
+    {
+      "time": "2026-05-29 20:24",
+      "equity": 10000.8,
+      "cash": 8048.98,
+      "pnl": 0.8,
+      "pnl_pct": 0.01,
+      "gross_pnl_before_fees": 0.89,
       "fees_paid": 0.09,
       "fee_drag_pct": 0.0,
       "positions": 2
@@ -76,5 +87,5 @@
     }
   ],
   "first_run": "2026-05-29 20:00",
-  "last_update": "2026-05-29 20:00"
+  "last_update": "2026-05-29 20:24"
 }
