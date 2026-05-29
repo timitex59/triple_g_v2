@@ -1481,7 +1481,7 @@ def update_pnl_history(history: dict, snaps: list, today_str: str) -> None:
 # ─── Telegram ─────────────────────────────────────────────────────────────────
 
 def telegram_window_open(now_paris: datetime) -> bool:
-    return 6 <= now_paris.hour < 20
+    return 6 <= now_paris.hour < 21
 
 
 def send_telegram(text: str) -> bool:
