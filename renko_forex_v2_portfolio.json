@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
-  "cash": 7134.420716715812,
-  "fees_paid": 0.4760271761697265,
+  "cash": 6134.59433383574,
+  "fees_paid": 0.5579300562412811,
   "positions": {
     "OANDA:NZDJPY": {
       "name": "NZDJPY",
@@ -10,7 +10,7 @@
       "avg_price": 94.002,
       "margin": 940.02,
       "entry_time": "2026-05-27 18:15",
-      "last_price": 95.049
+      "last_price": 95.194
     },
     "OANDA:AUDJPY": {
       "name": "AUDJPY",
@@ -19,7 +19,7 @@
       "avg_price": 114.13,
       "margin": 913.04,
       "entry_time": "2026-05-29 13:44",
-      "last_price": 114.13
+      "last_price": 114.272
     },
     "OANDA:NZDUSD": {
       "name": "NZDUSD",
@@ -28,7 +28,16 @@
       "avg_price": 0.59684,
       "margin": 999.7070000000001,
       "entry_time": "2026-05-29 13:44",
-      "last_price": 0.59684
+      "last_price": 0.5977
+    },
+    "OANDA:AUDCAD": {
+      "name": "AUDCAD",
+      "side": "LONG",
+      "qty": 1008,
+      "avg_price": 0.99181,
+      "margin": 999.74448,
+      "entry_time": "2026-05-29 14:49",
+      "last_price": 0.99181
     }
   },
   "history": [
@@ -427,6 +436,17 @@
       "fees_paid": 0.48,
       "fee_drag_pct": 0.0,
       "positions": 3
+    },
+    {
+      "time": "2026-05-29 14:49",
+      "equity": 10001.6,
+      "cash": 6134.59,
+      "pnl": 1.6,
+      "pnl_pct": 0.02,
+      "gross_pnl_before_fees": 2.16,
+      "fees_paid": 0.56,
+      "fee_drag_pct": 0.01,
+      "positions": 4
     }
   ],
   "trades": [
@@ -646,8 +666,27 @@
       },
       "notional": 999.82,
       "cash_after": 7134.42
+    },
+    {
+      "time": "2026-05-29 14:49",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDCAD",
+      "name": "AUDCAD",
+      "qty": 1008,
+      "price": 0.9918,
+      "gross": 999.74,
+      "fee": 0.0819,
+      "fee_detail": {
+        "spread_pips": 2.616277,
+        "spread_cost_eur": 0.08190288007155458,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.83,
+      "cash_after": 6134.59
     }
   ],
   "first_run": "2026-05-22 01:26",
-  "last_update": "2026-05-29 13:44"
+  "last_update": "2026-05-29 14:49"
 }
