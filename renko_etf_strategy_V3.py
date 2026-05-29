@@ -674,7 +674,7 @@ def send_telegram(text: str) -> bool:
 
 
 def telegram_window_open(now_paris: datetime) -> bool:
-    return 6 <= now_paris.hour < 20
+    return 6 <= now_paris.hour < 21
 
 
 def parse_args() -> argparse.Namespace:
@@ -683,7 +683,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--start-date", type=str, default="2026-04-01")
     parser.add_argument("--only", type=str, default="", help="Comma-separated tickers to scan, e.g. LQQ,ISOE,JEPQ.")
     parser.add_argument("--update-metrics-partial", action="store_true", help="Allow metrics history updates when --only is used.")
-    parser.add_argument("--force-telegram", action="store_true", help="Send Telegram even outside 06:00-20:00 Paris.")
+    parser.add_argument("--force-telegram", action="store_true", help="Send Telegram even outside 06:00-21:00 Paris.")
     parser.add_argument("--no-telegram", action="store_true")
     parser.add_argument("--debug", action="store_true")
     return parser.parse_args()
@@ -782,7 +782,7 @@ def main() -> int:
         if not args.no_telegram and (telegram_window_open(now_paris) or args.force_telegram):
             send_telegram(msg)
         elif not args.no_telegram:
-            print("Telegram skipped: outside 06:00-20:00 Paris window.")
+            print("Telegram skipped: outside 06:00-21:00 Paris window.")
     else:
         print("\nNo ETF strategy candidates.")
         if trend_lines:
