@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
-  "cash": 8237.235640479621,
-  "fees_paid": 4.413247309776712,
+  "cash": 8148.592169557407,
+  "fees_paid": 4.56231823198997,
   "positions": {
     "OANDA:CHFJPY": {
       "name": "CHFJPY",
@@ -10,16 +10,16 @@
       "avg_price": 203.144,
       "margin": 812.576,
       "entry_time": "2026-05-28 18:35",
-      "last_price": 203.294
+      "last_price": 203.005
     },
-    "OANDA:AUDJPY": {
-      "name": "AUDJPY",
-      "side": "LONG",
-      "qty": 8,
-      "avg_price": 114.083,
-      "margin": 912.664,
-      "entry_time": "2026-05-29 00:07",
-      "last_price": 114.152
+    "OANDA:CADCHF": {
+      "name": "CADCHF",
+      "side": "SHORT",
+      "qty": 1760,
+      "avg_price": 0.56814,
+      "margin": 999.9264,
+      "entry_time": "2026-05-29 10:10",
+      "last_price": 0.56814
     }
   },
   "history": [
@@ -1342,6 +1342,17 @@
       "fees_paid": 4.41,
       "fee_drag_pct": 0.04,
       "positions": 2
+    },
+    {
+      "time": "2026-05-29 10:10",
+      "equity": 9960.54,
+      "cash": 8148.59,
+      "pnl": -39.46,
+      "pnl_pct": -0.39,
+      "gross_pnl_before_fees": -34.9,
+      "fees_paid": 4.56,
+      "fee_drag_pct": 0.05,
+      "positions": 2
     }
   ],
   "trades": [
@@ -2462,8 +2473,48 @@
       },
       "notional": 912.66,
       "cash_after": 8237.24
+    },
+    {
+      "time": "2026-05-29 10:10",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDJPY",
+      "name": "AUDJPY",
+      "qty": 8,
+      "price": 113.929,
+      "gross": 911.43,
+      "fee": 0.0005,
+      "fee_detail": {
+        "spread_pips": 2.478407,
+        "spread_cost_eur": 0.0005351226121268062,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 911.43,
+      "realized_pnl": -1.23,
+      "cash_after": 9148.67,
+      "reason": "ROC OPPOSE"
+    },
+    {
+      "time": "2026-05-29 10:10",
+      "side": "OPEN",
+      "position_side": "SHORT",
+      "symbol": "OANDA:CADCHF",
+      "name": "CADCHF",
+      "qty": 1760,
+      "price": 0.5681,
+      "gross": 999.93,
+      "fee": 0.1485,
+      "fee_detail": {
+        "spread_pips": 1.54035,
+        "spread_cost_eur": 0.14853579960113086,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 1000.07,
+      "cash_after": 8148.59
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-29 08:15"
+  "last_update": "2026-05-29 10:10"
 }

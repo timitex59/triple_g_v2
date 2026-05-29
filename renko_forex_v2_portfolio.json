@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
-  "cash": 8135.966287533274,
-  "fees_paid": 0.3654563587073618,
+  "cash": 9047.27775243088,
+  "fees_paid": 0.3659914611006774,
   "positions": {
     "OANDA:NZDJPY": {
       "name": "NZDJPY",
@@ -10,16 +10,7 @@
       "avg_price": 94.002,
       "margin": 940.02,
       "entry_time": "2026-05-27 18:15",
-      "last_price": 94.986
-    },
-    "OANDA:AUDJPY": {
-      "name": "AUDJPY",
-      "side": "LONG",
-      "qty": 8,
-      "avg_price": 114.078,
-      "margin": 912.624,
-      "entry_time": "2026-05-29 00:09",
-      "last_price": 114.142
+      "last_price": 94.834
     }
   },
   "history": [
@@ -396,6 +387,17 @@
       "fees_paid": 0.37,
       "fee_drag_pct": 0.0,
       "positions": 2
+    },
+    {
+      "time": "2026-05-29 10:12",
+      "equity": 9995.62,
+      "cash": 9047.28,
+      "pnl": -4.38,
+      "pnl_pct": -0.04,
+      "gross_pnl_before_fees": -4.02,
+      "fees_paid": 0.37,
+      "fee_drag_pct": 0.0,
+      "positions": 1
     }
   ],
   "trades": [
@@ -556,8 +558,29 @@
       },
       "notional": 912.62,
       "cash_after": 8135.97
+    },
+    {
+      "time": "2026-05-29 10:12",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDJPY",
+      "name": "AUDJPY",
+      "qty": 8,
+      "price": 113.914,
+      "gross": 911.31,
+      "fee": 0.0005,
+      "fee_detail": {
+        "spread_pips": 2.478407,
+        "spread_cost_eur": 0.0005351023933155571,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 911.31,
+      "realized_pnl": -1.31,
+      "cash_after": 9047.28,
+      "reason": "ROC OPPOSE"
     }
   ],
   "first_run": "2026-05-22 01:26",
-  "last_update": "2026-05-29 08:17"
+  "last_update": "2026-05-29 10:12"
 }
