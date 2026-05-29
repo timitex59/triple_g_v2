@@ -87,9 +87,13 @@ jobs:
           run_with_telegram "$ENABLE_TELEGRAM_PX_RENKO_INDEX_V2" px_renko_screener_index_V2.py
           if [ "$HOUR_MIN_PARIS" -ge 1800 ] && [ "$HOUR_MIN_PARIS" -lt 2000 ]; then
             run_with_telegram "$ENABLE_TELEGRAM_ETF_V1" renko_alignment_etf_V1.py
+          else
+            echo "Skip renko_alignment_etf_V1.py outside 18:00-20:00 Europe/Paris"
+          fi
+          if [ "$HOUR_MIN_PARIS" -ge 600 ] && [ "$HOUR_MIN_PARIS" -lt 2000 ]; then
             run_with_telegram "$ENABLE_TELEGRAM_ETF_V3" renko_etf_strategy_V3.py
           else
-            echo "Skip renko_alignment_etf_V1.py / renko_etf_strategy_V3.py outside 18:00-20:00 Europe/Paris"
+            echo "Skip renko_etf_strategy_V3.py outside 06:00-20:00 Europe/Paris"
           fi
           run_with_telegram "$ENABLE_TELEGRAM_SAR_MTF_FOREX" sarenki_V1_forex.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V1" renko_forex_V1.py
