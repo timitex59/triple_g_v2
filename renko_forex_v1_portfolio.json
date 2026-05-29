@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
-  "cash": 6235.698856308033,
-  "fees_paid": 4.64475148136404,
+  "cash": 7234.464179924443,
+  "fees_paid": 4.72678786495432,
   "positions": {
     "OANDA:CHFJPY": {
       "name": "CHFJPY",
@@ -10,7 +10,7 @@
       "avg_price": 203.144,
       "margin": 812.576,
       "entry_time": "2026-05-28 18:35",
-      "last_price": 203.693
+      "last_price": 203.596
     },
     "OANDA:CADCHF": {
       "name": "CADCHF",
@@ -19,7 +19,7 @@
       "avg_price": 0.56814,
       "margin": 999.9264,
       "entry_time": "2026-05-29 10:10",
-      "last_price": 0.56566
+      "last_price": 0.56708
     },
     "OANDA:AUDJPY": {
       "name": "AUDJPY",
@@ -28,16 +28,7 @@
       "avg_price": 114.127,
       "margin": 913.016,
       "entry_time": "2026-05-29 13:42",
-      "last_price": 114.249
-    },
-    "OANDA:AUDCAD": {
-      "name": "AUDCAD",
-      "side": "LONG",
-      "qty": 1008,
-      "avg_price": 0.99186,
-      "margin": 999.7948799999999,
-      "entry_time": "2026-05-29 14:47",
-      "last_price": 0.99186
+      "last_price": 114.389
     }
   },
   "history": [
@@ -1393,6 +1384,17 @@
       "fees_paid": 4.64,
       "fee_drag_pct": 0.05,
       "positions": 4
+    },
+    {
+      "time": "2026-05-29 16:45",
+      "equity": 9965.75,
+      "cash": 7234.46,
+      "pnl": -34.25,
+      "pnl_pct": -0.34,
+      "gross_pnl_before_fees": -29.52,
+      "fees_paid": 4.73,
+      "fee_drag_pct": 0.05,
+      "positions": 3
     }
   ],
   "trades": [
@@ -2591,8 +2593,29 @@
       },
       "notional": 999.88,
       "cash_after": 6235.7
+    },
+    {
+      "time": "2026-05-29 16:45",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:AUDCAD",
+      "name": "AUDCAD",
+      "qty": 1008,
+      "price": 0.9909,
+      "gross": 998.85,
+      "fee": 0.082,
+      "fee_detail": {
+        "spread_pips": 2.616277,
+        "spread_cost_eur": 0.0820363835902796,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 998.77,
+      "realized_pnl": -1.03,
+      "cash_after": 7234.46,
+      "reason": "ROC OPPOSE"
     }
   ],
   "first_run": "2026-05-11 00:15",
-  "last_update": "2026-05-29 14:47"
+  "last_update": "2026-05-29 16:45"
 }
