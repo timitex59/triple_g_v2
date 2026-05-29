@@ -39,9 +39,6 @@ METRICS_PATH = os.path.join(SCRIPT_DIR, "renko_etf_strategy_v3_metrics.json")
 METRICS_ALPHA = 0.25
 METRICS_MAX_HISTORY = 120
 TREND_THRESHOLD = 0.25
-LEADER_ARROW_THRESHOLD = 0.30
-LEADER_STRONG_THRESHOLD = 1.00
-WATCH_THRESHOLD = 0.50
 
 WS_URL = "wss://prodata.tradingview.com/socket.io/websocket"
 WS_HEADERS = {"Origin": "https://www.tradingview.com", "User-Agent": "Mozilla/5.0"}
@@ -552,64 +549,33 @@ def update_metrics_tracker(metrics: dict, snaps: list[Snapshot], now_str: str) -
 
 def build_trend_lines(trends: list[dict], limit: int = 3) -> list[str]:
     improving = sorted(
-        [t for t in trends if t.get("rs_trend") is not None and t["rs_trend"] >= WATCH_THRESHOLD],
+        [t for t in trends if t.get("rs_trend") is not None and t["rs_trend"] >= TREND_THRESHOLD],
         key=lambda t: (t["rs_trend"], t.get("rank_trend") or 0.0),
         reverse=True,
     )
     weakening = sorted(
-        [t for t in trends if t.get("rs_trend") is not None and t["rs_trend"] <= -WATCH_THRESHOLD],
+        [t for t in trends if t.get("rs_trend") is not None and t["rs_trend"] <= -TREND_THRESHOLD],
         key=lambda t: (t["rs_trend"], -(t.get("rank_trend") or 0.0)),
     )
     lines = []
-    watch_items = []
-    for item in improving[:limit]:
-        watch_items.append(f"📈 {item['name']} improving")
-    for item in weakening[:limit]:
-        watch_items.append(f"📉 {item['name']} weakening")
-    if watch_items:
-        lines.append("Watch")
-        lines.extend(watch_items)
+    if improving:
+        lines.append("📈 Improving")
+        for item in improving[:limit]:
+            lines.append(f"{item['name']} RS {item['smoothed_rs']:+.2f}% ({item['rs_trend']:+.2f})")
+    if weakening:
+        if lines:
+            lines.append("")
+        lines.append("📉 Weakening")
+        for item in weakening[:limit]:
+            lines.append(f"{item['name']} RS {item['smoothed_rs']:+.2f}% ({item['rs_trend']:+.2f})")
     return lines
 
 
-def trend_arrow(value: float | None) -> str:
-    if value is None:
-        return "→"
-    if value >= LEADER_STRONG_THRESHOLD:
-        return "↑↑"
-    if value >= LEADER_ARROW_THRESHOLD:
-        return "↑"
-    if value <= -LEADER_STRONG_THRESHOLD:
-        return "↓↓"
-    if value <= -LEADER_ARROW_THRESHOLD:
-        return "↓"
-    return "→"
-
-
-def pulse_label(candidates: list[Snapshot], trend_by_name: dict[str, dict]) -> str:
-    improving = 0
-    weakening = 0
-    for snap in candidates:
-        trend = trend_by_name.get(snap.name, {}).get("rs_trend")
-        arrow = trend_arrow(trend)
-        if arrow in ("↑", "↑↑"):
-            improving += 1
-        elif arrow in ("↓", "↓↓"):
-            weakening += 1
-    if improving > weakening:
-        return "improving"
-    if weakening > improving:
-        return "weakening"
-    return "stable"
-
-
-def build_telegram_message(candidates: list[Snapshot], trends: list[dict], trend_lines: list[str]) -> str:
-    trend_by_name = {item["name"]: item for item in trends}
-    leader_lines = ["📊 ETF", f"Pulse: {pulse_label(candidates, trend_by_name)}", "", "Leaders"]
+def build_telegram_message(candidates: list[Snapshot], trend_lines: list[str]) -> str:
+    leader_lines = ["📊 ETF", "Leaders"]
     for snap in candidates:
         rs = "---" if snap.rs_avg_pct is None else f"{snap.rs_avg_pct:+.2f}"
-        trend = trend_by_name.get(snap.name, {}).get("rs_trend")
-        leader_lines.append(f"🟢 {snap.name} {rs} {trend_arrow(trend)}")
+        leader_lines.append(f"🟢 {snap.name} {rs}")
     parts = ["\n".join(leader_lines)]
     if trend_lines:
         parts.append("\n".join(trend_lines))
@@ -777,7 +743,7 @@ def main() -> int:
         lines.append(f"{i:>2}. {dot} {trade_side_label(s)} {s.name} | RS {rs} | ROC {roc_txt} | RSI {rsi_txt}")
 
     if lines:
-        msg = build_telegram_message(candidates, trend_data if update_metrics else [], trend_lines)
+        msg = build_telegram_message(candidates, trend_lines)
         print(f"\n{msg}\n")
         if not args.no_telegram and (telegram_window_open(now_paris) or args.force_telegram):
             send_telegram(msg)
