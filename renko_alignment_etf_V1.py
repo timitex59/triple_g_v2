@@ -50,6 +50,7 @@ def send_telegram_html(text: str) -> bool:
         return False
 
 ETFs = [
+    ("EURONEXT:WQTM",  "WQTM"),
     ("EURONEXT:WEBH",  "WEBH"),
     ("EURONEXT:PUST",  "PUST"),
     ("EURONEXT:ISRU",  "ISRU"),
@@ -65,6 +66,8 @@ ETFs = [
     ("EURONEXT:PAEEM", "PAEEM"),
     ("EURONEXT:PSP5",  "PSP5"),
     ("EURONEXT:CL2",   "CL2"),
+    ("NASDAQ:JEPQ",    "JEPQ"),
+    ("EURONEXT:LVE",   "LVE"),
 ]
 
 
