@@ -541,6 +541,45 @@ def scan_currency_indices(atr_length: int = 14, debug: bool = False) -> list[str
     return lines
 
 
+def scan_currency_index_daily_chg_extremes(debug: bool = False) -> list[str]:
+    """Return strongest positive and negative daily CHG% among currency indices."""
+    changes = []
+    for _ticker, tv_sym, currency in CURRENCY_INDICES:
+        bars = fetch_tv_ohlc(tv_sym, "D", 30)
+        if not bars:
+            continue
+        last = bars[-1]
+        try:
+            open_px = float(last["open"])
+            close_px = float(last["close"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if open_px == 0:
+            continue
+        chg_pct = (close_px - open_px) / open_px * 100.0
+        changes.append((chg_pct, currency))
+        if debug:
+            print(f"  INDEX CHG {currency:<3} | {chg_pct:+.2f}%")
+
+    if not changes:
+        return []
+
+    lines = []
+    positive = [item for item in changes if item[0] > 0]
+    negative = [item for item in changes if item[0] < 0]
+    if positive:
+        chg_pct, currency = max(positive, key=lambda item: item[0])
+        lines.append(f"🟢 {currency} {chg_pct:+.2f}%")
+    if negative:
+        chg_pct, currency = min(negative, key=lambda item: item[0])
+        lines.append(f"🔴 {currency} {chg_pct:+.2f}%")
+    if not lines:
+        chg_pct, currency = max(changes, key=lambda item: abs(item[0]))
+        icon = "🟢" if chg_pct >= 0 else "🔴"
+        lines.append(f"{icon} {currency} {chg_pct:+.2f}%")
+    return lines
+
+
 def index_renko_state(symbol: str, atr_length: int = 14, debug: bool = False) -> tuple[int, int]:
     bw = _fetch_renko_with_fallback(symbol, "W", atr_length, 200, debug)
     bd = _fetch_renko_with_fallback(symbol, "D", atr_length, 200, debug)
@@ -1781,6 +1820,7 @@ def main() -> int:
             print("Telegram skipped: outside 06:00-20:00 Paris window.")
 
     index_lines = scan_currency_indices(args.length, debug=args.debug)
+    index_chg_lines = scan_currency_index_daily_chg_extremes(debug=args.debug)
 
     portfolio_lines, _portfolio_info = update_portfolio_simulation(
         portfolio, buy_targets, close_alerts, snaps, now_str
@@ -1789,6 +1829,8 @@ def main() -> int:
 
     if index_lines:
         portfolio_lines += ["", "📊 INDICES FOREX"] + index_lines
+    if index_chg_lines:
+        portfolio_lines += ["", "🔥 CHG% DAILY INDICES"] + index_chg_lines
 
     if portfolio_lines:
         portfolio_msg = "\n".join(portfolio_lines) + f"\n\n⏰ {now_str} Paris"
