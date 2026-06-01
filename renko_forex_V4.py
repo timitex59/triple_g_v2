@@ -543,6 +543,28 @@ def scan_currency_indices(atr_length: int = 14, debug: bool = False) -> list[str
 
 def scan_currency_index_daily_chg_extremes(debug: bool = False) -> list[str]:
     """Return strongest positive and negative daily CHG% among currency indices."""
+    changes = scan_currency_index_daily_changes(debug=debug)
+    if not changes:
+        return []
+
+    lines = []
+    positive = [item for item in changes if item[0] > 0]
+    negative = [item for item in changes if item[0] < 0]
+    if positive:
+        chg_pct, currency = max(positive, key=lambda item: item[0])
+        lines.append(f"🟢 {currency} {chg_pct:+.2f}%")
+    if negative:
+        chg_pct, currency = min(negative, key=lambda item: item[0])
+        lines.append(f"🔴 {currency} {chg_pct:+.2f}%")
+    if not lines:
+        chg_pct, currency = max(changes, key=lambda item: abs(item[0]))
+        icon = "🟢" if chg_pct >= 0 else "🔴"
+        lines.append(f"{icon} {currency} {chg_pct:+.2f}%")
+    return lines
+
+
+def scan_currency_index_daily_changes(debug: bool = False) -> list[tuple[float, str]]:
+    """Return daily CHG% for all currency indices as (chg_pct, currency)."""
     changes = []
     for _ticker, tv_sym, currency in CURRENCY_INDICES:
         bars = fetch_tv_ohlc(tv_sym, "D", 30)
@@ -561,23 +583,48 @@ def scan_currency_index_daily_chg_extremes(debug: bool = False) -> list[str]:
         if debug:
             print(f"  INDEX CHG {currency:<3} | {chg_pct:+.2f}%")
 
-    if not changes:
-        return []
+    return changes
 
-    lines = []
+
+def scan_extreme_index_pair_confirmation(snaps: list["ForexSnapshot"], debug: bool = False) -> list[str]:
+    """Check whether the strongest/weakest index pair has a confirming daily CHG%."""
+    changes = scan_currency_index_daily_changes(debug=debug)
     positive = [item for item in changes if item[0] > 0]
     negative = [item for item in changes if item[0] < 0]
-    if positive:
-        chg_pct, currency = max(positive, key=lambda item: item[0])
-        lines.append(f"🟢 {currency} {chg_pct:+.2f}%")
-    if negative:
-        chg_pct, currency = min(negative, key=lambda item: item[0])
-        lines.append(f"🔴 {currency} {chg_pct:+.2f}%")
-    if not lines:
-        chg_pct, currency = max(changes, key=lambda item: abs(item[0]))
-        icon = "🟢" if chg_pct >= 0 else "🔴"
-        lines.append(f"{icon} {currency} {chg_pct:+.2f}%")
-    return lines
+    if not positive or not negative:
+        return []
+
+    strong_chg, strong_ccy = max(positive, key=lambda item: item[0])
+    weak_chg, weak_ccy = min(negative, key=lambda item: item[0])
+    snap_by_name = {s.name.upper(): s for s in snaps}
+
+    direct_pair = f"{strong_ccy}{weak_ccy}"
+    inverse_pair = f"{weak_ccy}{strong_ccy}"
+    expected_pair = ""
+    expected_side = ""
+    snap = None
+    if direct_pair in snap_by_name:
+        expected_pair = direct_pair
+        expected_side = "LONG"
+        snap = snap_by_name[direct_pair]
+    elif inverse_pair in snap_by_name:
+        expected_pair = inverse_pair
+        expected_side = "SHORT"
+        snap = snap_by_name[inverse_pair]
+
+    if snap is None:
+        return [f"⚪ {strong_ccy}/{weak_ccy}: paire absente de la watchlist"]
+
+    chg = snap.chg_daily_pct
+    if chg is None:
+        return [f"⚪ {expected_pair} {expected_side} attendu | CHG D N/A"]
+
+    confirms = chg > 0.1 if expected_side == "LONG" else chg < -0.1
+    icon = "✅" if confirms else "❌"
+    side_icon = "🟢" if expected_side == "LONG" else "🔴"
+    return [
+        f"{side_icon} {expected_pair} {expected_side} attendu | {strong_ccy} {strong_chg:+.2f}% vs {weak_ccy} {weak_chg:+.2f}% | CHG D {chg:+.2f}% {icon}"
+    ]
 
 
 def index_renko_state(symbol: str, atr_length: int = 14, debug: bool = False) -> tuple[int, int]:
@@ -1819,6 +1866,7 @@ def main() -> int:
 
     index_lines = scan_currency_indices(args.length, debug=args.debug)
     index_chg_lines = scan_currency_index_daily_chg_extremes(debug=args.debug)
+    extreme_pair_lines = scan_extreme_index_pair_confirmation(snaps, debug=args.debug)
 
     eligible_lines = []
     for i, s in enumerate(positive, 1):
@@ -1841,6 +1889,8 @@ def main() -> int:
         portfolio_lines += ["", "📊 INDICES FOREX"] + index_lines
     if index_chg_lines:
         portfolio_lines += ["", "🔥 CHG% DAILY INDICES"] + index_chg_lines
+    if extreme_pair_lines:
+        portfolio_lines += ["", "🔗 PAIRE EXTREMES"] + extreme_pair_lines
 
     if portfolio_lines:
         portfolio_msg = "\n".join(portfolio_lines) + f"\n\n⏰ {now_str} Paris"
