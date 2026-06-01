@@ -1550,6 +1550,8 @@ def parse_args() -> argparse.Namespace:
                    help="Comma-separated pairs to scan, e.g. NZDJPY,EURNZD.")
     p.add_argument("--allow-weekend", action="store_true",
                    help="Force a live scan on Saturday/Sunday for diagnostics.")
+    p.add_argument("--force-telegram", action="store_true",
+                   help="Send Telegram messages even outside the 06:00-21:00 Paris window.")
     p.add_argument("--debug",      action="store_true")
     return p.parse_args()
 
@@ -1660,7 +1662,7 @@ def main() -> int:
     now_paris = datetime.now(paris_tz)
     today_str = now_paris.strftime("%Y-%m-%d")
     now_str   = now_paris.strftime("%Y-%m-%d %H:%M")
-    can_send_telegram = telegram_window_open(now_paris)
+    can_send_telegram = args.force_telegram or telegram_window_open(now_paris)
     if not portfolio.get("first_run"):
         portfolio["first_run"] = now_str
     portfolio_first_run = str(portfolio.get("first_run") or now_str)
@@ -1817,7 +1819,7 @@ def main() -> int:
         if not args.no_telegram and can_send_telegram:
             send_telegram(close_msg)
         elif not args.no_telegram:
-            print("Telegram skipped: outside 06:00-20:00 Paris window.")
+            print("Telegram skipped: outside 06:00-21:00 Paris window. Use --force-telegram to override.")
 
     index_lines = scan_currency_indices(args.length, debug=args.debug)
     index_chg_lines = scan_currency_index_daily_chg_extremes(debug=args.debug)
@@ -1838,7 +1840,7 @@ def main() -> int:
         if not args.no_telegram and can_send_telegram:
             send_telegram(portfolio_msg)
         elif not args.no_telegram:
-            print("Telegram skipped: outside 06:00-20:00 Paris window.")
+            print("Telegram skipped: outside 06:00-21:00 Paris window. Use --force-telegram to override.")
 
     _save_json(STATE_PATH, state)
     return 0
