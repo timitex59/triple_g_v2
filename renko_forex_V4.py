@@ -1833,6 +1833,11 @@ def main() -> int:
 
     portfolio_lines = ["🎯 PAIRES ÉLIGIBLES"] + (eligible_lines if eligible_lines else ["(aucune)"])
     if index_lines:
+        express_idx = next((i for i, line in enumerate(index_lines) if line == "⚡️ EXPRESS"), None)
+        if express_idx is not None:
+            index_lines = index_lines[:express_idx]
+            while index_lines and index_lines[-1] == "":
+                index_lines.pop()
         portfolio_lines += ["", "📊 INDICES FOREX"] + index_lines
     if index_chg_lines:
         portfolio_lines += ["", "🔥 CHG% DAILY INDICES"] + index_chg_lines
