@@ -51,7 +51,6 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 ETF_STRATEGY_ASSETS: list[tuple[str, str]] = [
     ("EURONEXT:WQTM", "WQTM"),
-    ("EURONEXT:QNTM", "QNTM"),
     ("EURONEXT:LQQ", "LQQ"),
     ("EURONEXT:CL2", "CL2"),
     ("EURONEXT:PUST", "PUST"),
