@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
   "cash": 6041.725019964959,
-  "fees_paid": 0.19815646878886004,
+  "fees_paid": 0.2,
   "positions": {
     "OANDA:EURNZD": {
       "name": "EURNZD",
@@ -10,7 +10,7 @@
       "avg_price": 1.94978,
       "margin": 998.28736,
       "entry_time": "2026-05-29 20:00",
-      "last_price": 1.96096
+      "last_price": 1.9593
     },
     "OANDA:GBPCAD": {
       "name": "GBPCAD",
@@ -19,7 +19,7 @@
       "avg_price": 1.86061,
       "margin": 999.1475700000001,
       "entry_time": "2026-06-01 18:19",
-      "last_price": 1.86061
+      "last_price": 1.86283
     },
     "OANDA:USDJPY": {
       "name": "USDJPY",
@@ -28,7 +28,7 @@
       "avg_price": 159.693,
       "margin": 958.1580000000001,
       "entry_time": "2026-06-01 18:19",
-      "last_price": 159.693
+      "last_price": 159.678
     },
     "OANDA:USDCAD": {
       "name": "USDCAD",
@@ -37,7 +37,7 @@
       "avg_price": 1.3843,
       "margin": 999.4646,
       "entry_time": "2026-06-01 18:19",
-      "last_price": 1.3843
+      "last_price": 1.38396
     }
   },
   "history": [
@@ -136,6 +136,17 @@
       "pnl": -8.94,
       "pnl_pct": -0.09,
       "gross_pnl_before_fees": -8.74,
+      "fees_paid": 0.2,
+      "fee_drag_pct": 0.0,
+      "positions": 4
+    },
+    {
+      "time": "2026-06-01 20:50",
+      "equity": 9992.76,
+      "cash": 6041.73,
+      "pnl": -7.24,
+      "pnl_pct": -0.07,
+      "gross_pnl_before_fees": -7.04,
       "fees_paid": 0.2,
       "fee_drag_pct": 0.0,
       "positions": 4
@@ -260,5 +271,5 @@
     }
   ],
   "first_run": "2026-05-29 20:00",
-  "last_update": "2026-06-01 18:19"
+  "last_update": "2026-06-01 20:50"
 }
