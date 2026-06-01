@@ -99,7 +99,7 @@ jobs:
           run_with_telegram "$ENABLE_TELEGRAM_SAR_MTF_FOREX" sarenki_V1_forex.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V1" renko_forex_V1.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V2" renko_forex_V2.py
-          run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V4" renko_forex_V4.py
+          run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V4" renko_forex_V4.py --force-telegram
 
           echo "---- px_renko_index_tracker_state.json after tracker ----"
           if [ -f px_renko_index_tracker_state.json ]; then
