@@ -1,17 +1,8 @@
 {
   "initial_capital": 10000.0,
-  "cash": 8048.983346433747,
-  "fees_paid": 0.09,
+  "cash": 8998.602603903122,
+  "fees_paid": 0.09074253062564588,
   "positions": {
-    "OANDA:NZDJPY": {
-      "name": "NZDJPY",
-      "side": "LONG",
-      "qty": 10,
-      "avg_price": 95.264,
-      "margin": 952.64,
-      "entry_time": "2026-05-29 20:00",
-      "last_price": 95.382
-    },
     "OANDA:EURNZD": {
       "name": "EURNZD",
       "side": "SHORT",
@@ -19,7 +10,7 @@
       "avg_price": 1.94978,
       "margin": 998.28736,
       "entry_time": "2026-05-29 20:00",
-      "last_price": 1.94722
+      "last_price": 1.95644
     }
   },
   "history": [
@@ -99,6 +90,17 @@
       "fees_paid": 0.09,
       "fee_drag_pct": 0.0,
       "positions": 2
+    },
+    {
+      "time": "2026-06-01 11:36",
+      "equity": 9993.48,
+      "cash": 8998.6,
+      "pnl": -6.52,
+      "pnl_pct": -0.07,
+      "gross_pnl_before_fees": -6.43,
+      "fees_paid": 0.09,
+      "fee_drag_pct": 0.0,
+      "positions": 1
     }
   ],
   "trades": [
@@ -139,8 +141,29 @@
       },
       "notional": 998.38,
       "cash_after": 8048.98
+    },
+    {
+      "time": "2026-06-01 11:36",
+      "side": "SELL",
+      "position_side": "LONG",
+      "symbol": "OANDA:NZDJPY",
+      "name": "NZDJPY",
+      "qty": 10,
+      "price": 94.962,
+      "gross": 949.62,
+      "fee": 0.0007,
+      "fee_detail": {
+        "spread_pips": 2.759125,
+        "spread_cost_eur": 0.0007425306256458836,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 949.62,
+      "realized_pnl": -3.02,
+      "cash_after": 8998.6,
+      "reason": "CLOSE ALERT"
     }
   ],
   "first_run": "2026-05-29 20:00",
-  "last_update": "2026-05-30 01:42"
+  "last_update": "2026-06-01 11:36"
 }
