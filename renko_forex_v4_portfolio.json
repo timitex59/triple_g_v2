@@ -1,7 +1,7 @@
 {
   "initial_capital": 10000.0,
-  "cash": 8998.602603903122,
-  "fees_paid": 0.09074253062564588,
+  "cash": 6041.725019964959,
+  "fees_paid": 0.19815646878886004,
   "positions": {
     "OANDA:EURNZD": {
       "name": "EURNZD",
@@ -10,7 +10,34 @@
       "avg_price": 1.94978,
       "margin": 998.28736,
       "entry_time": "2026-05-29 20:00",
-      "last_price": 1.95644
+      "last_price": 1.96096
+    },
+    "OANDA:GBPCAD": {
+      "name": "GBPCAD",
+      "side": "LONG",
+      "qty": 537,
+      "avg_price": 1.86061,
+      "margin": 999.1475700000001,
+      "entry_time": "2026-06-01 18:19",
+      "last_price": 1.86061
+    },
+    "OANDA:USDJPY": {
+      "name": "USDJPY",
+      "side": "LONG",
+      "qty": 6,
+      "avg_price": 159.693,
+      "margin": 958.1580000000001,
+      "entry_time": "2026-06-01 18:19",
+      "last_price": 159.693
+    },
+    "OANDA:USDCAD": {
+      "name": "USDCAD",
+      "side": "LONG",
+      "qty": 722,
+      "avg_price": 1.3843,
+      "margin": 999.4646,
+      "entry_time": "2026-06-01 18:19",
+      "last_price": 1.3843
     }
   },
   "history": [
@@ -101,6 +128,17 @@
       "fees_paid": 0.09,
       "fee_drag_pct": 0.0,
       "positions": 1
+    },
+    {
+      "time": "2026-06-01 18:19",
+      "equity": 9991.06,
+      "cash": 6041.73,
+      "pnl": -8.94,
+      "pnl_pct": -0.09,
+      "gross_pnl_before_fees": -8.74,
+      "fees_paid": 0.2,
+      "fee_drag_pct": 0.0,
+      "positions": 4
     }
   ],
   "trades": [
@@ -162,8 +200,65 @@
       "realized_pnl": -3.02,
       "cash_after": 8998.6,
       "reason": "CLOSE ALERT"
+    },
+    {
+      "time": "2026-06-01 18:19",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:GBPCAD",
+      "name": "GBPCAD",
+      "qty": 537,
+      "price": 1.8606,
+      "gross": 999.15,
+      "fee": 0.0662,
+      "fee_detail": {
+        "spread_pips": 3.966071,
+        "spread_cost_eur": 0.06621709407529008,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.21,
+      "cash_after": 7999.39
+    },
+    {
+      "time": "2026-06-01 18:19",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:USDJPY",
+      "name": "USDJPY",
+      "qty": 6,
+      "price": 159.693,
+      "gross": 958.16,
+      "fee": 0.0003,
+      "fee_detail": {
+        "spread_pips": 1.653788,
+        "spread_cost_eur": 0.00026741572791462296,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 958.16,
+      "cash_after": 7041.23
+    },
+    {
+      "time": "2026-06-01 18:19",
+      "side": "OPEN",
+      "position_side": "LONG",
+      "symbol": "OANDA:USDCAD",
+      "name": "USDCAD",
+      "qty": 722,
+      "price": 1.3843,
+      "gross": 999.46,
+      "fee": 0.0409,
+      "fee_detail": {
+        "spread_pips": 1.823321,
+        "spread_cost_eur": 0.04092942836000946,
+        "commission_eur": 0.0,
+        "pricing_model": "spread"
+      },
+      "notional": 999.51,
+      "cash_after": 6041.73
     }
   ],
   "first_run": "2026-05-29 20:00",
-  "last_update": "2026-06-01 11:36"
+  "last_update": "2026-06-01 18:19"
 }
