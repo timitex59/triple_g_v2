@@ -1816,19 +1816,22 @@ def main() -> int:
     if close_alerts:
         close_msg = "🚨 FOREX CLOSE ALERTS\n" + "\n".join(close_alerts) + f"\n\n⏰ {now_str} Paris"
         print(f"\n{close_msg}\n")
-        if not args.no_telegram and can_send_telegram:
-            send_telegram(close_msg)
-        elif not args.no_telegram:
-            print("Telegram skipped: outside 06:00-21:00 Paris window. Use --force-telegram to override.")
 
     index_lines = scan_currency_indices(args.length, debug=args.debug)
     index_chg_lines = scan_currency_index_daily_chg_extremes(debug=args.debug)
 
-    portfolio_lines, _portfolio_info = update_portfolio_simulation(
-        portfolio, buy_targets, close_alerts, snaps, now_str
-    )
-    _save_json(PORTFOLIO_PATH, portfolio)
+    eligible_lines = []
+    for i, s in enumerate(positive, 1):
+        side = trade_side_label(s)
+        icon = "🟢" if side == "LONG" else "🔴"
+        chg_str = "---" if s.chg_daily_pct is None else f"{s.chg_daily_pct:+.2f}%"
+        roc_str = "" if s.price_roc7 is None else f" ROC7{s.price_roc7:+.2f}%"
+        pnl_str = "---" if s.pnl_pct is None else f"{s.pnl_pct:+.2f}%"
+        eligible_lines.append(
+            f"{i}. {icon} {side} {s.name} | PnL {pnl_str} | CHG D {chg_str}{roc_str}"
+        )
 
+    portfolio_lines = ["🎯 PAIRES ÉLIGIBLES"] + (eligible_lines if eligible_lines else ["(aucune)"])
     if index_lines:
         portfolio_lines += ["", "📊 INDICES FOREX"] + index_lines
     if index_chg_lines:
