@@ -620,11 +620,8 @@ def scan_extreme_index_pair_confirmation(snaps: list["ForexSnapshot"], debug: bo
         return [f"⚪ {expected_pair} {expected_side} attendu | CHG D N/A"]
 
     confirms = chg > 0.1 if expected_side == "LONG" else chg < -0.1
-    icon = "✅" if confirms else "❌"
-    side_icon = "🟢" if expected_side == "LONG" else "🔴"
-    return [
-        f"{side_icon} {expected_pair} {expected_side} attendu | {strong_ccy} {strong_chg:+.2f}% vs {weak_ccy} {weak_chg:+.2f}% | CHG D {chg:+.2f}% {icon}"
-    ]
+    icon = ("🟢" if expected_side == "LONG" else "🔴") if confirms else "❌"
+    return [f"{icon} {expected_pair}"]
 
 
 def index_renko_state(symbol: str, atr_length: int = 14, debug: bool = False) -> tuple[int, int]:
@@ -1890,7 +1887,7 @@ def main() -> int:
     if index_chg_lines:
         portfolio_lines += ["", "🔥 CHG% DAILY INDICES"] + index_chg_lines
     if extreme_pair_lines:
-        portfolio_lines += ["", "🔗 PAIRE EXTREMES"] + extreme_pair_lines
+        portfolio_lines += extreme_pair_lines
 
     if portfolio_lines:
         portfolio_msg = "\n".join(portfolio_lines) + f"\n\n⏰ {now_str} Paris"
