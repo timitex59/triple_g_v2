@@ -541,9 +541,12 @@ def scan_currency_indices(atr_length: int = 14, debug: bool = False) -> list[str
     return lines
 
 
-def scan_currency_index_daily_chg_extremes(debug: bool = False) -> list[str]:
+def scan_currency_index_daily_chg_extremes(
+    changes: list[tuple[float, str]] | None = None,
+    debug: bool = False,
+) -> list[str]:
     """Return strongest positive and negative daily CHG% among currency indices."""
-    changes = scan_currency_index_daily_changes(debug=debug)
+    changes = changes if changes is not None else scan_currency_index_daily_changes(debug=debug)
     if not changes:
         return []
 
@@ -586,9 +589,13 @@ def scan_currency_index_daily_changes(debug: bool = False) -> list[tuple[float, 
     return changes
 
 
-def scan_extreme_index_pair_confirmation(snaps: list["ForexSnapshot"], debug: bool = False) -> list[str]:
+def scan_extreme_index_pair_confirmation(
+    snaps: list["ForexSnapshot"],
+    changes: list[tuple[float, str]] | None = None,
+    debug: bool = False,
+) -> list[str]:
     """Check whether the strongest/weakest index pair has a confirming daily CHG%."""
-    changes = scan_currency_index_daily_changes(debug=debug)
+    changes = changes if changes is not None else scan_currency_index_daily_changes(debug=debug)
     positive = [item for item in changes if item[0] > 0]
     negative = [item for item in changes if item[0] < 0]
     if not positive or not negative:
@@ -1862,8 +1869,9 @@ def main() -> int:
         print(f"\n{close_msg}\n")
 
     index_lines = scan_currency_indices(args.length, debug=args.debug)
-    index_chg_lines = scan_currency_index_daily_chg_extremes(debug=args.debug)
-    extreme_pair_lines = scan_extreme_index_pair_confirmation(snaps, debug=args.debug)
+    index_daily_changes = scan_currency_index_daily_changes(debug=args.debug)
+    index_chg_lines = scan_currency_index_daily_chg_extremes(index_daily_changes, debug=args.debug)
+    extreme_pair_lines = scan_extreme_index_pair_confirmation(snaps, index_daily_changes, debug=args.debug)
 
     eligible_lines = []
     for i, s in enumerate(positive, 1):
