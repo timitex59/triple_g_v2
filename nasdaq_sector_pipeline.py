@@ -37,6 +37,7 @@ import pandas as pd
 import pytz
 import requests
 import yfinance as yf
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from tabulate import tabulate
 
@@ -309,18 +310,28 @@ class RenkoConfirmation:
 def fetch_nasdaq_100() -> pd.DataFrame:
     resp = requests.get(WIKI_URL, timeout=20, headers={"User-Agent": USER_AGENT})
     resp.raise_for_status()
-    tables = pd.read_html(StringIO(resp.text))
-    for df in tables:
-        cols = [str(c).strip().lower() for c in df.columns]
-        if "ticker" in cols and len(df) >= 90:
-            df.columns = [str(c).strip() for c in df.columns]
-            ticker_col = next(c for c in df.columns if c.lower() == "ticker")
-            name_col = next((c for c in df.columns if c.lower() == "company"), df.columns[0])
-            out = df[[name_col, ticker_col]].copy()
-            out.columns = ["name", "ticker"]
-            out["ticker"] = out["ticker"].astype(str).str.replace(".", "-", regex=False).str.strip()
-            out = out[out["ticker"].str.match(r"^[A-Z][A-Z0-9-]{0,6}$", na=False)]
-            return out.drop_duplicates("ticker").reset_index(drop=True)
+    soup = BeautifulSoup(resp.text, "html.parser")
+    for table in soup.select("table.wikitable"):
+        rows = table.find_all("tr")
+        if not rows:
+            continue
+        headers = [cell.get_text(" ", strip=True) for cell in rows[0].find_all(["th", "td"])]
+        lowered = [h.lower() for h in headers]
+        if "ticker" not in lowered:
+            continue
+        ticker_col = lowered.index("ticker")
+        name_col = lowered.index("company") if "company" in lowered else 0
+        parsed = []
+        for row in rows[1:]:
+            cells = [cell.get_text(" ", strip=True) for cell in row.find_all(["th", "td"])]
+            if len(cells) <= max(ticker_col, name_col):
+                continue
+            ticker = cells[ticker_col].replace(".", "-").strip()
+            name = cells[name_col].strip()
+            if re.match(r"^[A-Z][A-Z0-9-]{0,6}$", ticker):
+                parsed.append({"name": name, "ticker": ticker})
+        if len(parsed) >= 90:
+            return pd.DataFrame(parsed).drop_duplicates("ticker").reset_index(drop=True)
     raise RuntimeError("Could not find Nasdaq-100 components table on Wikipedia")
 
 
