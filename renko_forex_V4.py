@@ -626,7 +626,13 @@ def scan_extreme_index_pair_confirmation(
     if chg is None:
         return [f"⚪ {expected_pair} {expected_side} attendu | CHG D N/A"]
 
-    confirms = chg > 0.1 if expected_side == "LONG" else chg < -0.1
+    chg_confirms = chg > 0.1 if expected_side == "LONG" else chg < -0.1
+    renko_confirms = (
+        snap.px_w1 == 1 and snap.px_d1 == 1
+        if expected_side == "LONG"
+        else snap.px_w1 == -1 and snap.px_d1 == -1
+    )
+    confirms = chg_confirms and renko_confirms
     icon = ("🟢" if expected_side == "LONG" else "🔴") if confirms else "❌"
     return [f"{icon} {expected_pair} ({chg:+.2f}%)"]
 
