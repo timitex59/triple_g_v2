@@ -33,7 +33,11 @@ SCRIPT_DIR    = os.path.dirname(os.path.abspath(__file__))
 STATE_PATH    = os.path.join(SCRIPT_DIR, "renko_nasdaq_state.json")
 TRACKER_PATH  = os.path.join(SCRIPT_DIR, "renko_nasdaq_tracker.json")
 HISTORY_PATH  = os.path.join(SCRIPT_DIR, "renko_nasdaq_pnl_history.json")
+PORTFOLIO_PATH = os.path.join(SCRIPT_DIR, "renko_nasdaq_portfolio.json")
 CLOSE_THRESHOLD = -0.05  # % threshold for close alert
+PORTFOLIO_INITIAL_CAPITAL = 10000.0
+PORTFOLIO_POSITION_BUDGET = 1000.0
+PORTFOLIO_FEE = 1.0
 
 WS_URL     = "wss://prodata.tradingview.com/socket.io/websocket"
 WS_HEADERS = {"Origin": "https://www.tradingview.com", "User-Agent": "Mozilla/5.0"}
@@ -172,8 +176,7 @@ def _frames(raw: str) -> list[str]:
 # ─── OHLC fetch ───────────────────────────────────────────────────────────────
 
 def fetch_tv_ohlc(symbol: str, interval: str, n_candles: int,
-                  timeout_s: int = 20, retries: int = 2,
-                  session: str = "regular") -> list[dict] | None:
+                  timeout_s: int = 20, retries: int = 2) -> list[dict] | None:
     for attempt in range(retries + 1):
         ws = None
         try:
@@ -183,7 +186,7 @@ def fetch_tv_ohlc(symbol: str, interval: str, n_candles: int,
             ws.send(_msg("chart_create_session", [sid, ""]))
             ws.send(_msg("resolve_symbol", [
                 sid, "sds_sym_1",
-                f'={{"symbol":"{symbol}","adjustment":"splits","session":"{session}"}}'
+                f'={{"symbol":"{symbol}","adjustment":"splits","session":"regular"}}'
             ]))
             ws.send(_msg("create_series", [sid, "sds_1", "s1", "sds_sym_1", interval, n_candles, ""]))
 
@@ -415,7 +418,7 @@ def _load_json(path: str) -> dict:
     if not os.path.exists(path):
         return {}
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             return json.load(f)
     except Exception:
         return {}
@@ -450,6 +453,8 @@ class NasdaqSnapshot:
     bias_state_after: int
     bias_entry: float | None
     pnl_pct: float | None
+    price_roc14: float | None
+    price_roc21: float | None
     last_event_time: int | None
     last_event_price: float | None
     close: float
@@ -481,7 +486,7 @@ def scan_symbol(symbol: str, name: str, atr_length: int,
             print(f"  [{symbol}] no renko W")
         return None
 
-    bars_d = fetch_tv_ohlc(symbol, "W", 2)
+    bars_d = fetch_tv_ohlc(symbol, "W", 24)
     if not bars_d:
         if debug:
             print(f"  [{symbol}] no weekly OHLC for current price")
@@ -489,6 +494,16 @@ def scan_symbol(symbol: str, name: str, atr_length: int,
 
     curr_close = float(bars_d[-1]["close"])
     bar_time   = int(bars_d[-1]["time"])
+    price_roc14: float | None = None
+    price_roc21: float | None = None
+    if len(bars_d) >= 15:
+        prev_close = float(bars_d[-15]["close"])
+        if prev_close:
+            price_roc14 = (curr_close - prev_close) / prev_close * 100
+    if len(bars_d) >= 22:
+        prev_close21 = float(bars_d[-22]["close"])
+        if prev_close21:
+            price_roc21 = (curr_close - prev_close21) / prev_close21 * 100
 
     last_3m = brick_mn[-1]
     last_m  = brick_w1[-1]
@@ -545,7 +560,7 @@ def scan_symbol(symbol: str, name: str, atr_length: int,
         streak_3m=streak_3m, streak_m=streak_m, streak_w=streak_w,
         aligned=aligned,
         bias_state_before=bias_before, bias_state_after=bias_after,
-        bias_entry=bias_entry, pnl_pct=pnl_pct,
+        bias_entry=bias_entry, pnl_pct=pnl_pct, price_roc14=price_roc14, price_roc21=price_roc21,
         last_event_time=last_t, last_event_price=last_p,
         close=curr_close, ts_utc=bar_time,
     )
@@ -670,7 +685,364 @@ def update_tracker(tracker: dict, snaps: list[NasdaqSnapshot], paris_tz) -> list
     return close_alerts
 
 
-# ─── PnL history & ROC(14) ───────────────────────────────────────────────────
+def update_rank_exit_alerts(
+    tracker: dict,
+    snaps: list[NasdaqSnapshot],
+    current_ranked: list[NasdaqSnapshot],
+    paris_tz,
+) -> list[str]:
+    """Alert when a symbol from the previous TOP 15 display drops out on this run."""
+    now_paris = datetime.now(paris_tz)
+    meta = tracker.setdefault("_meta", {})
+    previous_ranked = meta.get("last_ranked_symbols", [])
+
+    current_symbols = {s.symbol for s in current_ranked}
+    scanned = {s.symbol: s for s in snaps}
+    exit_alerts = []
+
+    for item in previous_ranked:
+        sym = item.get("symbol")
+        if not sym or sym in current_symbols or sym not in scanned:
+            continue
+
+        snap = scanned[sym]
+        pnl_txt = "---" if snap.pnl_pct is None else f"{snap.pnl_pct:+.2f}%"
+        prev_rank = item.get("rank")
+        prev_txt = f" | prev #{prev_rank}" if prev_rank else ""
+        exit_alerts.append(f"⚠️ OUT TOP15 {snap.name} | PnL {pnl_txt}{prev_txt}")
+
+    meta["last_ranked_at"] = now_paris.isoformat()
+    meta["last_ranked_symbols"] = [
+        {
+            "symbol": s.symbol,
+            "name": s.name,
+            "rank": i,
+            "pnl": round(s.pnl_pct, 4) if s.pnl_pct is not None else None,
+        }
+        for i, s in enumerate(current_ranked, 1)
+    ]
+
+    return exit_alerts
+
+
+# ─── Portfolio simulation ────────────────────────────────────────────────────
+
+def default_portfolio() -> dict:
+    return {
+        "initial_capital": PORTFOLIO_INITIAL_CAPITAL,
+        "cash": PORTFOLIO_INITIAL_CAPITAL,
+        "fees_paid": 0.0,
+        "positions": {},
+        "history": [],
+        "trades": [],
+    }
+
+
+def load_portfolio() -> dict:
+    data = _load_json(PORTFOLIO_PATH)
+    if not data:
+        return default_portfolio()
+    base = default_portfolio()
+    base.update(data)
+    if not isinstance(base.get("positions"), dict):
+        base["positions"] = {}
+    if not isinstance(base.get("history"), list):
+        base["history"] = []
+    if not isinstance(base.get("trades"), list):
+        base["trades"] = []
+    reconstructed_fees = round(
+        sum(float(t.get("fee", 0.0) or 0.0) for t in base.get("trades", [])),
+        2,
+    )
+    base["fees_paid"] = max(float(base.get("fees_paid", 0.0) or 0.0), reconstructed_fees)
+    if not base.get("first_run"):
+        candidates = []
+        candidates.extend(str(h.get("time")) for h in base.get("history", []) if h.get("time"))
+        candidates.extend(str(t.get("time")) for t in base.get("trades", []) if t.get("time"))
+        candidates.extend(str(p.get("entry_time")) for p in base.get("positions", {}).values() if p.get("entry_time"))
+        if candidates:
+            base["first_run"] = min(candidates)
+    return base
+
+
+def portfolio_equity(portfolio: dict, price_map: dict[str, float]) -> float:
+    equity = float(portfolio.get("cash", 0.0) or 0.0)
+    for sym, pos in portfolio.get("positions", {}).items():
+        px = price_map.get(sym)
+        if px is None:
+            px = float(pos.get("last_price", 0.0) or 0.0)
+        qty = int(pos.get("qty", 0) or 0)
+        equity += qty * px
+    return equity
+
+
+def close_alert_symbols(close_alerts: list[str], snaps: list[NasdaqSnapshot]) -> set[str]:
+    by_name = {s.name: s.symbol for s in snaps}
+    symbols = set()
+    for alert in close_alerts:
+        for marker in ("CLOSE ", "OUT TOP15 "):
+            idx = alert.find(marker)
+            if idx < 0:
+                continue
+            name = alert[idx + len(marker):].split("|", 1)[0].strip()
+            sym = by_name.get(name)
+            if sym:
+                symbols.add(sym)
+            break
+    return symbols
+
+
+def portfolio_buy_targets(
+    positive: list[NasdaqSnapshot],
+    held_symbols: set[str] | None = None,
+    limit: int = 10,
+    protect_rank: int = 15,
+) -> list[NasdaqSnapshot]:
+    """Build portfolio targets, preserving held TOP15 names and one Alphabet class."""
+    held_symbols = held_symbols or set()
+    alphabet_symbols = {"NASDAQ:GOOG", "NASDAQ:GOOGL"}
+    by_symbol = {s.symbol: s for s in positive}
+    rank = {s.symbol: i for i, s in enumerate(positive)}
+
+    protected = {
+        s.symbol for s in positive[:protect_rank]
+        if s.symbol in held_symbols
+    }
+
+    target_symbols: set[str] = set()
+    alphabet_selected = False
+
+    def add_symbol(sym: str) -> bool:
+        nonlocal alphabet_selected
+        snap = by_symbol.get(sym)
+        if snap is None or sym in target_symbols:
+            return False
+        if sym in alphabet_symbols:
+            if alphabet_selected:
+                return False
+            alphabet_selected = True
+        target_symbols.add(sym)
+        return True
+
+    for snap in positive[:protect_rank]:
+        if snap.symbol in protected:
+            add_symbol(snap.symbol)
+            if len(target_symbols) >= limit:
+                break
+
+    for snap in positive:
+        if len(target_symbols) >= limit:
+            break
+        add_symbol(snap.symbol)
+
+    targets = [by_symbol[sym] for sym in target_symbols]
+    targets.sort(key=lambda s: rank.get(s.symbol, 10**9))
+    return targets[:limit]
+
+
+def update_portfolio_simulation(
+    portfolio: dict,
+    buy_targets: list[NasdaqSnapshot],
+    close_alerts: list[str],
+    snaps: list[NasdaqSnapshot],
+    now_str: str,
+) -> tuple[list[str], dict]:
+    price_map = {s.symbol: s.close for s in snaps if s.close is not None}
+    name_map = {s.symbol: s.name for s in snaps}
+    snap_map = {s.symbol: s for s in snaps}
+    positions = portfolio.setdefault("positions", {})
+    if not portfolio.get("first_run"):
+        portfolio["first_run"] = now_str
+    first_run = str(portfolio.get("first_run") or now_str)
+    trades = []
+
+    equity_before = portfolio_equity(portfolio, price_map)
+
+    def sell_position(sym: str, reason: str) -> None:
+        pos = positions.get(sym)
+        px = price_map.get(sym)
+        if not pos or px is None:
+            return
+        qty = int(pos.get("qty", 0) or 0)
+        if qty <= 0:
+            return
+        avg = float(pos.get("avg_price", px) or px)
+        gross = qty * px
+        proceeds = max(0.0, gross - PORTFOLIO_FEE)
+        realized = (px - avg) * qty - PORTFOLIO_FEE
+        portfolio["cash"] = float(portfolio.get("cash", 0.0) or 0.0) + proceeds
+        portfolio["fees_paid"] = float(portfolio.get("fees_paid", 0.0) or 0.0) + PORTFOLIO_FEE
+        positions.pop(sym, None)
+        trades.append({
+            "time": now_str,
+            "side": "SELL",
+            "symbol": sym,
+            "name": name_map.get(sym, sym),
+            "qty": qty,
+            "price": round(px, 4),
+            "gross": round(gross, 2),
+            "fee": PORTFOLIO_FEE,
+            "notional": round(proceeds, 2),
+            "realized_pnl": round(realized, 2),
+            "cash_after": round(float(portfolio.get("cash", 0.0) or 0.0), 2),
+            "reason": reason,
+        })
+
+    sell_symbols = close_alert_symbols(close_alerts, snaps)
+    over_budget_symbols = set()
+    for sym in list(positions.keys()):
+        snap = snap_map.get(sym)
+        if snap and (
+            (snap.price_roc14 is not None and snap.price_roc14 < 0)
+            or (snap.price_roc21 is not None and snap.price_roc21 < 0)
+        ):
+            sell_symbols.add(sym)
+        qty = int(positions[sym].get("qty", 0) or 0)
+        avg = float(positions[sym].get("avg_price", price_map.get(sym, 0.0)) or 0.0)
+        if qty * avg > PORTFOLIO_POSITION_BUDGET:
+            sell_symbols.add(sym)
+            over_budget_symbols.add(sym)
+
+    # Sell explicit close alerts and any open position with negative ROC14.
+    for sym in sorted(sell_symbols):
+        if sym in over_budget_symbols:
+            reason = "BUDGET > 1000"
+        else:
+            snap_s = snap_map.get(sym)
+        roc_neg = snap_s and (
+            (snap_s.price_roc14 is not None and snap_s.price_roc14 < 0)
+            or (snap_s.price_roc21 is not None and snap_s.price_roc21 < 0)
+        )
+        reason = "ROC < 0" if sym in positions and roc_neg else "CLOSE ALERT"
+        sell_position(sym, reason)
+
+    # Buy missing target symbols with a fixed budget per position.
+    missing_top10 = [
+        s for s in buy_targets
+        if s.symbol not in positions
+        and s.close > 0
+        and (s.price_roc14 is None or s.price_roc14 >= 0)
+        and (s.price_roc21 is None or s.price_roc21 >= 0)
+    ]
+    cash = float(portfolio.get("cash", 0.0) or 0.0)
+    if missing_top10 and cash > 0:
+        for s in missing_top10:
+            px = float(s.close)
+            available = min(PORTFOLIO_POSITION_BUDGET + PORTFOLIO_FEE, float(portfolio.get("cash", 0.0) or 0.0))
+            qty = int((available - PORTFOLIO_FEE) // px)
+            if qty <= 0:
+                continue
+            gross = qty * px
+            total_cost = gross + PORTFOLIO_FEE
+            if total_cost > float(portfolio.get("cash", 0.0) or 0.0):
+                continue
+            positions[s.symbol] = {
+                "name": s.name,
+                "qty": qty,
+                "avg_price": px,
+                "entry_time": now_str,
+                "last_price": px,
+            }
+            portfolio["cash"] = float(portfolio.get("cash", 0.0) or 0.0) - total_cost
+            portfolio["fees_paid"] = float(portfolio.get("fees_paid", 0.0) or 0.0) + PORTFOLIO_FEE
+            trades.append({
+                "time": now_str,
+                "side": "BUY",
+                "symbol": s.symbol,
+                "name": s.name,
+                "qty": qty,
+                "price": round(px, 4),
+                "gross": round(gross, 2),
+                "fee": PORTFOLIO_FEE,
+                "notional": round(total_cost, 2),
+                "cash_after": round(float(portfolio.get("cash", 0.0) or 0.0), 2),
+            })
+
+    for sym, pos in positions.items():
+        if sym in price_map:
+            pos["last_price"] = price_map[sym]
+
+    equity_after = portfolio_equity(portfolio, price_map)
+    initial = float(portfolio.get("initial_capital", PORTFOLIO_INITIAL_CAPITAL) or PORTFOLIO_INITIAL_CAPITAL)
+    pnl = equity_after - initial
+    pnl_pct = pnl / initial * 100 if initial else 0.0
+    fees_paid = float(portfolio.get("fees_paid", 0.0) or 0.0)
+    gross_pnl = pnl + fees_paid
+    fee_drag_pct = fees_paid / initial * 100 if initial else 0.0
+    open_rocs = [
+        s.price_roc14 for s in snaps
+        if s.symbol in positions and s.price_roc14 is not None
+    ]
+    avg_roc = sum(open_rocs) / len(open_rocs) if open_rocs else None
+
+    portfolio.setdefault("history", []).append({
+        "time": now_str,
+        "equity": round(equity_after, 2),
+        "cash": round(float(portfolio.get("cash", 0.0) or 0.0), 2),
+        "pnl": round(pnl, 2),
+        "pnl_pct": round(pnl_pct, 2),
+        "gross_pnl_before_fees": round(gross_pnl, 2),
+        "fees_paid": round(fees_paid, 2),
+        "fee_drag_pct": round(fee_drag_pct, 2),
+        "positions": len(positions),
+    })
+    portfolio["history"] = portfolio["history"][-250:]
+    portfolio.setdefault("trades", []).extend(trades)
+    portfolio["trades"] = portfolio["trades"][-500:]
+    portfolio["last_update"] = now_str
+
+    equity_icon = "🟢" if equity_after >= initial else "🔴"
+    pnl_icon = "🟢" if pnl >= 0 else "🔴"
+    roc_icon = "🟢" if avg_roc is not None and avg_roc >= 0 else "🔴"
+    bought_symbols = {t["symbol"] for t in trades if t["side"] == "BUY"}
+    sold_trades = [t for t in trades if t["side"] != "BUY"]
+    summary = [
+        "💼 NASDAQ PORTFOLIO SIM",
+        f"{equity_icon} Equity {equity_after:.2f}",
+        f"{pnl_icon} PnL {pnl:+.2f} ({pnl_pct:+.2f}%)",
+        f"📅 First run {first_run}",
+        f"💸 Fees {fees_paid:.2f} ({fee_drag_pct:.2f}%) | brut {gross_pnl:+.2f}",
+        f"{roc_icon} ROC {avg_roc:+.2f}%" if avg_roc is not None else "⚪ ROC ---",
+        f"Cash {float(portfolio.get('cash', 0.0) or 0.0):.2f} | Positions {len(positions)}",
+    ]
+
+    ordered_positions = []
+    seen_positions = set()
+    for target in buy_targets:
+        if target.symbol in positions:
+            ordered_positions.append((target.symbol, positions[target.symbol]))
+            seen_positions.add(target.symbol)
+    for sym in sorted(positions):
+        if sym not in seen_positions:
+            ordered_positions.append((sym, positions[sym]))
+
+    for sym, pos in ordered_positions:
+        qty = int(pos.get("qty", 0) or 0)
+        new_txt = " 🆕" if sym in bought_symbols else ""
+        snap = snap_map.get(sym)
+        roc14 = snap.price_roc14 if snap else None
+        roc21 = snap.price_roc21 if snap else None
+        roc_txt = ""
+        if roc14 is not None:
+            roc_txt += f" R14:{roc14:+.2f}%"
+        if roc21 is not None:
+            roc_txt += f" R21:{roc21:+.2f}%"
+        summary.append(f"🟢{pos.get('name', sym)} ({qty}){roc_txt}{new_txt}")
+
+    if sold_trades:
+        summary.append("🚨 NASDAQ CLOSE ALERTS")
+        for t in sold_trades:
+            reason = f" ({t['reason']})" if t.get("reason") else ""
+            summary.append(f"⚠️ {t['name']}{reason}")
+
+    return summary, {
+        "equity_before": equity_before,
+        "equity_after": equity_after,
+        "trades": trades,
+    }
+
+
+# ─── PnL history ─────────────────────────────────────────────────────────────
 
 def update_pnl_history(history: dict, snaps: list, today_str: str) -> None:
     """Append today's PnL% for each symbol (one entry per day, deduplicated)."""
@@ -686,18 +1058,6 @@ def update_pnl_history(history: dict, snaps: list, today_str: str) -> None:
         # Keep max 60 days
         if len(entries) > 60:
             history[sym] = entries[-60:]
-
-
-def roc14(history: dict, symbol: str) -> float | None:
-    """Rate of Change over 14 periods on the daily PnL% series. None if not enough data."""
-    entries = history.get(symbol, [])
-    if len(entries) < 15:
-        return None
-    p_now  = entries[-1]["pnl"]
-    p_prev = entries[-15]["pnl"]
-    if p_prev == 0:
-        return None
-    return (p_now - p_prev) / abs(p_prev) * 100
 
 
 # ─── Telegram ─────────────────────────────────────────────────────────────────
@@ -780,6 +1140,7 @@ def main() -> int:
 
     state   = _load_json(STATE_PATH)
     tracker = _load_json(TRACKER_PATH)
+    portfolio = load_portfolio()
 
     # Auto-init if start_date changed
     stored_global_start = state.get("_meta", {}).get("start_date_utc")
@@ -837,8 +1198,11 @@ def main() -> int:
     now_paris = datetime.now(paris_tz)
     today_str = now_paris.strftime("%Y-%m-%d")
     now_str   = now_paris.strftime("%Y-%m-%d %H:%M")
+    if not portfolio.get("first_run"):
+        portfolio["first_run"] = now_str
+    portfolio_first_run = str(portfolio.get("first_run") or now_str)
 
-    # ── PnL history + ROC(14) ──
+    # ── PnL history ──
     history = _load_json(HISTORY_PATH)
     update_pnl_history(history, snaps, today_str)
     _save_json(HISTORY_PATH, history)
@@ -848,13 +1212,18 @@ def main() -> int:
                 and s.px_mn == 1 and s.px_w1 == 1 and s.px_d1 == 1
                 and s.streak_w >= 1]
     top10  = positive[:10]
-    top_20 = positive[10:20]
+    top_15 = positive[10:15]
+    current_ranked = top10 + top_15
+    held_symbols = set(portfolio.get("positions", {}).keys())
+    buy_targets = portfolio_buy_targets(positive, held_symbols=held_symbols, limit=10)
 
-    def _roc_tag(sym: str) -> tuple[float | None, str]:
-        r = roc14(history, sym)
-        if r is None:
+    def _price_roc_tag(s: NasdaqSnapshot) -> tuple[float | None, str]:
+        roc = s.price_roc14
+        if roc is None:
             return None, ""
-        return r, " ⚠️" if r < 0 else " 📈"
+        if roc >= 50:
+            return roc, " 🔥"
+        return roc, " ⚠️" if roc < 0 else " 📈"
 
     def _streak_fmt(n: int, px: int) -> str:
         if n == 0 and px == 1:
@@ -872,36 +1241,51 @@ def main() -> int:
     weakening = []
     for i, s in enumerate(top10, 1):
         dot    = "🟢" if s.bias_state_after == 1 else "🔴"
-        r, tag = _roc_tag(s.symbol)
-        roc_str = f" ROC{r:+.0f}%" if r is not None else ""
+        roc, tag = _price_roc_tag(s)
         entry = tracker.get(s.symbol, {})
         added_day = (entry.get("added_at") or "")[:10]
         new_tag = " 🆕" if added_day == today_str else ""
-        lines_top10.append(f"{i:>2}. {dot} {s.name} (+{s.pnl_pct:.2f}%){new_tag}{roc_str}{tag}")
-        if r is not None and r < 0:
+        lines_top10.append(f"{i:>2}. {dot} {s.name} (+{s.pnl_pct:.2f}%){new_tag}{tag}")
+        if roc is not None and roc < 0:
             weakening.append(s)
 
-    # ── TOP 11-20 ──
+    # ── TOP 11-15 ──
     lines_watch = []
     rising = []
-    for i, s in enumerate(top_20, 11):
+    for i, s in enumerate(top_15, 11):
         dot    = "🟢" if s.bias_state_after == 1 else "🔴"
-        r, tag = _roc_tag(s.symbol)
-        roc_str = f" ROC{r:+.0f}%" if r is not None else ""
-        lines_watch.append(f"{i:>2}. {dot} {s.name} (+{s.pnl_pct:.2f}%){roc_str}{tag}")
-        if r is not None and r > 0:
-            rising.append((s, r))
+        roc, tag = _price_roc_tag(s)
+        lines_watch.append(f"{i:>2}. {dot} {s.name} (+{s.pnl_pct:.2f}%){tag}")
+        if roc is not None and roc > 0:
+            rising.append((s, roc))
+
+    # ── Strong momentum outside TOP 10 ──
+    strong_momentum = []
+    top10_symbols = {s.symbol for s in top10}
+    for s in positive:
+        if s.symbol in top10_symbols:
+            continue
+        roc, tag = _price_roc_tag(s)
+        if roc is not None and roc >= 50:
+            strong_momentum.append((s, roc, tag))
+
+    strong_momentum.sort(key=lambda x: x[1], reverse=True)
+    lines_momentum = [
+        f"{s.name} (+{s.pnl_pct:.2f}%){tag}"
+        for s, _roc, tag in strong_momentum[:5]
+    ]
 
     # ── ROTATIONS ──
     rotation_lines = []
     if weakening and rising:
         rising_sorted = sorted(rising, key=lambda x: x[1], reverse=True)
         for weak in weakening:
-            r_weak, _ = _roc_tag(weak.symbol)
-            candidate, r_up = rising_sorted[0]
+            _, weak_tag = _price_roc_tag(weak)
+            candidate, roc_up = rising_sorted[0]
+            _, up_tag = _price_roc_tag(candidate)
             rotation_lines.append(
-                f"🔄 {candidate.name} (+{candidate.pnl_pct:.2f}% ROC{r_up:+.0f}%)"
-                f" → remplace {weak.name} (+{weak.pnl_pct:.2f}% ROC{r_weak:+.0f}%)"
+                f"🔄 {candidate.name} (+{candidate.pnl_pct:.2f}%){up_tag}"
+                f" → remplace {weak.name} (+{weak.pnl_pct:.2f}%){weak_tag}"
             )
 
     # ── Build message ──
@@ -909,12 +1293,14 @@ def main() -> int:
     if lines_top10:
         parts.append("📊 NASDAQ TOP 10\n" + "\n".join(lines_top10))
     if lines_watch:
-        parts.append("👀 SURVEILLANCE (11-20)\n" + "\n".join(lines_watch))
+        parts.append("👀 SURVEILLANCE (11-15)\n" + "\n".join(lines_watch))
+    if lines_momentum:
+        parts.append("🔥 DYNAMIQUE FORTE HORS TOP 10\n" + "\n".join(lines_momentum))
     if rotation_lines:
         parts.append("🔄 ROTATIONS À SURVEILLER\n" + "\n".join(rotation_lines))
 
     if parts:
-        msg = "\n\n".join(parts) + f"\n\n⏰ {now_str} Paris"
+        msg = "\n\n".join(parts) + f"\n\n📅 First run {portfolio_first_run}\n⏰ {now_str} Paris"
         print(f"\n{msg}\n")
         if not args.no_telegram:
             send_telegram(msg)
@@ -929,13 +1315,16 @@ def main() -> int:
             if s.last_event_time and s.last_event_price is not None:
                 last_dt  = datetime.fromtimestamp(s.last_event_time, tz=pytz.UTC).strftime("%Y-%m-%d")
                 last_txt = f"{last_dt}@{s.last_event_price:.2f}"
-            r, tag = _roc_tag(s.symbol)
-            roc_str = f" ROC{r:+.0f}%" if r is not None else ""
+            roc, tag = _price_roc_tag(s)
+            roc_str = f" ROC14{roc:+.2f}%" if roc is not None else ""
+            if s.price_roc21 is not None:
+                roc_str += f" ROC21{s.price_roc21:+.2f}%"
             print(f"{s.name:<6} | close={s.close:>10.2f} | 3M={s.px_mn:+d}({s.streak_3m}) M={s.px_w1:+d}({s.streak_m}) W={s.px_d1:+d}({s.streak_w}) | "
                   f"Bias {bias_txt} | PnL {pnl_txt}{roc_str}{tag} | Last {last_txt} | {ts}")
 
     # ── Tracker + close alerts ──
     close_alerts = update_tracker(tracker, snaps, paris_tz)
+    close_alerts.extend(update_rank_exit_alerts(tracker, snaps, current_ranked, paris_tz))
     _save_json(TRACKER_PATH, tracker)
 
     if close_alerts:
@@ -943,6 +1332,17 @@ def main() -> int:
         print(f"\n{close_msg}\n")
         if not args.no_telegram:
             send_telegram(close_msg)
+
+    portfolio_lines, _portfolio_info = update_portfolio_simulation(
+        portfolio, buy_targets, close_alerts, snaps, now_str
+    )
+    _save_json(PORTFOLIO_PATH, portfolio)
+
+    if portfolio_lines:
+        portfolio_msg = "\n".join(portfolio_lines) + f"\n\n⏰ {now_str} Paris"
+        print(f"\n{portfolio_msg}\n")
+        if not args.no_telegram:
+            send_telegram(portfolio_msg)
 
     _save_json(STATE_PATH, state)
     return 0
