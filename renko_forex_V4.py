@@ -628,7 +628,7 @@ def scan_extreme_index_pair_confirmation(
 
     confirms = chg > 0.1 if expected_side == "LONG" else chg < -0.1
     icon = ("🟢" if expected_side == "LONG" else "🔴") if confirms else "❌"
-    return [f"{icon} {expected_pair}"]
+    return [f"{icon} {expected_pair} ({chg:+.2f}%)"]
 
 
 def index_renko_state(symbol: str, atr_length: int = 14, debug: bool = False) -> tuple[int, int]:
@@ -1878,10 +1878,8 @@ def main() -> int:
         side = trade_side_label(s)
         icon = "🟢" if side == "LONG" else "🔴"
         chg_str = "---" if s.chg_daily_pct is None else f"{s.chg_daily_pct:+.2f}%"
-        roc_str = "" if s.price_roc7 is None else f" ROC7{s.price_roc7:+.2f}%"
-        pnl_str = "---" if s.pnl_pct is None else f"{s.pnl_pct:+.2f}%"
         eligible_lines.append(
-            f"{i}. {icon} {side} {s.name} | PnL {pnl_str} | CHG D {chg_str}{roc_str}"
+            f"{icon} {s.name} ({chg_str})"
         )
 
     portfolio_lines = ["🎯 PAIRES ÉLIGIBLES"] + (eligible_lines if eligible_lines else ["(aucune)"])
