@@ -96,11 +96,9 @@ jobs:
           # nasdaq_top_ucits_etf.json (TOP 3 UCITS) que ETF_V3 fusionne dans son
           # univers dans le meme run (pas de decalage d'un run).
           run_with_telegram "$ENABLE_TELEGRAM_NASDAQ_PIPELINE" nasdaq_sector_pipeline.py
-          if [ "$HOUR_MIN_PARIS" -ge 600 ] && [ "$HOUR_MIN_PARIS" -lt 2100 ]; then
-            run_with_telegram "$ENABLE_TELEGRAM_ETF_V3" renko_etf_strategy_V3.py
-          else
-            echo "Skip renko_etf_strategy_V3.py outside 06:00-21:00 Europe/Paris"
-          fi
+          # TEMP TEST: gating horaire ETF_V3 leve pour valider la chaine
+          # producteur->consommateur dans le meme run (A REMETTRE apres le test).
+          run_with_telegram "$ENABLE_TELEGRAM_ETF_V3" renko_etf_strategy_V3.py
           run_with_telegram "$ENABLE_TELEGRAM_SAR_MTF_FOREX" sarenki_V1_forex.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V1" renko_forex_V1.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V2" renko_forex_V2.py
