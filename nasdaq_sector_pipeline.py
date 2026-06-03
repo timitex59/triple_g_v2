@@ -423,7 +423,8 @@ def clamp(value: float, lo: float, hi: float) -> float:
 def fetch_profiles(tickers: list[str], max_workers: int = 12) -> dict[str, dict[str, str]]:
     def one(ticker: str) -> tuple[str, dict[str, str]]:
         try:
-            info = yf.Ticker(ticker).get_info()
+            tk = yf.Ticker(ticker, session=_YF_SESSION) if _YF_SESSION is not None else yf.Ticker(ticker)
+            info = tk.get_info()
             return ticker, {
                 "sector": str(info.get("sector") or ""),
                 "industry": str(info.get("industry") or ""),
@@ -462,27 +463,78 @@ def infer_theme(ticker: str, sector: str, industry: str) -> str:
     return sector or "Other"
 
 
-def download_history(tickers: list[str], period: str = "9mo") -> dict[str, pd.DataFrame]:
-    data = yf.download(
-        tickers,
-        period=period,
-        interval="1d",
-        auto_adjust=True,
-        group_by="ticker",
-        progress=False,
-        threads=True,
-    )
+def _build_yf_session():
+    """Session curl_cffi (impersonation navigateur) pour limiter les blocages
+    'Too Many Requests' de Yahoo, surtout sur les runners CI. Optionnel: si
+    curl_cffi n'est pas installe, on laisse yfinance utiliser sa session par defaut."""
+    try:
+        from curl_cffi import requests as cffi_requests
+
+        return cffi_requests.Session(impersonate="chrome")
+    except Exception:
+        return None
+
+
+_YF_SESSION = _build_yf_session()
+
+
+def _download_batch(
+    tickers: list[str], period: str, retries: int = 4, base_delay: float = 2.0
+) -> pd.DataFrame | None:
+    """Telecharge un lot avec retry + backoff exponentiel. Yahoo peut soit lever
+    YFRateLimitError, soit retourner un DataFrame vide en cas de rate limit:
+    on reessaie dans les deux cas."""
+    delay = base_delay
+    for attempt in range(1, retries + 1):
+        try:
+            kwargs: dict[str, Any] = dict(
+                period=period,
+                interval="1d",
+                auto_adjust=True,
+                group_by="ticker",
+                progress=False,
+                threads=False,
+            )
+            if _YF_SESSION is not None:
+                kwargs["session"] = _YF_SESSION
+            data = yf.download(tickers, **kwargs)
+            if data is not None and not data.empty:
+                return data
+        except Exception as exc:  # noqa: BLE001 - inclut YFRateLimitError
+            if attempt == retries:
+                print(f"  download failed for {tickers}: {exc}", file=sys.stderr)
+        if attempt < retries:
+            time.sleep(delay)
+            delay = min(delay * 2, 30.0)
+    return None
+
+
+def download_history(
+    tickers: list[str], period: str = "9mo", batch_size: int = 8, pause: float = 1.5
+) -> dict[str, pd.DataFrame]:
+    """Telecharge l'historique par petits lots avec retry/backoff, pour resister
+    au rate limit Yahoo (CI). Renvoie {ticker: DataFrame} pour les tickers obtenus."""
     result: dict[str, pd.DataFrame] = {}
-    if data.empty:
-        return result
-    if isinstance(data.columns, pd.MultiIndex):
-        for ticker in tickers:
-            if ticker in data.columns.get_level_values(0):
-                frame = data[ticker].dropna(how="all").copy()
-                if not frame.empty:
-                    result[ticker] = frame
-    else:
-        result[tickers[0]] = data.dropna(how="all").copy()
+    unique = list(dict.fromkeys(tickers))
+    for i in range(0, len(unique), batch_size):
+        batch = unique[i : i + batch_size]
+        data = _download_batch(batch, period)
+        if data is None or data.empty:
+            continue
+        if isinstance(data.columns, pd.MultiIndex):
+            available = set(data.columns.get_level_values(0))
+            for ticker in batch:
+                if ticker in available:
+                    frame = data[ticker].dropna(how="all").copy()
+                    if not frame.empty:
+                        result[ticker] = frame
+        else:
+            # Lot a un seul ticker: colonnes a plat
+            frame = data.dropna(how="all").copy()
+            if not frame.empty:
+                result[batch[0]] = frame
+        if i + batch_size < len(unique):
+            time.sleep(pause)
     return result
 
 
@@ -1361,6 +1413,21 @@ def main() -> int:
     print("Downloading price history...")
     histories = download_history(tickers + ["QQQ"], period=args.period)
     qqq_close = histories.get("QQQ", pd.DataFrame()).get("Close", pd.Series(dtype=float))
+
+    # Garde-fou anti-rapport-vide: si Yahoo a rate-limite (donnees insuffisantes),
+    # on n'ecrase PAS le rapport existant et on n'envoie PAS de Telegram vide.
+    # On retourne 0 pour ne pas casser la suite du workflow CI (set -e).
+    covered = sum(1 for t in tickers if t in histories)
+    min_required = max(20, len(tickers) // 2)
+    if qqq_close.empty or covered < min_required:
+        print(
+            f"ERROR: donnees de prix insuffisantes "
+            f"(QQQ vide={qqq_close.empty}, couverts={covered}/{len(tickers)}, "
+            f"minimum={min_required}). Cause probable: rate limit Yahoo Finance. "
+            f"Abandon SANS ecrire le rapport ni envoyer Telegram.",
+            file=sys.stderr,
+        )
+        return 0
 
     print("Fetching Yahoo profiles...")
     profiles = fetch_profiles(tickers)
