@@ -1134,23 +1134,44 @@ def build_telegram_summary(
     stock_ranked = [(r, c, a) for r, c, a in ranked if c.asset_type == "STOCK"]
     etf_ranked = [(r, c, a) for r, c, a in ranked if c.asset_type == "ETF"]
 
-    lines = ["📈 TOP 3 STOCK"]
-    for i, (rank_score, c, asset) in enumerate(stock_ranked[:3], 1):
-        lines.append(f"{i}. {c.ticker} ({format_pct(asset.rel_63d_vs_qqq if asset else None)})")
-    if not stock_ranked:
-        lines.append("---")
+    def _fallback(metrics: list[AssetMetrics]) -> list[AssetMetrics]:
+        return sorted(
+            [m for m in metrics if m.rel_63d_vs_qqq is not None],
+            key=lambda m: ((m.rel_63d_vs_qqq or 0.0), m.score),
+            reverse=True,
+        )
 
-    lines += ["", "📊 TOP 3 ETF"]
-    for i, (rank_score, c, asset) in enumerate(etf_ranked[:3], 1):
-        lines.append(f"{i}. {c.ticker} ({format_pct(asset.rel_63d_vs_qqq if asset else None)})")
-    if not etf_ranked:
-        lines.append("---")
+    def _append_ranked_asset_lines(
+        title: str,
+        validated_rows: list[tuple[float, RenkoConfirmation, AssetMetrics | None]],
+        fallback_rows: list[AssetMetrics],
+    ) -> None:
+        lines.extend(["", title] if lines else [title])
+        used: set[str] = set()
+        idx = 1
+        for _, c, asset in validated_rows:
+            if idx > 3:
+                break
+            if asset is None or c.ticker in used:
+                continue
+            lines.append(f"{idx}. {c.ticker} ({format_pct(asset.rel_63d_vs_qqq)})")
+            used.add(c.ticker)
+            idx += 1
+        for asset in fallback_rows:
+            if idx > 3:
+                break
+            if asset.ticker in used:
+                continue
+            lines.append(f"{idx}. {asset.ticker} ({format_pct(asset.rel_63d_vs_qqq)})")
+            used.add(asset.ticker)
+            idx += 1
+        if idx == 1:
+            lines.append("---")
 
-    lines += ["", "🇪🇺 TOP 3 ETF UCITS"]
-    for i, m in enumerate(europe_etf_metrics[:3], 1):
-        lines.append(f"{i}. {m.ticker} ({format_pct(m.rel_63d_vs_qqq)})")
-    if not europe_etf_metrics:
-        lines.append("---")
+    lines: list[str] = []
+    _append_ranked_asset_lines("📈 TOP 3 STOCK", stock_ranked, _fallback(stock_metrics))
+    _append_ranked_asset_lines("📊 TOP 3 ETF", etf_ranked, _fallback(etf_metrics))
+    _append_ranked_asset_lines("🇪🇺 TOP 3 ETF UCITS", [], _fallback(europe_etf_metrics))
 
     slowing, early = early_shift_candidates(theme_scores, renko, stock_metrics, etf_metrics)
     if slowing and early:
