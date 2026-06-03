@@ -36,6 +36,9 @@ load_dotenv()
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 STATE_PATH = os.path.join(SCRIPT_DIR, "renko_etf_strategy_v3_state.json")
 METRICS_PATH = os.path.join(SCRIPT_DIR, "renko_etf_strategy_v3_metrics.json")
+# Passerelle: TOP 3 ETF UCITS exportes par nasdaq_sector_pipeline.py, fusionnes
+# automatiquement dans l'univers ci-dessous.
+TOP_UCITS_PATH = os.path.join(SCRIPT_DIR, "nasdaq_top_ucits_etf.json")
 METRICS_ALPHA = 0.25
 METRICS_MAX_HISTORY = 120
 TREND_THRESHOLD = 0.25
@@ -310,6 +313,20 @@ def _load_json(path: str) -> dict:
 def _save_json(path: str, data: dict) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+def load_dynamic_ucits() -> list[tuple[str, str]]:
+    """Lit le TOP 3 ETF UCITS exporte par nasdaq_sector_pipeline.py et renvoie
+    une liste (symbole TradingView, nom court) a fusionner dans l'univers.
+    Tolerant: fichier absent / illisible -> liste vide."""
+    data = _load_json(TOP_UCITS_PATH)
+    out: list[tuple[str, str]] = []
+    for e in data.get("etfs", []):
+        sym = str(e.get("tv_symbol") or "").strip()
+        name = str(e.get("ticker") or e.get("name") or "").strip()
+        if sym and name:
+            out.append((sym, name))
+    return out
 
 
 def _smooth(prev: float | None, value: float | None, alpha: float = METRICS_ALPHA) -> float | None:
@@ -697,10 +714,24 @@ def main() -> int:
 
     state = _load_json(STATE_PATH)
     metrics = _load_json(METRICS_PATH)
-    symbols = ETF_STRATEGY_ASSETS
+
+    # Univers = 13 ETF fixes + TOP 3 ETF UCITS dynamiques du pipeline Nasdaq (dedup).
+    universe = list(ETF_STRATEGY_ASSETS)
+    existing = {sym.upper() for sym, _ in universe}
+    dynamic_added: list[tuple[str, str]] = []
+    for sym, name in load_dynamic_ucits():
+        if sym.upper() not in existing:
+            universe.append((sym, name))
+            existing.add(sym.upper())
+            dynamic_added.append((sym, name))
+    if dynamic_added:
+        print("+ ETF UCITS dynamiques (NASDAQ pipeline): "
+              + ", ".join(f"{name} [{sym}]" for sym, name in dynamic_added))
+
+    symbols = universe
     if args.only:
         wanted = {x.strip().upper() for x in args.only.split(",") if x.strip()}
-        symbols = [(symbol, name) for symbol, name in ETF_STRATEGY_ASSETS if name.upper() in wanted]
+        symbols = [(symbol, name) for symbol, name in universe if name.upper() in wanted]
     print(f"ETF strategy universe loaded: {len(symbols)} symbols.")
 
     snaps: list[Snapshot] = []

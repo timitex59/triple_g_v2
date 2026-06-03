@@ -50,6 +50,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 WIKI_URL = "https://en.wikipedia.org/wiki/Nasdaq-100"
 REPORT_JSON = os.path.join(SCRIPT_DIR, "nasdaq_sector_pipeline_report.json")
 REPORT_TXT = os.path.join(SCRIPT_DIR, "nasdaq_sector_pipeline_report.txt")
+# Passerelle vers renko_etf_strategy_V3.py: TOP 3 ETF UCITS exportes en symboles
+# TradingView, lus et fusionnes dans l'univers de ETF_V3.
+TOP_UCITS_JSON = os.path.join(SCRIPT_DIR, "nasdaq_top_ucits_etf.json")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -129,6 +132,7 @@ EUROPE_ETF_ALTERNATIVES: dict[str, list[dict[str, str]]] = {
         {
             "ticker": "SMH",
             "yahoo": "SMH.PA",
+            "tv": "EURONEXT:SMH",
             "isin": "IE00BMC38736",
             "name": "VanEck Semiconductor UCITS ETF",
             "listing": "Euronext Paris",
@@ -137,6 +141,7 @@ EUROPE_ETF_ALTERNATIVES: dict[str, list[dict[str, str]]] = {
         {
             "ticker": "SEME",
             "yahoo": "SEME.PA",
+            "tv": "EURONEXT:SEME",
             "isin": "IE000I8KRLL9",
             "name": "iShares MSCI Global Semiconductors UCITS ETF",
             "listing": "Euronext Paris",
@@ -147,6 +152,7 @@ EUROPE_ETF_ALTERNATIVES: dict[str, list[dict[str, str]]] = {
         {
             "ticker": "WCBR",
             "yahoo": "WCBR.PA",
+            "tv": "EURONEXT:WCBR",
             "isin": "IE00BLPK3577",
             "name": "WisdomTree Cybersecurity UCITS ETF",
             "listing": "Euronext Paris",
@@ -155,6 +161,7 @@ EUROPE_ETF_ALTERNATIVES: dict[str, list[dict[str, str]]] = {
         {
             "ticker": "ISPY",
             "yahoo": "ISPY.AS",
+            "tv": "EURONEXT:ISPY",
             "isin": "IE00BYPLS672",
             "name": "L&G Cyber Security UCITS ETF",
             "listing": "Euronext Amsterdam",
@@ -165,6 +172,7 @@ EUROPE_ETF_ALTERNATIVES: dict[str, list[dict[str, str]]] = {
         {
             "ticker": "WTAI",
             "yahoo": "WTAI.PA",
+            "tv": "EURONEXT:WTAI",
             "isin": "IE00BDVPNG13",
             "name": "WisdomTree Artificial Intelligence UCITS ETF",
             "listing": "Euronext Paris",
@@ -173,6 +181,7 @@ EUROPE_ETF_ALTERNATIVES: dict[str, list[dict[str, str]]] = {
         {
             "ticker": "BOTZ",
             "yahoo": "BOTZ.L",
+            "tv": "LSE:BOTZ",
             "isin": "IE00BLCHJB90",
             "name": "Global X Robotics & Artificial Intelligence UCITS ETF",
             "listing": "Europe UCITS",
@@ -757,6 +766,65 @@ def build_europe_etf_metrics(top_themes: list[str]) -> list[AssetMetrics]:
         m.sector = "ETF UCITS"
         m.industry = f"{meta['listing']} | {meta['isin']}"
     return sorted(metrics, key=lambda x: x.score, reverse=True)
+
+
+def _europe_meta_by_ticker() -> dict[str, dict[str, str]]:
+    out: dict[str, dict[str, str]] = {}
+    for entries in EUROPE_ETF_ALTERNATIVES.values():
+        for e in entries:
+            out[e["ticker"]] = e
+    return out
+
+
+def _tv_symbol_for(meta: dict[str, str]) -> str | None:
+    """Symbole TradingView (EXCHANGE:TICKER) a partir des metadonnees UCITS."""
+    if meta.get("tv"):
+        return meta["tv"]
+    ticker = meta.get("ticker")
+    if not ticker:
+        return None
+    listing = (meta.get("listing") or "").lower()
+    yahoo = meta.get("yahoo") or ""
+    if listing.startswith("euronext") or yahoo.endswith((".PA", ".AS", ".BR", ".LS")):
+        return f"EURONEXT:{ticker}"
+    if "london" in listing or yahoo.endswith(".L"):
+        return f"LSE:{ticker}"
+    return None
+
+
+def write_top_ucits_sidecar(europe_etf_metrics: list[AssetMetrics], limit: int = 3) -> list[dict[str, Any]]:
+    """Exporte le TOP <limit> ETF UCITS (meme classement que le Telegram: Rel63
+    decroissant, score en departage) avec leur symbole TradingView, pour que
+    renko_etf_strategy_V3.py les fusionne automatiquement dans son univers."""
+    meta_by_ticker = _europe_meta_by_ticker()
+    ranked = sorted(
+        [m for m in europe_etf_metrics if m.rel_63d_vs_qqq is not None],
+        key=lambda m: ((m.rel_63d_vs_qqq or 0.0), m.score),
+        reverse=True,
+    )
+    etfs: list[dict[str, Any]] = []
+    for m in ranked:
+        if len(etfs) >= limit:
+            break
+        meta = meta_by_ticker.get(m.ticker, {})
+        tv = _tv_symbol_for({**meta, "ticker": m.ticker})
+        if not tv:
+            continue
+        etfs.append({
+            "tv_symbol": tv,
+            "ticker": m.ticker,
+            "name": meta.get("name", m.ticker),
+            "theme": m.theme,
+            "rel63": m.rel_63d_vs_qqq,
+        })
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "source": "nasdaq_sector_pipeline.py",
+        "etfs": etfs,
+    }
+    with open(TOP_UCITS_JSON, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    return etfs
 
 
 def format_pct(value: float | None) -> str:
@@ -1503,6 +1571,11 @@ def main() -> int:
         f.write(report)
     print(f"\nSaved: {args.txt}")
     print(f"Saved: {args.json}")
+
+    top_ucits = write_top_ucits_sidecar(europe_etf_metrics)
+    print(f"Saved: {TOP_UCITS_JSON} ({len(top_ucits)} ETF UCITS -> ETF_V3)")
+    for e in top_ucits:
+        print(f"  -> {e['tv_symbol']} ({e['ticker']}, Rel63 {format_pct(e['rel63'])})")
 
     if args.telegram:
         telegram_text = report if args.telegram_full else build_telegram_summary(
