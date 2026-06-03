@@ -1,0 +1,31 @@
+NASDAQ SECTOR PIPELINE
+Generated: 2026-06-03 23:36 CEST
+Universe: Nasdaq-100 | News window: 14 days
+
+DOMINANT THEMES
+| Theme   | Score   | N   | 21D   | 63D   | Rel63 vs QQQ   | >SMA50   | News src   |
+|---------|---------|-----|-------|-------|----------------|----------|------------|
+
+TOP STOCKS BY DOMINANT THEME
+
+BEST ETF PROXIES
+| ETF   | Name   | Theme   | Score   | 21D   | 63D   | 126D   | Rel63   |
+|-------|--------|---------|---------|-------|-------|--------|---------|
+
+ETF UCITS EUROPE / FRANCE
+| Theme   | Ticker   | ISIN   | Listing   | Ccy   | UCITS ETF   |
+|---------|----------|--------|-----------|-------|-------------|
+
+ETF UCITS SCORED
+No UCITS ETF metrics available.
+
+RENKO FILTER
+Skipped. Run without --no-renko to require Renko validation.
+
+NEWS VALIDATION
+
+METHOD
+Score action = momentum 21D/63D/126D + force relative vs QQQ + volume + tendance SMA50/SMA200 + proximite high 20D.
+Score theme = score moyen actions + momentum median + breadth SMA + confirmation actualite.
+Selection finale = theme dominant + action/ETF fort + validation Renko 3M/M/W bullish avec ROC14/ROC21 positifs.
+A utiliser comme radar de rotation sectorielle, pas comme signal d'achat automatique.
