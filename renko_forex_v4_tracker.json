@@ -16,32 +16,51 @@
     "side": "LONG",
     "added_at": "2026-05-29T20:00:20.617759+02:00",
     "added_pnl": 2.2585,
-    "current_pnl": -0.3993,
+    "current_pnl": -0.2641,
     "alert_triggered": true,
     "alert_at": "2026-06-05T18:13:24.676449+02:00",
     "alert_day": "2026-06-05",
-    "removed": false
+    "removed": true,
+    "removed_at": "2026-06-05T23:48:45.029816+02:00"
   },
   "_meta": {
-    "last_ranked_at": "2026-06-05T22:16:19.400839+02:00",
+    "last_ranked_at": "2026-06-05T23:48:45.029915+02:00",
     "last_ranked_symbols": [
       {
         "symbol": "OANDA:USDCAD",
         "name": "USDCAD",
         "rank": 1,
-        "pnl": 0.9218
+        "pnl": 0.861
       },
       {
         "symbol": "OANDA:USDJPY",
         "name": "USDJPY",
         "rank": 2,
-        "pnl": 0.5933
+        "pnl": 0.6466
+      },
+      {
+        "symbol": "OANDA:USDCHF",
+        "name": "USDCHF",
+        "rank": 3,
+        "pnl": 0.0729
+      },
+      {
+        "symbol": "OANDA:NZDUSD",
+        "name": "NZDUSD",
+        "rank": 4,
+        "pnl": 0.0724
       },
       {
         "symbol": "OANDA:GBPUSD",
         "name": "GBPUSD",
-        "rank": 3,
-        "pnl": 0.1086
+        "rank": 5,
+        "pnl": 0.0517
+      },
+      {
+        "symbol": "OANDA:EURUSD",
+        "name": "EURUSD",
+        "rank": 6,
+        "pnl": 0.0486
       }
     ]
   },
@@ -50,7 +69,7 @@
     "side": "LONG",
     "added_at": "2026-06-01T18:19:55.758875+02:00",
     "added_pnl": 0.3262,
-    "current_pnl": 0.2685,
+    "current_pnl": 0.2691,
     "alert_triggered": false,
     "alert_at": null,
     "alert_day": null,
@@ -61,7 +80,7 @@
     "side": "LONG",
     "added_at": "2026-06-01T18:19:55.758875+02:00",
     "added_pnl": 0.1577,
-    "current_pnl": 0.9218,
+    "current_pnl": 0.861,
     "alert_triggered": false,
     "alert_at": null,
     "alert_day": null,
@@ -72,7 +91,7 @@
     "side": "LONG",
     "added_at": "2026-06-01T18:19:55.758875+02:00",
     "added_pnl": 0.2549,
-    "current_pnl": 0.5933,
+    "current_pnl": 0.6466,
     "alert_triggered": false,
     "alert_at": null,
     "alert_day": null,
@@ -83,7 +102,40 @@
     "side": "SHORT",
     "added_at": "2026-06-05T18:13:24.676449+02:00",
     "added_pnl": 0.0,
-    "current_pnl": 0.1086,
+    "current_pnl": 0.0517,
+    "alert_triggered": false,
+    "alert_at": null,
+    "alert_day": null,
+    "removed": false
+  },
+  "OANDA:USDCHF": {
+    "name": "USDCHF",
+    "side": "LONG",
+    "added_at": "2026-06-05T23:48:45.029816+02:00",
+    "added_pnl": 0.0729,
+    "current_pnl": 0.0729,
+    "alert_triggered": false,
+    "alert_at": null,
+    "alert_day": null,
+    "removed": false
+  },
+  "OANDA:EURUSD": {
+    "name": "EURUSD",
+    "side": "SHORT",
+    "added_at": "2026-06-05T23:48:45.029816+02:00",
+    "added_pnl": 0.0486,
+    "current_pnl": 0.0486,
+    "alert_triggered": false,
+    "alert_at": null,
+    "alert_day": null,
+    "removed": false
+  },
+  "OANDA:NZDUSD": {
+    "name": "NZDUSD",
+    "side": "SHORT",
+    "added_at": "2026-06-05T23:48:45.029816+02:00",
+    "added_pnl": 0.0724,
+    "current_pnl": 0.0724,
     "alert_triggered": false,
     "alert_at": null,
     "alert_day": null,
