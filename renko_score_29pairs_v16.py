@@ -374,7 +374,29 @@ def filter_strong_signals(rows: list[dict]) -> list[dict]:
     return [row for row in rows if row["confirmed"] != 0]
 
 
-def build_telegram_message(rows: list[dict]) -> str:
+def daily_chg_section(all_rows: list[dict], top_n: int = 3) -> list[str]:
+    """TOP <n> hausses et TOP <n> baisses du jour, classees uniquement sur le
+    CHG%D (variation journaliere), sur l'ensemble des paires scannees."""
+    rated = [r for r in all_rows if r.get("daily_chg") is not None]
+    bulls = sorted([r for r in rated if r["daily_chg"] > 0],
+                   key=lambda r: r["daily_chg"], reverse=True)[:top_n]
+    bears = sorted([r for r in rated if r["daily_chg"] < 0],
+                   key=lambda r: r["daily_chg"])[:top_n]
+    lines: list[str] = []
+    if bulls:
+        lines.append("TOP DAILY BULL")
+        for r in bulls:
+            lines.append(f"🟢{r['pair']} ({r['daily_chg']:+.2f})")
+    if bears:
+        if bulls:
+            lines.append("")
+        lines.append("TOP DAILY BEAR")
+        for r in bears:
+            lines.append(f"🔴{r['pair']} ({r['daily_chg']:+.2f})")
+    return lines
+
+
+def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None) -> str:
     # Group BULL together and BEAR together (strongest signal_state first),
     # and within each group rank by conviction — strongest |score| first —
     # instead of a flat descending sort that buries the strongest BEAR
@@ -390,6 +412,14 @@ def build_telegram_message(rows: list[dict]) -> str:
         chg = row["daily_chg"]
         chg_txt = "" if chg is None else f" {chg:+.2f}%"
         lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%{chg_txt})")
+
+    # Section CHG%D journalier, sur l'ensemble des paires (pas seulement les
+    # signaux confirmes RENKO FIBO).
+    daily_lines = daily_chg_section(all_rows if all_rows is not None else rows)
+    if daily_lines:
+        lines.append("")
+        lines.extend(daily_lines)
+
     lines.append("")
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}")
     return "\n".join(lines)
@@ -415,7 +445,7 @@ def main() -> int:
     print_table(rows)
 
     strong_rows = filter_strong_signals(rows)
-    message = build_telegram_message(strong_rows)
+    message = build_telegram_message(strong_rows, rows)
     print("")
     print(message)
     send_telegram_message(message)
