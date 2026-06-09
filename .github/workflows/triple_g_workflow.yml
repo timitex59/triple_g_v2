@@ -69,7 +69,7 @@ jobs:
           ENABLE_TELEGRAM_RENKO_FOREX_V1: "false"
           ENABLE_TELEGRAM_RENKO_FOREX_V2: "false"
           ENABLE_TELEGRAM_RENKO_SCORE_29: "true"
-          ENABLE_TELEGRAM_RENKO_FOREX_V4: "true"
+          ENABLE_TELEGRAM_RENKO_FOREX_V4: "false"
           ENABLE_TELEGRAM_TRACKER: "false"
         run: |
           HOUR_MIN_PARIS=$(TZ="$REVERSAL_TZ" date +%H%M)
