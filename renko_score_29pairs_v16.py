@@ -374,10 +374,12 @@ def filter_strong_signals(rows: list[dict]) -> list[dict]:
     return [row for row in rows if row["confirmed"] != 0]
 
 
-def daily_chg_section(all_rows: list[dict], top_n: int = 3) -> list[str]:
+def daily_chg_section(all_rows: list[dict], top_n: int = 3, min_abs: float = 0.15) -> list[str]:
     """TOP <n> hausses et TOP <n> baisses du jour, classees uniquement sur le
-    CHG%D (variation journaliere), sur l'ensemble des paires scannees."""
-    rated = [r for r in all_rows if r.get("daily_chg") is not None]
+    CHG%D (variation journaliere), sur l'ensemble des paires scannees.
+    Une paire n'est retenue que si |CHG%D| > min_abs (defaut 0.15%)."""
+    rated = [r for r in all_rows
+             if r.get("daily_chg") is not None and abs(r["daily_chg"]) > min_abs]
     bulls = sorted([r for r in rated if r["daily_chg"] > 0],
                    key=lambda r: r["daily_chg"], reverse=True)[:top_n]
     bears = sorted([r for r in rated if r["daily_chg"] < 0],
