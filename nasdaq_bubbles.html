@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>NASDAQ-100 Bubbles</title>
+<style>
+  :root{
+    --bg:#05070d; --panel:rgba(13,19,33,.92); --line:rgba(120,150,200,.16);
+    --txt:#e7edf7; --muted:#8aa0c0; --accent:#38e1ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);
+    font-family:"Segoe UI",Roboto,system-ui,sans-serif;color:var(--txt)}
+  #app{position:fixed;inset:0}
+  canvas{display:block;width:100%;height:100%}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;
+    gap:10px;flex-wrap:wrap;padding:9px 14px;
+    background:linear-gradient(180deg,rgba(5,7,13,.96) 0%,rgba(5,7,13,.55) 75%,rgba(5,7,13,0) 100%)}
+  .brand{display:flex;align-items:baseline;gap:9px}
+  .brand b{font-size:18px;letter-spacing:.5px}
+  .brand .sub{font-size:11px;color:var(--muted)}
+  .spacer{flex:1 1 auto}
+  .seg{display:inline-flex;background:rgba(20,28,46,.82);border:1px solid var(--line);
+    border-radius:9px;overflow:hidden}
+  .seg button{all:unset;padding:6px 11px;font-size:12px;color:var(--muted);cursor:pointer;transition:.15s}
+  .seg button:hover{color:var(--txt)}
+  .seg button.on{background:var(--accent);color:#02121a;font-weight:700}
+  .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-right:2px}
+  input.search{background:rgba(20,28,46,.82);border:1px solid var(--line);border-radius:9px;
+    color:var(--txt);padding:6px 10px;font-size:12px;width:130px;outline:none}
+  input.search:focus{border-color:var(--accent)}
+  select.scheme{background:rgba(20,28,46,.82);border:1px solid var(--line);border-radius:9px;
+    color:var(--txt);padding:6px 8px;font-size:12px;outline:none}
+
+  .crumb{position:fixed;top:88px;left:14px;z-index:10;display:none;align-items:center;gap:8px;
+    font-size:13px;color:var(--muted)}
+  .crumb button{all:unset;cursor:pointer;color:var(--accent);font-weight:600;padding:4px 10px;
+    border:1px solid var(--line);border-radius:8px}
+  .crumb button:hover{background:rgba(56,225,255,.12)}
+  .crumb .here{color:var(--txt);font-weight:600}
+
+  /* panneau tableau */
+  #panel{position:fixed;top:46px;right:0;bottom:30px;width:300px;z-index:9;display:flex;flex-direction:column;
+    background:var(--panel);border-left:1px solid var(--line);backdrop-filter:blur(8px);
+    transform:translateX(100%);transition:transform .25s}
+  #panel.open{transform:translateX(0)}
+  #panel .ph{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .chip{all:unset;cursor:pointer;font-size:11px;padding:4px 9px;border-radius:7px;color:var(--muted);
+    border:1px solid var(--line)}
+  .chip.on{background:var(--accent);color:#02121a;font-weight:700;border-color:var(--accent)}
+  #panel select{background:rgba(20,28,46,.9);border:1px solid var(--line);color:var(--txt);
+    border-radius:7px;font-size:11px;padding:4px 6px;outline:none;flex:1 1 100%}
+  #rows{overflow-y:auto;flex:1 1 auto}
+  .r{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;padding:6px 10px;
+    font-size:12px;cursor:pointer;border-bottom:1px solid rgba(120,150,200,.06)}
+  .r:hover{background:rgba(56,225,255,.08)}
+  .r img{width:18px;height:18px;border-radius:4px;background:#fff2;object-fit:contain}
+  .r .tk{font-weight:600}
+  .r .nm{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .r .pf{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+  #panelToggle{all:unset;position:fixed;top:54px;right:14px;z-index:11;cursor:pointer;font-size:12px;
+    color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:5px 10px;background:rgba(20,28,46,.82)}
+  #panelToggle:hover{color:var(--txt)}
+
+  .legend{position:fixed;bottom:34px;left:14px;z-index:10;font-size:11px;color:var(--muted);
+    display:flex;align-items:center;gap:8px;background:rgba(10,14,24,.6);padding:5px 9px;border-radius:8px;
+    border:1px solid var(--line)}
+  .legend .bar{width:96px;height:8px;border-radius:4px;background:linear-gradient(90deg,#ff3b4e,#6b7280,#1fd17a)}
+
+  /* bandeau news */
+  #news{position:fixed;bottom:0;left:0;right:0;height:28px;z-index:10;display:flex;align-items:center;
+    gap:8px;background:rgba(8,11,20,.92);border-top:1px solid var(--line);overflow:hidden;font-size:12px}
+  #news .tag{flex:0 0 auto;background:#ff3b4e;color:#fff;font-weight:700;font-size:10px;padding:3px 8px;
+    letter-spacing:.5px;height:100%;display:flex;align-items:center}
+  #newsTrack{display:inline-flex;gap:40px;white-space:nowrap;will-change:transform;padding-left:100%;
+    animation:marq 220s linear infinite}
+  #news:hover #newsTrack{animation-play-state:paused}
+  #newsTrack a{color:var(--txt);text-decoration:none}
+  #newsTrack a:hover{color:var(--accent);text-decoration:underline}
+  #newsTrack .src{color:var(--muted)}
+  #news .pausehint{flex:0 0 auto;margin-left:auto;padding-right:10px;color:var(--muted);font-size:10px}
+  @keyframes marq{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+
+  #tip{position:fixed;z-index:20;pointer-events:none;display:none;max-width:280px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12px;line-height:1.5;
+    backdrop-filter:blur(8px);box-shadow:0 10px 40px rgba(0,0,0,.5)}
+  #tip h4{margin:0 0 4px;font-size:13px}
+  #tip .row{display:flex;justify-content:space-between;gap:16px;color:var(--muted)}
+  #tip .row b{color:var(--txt);font-weight:600}
+  #tip .tag{display:inline-block;margin-top:6px;padding:2px 7px;border-radius:6px;font-size:10px;
+    font-weight:700;background:rgba(31,209,122,.18);color:#4cf0a0}
+  .pos{color:#1fd17a}.neg{color:#ff5a6a}
+
+  /* toolbar (boutons icones) */
+  .tbtn{all:unset;cursor:pointer;font-size:12px;color:var(--muted);border:1px solid var(--line);
+    border-radius:9px;padding:6px 9px;background:rgba(20,28,46,.82);transition:.15s}
+  .tbtn:hover{color:var(--txt);border-color:var(--accent)}
+  .tbtn.on{background:var(--accent);color:#02121a;font-weight:700}
+  .tbtn.pro{color:#ffd86b;border-color:rgba(255,216,107,.4)}
+  .tbtn.pro:hover{background:rgba(255,216,107,.14)}
+  .alertbox{display:inline-flex;align-items:center;gap:5px;background:rgba(20,28,46,.82);
+    border:1px solid var(--line);border-radius:9px;padding:3px 7px}
+  .alertbox input{width:46px;background:transparent;border:none;color:var(--txt);font-size:12px;outline:none}
+  .alertbox .lk{font-size:10px;color:#ffd86b}
+
+  /* etoile watchlist dans le tableau */
+  .r .star{cursor:pointer;color:#3a4660;font-size:14px;text-align:center}
+  .r .star.on{color:#ffd86b}
+  .r{grid-template-columns:16px 20px 1fr auto}
+
+  /* HUD breadth */
+  #breadth{position:fixed;top:54px;left:14px;z-index:10;display:flex;gap:10px;align-items:center;
+    background:rgba(10,14,24,.66);border:1px solid var(--line);border-radius:9px;padding:5px 10px;font-size:11px}
+  #breadth b{font-variant-numeric:tabular-nums}
+  #breadth .up{color:#1fd17a}#breadth .dn{color:#ff5a6a}#breadth .sep{color:var(--line)}
+
+  /* modal Pro */
+  .modal{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;
+    background:rgba(2,5,12,.72);backdrop-filter:blur(4px)}
+  .modal.open{display:flex}
+  .modal .card{width:min(820px,92vw);background:linear-gradient(160deg,#0c1426,#0a1020);
+    border:1px solid var(--line);border-radius:18px;padding:24px 26px;box-shadow:0 30px 90px rgba(0,0,0,.6)}
+  .modal h2{margin:0 0 4px;font-size:22px}
+  .modal .lead{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .tier{border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:9px}
+  .tier.hl{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .tier h3{margin:0;font-size:15px}
+  .tier .price{font-size:26px;font-weight:800}.tier .price span{font-size:12px;color:var(--muted);font-weight:400}
+  .tier ul{margin:0;padding-left:16px;color:var(--muted);font-size:12px;line-height:1.7;flex:1}
+  .tier button{all:unset;text-align:center;cursor:pointer;border-radius:9px;padding:9px;font-weight:700;font-size:13px}
+  .tier .buy{background:var(--accent);color:#02121a}
+  .tier .buy.gold{background:#ffd86b}
+  .tier .cur{background:rgba(120,150,200,.14);color:var(--muted);cursor:default}
+  .modal .close{float:right;cursor:pointer;color:var(--muted);font-size:18px}
+  .modal .foot{margin-top:14px;font-size:11px;color:var(--muted);text-align:center}
+  .badge-pro{font-size:9px;font-weight:800;letter-spacing:.5px;background:#ffd86b;color:#1a1300;
+    border-radius:5px;padding:1px 5px;margin-left:4px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div id="app"><canvas id="cv"></canvas></div>
+
+<header>
+  <div class="brand"><b>NASDAQ-100 <span style="color:var(--accent)">BUBBLES</span></b>
+    <span class="sub" id="genAt"></span></div>
+  <div class="spacer"></div>
+  <span class="lbl">Vue</span><div class="seg" id="modeSeg"></div>
+  <span class="lbl">Taille</span><div class="seg" id="sizeSeg"></div>
+  <span class="lbl">Période</span><div class="seg" id="tfSeg"></div>
+  <select class="scheme" id="scheme" title="Schéma de couleur">
+    <option value="gr">Vert / Rouge</option>
+    <option value="by">Bleu / Jaune</option>
+    <option value="heat">Heat</option>
+  </select>
+  <input class="search" id="search" placeholder="Rechercher…" autocomplete="off" />
+  <button class="tbtn" id="btnPause" title="Pause / Reprendre (espace)">⏸</button>
+  <button class="tbtn" id="btnFull" title="Plein écran">⛶</button>
+  <button class="tbtn" id="btnShot" title="Exporter en PNG">⤓ PNG</button>
+  <span class="alertbox" id="alertWrap" title="Alerte: surligne les variations ≥ seuil">
+    🔔<input id="alertInput" type="number" placeholder="±%"><span class="lk" id="alertLock">PRO</span></span>
+  <button class="tbtn pro" id="btnPro">★ Passer Pro</button>
+</header>
+
+<div id="breadth"></div>
+
+<div class="modal" id="proModal"><div class="card">
+  <span class="close" id="proClose">✕</span>
+  <h2>NASDAQ Bubbles <span style="color:var(--accent)">Pro</span></h2>
+  <div class="lead">Alertes de variation, watchlist illimitée, export de données et schémas avancés.</div>
+  <div class="tiers">
+    <div class="tier"><h3>Free</h3><div class="price">0€<span>/mois</span></div>
+      <ul><li>Vue Actions &amp; Thèmes</li><li>5 périodes</li><li>Watchlist (5 max)</li><li>Données J-1</li></ul>
+      <button class="cur" id="tierFree">Votre offre</button></div>
+    <div class="tier hl"><h3>Pro</h3><div class="price">12€<span>/mois</span></div>
+      <ul><li>Tout Free +</li><li>Alertes de variation</li><li>Watchlist illimitée</li><li>Export CSV / PNG HD</li>
+        <li>Schémas de couleur avancés</li><li>Données intraday*</li></ul>
+      <button class="buy gold" id="tierPro">Activer Pro (démo)</button></div>
+    <div class="tier"><h3>Team</h3><div class="price">39€<span>/mois</span></div>
+      <ul><li>Tout Pro +</li><li>5 sièges</li><li>Indices S&amp;P 500 / Dow*</li><li>API &amp; webhooks*</li><li>Support prioritaire</li></ul>
+      <button class="buy" id="tierTeam">Nous contacter</button></div>
+  </div>
+  <div class="foot">*Nécessite un backend temps réel. Démo: « Activer Pro » débloque les fonctions côté client.</div>
+</div></div>
+
+<div class="crumb" id="crumb"><button id="backBtn">&larr; Retour</button><span>/</span>
+  <span class="here" id="crumbHere"></span></div>
+
+<button id="panelToggle">☰ Tableau</button>
+<div id="panel">
+  <div class="ph">
+    <button class="chip on" data-f="all">Tous</button>
+    <button class="chip" data-f="gain">Gainers</button>
+    <button class="chip" data-f="lose">Losers</button>
+    <button class="chip" data-f="watch" title="Ma watchlist">★</button>
+    <button class="chip" id="csvBtn" title="Export CSV (Pro)">⤓ CSV</button>
+    <select id="sectorFilter"><option value="">Tous secteurs</option></select>
+  </div>
+  <div id="rows"></div>
+</div>
+
+<div class="legend"><span>Baisse</span><span class="bar" id="legbar"></span><span>Hausse</span>
+  <span style="margin-left:6px">• Halo = Renko validé</span></div>
+
+<div id="news"><span class="tag">NEWS</span><div id="newsTrack"></div><span class="pausehint">⏸ survol = pause</span></div>
+<div id="tip"></div>
+
+<script>
+const DATA = {"generated_at": "2026-06-03T23:29:04.613180+00:00", "runtime_seconds": 83.43, "timeframes": [{"key": "perf_5d", "label": "5J"}, {"key": "perf_21d", "label": "21J"}, {"key": "perf_63d", "label": "63J"}, {"key": "perf_126d", "label": "126J"}, {"key": "perf_ytd", "label": "YTD"}], "has_mcap": true, "sectors": ["AI platforms / Mega-cap tech", "Basic Materials", "Cloud / Data software", "Communication Services", "Consumer Cyclical", "Consumer Defensive", "Consumer internet / E-commerce", "Cybersecurity", "Energy", "Financial Services", "Healthcare / Biotech", "Industrials / Automation", "Semiconductors / AI infrastructure", "Utilities / Power"], "stocks": [{"ticker": "AMD", "name": "Advanced Micro Devices", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 100.0, "rsi": 74.14152468726869, "rel63": 146.47575539541526, "above50": true, "validated": true, "mcap": 752864607099.335, "close": 542.52001953125, "perf": {"perf_5d": 9.480568708120618, "perf_21d": 58.84523217135591, "perf_63d": 168.48121931365282, "perf_126d": 146.8693270350324, "perf_ytd": 142.77084913757488}}, {"ticker": "ARM", "name": "Arm Holdings", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 100.0, "rsi": 84.21033116334675, "rel63": 209.8211290613425, "above50": true, "validated": true, "mcap": 337113539362.58295, "close": 411.8299865722656, "perf": {"perf_5d": 36.04770182598376, "perf_21d": 102.61241646270692, "perf_63d": 231.82659297958006, "perf_126d": 205.03666641613964, "perf_ytd": 258.95578708477143}}, {"ticker": "CRWD", "name": "CrowdStrike", "theme": "Cybersecurity", "short_theme": "Cybersecurity", "sector": "Technology", "score": 100.0, "rsi": 79.44620796281478, "rel63": 61.37610956656183, "above50": true, "validated": true, "mcap": 162248155879.13086, "close": 747.6099853515625, "perf": {"perf_5d": 15.84387044763844, "perf_21d": 59.3235872710141, "perf_63d": 83.38157348479938, "perf_126d": 48.29706189088034, "perf_ytd": 64.8242884350567}}, {"ticker": "DDOG", "name": "Datadog", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 100.0, "rsi": 69.78380333453896, "rel63": 89.5469724524325, "above50": true, "validated": false, "mcap": 80669477832.125, "close": 250.3300018310547, "perf": {"perf_5d": 12.857853381891427, "perf_21d": 70.65239461772204, "perf_63d": 111.55243637067005, "perf_126d": 58.537056052811074, "perf_ytd": 87.13462946535154}}, {"ticker": "FTNT", "name": "Fortinet", "theme": "Cybersecurity", "short_theme": "Cybersecurity", "sector": "Technology", "score": 100.0, "rsi": 80.83100426291784, "rel63": 54.92410983185356, "above50": true, "validated": true, "mcap": 99885623305.88899, "close": 146.47999572753906, "perf": {"perf_5d": 14.500113638796574, "perf_21d": 64.14163966156742, "perf_63d": 76.92957375009111, "perf_126d": 79.02712817634625, "perf_ytd": 88.08423329921267}}, {"ticker": "INTC", "name": "Intel", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 100.0, "rsi": 42.22723268560664, "rel63": 125.27403269573753, "above50": true, "validated": false, "mcap": 527779772247.31445, "close": 112.70999908447266, "perf": {"perf_5d": -7.440254420923176, "perf_21d": 17.67592453638165, "perf_63d": 147.27949661397508, "perf_126d": 181.70458338612985, "perf_ytd": 186.21126467091554}}, {"ticker": "MRVL", "name": "Marvell Technology", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 100.0, "rsi": 86.35668628130722, "rel63": 264.47296567873093, "above50": true, "validated": false, "mcap": 226057071203.61328, "close": 301.6499938964844, "perf": {"perf_5d": 51.81177580745451, "perf_21d": 84.31503552894182, "perf_63d": 286.47842959696845, "perf_126d": 231.5237566266402, "perf_ytd": 237.86569481887406}}, {"ticker": "MU", "name": "Micron Technology", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 100.0, "rsi": 74.9900393605557, "rel63": 147.48165704757042, "above50": true, "validated": false, "mcap": 1016603720822.572, "close": 1079.5699462890625, "perf": {"perf_5d": 16.281597302595884, "perf_21d": 87.27902219235905, "perf_63d": 169.48712096580797, "perf_126d": 349.33033291588896, "perf_ytd": 242.40802962402856}}, {"ticker": "SNDK", "name": "Sandisk", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 100.0, "rsi": 71.84021923890796, "rel63": 183.72351272251402, "above50": true, "validated": false, "mcap": 243044903598.6548, "close": 1831.5, "perf": {"perf_5d": 15.193030397116637, "perf_21d": 45.836321036002616, "perf_63d": 205.72897664075157, "perf_126d": 771.4374154049083, "perf_ytd": 565.4192940642178}}, {"ticker": "STX", "name": "Seagate Technology", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 100.0, "rsi": 71.03486423643285, "rel63": 129.27607107054936, "above50": true, "validated": false, "mcap": 189300618757.76, "close": 940.6900024414062, "perf": {"perf_5d": 8.043327068769468, "perf_21d": 27.37157505731911, "perf_63d": 151.28153498878692, "perf_126d": 249.7975398843364, "perf_ytd": 227.72166761786252}}, {"ticker": "WDC", "name": "Western Digital", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 100.0, "rsi": 77.63593991396188, "rel63": 105.4703714869922, "above50": true, "validated": false, "mcap": 173706003793.47812, "close": 594.1099853515625, "perf": {"perf_5d": 11.969470917425395, "perf_21d": 34.304639891738354, "perf_63d": 127.47583540522976, "perf_126d": 263.74727520671433, "perf_ytd": 216.6725415775331}}, {"ticker": "PANW", "name": "Palo Alto Networks", "theme": "Cybersecurity", "short_theme": "Cybersecurity", "sector": "Technology", "score": 97.77, "rsi": 69.96965029241187, "rel63": 54.85502863578893, "above50": true, "validated": true, "mcap": 208815222015.38086, "close": 280.42999267578125, "perf": {"perf_5d": 12.862716343245673, "perf_21d": 51.94516492489163, "perf_63d": 76.86049255402648, "perf_126d": 49.37942739996748, "perf_ytd": 56.341640357724486}}, {"ticker": "QCOM", "name": "Qualcomm", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 91.41, "rsi": 61.96259050181574, "rel63": 58.350908404154204, "above50": true, "validated": false, "mcap": 210610287719.72656, "close": 250.00999450683594, "perf": {"perf_5d": 7.116538579567533, "perf_21d": 48.47962184158119, "perf_63d": 80.35637232239175, "perf_126d": 50.5003864317715, "perf_ytd": 45.45912073192557}}, {"ticker": "LRCX", "name": "Lam Research", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 82.78, "rsi": 71.6865898914348, "rel63": 32.131485266964766, "above50": true, "validated": false, "mcap": 400453858907.6843, "close": 343.7099914550781, "perf": {"perf_5d": 7.769729830485961, "perf_21d": 32.92724667177005, "perf_63d": 54.13694918520231, "perf_126d": 122.6812768176913, "perf_ytd": 85.9514681829375}}, {"ticker": "CSCO", "name": "Cisco", "theme": "Cybersecurity", "short_theme": "Cybersecurity", "sector": "Technology", "score": 82.74, "rsi": 78.6996032750037, "rel63": 35.26602699307464, "above50": true, "validated": false, "mcap": 470272286677.1182, "close": 126.5, "perf": {"perf_5d": 5.707363529338716, "perf_21d": 36.564831858863364, "perf_63d": 57.271490911312185, "perf_126d": 68.15628265324658, "perf_ytd": 67.26125290023202}}, {"ticker": "AVGO", "name": "Broadcom", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 76.63, "rsi": 73.63360527314033, "rel63": 29.23546335529172, "above50": true, "validated": false, "mcap": 1819935476143.834, "close": 479.2300109863281, "perf": {"perf_5d": 13.599304894242481, "perf_21d": 15.061227127569786, "perf_63d": 51.240927273529266, "perf_126d": 24.625522083451457, "perf_ytd": 38.149508131764605}}, {"ticker": "AMAT", "name": "Applied Materials", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 74.83, "rsi": 72.28056185681525, "rel63": 18.14226947668056, "above50": true, "validated": false, "mcap": 388579634891.67633, "close": 500.7699890136719, "perf": {"perf_5d": 11.716673511137055, "perf_21d": 28.108882194888274, "perf_63d": 40.147733394918106, "perf_126d": 97.06294006105635, "perf_ytd": 86.71397810212333}}, {"ticker": "KLAC", "name": "KLA Corporation", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 73.52, "rsi": 68.34567374077291, "rel63": 22.16473621769346, "above50": true, "validated": false, "mcap": 273336780141.6306, "close": 2125.110107421875, "perf": {"perf_5d": 8.579656090761102, "perf_21d": 24.19294108717125, "perf_63d": 44.170200135931005, "perf_126d": 84.11891638178963, "perf_ytd": 67.17438646203462}}, {"ticker": "TXN", "name": "Texas Instruments", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 67.41, "rsi": 51.20000000000001, "rel63": 31.242211631633452, "above50": true, "validated": false, "mcap": 258789445583.38303, "close": 308.5899963378906, "perf": {"perf_5d": -2.7909955988164814, "perf_21d": 10.419721254515203, "perf_63d": 53.247675549871, "perf_126d": 85.64607206999632, "perf_ytd": 75.8576141212321}}, {"ticker": "MPWR", "name": "Monolithic Power Systems", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 67.14, "rsi": 52.94547392274579, "rel63": 32.065304393414216, "above50": true, "validated": false, "mcap": 73235034825.443, "close": 1689.8900146484375, "perf": {"perf_5d": 4.303250202882913, "perf_21d": 7.410535956390185, "perf_63d": 54.07076831165176, "perf_126d": 82.70400114661993, "perf_ytd": 80.84487064378108}}, {"ticker": "CDNS", "name": "Cadence Design Systems", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 65.5, "rsi": 72.47876424487164, "rel63": 11.57670213743809, "above50": true, "validated": false, "mcap": 106940760283.44727, "close": 408.0, "perf": {"perf_5d": 9.076330253971854, "perf_21d": 16.734854110071783, "perf_63d": 33.582166055675636, "perf_126d": 31.774435254278988, "perf_ytd": 31.44330155369279}}, {"ticker": "ASML", "name": "ASML Holding", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 65.1, "rsi": 65.56840717457428, "rel63": 1.630933892519046, "above50": true, "validated": false, "mcap": 673056816178.9691, "close": 1726.3599853515625, "perf": {"perf_5d": 8.041329433997646, "perf_21d": 24.538131596170153, "perf_63d": 23.63639781075659, "perf_126d": 59.23057973080299, "perf_ytd": 48.8608399435096}}, {"ticker": "LITE", "name": "Lumentum", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 64.04, "rsi": 42.82652377889887, "rel63": 15.773621983456955, "above50": true, "validated": false, "mcap": 63249842480.46875, "close": 938.0, "perf": {"perf_5d": 3.9554036348897537, "perf_21d": -3.9111632037373667, "perf_63d": 37.7790859016945, "perf_126d": 195.03350473654555, "perf_ytd": 142.9359601114507}}, {"ticker": "ADI", "name": "Analog Devices", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 63.28, "rsi": 52.25304875323456, "rel63": 6.502868315935249, "above50": true, "validated": false, "mcap": 193787581836.94336, "close": 437.6700134277344, "perf": {"perf_5d": 5.2746203133243075, "perf_21d": 10.540739357919616, "perf_63d": 28.508332234172794, "perf_126d": 65.771601927271, "perf_ytd": 60.825234640069034}}, {"ticker": "NXPI", "name": "NXP Semiconductors", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 63.27, "rsi": 60.97036596843597, "rel63": 27.53028168213301, "above50": true, "validated": false, "mcap": 73458982988.49435, "close": 321.8800048828125, "perf": {"perf_5d": -2.235446959624554, "perf_21d": 10.702983241152264, "perf_63d": 49.535745600370554, "perf_126d": 62.91318951222491, "perf_ytd": 46.217678683495755}}, {"ticker": "ODFL", "name": "Old Dominion Freight Line", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 60.19, "rsi": 95.8170460585143, "rel63": -12.81447687313917, "above50": true, "validated": false, "mcap": 51564697451.6402, "close": 236.05999755859375, "perf": {"perf_5d": 7.5689226891486605, "perf_21d": 22.83276436420758, "perf_63d": 9.190987045098375, "perf_126d": 69.58439489642923, "perf_ytd": 48.49530520172245}}, {"ticker": "MCHP", "name": "Microchip Technology", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 58.6, "rsi": 50.53116764028161, "rel63": 16.81368388480582, "above50": true, "validated": false, "mcap": 48461888548.54734, "close": 96.55000305175781, "perf": {"perf_5d": -0.30975263509522843, "perf_21d": 1.82013827422014, "perf_63d": 38.819147803043364, "perf_126d": 82.68001719833569, "perf_ytd": 50.093721090210394}}, {"ticker": "GOOG", "name": "Alphabet Inc. (Class C)", "theme": "AI platforms / Mega-cap tech", "short_theme": "AI Mega-cap", "sector": "Communication Services", "score": 55.49, "rsi": 11.871259437448387, "rel63": -4.710836561384735, "above50": true, "validated": false, "mcap": 4411883650090.545, "close": 355.67999267578125, "perf": {"perf_5d": -7.57477195478643, "perf_21d": -6.311247773721695, "perf_63d": 17.29462735685281, "perf_126d": 13.024505583574019, "perf_ytd": 12.879157380263994}}, {"ticker": "FANG", "name": "Diamondback Energy", "theme": "Energy", "short_theme": "Energy", "sector": "Energy", "score": 55.02, "rsi": 61.56870419364819, "rel63": -1.4610954779326306, "above50": true, "validated": true, "mcap": 54358167177.40993, "close": 210.58999633789062, "perf": {"perf_5d": 9.204522058224264, "perf_21d": -0.9086800234208048, "perf_63d": 20.544368440304915, "perf_126d": 36.407494036408664, "perf_ytd": 39.82799644787387}}, {"ticker": "AAPL", "name": "Apple Inc.", "theme": "AI platforms / Mega-cap tech", "short_theme": "AI Mega-cap", "sector": "Technology", "score": 54.33, "rsi": 63.975436231558454, "rel63": -3.7112895101360195, "above50": true, "validated": false, "mcap": 4257130226244.507, "close": 310.260009765625, "perf": {"perf_5d": -0.18980097355834058, "perf_21d": 12.179273216986108, "perf_63d": 18.294174408101526, "perf_126d": 9.797397633414985, "perf_ytd": 14.695552385675615}}, {"ticker": "GOOGL", "name": "Alphabet Inc. (Class A)", "theme": "AI platforms / Mega-cap tech", "short_theme": "AI Mega-cap", "sector": "Communication Services", "score": 53.5, "rsi": 14.161356469249327, "rel63": -3.494369242116502, "above50": true, "validated": false, "mcap": 4443041620266.937, "close": 358.989990234375, "perf": {"perf_5d": -7.674304289374745, "perf_21d": -6.330074302837573, "perf_63d": 18.511094676121044, "perf_126d": 14.159764300729494, "perf_ytd": 13.991017649861615}}, {"ticker": "MNST", "name": "Monster Beverage", "theme": "Consumer Defensive", "short_theme": "Cons. Defensive", "sector": "Consumer Defensive", "score": 51.3, "rsi": 61.91570836426989, "rel63": -8.73743157604936, "above50": true, "validated": false, "mcap": 87287223817.5, "close": 89.04000091552734, "perf": {"perf_5d": -0.22411133239547132, "perf_21d": 18.404261341673724, "perf_63d": 13.268032342188185, "perf_126d": 17.235028957546405, "perf_ytd": 16.911760286358724}}, {"ticker": "KDP", "name": "Keurig Dr Pepper", "theme": "Consumer Defensive", "short_theme": "Cons. Defensive", "sector": "Consumer Defensive", "score": 48.75, "rsi": 67.12708273948178, "rel63": -15.251624825226063, "above50": true, "validated": false, "mcap": 42565102842.6301, "close": 30.549999237060547, "perf": {"perf_5d": 1.4950127903249122, "perf_21d": 5.819183751266421, "perf_63d": 6.753839093011482, "perf_126d": 10.312395486619819, "perf_ytd": 11.14256962874338}}, {"ticker": "APP", "name": "AppLovin", "theme": "Communication Services", "short_theme": "Comm. Services", "sector": "Communication Services", "score": 48.23, "rsi": 72.5872273519044, "rel63": -3.7746857702419803, "above50": true, "validated": false, "mcap": 174460155514.45685, "close": 570.8300170898438, "perf": {"perf_5d": 0.5283271242642495, "perf_21d": 20.1747404399671, "perf_63d": 18.230778147995565, "perf_126d": -8.460688512238402, "perf_ytd": -7.680487396791191}}, {"ticker": "NVDA", "name": "Nvidia", "theme": "Semiconductors / AI infrastructure", "short_theme": "Semis / AI", "sector": "Technology", "score": 48.0, "rsi": 41.65159604494767, "rel63": -4.675029556091804, "above50": true, "validated": false, "mcap": 4970149126083.374, "close": 214.75, "perf": {"perf_5d": 1.0112859053435397, "perf_21d": 8.197301805062196, "perf_63d": 17.33043436214574, "perf_126d": 19.371705189753662, "perf_ytd": 13.720740890854444}}, {"ticker": "MAR", "name": "Marriott International", "theme": "Consumer Cyclical", "short_theme": "Cons. Cyclical", "sector": "Consumer Cyclical", "score": 47.45, "rsi": 73.85876971254817, "rel63": -9.636093653411848, "above50": true, "validated": false, "mcap": 103580847087.51605, "close": 376.75, "perf": {"perf_5d": -2.360956226974986, "perf_21d": 8.712608241762364, "perf_63d": 12.369370264825697, "perf_126d": 24.645071815571228, "perf_ytd": 20.679937473013954}}, {"ticker": "CSX", "name": "CSX Corporation", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 47.06, "rsi": 64.46253622328453, "rel63": -13.117288191887312, "above50": true, "validated": false, "mcap": 87602141510.876, "close": 46.439998626708984, "perf": {"perf_5d": -1.182942574422663, "perf_21d": 4.1644858719153355, "perf_63d": 8.888175726350234, "perf_126d": 34.1055124851535, "perf_ytd": 28.8551683668701}}, {"ticker": "FAST", "name": "Fastenal", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 45.93, "rsi": 69.35250598138977, "rel63": -21.407652797675382, "above50": true, "validated": false, "mcap": 53544354544.33501, "close": 46.459999084472656, "perf": {"perf_5d": 3.6590794306449403, "perf_21d": 3.5204946050679142, "perf_63d": 0.5978111205621639, "perf_126d": 16.976268893060897, "perf_ytd": 16.137426759779714}}, {"ticker": "LIN", "name": "Linde plc", "theme": "Basic Materials", "short_theme": "Materials", "sector": "Basic Materials", "score": 45.22, "rsi": 45.37623945053506, "rel63": -19.985209356691968, "above50": true, "validated": false, "mcap": 237704310753.75, "close": 507.57000732421875, "perf": {"perf_5d": -0.05906783150273487, "perf_21d": 2.840648339177143, "perf_63d": 2.020254561545576, "perf_126d": 25.546615143807472, "perf_ytd": 18.681670135102003}}, {"ticker": "ROST", "name": "Ross Stores", "theme": "Consumer internet / E-commerce", "short_theme": "Internet / E-com", "sector": "Consumer Cyclical", "score": 45.22, "rsi": 68.14545340637807, "rel63": -12.828642972995176, "above50": true, "validated": false, "mcap": 73064307051.04462, "close": 232.6199951171875, "perf": {"perf_5d": -0.36407508419554757, "perf_21d": 2.920091460917962, "perf_63d": 9.176820945242369, "perf_126d": 31.631206359611475, "perf_ytd": 27.566127772777584}}, {"ticker": "DXCM", "name": "DexCom", "theme": "Healthcare / Biotech", "short_theme": "Health / Bio", "sector": "Healthcare", "score": 45.13, "rsi": 80.1102541254702, "rel63": -22.183797087087132, "above50": true, "validated": false, "mcap": 30277521727.195953, "close": 72.7699966430664, "perf": {"perf_5d": 3.5724372765733703, "perf_21d": 21.202524206236095, "perf_63d": -0.17833316884958705, "perf_126d": 14.562336458818725, "perf_ytd": 9.362782749955256}}, {"ticker": "AMZN", "name": "Amazon", "theme": "Consumer internet / E-commerce", "short_theme": "Internet / E-com", "sector": "Consumer Cyclical", "score": 44.71, "rsi": 32.42437473145051, "rel63": -6.693225274782002, "above50": true, "validated": false, "mcap": 2635922023975.6357, "close": 250.02000427246094, "perf": {"perf_5d": -8.03016418647503, "perf_21d": -8.097770449919196, "perf_63d": 15.312238643455544, "perf_126d": 6.900974453859576, "perf_ytd": 10.384107846561118}}, {"ticker": "ADP", "name": "Automatic Data Processing", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 44.4, "rsi": 67.98343004498412, "rel63": -16.26233871933809, "above50": true, "validated": false, "mcap": 91759005652.99222, "close": 227.75, "perf": {"perf_5d": 4.64048076579282, "perf_21d": 7.774934746511453, "perf_63d": 5.743125198899457, "perf_126d": -9.663799631630221, "perf_ytd": -9.19338672325467}}, {"ticker": "HON", "name": "Honeywell", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 42.89, "rsi": 57.50462364157375, "rel63": -30.739464372210758, "above50": true, "validated": false, "mcap": 136124529355.41914, "close": 223.25999450683594, "perf": {"perf_5d": -3.5802238979322443, "perf_21d": 7.107681982669289, "perf_63d": -8.734000453973213, "perf_126d": 18.60029835763879, "perf_ytd": 15.173322008776013}}, {"ticker": "MDLZ", "name": "Mondelez International", "theme": "Consumer Defensive", "short_theme": "Cons. Defensive", "sector": "Consumer Defensive", "score": 42.53, "rsi": 48.510643823919956, "rel63": -16.63687461066481, "above50": true, "validated": false, "mcap": 80316168365.04355, "close": 61.310001373291016, "perf": {"perf_5d": -1.51003795455259, "perf_21d": -0.11404316325530628, "perf_63d": 5.368589307572735, "perf_126d": 10.656295447552466, "perf_ytd": 15.267140753214537}}, {"ticker": "SNPS", "name": "Synopsys", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 42.52, "rsi": 46.471986289083546, "rel63": -6.4502232299471505, "above50": true, "validated": false, "mcap": 88141764286.43646, "close": 498.0199890136719, "perf": {"perf_5d": -5.304988363838337, "perf_21d": 0.10452040475816826, "perf_63d": 15.555240688290395, "perf_126d": 13.627958498768301, "perf_ytd": 3.6634559539607814}}, {"ticker": "META", "name": "Meta Platforms", "theme": "AI platforms / Mega-cap tech", "short_theme": "AI Mega-cap", "sector": "Communication Services", "score": 42.35, "rsi": 52.80203827694495, "rel63": -28.627391879309496, "above50": true, "validated": false, "mcap": 1496425946730.33, "close": 622.97998046875, "perf": {"perf_5d": -1.9330713578847192, "perf_21d": 2.0592729275808352, "perf_63d": -6.6219279610719495, "perf_126d": -2.6289384517903303, "perf_ytd": -4.135330966326267}}, {"ticker": "AXON", "name": "Axon Enterprise", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 41.85, "rsi": 82.24673541082795, "rel63": -37.507120075680206, "above50": true, "validated": false, "mcap": 36281413313.57483, "close": 481.4800109863281, "perf": {"perf_5d": 23.039967794800088, "perf_21d": 22.2806377108135, "perf_63d": -15.501656157442657, "perf_126d": -9.701620159904067, "perf_ytd": -14.547874601977018}}, {"ticker": "TSLA", "name": "Tesla, Inc.", "theme": "Consumer Cyclical", "short_theme": "Cons. Cyclical", "sector": "Consumer Cyclical", "score": 41.09, "rsi": 40.478512007255034, "rel63": -17.630430746140036, "above50": true, "validated": false, "mcap": 1485989720553.7317, "close": 423.70001220703125, "perf": {"perf_5d": -3.7832622624034973, "perf_21d": 7.946294786222241, "perf_63d": 4.375033172097509, "perf_126d": -1.4971874789816542, "perf_ytd": -3.2802964998587925}}, {"ticker": "MSFT", "name": "Microsoft", "theme": "AI platforms / Mega-cap tech", "short_theme": "AI Mega-cap", "sector": "Technology", "score": 40.76, "rsi": 59.87038194093473, "rel63": -16.313073502068587, "above50": true, "validated": false, "mcap": 2995070606441.587, "close": 427.3399963378906, "perf": {"perf_5d": 3.554894330291636, "perf_21d": 3.540828416717634, "perf_63d": 5.692390416168958, "perf_126d": -11.812655919537407, "perf_ytd": -9.239424989581035}}, {"ticker": "WDAY", "name": "Workday, Inc.", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 40.22, "rsi": 70.46310877495422, "rel63": -19.306917503578447, "above50": true, "validated": false, "mcap": 33862533856.43065, "close": 146.89999389648438, "perf": {"perf_5d": 17.991962969063756, "perf_21d": 14.864332314927386, "perf_63d": 2.6985464146590976, "perf_126d": -31.146009048994483, "perf_ytd": -28.616551489832208}}, {"ticker": "EA", "name": "Electronic Arts", "theme": "Communication Services", "short_theme": "Comm. Services", "sector": "Communication Services", "score": 38.99, "rsi": 74.18119996532701, "rel63": -21.464340933593597, "above50": true, "validated": false, "mcap": 50832341142.57312, "close": 202.6300048828125, "perf": {"perf_5d": 0.9717023511066625, "perf_21d": 0.49628495757636504, "perf_63d": 0.5411229846439491, "perf_126d": 0.28795983515375045, "perf_ytd": -0.6831847171485994}}, {"ticker": "PAYX", "name": "Paychex", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 38.48, "rsi": 66.93132814530202, "rel63": -17.90663292111099, "above50": true, "validated": false, "mcap": 35639194370.4368, "close": 98.44999694824219, "perf": {"perf_5d": 4.2571181087310395, "perf_21d": 7.82468680045556, "perf_63d": 4.098830997126557, "perf_126d": -8.853644416680584, "perf_ytd": -7.225430970179437}}, {"ticker": "BKR", "name": "Baker Hughes", "theme": "Energy", "short_theme": "Energy", "sector": "Energy", "score": 37.5, "rsi": 46.43301838598635, "rel63": -16.084120477023635, "above50": true, "validated": false, "mcap": 62847550441.1733, "close": 64.2699966430664, "perf": {"perf_5d": 1.6930314354590914, "perf_21d": -6.557141925376131, "perf_63d": 5.921343441213911, "perf_126d": 29.04340947392503, "perf_ytd": 37.310520501434596}}, {"ticker": "CTAS", "name": "Cintas", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 36.43, "rsi": 70.99825746096944, "rel63": -34.460450729659996, "above50": true, "validated": false, "mcap": 71577488546.17255, "close": 174.72000122070312, "perf": {"perf_5d": 2.861180144170672, "perf_21d": 4.976372076648983, "perf_63d": -12.454986811422453, "perf_126d": -5.302253403526558, "perf_ytd": -5.0205491786342265}}, {"ticker": "ADBE", "name": "Adobe Inc.", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 34.3, "rsi": 60.977463090391794, "rel63": -28.185899325601184, "above50": true, "validated": false, "mcap": 95736789273.07129, "close": 256.239990234375, "perf": {"perf_5d": 7.555399733957535, "perf_21d": 0.8977726650781781, "perf_63d": -6.180435407363638, "perf_126d": -20.631876911838564, "perf_ytd": -23.12031214548379}}, {"ticker": "TTWO", "name": "Take-Two Interactive", "theme": "Communication Services", "short_theme": "Comm. Services", "sector": "Communication Services", "score": 33.11, "rsi": 41.15135181312415, "rel63": -21.991560790507613, "above50": true, "validated": false, "mcap": 39110681427.73062, "close": 215.8000030517578, "perf": {"perf_5d": -1.2176158474596077, "perf_21d": -4.1655519713640565, "perf_63d": 0.013903127729930631, "perf_126d": -13.45150949656766, "perf_ytd": -14.22893568493343}}, {"ticker": "PLTR", "name": "Palantir Technologies", "theme": "AI platforms / Mega-cap tech", "short_theme": "AI Mega-cap", "sector": "Technology", "score": 31.75, "rsi": 60.321098301260314, "rel63": -29.17956491570155, "above50": true, "validated": false, "mcap": 313975952554.0962, "close": 142.1999969482422, "perf": {"perf_5d": 7.312657794206134, "perf_21d": -2.622750026070453, "perf_63d": -7.174100997464006, "perf_126d": -15.099413526471029, "perf_ytd": -15.28655044013325}}, {"ticker": "CCEP", "name": "Coca-Cola Europacific Partners", "theme": "Consumer Defensive", "short_theme": "Cons. Defensive", "sector": "Consumer Defensive", "score": 30.77, "rsi": 55.84171778749743, "rel63": -32.6558640171447, "above50": false, "validated": false, "mcap": 42927233549.30168, "close": 92.41000366210938, "perf": {"perf_5d": -2.4181556071056654, "perf_21d": 1.1996290683856436, "perf_63d": -10.650400098907154, "perf_126d": 1.1557819874459252, "perf_ytd": 5.880445233473264}}, {"ticker": "EXC", "name": "Exelon", "theme": "Utilities / Power", "short_theme": "Utilities", "sector": "Utilities", "score": 30.45, "rsi": 56.39811711787178, "rel63": -30.472465276502138, "above50": false, "validated": false, "mcap": 46201326949.899315, "close": 45.08000183105469, "perf": {"perf_5d": -2.4031106920458956, "perf_21d": -3.2825547291605917, "perf_63d": -8.467001358264593, "perf_126d": -0.49024594145072875, "perf_ytd": 3.5200553347274566}}, {"ticker": "PCAR", "name": "Paccar", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 30.19, "rsi": 55.92524448651312, "rel63": -30.158458135594568, "above50": false, "validated": false, "mcap": 62414915970.694244, "close": 114.37999725341797, "perf": {"perf_5d": 1.8884688017507978, "perf_21d": 0.31937959431451723, "perf_63d": -8.152994217357023, "perf_126d": 12.048438778616433, "perf_ytd": 3.1140380832390457}}, {"ticker": "WBD", "name": "Warner Bros. Discovery", "theme": "Consumer internet / E-commerce", "short_theme": "Internet / E-com", "sector": "Communication Services", "score": 29.48, "rsi": 43.455496859365475, "rel63": -25.404393209857158, "above50": false, "validated": false, "mcap": 66852802454.182205, "close": 27.0, "perf": {"perf_5d": -0.5158415357291224, "perf_21d": 0.14837135343368502, "perf_63d": -3.3989292916196123, "perf_126d": 13.112689780982523, "perf_ytd": -5.296387992842389}}, {"ticker": "KHC", "name": "Kraft Heinz", "theme": "Consumer Defensive", "short_theme": "Cons. Defensive", "sector": "Consumer Defensive", "score": 28.54, "rsi": 44.64285106074473, "rel63": -25.74074130585222, "above50": false, "validated": false, "mcap": 27871702386.045803, "close": 22.760000228881836, "perf": {"perf_5d": -6.644786659762236, "perf_21d": 1.516503797640012, "perf_63d": -3.735277387614677, "perf_126d": -8.781873478063284, "perf_ytd": -5.116686296206419}}, {"ticker": "FER", "name": "Ferrovial", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 28.51, "rsi": 46.96130911364866, "rel63": -25.4332087137509, "above50": false, "validated": false, "mcap": 47064418014.02868, "close": 66.38999938964844, "perf": {"perf_5d": -4.502297762596541, "perf_21d": -1.1931261544862126, "perf_63d": -3.4277447955133544, "perf_126d": 3.5815443070068564, "perf_ytd": 3.8581826480007075}}, {"ticker": "VRSK", "name": "Verisk Analytics", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 27.99, "rsi": 70.92849396031731, "rel63": -39.07505535787518, "above50": true, "validated": false, "mcap": 23788980699.47754, "close": 178.3300018310547, "perf": {"perf_5d": 3.9825083563001185, "perf_21d": -0.195875788601374, "perf_63d": -17.069591439637634, "perf_126d": -20.024707617516015, "perf_ytd": -19.110772091493487}}, {"ticker": "AMGN", "name": "Amgen", "theme": "Healthcare / Biotech", "short_theme": "Health / Bio", "sector": "Healthcare", "score": 27.84, "rsi": 54.551197574558756, "rel63": -32.155468300158475, "above50": false, "validated": false, "mcap": 186998128704.9322, "close": 338.2200012207031, "perf": {"perf_5d": 0.6427434618226924, "perf_21d": 5.225892870197835, "perf_63d": -10.15000438192093, "perf_126d": 1.6727465346403791, "perf_ytd": 4.729381047530712}}, {"ticker": "XEL", "name": "Xcel Energy", "theme": "Utilities / Power", "short_theme": "Utilities", "sector": "Utilities", "score": 27.11, "rsi": 40.24766010215832, "rel63": -28.120560612081203, "above50": false, "validated": false, "mcap": 48561929643.93585, "close": 77.38999938964844, "perf": {"perf_5d": -4.456790876977235, "perf_21d": -4.65689154190847, "perf_63d": -6.1150966938436575, "perf_126d": -1.4627307564940017, "perf_ytd": 4.394792601060704}}, {"ticker": "SBUX", "name": "Starbucks", "theme": "Consumer Cyclical", "short_theme": "Cons. Cyclical", "sector": "Consumer Cyclical", "score": 27.08, "rsi": 18.050432107784545, "rel63": -22.72390773627222, "above50": false, "validated": false, "mcap": 111325896347.80884, "close": 95.88999938964844, "perf": {"perf_5d": -6.082271476278899, "perf_21d": -8.114673176563203, "perf_63d": -0.7184438180346753, "perf_126d": 14.325802632373662, "perf_ytd": 15.60562114837456}}, {"ticker": "ABNB", "name": "Airbnb", "theme": "Consumer Cyclical", "short_theme": "Cons. Cyclical", "sector": "Consumer Cyclical", "score": 25.25, "rsi": 51.1464429007556, "rel63": -23.444151423648318, "above50": false, "validated": false, "mcap": 78366386048.20677, "close": 133.58999633789062, "perf": {"perf_5d": 1.127925939085439, "perf_21d": -3.795192459525365, "perf_63d": -1.438687505410774, "perf_126d": 12.44948897828666, "perf_ytd": 0.43605883392836553}}, {"ticker": "WMT", "name": "Walmart", "theme": "Consumer Defensive", "short_theme": "Cons. Defensive", "sector": "Consumer Defensive", "score": 24.89, "rsi": 26.051259275448558, "rel63": -30.186807999960852, "above50": false, "validated": false, "mcap": 942475316755.2631, "close": 116.88999938964844, "perf": {"perf_5d": -1.3919364882194585, "perf_21d": -10.141127816673656, "perf_63d": -8.181344081723307, "perf_126d": 5.4358813007566065, "perf_ytd": 4.0736238576513095}}, {"ticker": "IDXX", "name": "Idexx Laboratories", "theme": "Healthcare / Biotech", "short_theme": "Health / Bio", "sector": "Healthcare", "score": 24.33, "rsi": 66.20159563997456, "rel63": -35.56643664567536, "above50": false, "validated": false, "mcap": 45338792126.06177, "close": 560.72998046875, "perf": {"perf_5d": 1.7677254409343979, "perf_21d": -0.42442368751977044, "perf_63d": -13.560972727437814, "perf_126d": -23.079138647110497, "perf_ytd": -16.307707780440694}}, {"ticker": "AEP", "name": "American Electric Power", "theme": "Utilities / Power", "short_theme": "Utilities", "sector": "Utilities", "score": 24.25, "rsi": 46.36525164474908, "rel63": -26.718379681475646, "above50": false, "validated": false, "mcap": 69487653138.57697, "close": 126.30999755859375, "perf": {"perf_5d": -2.516021904257193, "perf_21d": -5.519600696186211, "perf_63d": -4.712915763238101, "perf_126d": 6.408823117685136, "perf_ytd": 10.727289180159993}}, {"ticker": "BKNG", "name": "Booking Holdings", "theme": "Consumer Cyclical", "short_theme": "Cons. Cyclical", "sector": "Consumer Cyclical", "score": 24.16, "rsi": 68.51496842195546, "rel63": -24.93670262960135, "above50": false, "validated": false, "mcap": 127543978456.3147, "close": 164.77999877929688, "perf": {"perf_5d": -2.1322067125986055, "perf_21d": -0.48315197663427734, "perf_63d": -2.931238711363804, "perf_126d": -15.434214938395296, "perf_ytd": -22.435796880602364}}, {"ticker": "VRTX", "name": "Vertex Pharmaceuticals", "theme": "Healthcare / Biotech", "short_theme": "Health / Bio", "sector": "Healthcare", "score": 23.68, "rsi": 31.35183941160193, "rel63": -32.37396227386831, "above50": false, "validated": false, "mcap": 113382496724.79959, "close": 428.3399963378906, "perf": {"perf_5d": -2.0310152458761777, "perf_21d": -0.3512875989726938, "perf_63d": -10.368498355630763, "perf_126d": 0.6437946886938217, "perf_ytd": -5.261762831044137}}, {"ticker": "TMUS", "name": "T-Mobile US", "theme": "Communication Services", "short_theme": "Comm. Services", "sector": "Communication Services", "score": 23.41, "rsi": 37.373752836286684, "rel63": -38.97123587704745, "above50": false, "validated": false, "mcap": 194899659829.16568, "close": 181.4499969482422, "perf": {"perf_5d": -4.3894399177451415, "perf_21d": -6.164739789291174, "perf_63d": -16.965771958809906, "perf_126d": -11.285044494349295, "perf_ytd": -8.151257330265304}}, {"ticker": "ORLY", "name": "O'Reilly Automotive", "theme": "Consumer Cyclical", "short_theme": "Cons. Cyclical", "sector": "Consumer Cyclical", "score": 23.29, "rsi": 40.894819137207556, "rel63": -29.314257420942315, "above50": false, "validated": false, "mcap": 74169999570.5, "close": 87.37999725341797, "perf": {"perf_5d": -1.8422820169541887, "perf_21d": -7.022777045930695, "perf_63d": -7.308793502704769, "perf_126d": -13.690241903206912, "perf_ytd": -3.2765100779964973}}, {"ticker": "COST", "name": "Costco", "theme": "Consumer Defensive", "short_theme": "Cons. Defensive", "sector": "Consumer Defensive", "score": 22.66, "rsi": 34.284719617650524, "rel63": -26.327765891659283, "above50": false, "validated": false, "mcap": 429287482272.0, "close": 961.8300170898438, "perf": {"perf_5d": -4.170608977845847, "perf_21d": -5.031641509403261, "perf_63d": -4.322301973421738, "perf_126d": 5.7657789350388455, "perf_ytd": 12.877892838288997}}, {"ticker": "GILD", "name": "Gilead Sciences", "theme": "Healthcare / Biotech", "short_theme": "Health / Bio", "sector": "Healthcare", "score": 21.34, "rsi": 40.73060305635507, "rel63": -34.48518726538751, "above50": false, "validated": false, "mcap": 155978419860.5465, "close": 128.99000549316406, "perf": {"perf_5d": -3.515593434372255, "perf_21d": -2.788451940737624, "perf_63d": -12.479723347149962, "perf_126d": 5.026415355009872, "perf_ytd": 6.679729645058963}}, {"ticker": "ALNY", "name": "Alnylam Pharmaceuticals", "theme": "Healthcare / Biotech", "short_theme": "Health / Bio", "sector": "Healthcare", "score": 20.36, "rsi": 50.86803565390702, "rel63": -32.61346957531841, "above50": false, "validated": false, "mcap": 39870192112.125, "close": 292.5799865722656, "perf": {"perf_5d": -1.0317012008831394, "perf_21d": -1.795725920531177, "perf_63d": -10.608005657080867, "perf_126d": -35.63446230559445, "perf_ytd": -26.886079227647606}}, {"ticker": "ADSK", "name": "Autodesk", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 19.11, "rsi": 48.99140049351593, "rel63": -32.97525993127339, "above50": false, "validated": false, "mcap": 47102282979.6985, "close": 229.60000610351562, "perf": {"perf_5d": -3.1223602938752593, "perf_21d": -7.247308584144729, "perf_63d": -10.969796013035849, "perf_126d": -24.7509144671646, "perf_ytd": -19.92466874544798}}, {"ticker": "ZS", "name": "Zscaler", "theme": "Cybersecurity", "short_theme": "Cybersecurity", "sector": "Technology", "score": 18.81, "rsi": 43.959060561900564, "rel63": -35.986649922975666, "above50": false, "validated": false, "mcap": 20033384850.073814, "close": 134.3699951171875, "perf": {"perf_5d": 6.2969632342982695, "perf_21d": -5.506330519757075, "perf_63d": -13.981186004738122, "perf_126d": -44.767347997610074, "perf_ytd": -39.080568229897516}}, {"ticker": "PYPL", "name": "PayPal", "theme": "Financial Services", "short_theme": "Financial Services", "sector": "Financial Services", "score": 18.72, "rsi": 30.060878426044468, "rel63": -30.861077585934737, "above50": false, "validated": false, "mcap": 36338335514.93777, "close": 42.61000061035156, "perf": {"perf_5d": -2.6279656199523993, "perf_21d": -15.439569108022477, "perf_63d": -8.855613667697193, "perf_126d": -31.705003829609613, "perf_ytd": -26.489488745213407}}, {"ticker": "CTSH", "name": "Cognizant", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 17.98, "rsi": 71.73965877196387, "rel63": -39.25468211933021, "above50": false, "validated": false, "mcap": 24841960216.522217, "close": 53.5099983215332, "perf": {"perf_5d": 0.6583868982801278, "perf_21d": 3.909205296335494, "perf_63d": -17.249218201092663, "perf_126d": -30.050978276263063, "perf_ytd": -33.36425701086593}}, {"ticker": "PEP", "name": "PepsiCo", "theme": "Consumer Defensive", "short_theme": "Cons. Defensive", "sector": "Consumer Defensive", "score": 17.7, "rsi": 33.047836481178265, "rel63": -34.271533013103166, "above50": false, "validated": false, "mcap": 195404206918.12723, "close": 142.5399932861328, "perf": {"perf_5d": -3.5197048962285704, "perf_21d": -7.7948142423264315, "perf_63d": -12.266069094865617, "perf_126d": -2.869303781509769, "perf_ytd": 1.1133124918954573}}, {"ticker": "ROP", "name": "Roper Technologies", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 16.91, "rsi": 60.036381600806294, "rel63": -29.95641646784081, "above50": false, "validated": false, "mcap": 33777041289.201355, "close": 331.70001220703125, "perf": {"perf_5d": 4.762812621566215, "perf_21d": -6.6238769393283325, "perf_63d": -7.950952549603263, "perf_126d": -24.877854718943347, "perf_ytd": -23.471813764059636}}, {"ticker": "CMCSA", "name": "Comcast", "theme": "Communication Services", "short_theme": "Comm. Services", "sector": "Communication Services", "score": 16.76, "rsi": 29.943474515039796, "rel63": -47.85934730649436, "above50": false, "validated": false, "mcap": 85269098653.52351, "close": 23.520000457763672, "perf": {"perf_5d": -6.740677644232274, "perf_21d": -13.114145833327463, "perf_63d": -25.853883388256815, "perf_126d": -3.366174782860487, "perf_ytd": -13.04918609833835}}, {"ticker": "MELI", "name": "Mercado Libre", "theme": "Consumer internet / E-commerce", "short_theme": "Internet / E-com", "sector": "Consumer Cyclical", "score": 16.59, "rsi": 58.62831700095611, "rel63": -29.38182203954315, "above50": false, "validated": false, "mcap": 82858460564.70483, "close": 1638.5400390625, "perf": {"perf_5d": -3.3976549160580904, "perf_21d": -9.649136623462507, "perf_63d": -7.3763581213056035, "perf_126d": -20.634520824885584, "perf_ytd": -16.981300116584354}}, {"ticker": "GEHC", "name": "GE HealthCare", "theme": "Healthcare / Biotech", "short_theme": "Health / Bio", "sector": "Healthcare", "score": 16.2, "rsi": 50.7494616945431, "rel63": -43.46816104765058, "above50": false, "validated": false, "mcap": 30054700162.198044, "close": 62.029998779296875, "perf": {"perf_5d": -2.896058637891541, "perf_21d": 1.6885225890112654, "perf_63d": -21.462697129413034, "perf_126d": -21.64963713406598, "perf_ytd": -25.03643577323087}}, {"ticker": "NFLX", "name": "Netflix, Inc.", "theme": "Consumer internet / E-commerce", "short_theme": "Internet / E-com", "sector": "Communication Services", "score": 16.01, "rsi": 28.242091243738585, "rel63": -39.37826584691376, "above50": false, "validated": false, "mcap": 343369558255.5576, "close": 81.5199966430664, "perf": {"perf_5d": -6.674301010757233, "perf_21d": -10.437266919767218, "perf_63d": -17.372801928676218, "perf_126d": -25.300101993255396, "perf_ytd": -10.40773869989714}}, {"ticker": "ISRG", "name": "Intuitive Surgical", "theme": "Healthcare / Biotech", "short_theme": "Health / Bio", "sector": "Healthcare", "score": 15.51, "rsi": 37.869094634056125, "rel63": -40.739249285363684, "above50": false, "validated": false, "mcap": 150910561681.3592, "close": 407.2900085449219, "perf": {"perf_5d": -2.6902352350841596, "perf_21d": -9.961312468354922, "perf_63d": -18.733785367126142, "perf_126d": -28.214390600476126, "perf_ytd": -27.52588656179541}}, {"ticker": "CPRT", "name": "Copart", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 14.76, "rsi": 34.674564520647095, "rel63": -42.01073149854804, "above50": false, "validated": false, "mcap": 29102883442.233326, "close": 30.350000381469727, "perf": {"perf_5d": -7.610344623366849, "perf_21d": -8.831482286581505, "perf_63d": -20.005267580310495, "perf_126d": -22.47765211092574, "perf_ytd": -19.6452210388278}}, {"ticker": "PDD", "name": "PDD Holdings", "theme": "Consumer internet / E-commerce", "short_theme": "Internet / E-com", "sector": "Consumer Cyclical", "score": 14.21, "rsi": 30.056187480765786, "rel63": -37.60977317267253, "above50": false, "validated": false, "mcap": 116690046733.0074, "close": 85.4000015258789, "perf": {"perf_5d": -1.397066246329104, "perf_21d": -12.67000641543211, "perf_63d": -15.60430925443499, "perf_126d": -27.792336222336832, "perf_ytd": -26.220301057556018}}, {"ticker": "DASH", "name": "DoorDash", "theme": "Consumer internet / E-commerce", "short_theme": "Internet / E-com", "sector": "Consumer Cyclical", "score": 14.0, "rsi": 54.65922160808002, "rel63": -35.04062463213083, "above50": false, "validated": false, "mcap": 67597402265.1384, "close": 154.5800018310547, "perf": {"perf_5d": -1.903794875707876, "perf_21d": -10.424757912517812, "perf_63d": -13.03516071389328, "perf_126d": -24.807860465879227, "perf_ytd": -29.669226737809097}}, {"ticker": "CEG", "name": "Constellation Energy", "theme": "Utilities / Power", "short_theme": "Utilities", "sector": "Utilities", "score": 13.8, "rsi": 46.60998670650419, "rel63": -38.99048240694344, "above50": false, "validated": false, "mcap": 88721995033.86113, "close": 267.239990234375, "perf": {"perf_5d": -7.426909721965281, "perf_21d": -16.631298669077978, "perf_63d": -16.985018488705894, "perf_126d": -25.354713261708326, "perf_ytd": -26.822152975938828}}, {"ticker": "MSTR", "name": "MicroStrategy", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 12.11, "rsi": 20.310237215689355, "rel63": -35.59123552488673, "above50": false, "validated": false, "mcap": 41728993717.145584, "close": 126.54499816894531, "perf": {"perf_5d": -17.93450021181219, "perf_21d": -31.150709429906577, "perf_63d": -13.585771606649178, "perf_126d": -26.178392532575355, "perf_ytd": -19.480150661605776}}, {"ticker": "REGN", "name": "Regeneron Pharmaceuticals", "theme": "Healthcare / Biotech", "short_theme": "Health / Bio", "sector": "Healthcare", "score": 11.7, "rsi": 22.025054298220084, "rel63": -43.2912464880081, "above50": false, "validated": false, "mcap": 64485443008.38135, "close": 618.9500122070312, "perf": {"perf_5d": -1.4002577761633273, "perf_21d": -12.596488923640415, "perf_63d": -21.28578256977055, "perf_126d": -17.262778674473424, "perf_ytd": -20.05511935668699}}, {"ticker": "SHOP", "name": "Shopify", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 11.33, "rsi": 68.78749014659127, "rel63": -34.89400401984355, "above50": false, "validated": false, "mcap": 142404614129.31067, "close": 112.94000244140625, "perf": {"perf_5d": 5.947470973767688, "perf_21d": -11.454331839116506, "perf_63d": -12.888540101606004, "perf_126d": -24.343513287146735, "perf_ytd": -28.155213337191388}}, {"ticker": "TRI", "name": "Thomson Reuters", "theme": "Industrials / Automation", "short_theme": "Industrials", "sector": "Industrials", "score": 7.91, "rsi": 52.27333289724196, "rel63": -40.57190056234579, "above50": false, "validated": false, "mcap": 35691416245.667564, "close": 83.43000030517578, "perf": {"perf_5d": 1.5334089866228862, "perf_21d": -12.208530868086765, "perf_63d": -18.566436644108244, "perf_126d": -35.43502814851552, "perf_ytd": -31.934946129741746}}, {"ticker": "CHTR", "name": "Charter Communications", "theme": "Communication Services", "short_theme": "Comm. Services", "sector": "Communication Services", "score": 4.07, "rsi": 35.2384864070395, "rel63": -66.39770766529102, "above50": false, "validated": false, "mcap": 18874136629.973755, "close": 129.00999450683594, "perf": {"perf_5d": -12.345426738110731, "perf_21d": -21.972905912499417, "perf_63d": -44.39224374705347, "perf_126d": -34.49274250658188, "perf_ytd": -38.35531572088373}}, {"ticker": "INTU", "name": "Intuit", "theme": "Cloud / Data software", "short_theme": "Cloud / SaaS", "sector": "Technology", "score": 3.83, "rsi": 37.835549521491345, "rel63": -51.02749224956841, "above50": false, "validated": false, "mcap": 80300890072.81494, "close": 311.44000244140625, "perf": {"perf_5d": 1.2055994939157655, "perf_21d": -23.477232876893105, "perf_63d": -29.022028331330862, "perf_126d": -50.44839994503582, "perf_ytd": -50.27836568444029}}, {"ticker": "INSM", "name": "Insmed Incorporated", "theme": "Healthcare / Biotech", "short_theme": "Health / Bio", "sector": "Healthcare", "score": 0.0, "rsi": 25.079368582124715, "rel63": -52.71002941944823, "above50": false, "validated": false, "mcap": 21129029651.103584, "close": 103.86000061035156, "perf": {"perf_5d": -2.3872188713357834, "perf_21d": -25.81958096907101, "perf_63d": -30.70456550121069, "perf_126d": -50.87271235454494, "perf_ytd": -41.36178665676062}}], "themes": [{"theme": "Semiconductors / AI infrastructure", "short": "Semis / AI", "score": 80.33, "stocks": 21, "above50": 100.0, "above200": 0.0, "rel63": 32.07, "news_hits": 12, "news_sources": 10, "perf": {"perf_5d": 8.041329433997646, "perf_21d": 24.538131596170153, "perf_63d": 54.07076831165176, "perf_126d": 97.06294006105635, "perf_ytd": 85.9514681829375}, "children": ["AMD", "ARM", "INTC", "MRVL", "MU", "SNDK", "STX", "WDC", "QCOM", "LRCX", "AVGO", "AMAT", "KLAC", "TXN", "MPWR", "ASML", "LITE", "ADI", "NXPI", "MCHP", "NVDA"]}, {"theme": "Cybersecurity", "short": "Cybersecurity", "score": 80.32, "stocks": 5, "above50": 80.0, "above200": 0.0, "rel63": 54.86, "news_hits": 12, "news_sources": 9, "perf": {"perf_5d": 12.862716343245673, "perf_21d": 51.94516492489163, "perf_63d": 76.86049255402648, "perf_126d": 49.37942739996748, "perf_ytd": 64.8242884350567}, "children": ["CRWD", "FTNT", "PANW", "CSCO", "ZS"]}, {"theme": "Energy", "short": "Energy", "score": 55.42, "stocks": 2, "above50": 100.0, "above200": 0.0, "rel63": -8.77, "news_hits": 12, "news_sources": 9, "perf": {"perf_5d": 5.448776746841677, "perf_21d": -3.732910974398468, "perf_63d": 13.232855940759412, "perf_126d": 32.725451755166844, "perf_ytd": 38.569258474654234}, "children": ["FANG", "BKR"]}, {"theme": "AI platforms / Mega-cap tech", "short": "AI Mega-cap", "score": 55.27, "stocks": 6, "above50": 100.0, "above200": 0.0, "rel63": -10.51, "news_hits": 12, "news_sources": 11, "perf": {"perf_5d": -1.0614361657215299, "perf_21d": -0.2817385492448088, "perf_63d": 11.493508886510885, "perf_126d": 3.584229590812327, "perf_ytd": 4.3719132069688635}, "children": ["GOOG", "AAPL", "GOOGL", "META", "MSFT", "PLTR"]}, {"theme": "Industrials / Automation", "short": "Industrials", "score": 42.55, "stocks": 11, "above50": 63.6, "above200": 0.0, "rel63": -30.74, "news_hits": 12, "news_sources": 9, "perf": {"perf_5d": 1.8884688017507978, "perf_21d": 3.5204946050679142, "perf_63d": -8.734000453973213, "perf_126d": 3.5815443070068564, "perf_ytd": 3.1140380832390457}, "children": ["ODFL", "CSX", "FAST", "HON", "AXON", "CTAS", "PCAR", "FER", "VRSK", "CPRT", "TRI"]}, {"theme": "Cloud / Data software", "short": "Cloud / SaaS", "score": 27.57, "stocks": 13, "above50": 53.8, "above200": 0.0, "rel63": -28.19, "news_hits": 0, "news_sources": 0, "perf": {"perf_5d": 4.64048076579282, "perf_21d": 0.8977726650781781, "perf_63d": -6.180435407363638, "perf_126d": -24.343513287146735, "perf_ytd": -19.92466874544798}, "children": ["DDOG", "CDNS", "ADP", "SNPS", "WDAY", "PAYX", "ADBE", "ADSK", "CTSH", "ROP", "MSTR", "SHOP", "INTU"]}, {"theme": "Consumer Defensive", "short": "Cons. Defensive", "score": 25.63, "stocks": 8, "above50": 37.5, "above200": 0.0, "rel63": -26.03, "news_hits": 0, "news_sources": 0, "perf": {"perf_5d": -1.9640967808291276, "perf_21d": 0.5427929525651687, "perf_63d": -4.028789680518208, "perf_126d": 5.600830117897726, "perf_ytd": 8.511507431108322}, "children": ["MNST", "KDP", "MDLZ", "CCEP", "KHC", "WMT", "COST", "PEP"]}, {"theme": "Consumer Cyclical", "short": "Cons. Cyclical", "score": 24.41, "stocks": 6, "above50": 33.3, "above200": 0.0, "rel63": -23.08, "news_hits": 0, "news_sources": 0, "perf": {"perf_5d": -2.246581469786796, "perf_21d": -2.139172218079821, "perf_63d": -1.0785656617227246, "perf_126d": 5.476150749652502, "perf_ytd": -1.4202256220340659}, "children": ["MAR", "TSLA", "SBUX", "ABNB", "BKNG", "ORLY"]}, {"theme": "Communication Services", "short": "Comm. Services", "score": 22.89, "stocks": 6, "above50": 50.0, "above200": 0.0, "rel63": -30.48, "news_hits": 0, "news_sources": 0, "perf": {"perf_5d": -2.8035278826023746, "perf_21d": -5.165145880327615, "perf_63d": -8.475934415539989, "perf_126d": -9.87286650329385, "perf_ytd": -10.600221714301828}, "children": ["APP", "EA", "TTWO", "TMUS", "CMCSA", "CHTR"]}, {"theme": "Consumer internet / E-commerce", "short": "Internet / E-com", "score": 19.9, "stocks": 7, "above50": 28.6, "above200": 0.0, "rel63": -29.38, "news_hits": 0, "news_sources": 0, "perf": {"perf_5d": -1.903794875707876, "perf_21d": -9.649136623462507, "perf_63d": -7.3763581213056035, "perf_126d": -20.634520824885584, "perf_ytd": -10.40773869989714}, "children": ["ROST", "AMZN", "WBD", "MELI", "NFLX", "PDD", "DASH"]}, {"theme": "Utilities / Power", "short": "Utilities", "score": 15.99, "stocks": 4, "above50": 0.0, "above200": 0.0, "rel63": -29.3, "news_hits": 0, "news_sources": 0, "perf": {"perf_5d": -3.486406390617214, "perf_21d": -5.088246119047341, "perf_63d": -7.291049026054125, "perf_126d": -0.9764883489723652, "perf_ytd": 3.9574239678940804}, "children": ["EXC", "XEL", "AEP", "CEG"]}, {"theme": "Healthcare / Biotech", "short": "Health / Bio", "score": 14.39, "stocks": 10, "above50": 10.0, "above200": 0.0, "rel63": -35.03, "news_hits": 0, "news_sources": 0, "perf": {"perf_5d": -1.7156365110197525, "perf_21d": -1.1100748040254738, "perf_63d": -13.02034803729389, "perf_126d": -19.456207904269704, "perf_ytd": -18.18141356856384}, "children": ["DXCM", "AMGN", "IDXX", "VRTX", "GILD", "ALNY", "GEHC", "ISRG", "REGN", "INSM"]}], "news": [{"theme": "Semis / AI", "title": "indie Semiconductor (NASDAQ:INDI) President Ichiro Aoki Sells 300,562 Shares - MarketBeat", "source": "MarketBeat", "published": "2026-06-03T23:25:42+00:00", "link": "https://news.google.com/rss/articles/CBMixAFBVV95cUxPeTRDVFpoSTFjeFpJdHlBbnVNdXJlQ3Y3VUc1eXlnaXR1bzRFUXBFWE9YMU9mc3lNeHFKWHZQOUFoTElYVG1kd0I5UFdYcHdFME5yN1R2cUZhaUhWTGxMLUNxMHR6UlRkM3VRUk55UXZkYUpTdG1zQUJPckcyZHNYbm94amYydTVzckp6cW15Ql9aODVsUDNOaWZQZUt0ZkktM2U5dlh0V3VlRGhNRTAzVlU0MU9QTm5MajR1WTZsT09rTjJE?oc=5"}, {"theme": "AI Mega-cap", "title": "India’s IT stocks head for worst day in 4 months on AI disruption worries; TCS plunges 9% - 1470 & 100.3 WMBD", "source": "1470 & 100.3 WMBD", "published": "2026-06-03T22:54:08+00:00", "link": "https://news.google.com/rss/articles/CBMinwFBVV95cUxQR3VCN2djb3p4NVJZeVIxWnJjZzdDZlZOb2F1RTRxZGc3NURpbElxVFVBRTFJZ0Q2a2staEFjdEUxNGZmdmVYZFNUdVo1aTkyWFNmYkVTTUgyUHRBWHJqR0VoOFRrbGpWSTBNNVlWeTQyXzB5T3Vqb01zcFBJd2oxc0o4cVZvdTBzUnFIQ0dHRGNpd29GcVFMZEJDWDEzOFk?oc=5"}, {"theme": "Semis / AI", "title": "Marvell, AMD Rally, Lead Chip Stocks To Record High - Investor's Business Daily", "source": "Investor's Business Daily", "published": "2026-06-03T22:51:00+00:00", "link": "https://news.google.com/rss/articles/CBMiggFBVV95cUxPMUFDMGZhMU1NYmc2S0VVUWxET2xiMTZsMXVaYlFVQ0xnaG5FbWNjN3UwOW1FSVpaaEhDelNfbW12NkNtWmxxZjVzOUpkUTdCc3Y0WDdjbmNFSlA2OFN2NDlKYlBxaVNYN2Y4R09FblpDVFJBNmEyWUVpWW5LZ0pOSkF3?oc=5"}, {"theme": "Industrials", "title": "Kratos Defense & Security Solutions (NASDAQ:KTOS) Trading Down 7.6% - Time to Sell? - MarketBeat", "source": "MarketBeat", "published": "2026-06-03T21:54:31+00:00", "link": "https://news.google.com/rss/articles/CBMixgFBVV95cUxOZmtzbTNSdFVSb2xNYnhaVGMzZk1vQnFrRzBObGx3WHhteTdHVzM4eDBYVkt6OU9yNzhzRWlHWnAwRUtCTWpLbW5nVFJhZmtEMlkyb1lfdzV4UU9NLWZTVkhOdlkwX2tZcWNDQTNJenB1WjQ2MHZwY3dKOVM4eUQteUhXRWJuLVd1RDlLSkF3NFdlU1hzMmc4TTkzZ1NxOGdlZW5zRXMwbVJJWW5CVTRpREZoc05fRTJCSGFKTENjVEQ4NmkwNEE?oc=5"}, {"theme": "Industrials", "title": "EOSE, FLNC among top losers: Electrical industrial stocks fall as market blinks red - Seeking Alpha", "source": "Seeking Alpha", "published": "2026-06-03T21:37:49+00:00", "link": "https://news.google.com/rss/articles/CBMiugFBVV95cUxPQjRCYVh0MjYxZHlXeHhIYjUtN0pfbEc5YzU4YXh3V1dsMHhYenRQRmNaU1M3SHVHRXVTREdHaktCR0dlQU9qbzNfSl9mdE5YcjdzUjJ0ZHN6WFU1SzdFMi0wRklmVEFsWkV0WWhIWTlhOGZ1SWxxcEFXNTZaZ2lzYWl4TWpla1M3R2tYX3NlX0xsQUNick9RUU1WSzlxbkxjRUExWXhTNERsSFh0V0F2NWVraGxpbGlkT3c?oc=5"}, {"theme": "AI Mega-cap", "title": "Got $10,000? 3 Stocks to Own for the Rise of Agentic AI - The Motley Fool", "source": "The Motley Fool", "published": "2026-06-03T21:31:01+00:00", "link": "https://news.google.com/rss/articles/CBMilwFBVV95cUxNZHF2Qi1kc3VGc0FMTk5fX2F3ZWo0REdZRWFnSV9VTk96MXMwdGpBZS1QOXNVMUE4RTN3blJyOUF3UmxyRUxPTzhDMFQzYmR2dkNGS0FsNWVrdHdDVm9kTERBaGRLeG84dTJJYXNYQTJsWDMxT0ZXTzBNRXdEN0lsYXNBRGpHcFJjd0U1WndTaVBSdk5tM3hj?oc=5"}, {"theme": "Energy", "title": "World shares drop, oil jumps as Middle East unrest deepens - Reuters", "source": "Reuters", "published": "2026-06-03T20:49:24+00:00", "link": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxQeVllVU5TSEVpajhKb3hSRUx6NDY3bWU2cDJpaUtOMllscG9lckFqZzJrMEowQ0IxSENhamFtNjZuOXVGb2Ywd0VfSUhlTnUzRkR5dlJlNHI1ME02YnhJV1RWRk5PZml5QlRIRlRQWEZIMzNUYlBmQ183aGEzNXFZU3V3ZFFXb0dw?oc=5"}, {"theme": "AI Mega-cap", "title": "2 Artificial Intelligence (AI) Stocks Poised to Win Big From Anthropic's IPO - The Motley Fool", "source": "The Motley Fool", "published": "2026-06-03T20:47:00+00:00", "link": "https://news.google.com/rss/articles/CBMilwFBVV95cUxPVXVtVTJVZ0F5emVmOERsYWdETDZvUTM5SUVRTnlmN2hNRGVVWE1iNlU4OTZlVWFZa3NnOVFaMDdzZndkNlB6VGFnQVhSdTlYUUlYREFncE9NUHlpQXNfOWpvWE5ENS1JZkRWWi0tLWpWVEJSam9ocVl0RlQzUENRSzRKTXUteVhfRU9KNk1BS1RYVEFOal9B?oc=5"}, {"theme": "AI Mega-cap", "title": "AI Data Centers Are Driving a Battery Boom. Finding the Right Stocks Is the Hard Part. - Barron's", "source": "Barron's", "published": "2026-06-03T20:46:00+00:00", "link": "https://news.google.com/rss/articles/CBMiggFBVV95cUxPaFNSU0ZQVklONXc3dm1hb2dDT2MxT2N6cTFqU1pwR2MxNy11YXhZOWMybXpMVjJYa2F2Rmk2aUVvMG5JTnViZHd4RkJfWmRtLW9NUVpKX2NQQXkwQ3JvaTJ3UldNVHlnVnJaS25zcGpRZ3EyczdyRV9sd0g1UkhETzlR?oc=5"}, {"theme": "Industrials", "title": "Honeywell Aerospace targets $6.5B in earnings by 2030 (HON:NASDAQ) - Seeking Alpha", "source": "Seeking Alpha", "published": "2026-06-03T20:43:17+00:00", "link": "https://news.google.com/rss/articles/CBMikwFBVV95cUxNRWo2emphT1JlaFh6QUtyQXYxVmF6NUtiWmFyVzdZMGRLaG9nZThmNHlET3lPMldSZDNBcXJMblhQQXFVa25zUjFpQWJjNnBBR0ZMY2IwZmJiZF9GVGNoWEdpMXVtaUZqVlpybXFuVGJSSHRsbk1nd2ZrcXZJajBHLVV4MXVLMExGWHJKZURSZ28tRkU?oc=5"}, {"theme": "Semis / AI", "title": "Broadcom (NASDAQ:AVGO) Beats Q1 Sales Targets But Stock Drops - StockStory", "source": "StockStory", "published": "2026-06-03T20:38:59+00:00", "link": "https://news.google.com/rss/articles/CBMiuAFBVV95cUxPNzViODhybEhXQlc4TTY5SmRTX2hXajJ1T2xiWklvYWUyajFadmdSUlNURW0wYU5tYlBIQmNGd0tyWUppcFNUV20zNGd6QjRWeHVZT1l6ZXhJbk95Z3NfZ0FuTk9FZWNsX014cXJOQzBIc00xRE9DOEV1X1hQY2Zhd1J1TmFyLWVyX28wbUNFLWg0anlVZHV2MVlDTWYxUkJJbXlNazJsdEhQOWFnTWw1cmhWTGM2S3hj?oc=5"}, {"theme": "Semis / AI", "title": "Broadcom stock plunges on weak software sales, unchanged AI chip forecast for the year - CNBC", "source": "CNBC", "published": "2026-06-03T20:20:29+00:00", "link": "https://news.google.com/rss/articles/CBMif0FVX3lxTE9MUWNtalczVVl2UEVtVFhSUF9QVnZVd2ZuU01aaFZaTGZuOWpNWW1Wc1Y3Q050V1ZiRWs3MVE0R3ZUd196Sno4LUZkWUJadnRHaWI5VHpLVGRwQTBTZkJuY2JZelp1VWQyUTlpYVJrVTd2YkdSblQwNzV6dmk0aknSAYQBQVVfeXFMTTBfUHNDN2g0eG9Gc3VON0cwRFlFRUhLcDBMbmNZUXVPcTFVWFNwWTZibW51MkFuS1BON0xTTXVHbFd6N21LekpLZVF5NFBobnJTTnJxa0VhdGxzV3hDS3RYc2RIWHJlMG1LR2xXUlYtSGhsbGx1Y3JsTm8wbk5UUXhOZGJU?oc=5"}, {"theme": "AI Mega-cap", "title": "AI Euphoria in Old World Auto Stocks Gets a Nod From Wall Street - Bloomberg.com", "source": "Bloomberg.com", "published": "2026-06-03T19:45:31+00:00", "link": "https://news.google.com/rss/articles/CBMitgFBVV95cUxNeWlNczNvTE9hQ1hiUjFzQkg4RmRrLVlSTVg1SVB1b3cwT05UYUtRTUprOGtMY2lYcURQa0NzOVhJbnBpVHBxNGRHcTJQaGV4eEl6X0M2YUMwRVNuSkJYamdhT2Jvb2JTY2xqSXlnOUNSQXFhOC1GNndSbmpvaDVZRlhOZUcyUDlUSmRSU1RnY29mWXBNQmk1X1lpNVdsZTEyZmJHV1IyN1FENERIRXVmNThYa3JPQQ?oc=5"}, {"theme": "Materials", "title": "Is LB Foster (FSTR) outperforming other basic materials stocks this year? - MSN", "source": "MSN", "published": "2026-06-03T19:44:57+00:00", "link": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxOdWlwQWJBT0l5X2JDTzk4bldyR082cEo1NklVMXVpVGhDZ2d1LWJwOGFFWVZCeDVNV2RlSVBORDRicWlLX19rd2lOblVwcTZUOS1tVmduQnp6TFpnbHltTGlObkZpWjlrUkdHcFhNUExpWFJ5RWNjTjNMNEIwRHhocHdQaE5ULUNjZkhvOThWLVhVRWlhV2Z3cGhtUUxOd0NzM2sySzYyQ21PVHdaTnJmOWZ1T3U2cGptRmJ6Z3cwMXRxUQ?oc=5"}, {"theme": "AI Mega-cap", "title": "SoundHound AI (NASDAQ: SOUN) Bets On Proprietary AI Models To Outpace NICE (NASDAQ: NICE) And Five9 (NASDAQ: FIVN) - foreignpolicyjournal.com", "source": "foreignpolicyjournal.com", "published": "2026-06-03T19:35:00+00:00", "link": "https://news.google.com/rss/articles/CBMi6gFBVV95cUxNckc2alRkR3p3SmVJZXU1cGpkT20tSFhQMi1xOUxQeGYwNFZXNjFkdlNIY29mMm5rY1JOQWdFcGdyRTBhRnprdHVybXhYYkVabnZYRFdlSDJEQjBOd0o3YUlWOVR2OEd0MVJfTUVXc3VUeDZXQ3J1RGVyT3phcXYtUFlRMUlnWlg3bTBpQUUzQ2V4UzZRamctRkNqVGhBNkdKRV9yZ25fMmJ6V2NKbXVsQ2NSV2NWSkUxZVdhU29zUHo5WEFBMXVvOWxCR3IwUmt3QzNya2Q4ZFNOZkl5QlNYOGJyaUlRcjd6OWc?oc=5"}, {"theme": "Semis / AI", "title": "Move Over, Magnificent 7. Traders Are Flocking to SanDisk, Marvell, Micron, and the Parabolic 7 - Yahoo Finance", "source": "Yahoo Finance", "published": "2026-06-03T19:12:27+00:00", "link": "https://news.google.com/rss/articles/CBMinAFBVV95cUxONWhfRUg1ZFFzU2pIcTludmc3MzhXRXZvM3A0T3RJYUdnZ0hqZ1M2OUNEUlUzNlZkX0NOOVpkODBvYVJYTDhUR3hRNWVIOTlyVkRmS3BwaFR5ZnZnSGU3eEk1Q3VpUjdDSG03aDdZNUhWenpTT096RmFQUzgzbURyN09UUTRSUW1yS3pDTV9pcnpsX2RxV2pwTmpzbzI?oc=5"}, {"theme": "Energy", "title": "Stocks making big moves yesterday: Shopify, Hewlett Packard Enterprise, Flex, Fluence Energy, and Corning - Yahoo Finance", "source": "Yahoo Finance", "published": "2026-06-03T18:15:33+00:00", "link": "https://news.google.com/rss/articles/CBMinwFBVV95cUxPMWFlN0J1NWx0bFB0SWt6WnF0NHYyTTMweVd2UEVXRUVqVzBiUmJOTE9NTG9oYnljLUYxd3hUOEpGV2k2Vy1WUmc3R1RCU1RKZzNMRUdVOTh2TWpHTGE0Tkx0T0daLVdqUlY5NTh5Y09RWTlLaGpEZS12SmIza3I4b2s4YkJ6c2xoemk5R0FUS1FwQW1Qd3Q1b2tVcUJTMnM?oc=5"}, {"theme": "Industrials", "title": "Defense Stocks Losing Steam as Catalysts Fade, Bernstein Says - Bloomberg.com", "source": "Bloomberg.com", "published": "2026-06-03T17:58:50+00:00", "link": "https://news.google.com/rss/articles/CBMisgFBVV95cUxNOVBfZVRZeG9kQzZRcFc5eFJmT29fd0pmc1FWRTV0SFBsai1tSDZjTkFubjEzcmdSQ3NCSjNmbzlOOUVCUWJweXctelkzYnZUUkkwTldCMENBeGxXVVBrRU9IcnBsTExGMkppTHJxTVgtVXVPZVRFRkZuT0FGZmYzMTFObzVaZFp0cE95cWpfbHBrSlp4Zm44QjdId1BEemRBQ1F0ZVJlVG90SFlEZFVSNC13?oc=5"}, {"theme": "Energy", "title": "Plunging global oil supplies threaten to push fuel prices even higher - The Washington Post", "source": "The Washington Post", "published": "2026-06-03T16:00:00+00:00", "link": "https://news.google.com/rss/articles/CBMitwFBVV95cUxPSW8yR0hNY1dpcVJiR25SUE1CRnZCTGh3Ynk4WTBueUtIZG1WMkpaZGdwbE1ueVh4LWtXd0h0U1hrMEc2S0p0X3k4czJjX09BOFE5Qi1DbE83blZ0Zm02UXFneDROS3lpWnhWa3ZPa3Q0UUZBZlZ1SDVTcFUyOWItT0pKQ3U1SGNBY3lzZE1YSThycGk3UVhWVUFEWEhTSmxTN1lqdFgzRlNYMmxXSXFteFZzRk5JOUE?oc=5"}, {"theme": "Energy", "title": "US crude stocks fall on strong export, refining demand, EIA says, as Iran war continues - Reuters", "source": "Reuters", "published": "2026-06-03T15:48:58+00:00", "link": "https://news.google.com/rss/articles/CBMiugFBVV95cUxOWXp5amEyQkJobk50XzU5VjVwZkpVa2pPb2JGNy1RZmIyWXc5VzN4amlrci1fZHd2aFZmSDBxRU5SSXl1S0c0ZG9aSHRPYTJtNjRpTXpmZGZCLXFVMzNoSGluTTR1NXNRSjhIeGk3cHVnMVdZRllXUHFiVFFubm9aR1N3TGdtVV9UWVVTaC15VFJyaTQ2RHpCYkc1X0NYUl9DNHNSc3NWak5LZDVCcVNVblk5SjdZb0VYY3c?oc=5"}, {"theme": "Energy", "title": "FuelCell Energy Plunges 10%, Plug Power Falls 6% in Fuel Cell Rout as Bloom Energy Slips - 24/7 Wall St.", "source": "24/7 Wall St.", "published": "2026-06-03T15:33:35+00:00", "link": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxQR2xLdnJ6cnotXzBUYzAyYnlhMlFxb25KVjl4WExQaFVDRDVuOTI5cEVWMldPTG5ZU2hZZ1c3NDdwYW54LWw2NWNMRVdYM2RGUGppVFhIOHZxd1NrY0FmakhOQVlOZlE1TGpvUGhZcW51Qm5BRGFLUjVwaGFZWVVvaC1MZW1TYmVYaHA0TUVDMlNNNWgwQ0dIZGh6eVRaTVhDelRTaGhBS1ZuMnlEWHhsdHhKZU1RVEpvZFA2R2wyS0JjMTJjbVNCeQ?oc=5"}, {"theme": "Energy", "title": "Oil Stocks Are Spiking on the News That U.S.-Iran Peace Talks Have Crumbled. Here's What Investors Need to Know. - The Motley Fool", "source": "The Motley Fool", "published": "2026-06-03T15:23:00+00:00", "link": "https://news.google.com/rss/articles/CBMi5AFBVV95cUxPWTlrRDlPWkRLWjZfTlc4LWFodmZBdllfNG1IdkdaTEtBaEVYTDdMM1JxNllkcVMwNW4tcFpSVGpfUU9WaUVrMnVCUmh2bVV2SnI4NFBITUtOS0ZGSFJGakp4eE50ekE3QVoyd3A2RXhLak1FQlIweXNzZjktbEUxYjhueUFkLWk3UHA1UVFSOXVWM1o0WDBaQ2FmY3lZZVZaVmd0d0dJY01mTi1HWXYwT0xaWU5YQWRFVlA1Qmh1M3JfTGVyaDREdk91SzF2eTExUEF2S0FmVllVeGFNRHhCaUVfMmQ?oc=5"}, {"theme": "Energy", "title": "Geopolitical Tensions Reshape AI, Defense, And Energy Markets As NASDAQ: AVGO Surges And NASDAQ: MU Eyes Memory Chip Gains - foreignpolicyjournal.com", "source": "foreignpolicyjournal.com", "published": "2026-06-03T15:03:00+00:00", "link": "https://news.google.com/rss/articles/CBMi-wFBVV95cUxQX2ZWMDRJR25fV3U1ajJIZHFrUHNYdlFxYlphRGNTWlQzQ2J0Q0hRcm9HLVVyZU91VHd0RDRxT1h5ZXpOS0E0Q0gwemJjMXBJZVFXOHBZc3Z2NExDZGdoY1J2VHNiaUp3VC1mWEY3bVBKYmkxUE9tVGt3TFU4U2YxVGs5OG85OWdqTFJyWmE1N2FmaWw4OTdRU3Z4aWxlLS0zMzl1Q2NBQk9QZGFmZFhwZFlKLTlhRHhCTnFQc1pYQThUcU11VmRKbThIYmFjLThxWnNBUi10UURGMzVQZWFXanJDNEJhNUZWVUJqems2UVBweUN4XzEwczVqUQ?oc=5"}, {"theme": "Materials", "title": "Pan American Silver (PAAS): New Buy Recommendation for This Basic Materials Giant - The Globe and Mail", "source": "The Globe and Mail", "published": "2026-06-03T14:32:00+00:00", "link": "https://news.google.com/rss/articles/CBMi-AFBVV95cUxNUUk3SXZNMzFlNEJxTzlkLUJ5QVpQUWNITWtLdlVSYzc3enVYa192QjROSkcwaVVuQVppdUtUTGdNZjhqVTNsMVd0NzhXZkNWb24ydGVFUnpZTG5CcjZTSVNmRWxlNlpLUGF3c1FYQkhBT05FdU12UnI4QTJIQjNkeDlDZTBCQUJIeE91UE1VdDFGM2dkaGVFSHd0a3g3ZzBHR2JMXzByNlg0SjlsMEJHaTVuRHhCUUdqbHhSUEQ1MV9pajJQc0VVVnZ1TnZNbm5QSU5mWTJTLVpGTE5TaWprUC1UQm1pcW9Edk41bExZNHhOVVdGaTVQZA?oc=5"}, {"theme": "Cybersecurity", "title": "U.S. Stocks Move | Palo Alto Networks Drops Over 6% After Earnings, Leading Declines Among Cybersecurity Stocks - 富途牛牛", "source": "富途牛牛", "published": "2026-06-03T13:43:38+00:00", "link": "https://news.google.com/rss/articles/CBMimAFBVV95cUxNUm9PM3ZsWGwxMXFFVFJTdGJPNC1ZYlFndlYxS2lLSDB3NlZTRkxZUzhDMmQ0bjRnM1BYQTFNR2piYnJoVC1Kb1c0aWs0RmNocDBpbVk4dTg2YWZqZndaTk8xclJPMEN0U3lLdnVzcTEySEc1VmZWc0kyVGpTMWVGNnJzTkpvSDc1ZGJ3VTRkNHU0cjRySHFEdw?oc=5"}, {"theme": "Materials", "title": "Has Braskem (BAK) Outpaced Other Basic Materials Stocks This Year? - Yahoo! Finance Canada", "source": "Yahoo! Finance Canada", "published": "2026-06-03T13:40:05+00:00", "link": "https://news.google.com/rss/articles/CBMiiAFBVV95cUxPWkJyY3dKUVdkRkJTT1hoOGNweGxtazVUandUN25VdWVBdUNyMGpQY0RFekpGajFhZlpmLWhaOGdIMzk1RnYtUGhnd3ZUX3JNRUN1NHBxUkhSZnVYNC1kYXBjSTN4dVE3TFNPUzdKbTljekdFd1BBVlc4dWZiSDhQaU04d2ExajlB?oc=5"}, {"theme": "Energy", "title": "Is Innovex International, Inc. (INVX) Outperforming Other Oils-Energy Stocks This Year? - Yahoo Finance", "source": "Yahoo Finance", "published": "2026-06-03T13:40:03+00:00", "link": "https://news.google.com/rss/articles/CBMirgFBVV95cUxOalVxR1p0ajMxbU9GVUlrcUQxZ0FzeWdqTmExM1o2ZWlyMmdZWnp4Q09vbmc0YUtRVk4yRmF2dWdiMWFWcVhqRDVNbnI4Rk1yTWdmNlp6MDBQTXMtWmFQQ0pNTkNoLWVaSFIzd2tVc1RDa0YwcktxWG5BS25vb3RkcDFuNXpBTlNfclFreWlhYlltR2lQSUtEbGZEN1RmdUFNNlRWS3pNR2I4SXJ6bVE?oc=5"}, {"theme": "Industrials", "title": "How Is TransDigm’s Stock Performance Compared to Other Aerospace & Defense Stocks? - Yahoo Finance", "source": "Yahoo Finance", "published": "2026-06-03T13:12:16+00:00", "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxPQUV1STNyQ0dqeVZJeHZCYVlDblc4Q3VjVjdqRjhITjR4MTlPZkpzZGIzYTA5Zk9UZ2V1UTY0RGxZdnpGeWtZOUd4VDkxWDlnd2ZnNm4xMG9fVlRndTVFcVRtOGczSmdjczZ1dEFKRldoYWliMkpzZFZKdjJjY28wYnFOSkdUa2ZlendtMEpiVzRveGtmR2RDODVtNWJkNUVDZUNGM2NoS2JQdzA?oc=5"}, {"theme": "Industrials", "title": "Geopolitical tensions impact AI, energy, and defense stocks - Yahoo Finance", "source": "Yahoo Finance", "published": "2026-06-03T12:37:20+00:00", "link": "https://news.google.com/rss/articles/CBMijgFBVV95cUxNMURwMnBXbzF0OGw4WE1DbVVmWkZFTlhtekFhdHNxczF6MXpvdmxtVmlPVWxwbUJDRnJoN3dnZURMekNtY3NDNW0tSmladHJVOTE3S0k0U3c1Q2x2SXRtTEYzSllvT2xsaHNTajhwQWYtVHdsYk9Fa0xQSjlMeHBiZEZUbGZpRllyVjRWeTl3?oc=5"}, {"theme": "Semis / AI", "title": "AI Chip Stocks Climb as Broadcom Earnings Approach - Gotrade", "source": "Gotrade", "published": "2026-06-03T12:37:11+00:00", "link": "https://news.google.com/rss/articles/CBMiiwFBVV95cUxNYWhjT1YzRmRHbTJqMEdoTy1yTTRfUHJyeTNTWnFvUUJMTldfdW5UaGJwNE56Z0plcDJQY2lEcEhuSEFHZDdyY3VPRHByUE8xWGQ5dEh3dXFCSVF2blhqV0hCcHJyV2IyWFItVUFTR1BUTlZpNTRqT05DTDAySjBDX3BvZkp3MXJsVHB3?oc=5"}, {"theme": "Energy", "title": "Turbo Energy adds $5M, expands AI-powered battery projects worldwide - Stock Titan", "source": "Stock Titan", "published": "2026-06-03T12:15:00+00:00", "link": "https://news.google.com/rss/articles/CBMivAFBVV95cUxPWFNXZE83VkgyczI4WkZZYU04bEZIU2drZktzTGRNMTJBTlFNRTlqdnZPdlI3M2czdU5uS0ZiWTVna3NmWTREallDUEI1dXozQlNoaWtMdlBFYTZadXFKbFIxX3hmS2RXd3FhdmJ2cTFGUlJRVE5xVFBocU9KT3Jra191cDJUR3BpbTFxRnJJRTBCZElPT0dmcHlqdlZoMzBEM1ZfNjZjMXA0Nm5GZGJuOUZTN0ZNSGNwN3pCcA?oc=5"}, {"theme": "Energy", "title": "The three reasons why oil is staying below $100 a barrel - CNBC", "source": "CNBC", "published": "2026-06-03T11:54:42+00:00", "link": "https://news.google.com/rss/articles/CBMilwFBVV95cUxOTmdhLTZScDRrdDhtaEREc3lvZjRPX1ltMnFxZXVjTnd3N1ZwMzJBbnY5aENRV0VHRDFoZWoyY1RacGpiSUFrRVNrcHNjS29iVDdFUFZWaW5OR3pxekVjNEVkTW1DYUticFlET3VVczR5eC1TaXh6Ukd1dmM3NUQtNEtNa183WVZ1bUhLV0hPbkhmUmozbmZ30gGcAUFVX3lxTE55Vm5jeUgwbWRQQ2ctX2N6Y3Y5cE1OejVZZk5SaFZZdUxnaU01NlZEeWVTelBnNGxGZWd6MVJMb0JFTXA1ZmFiZDVMWEVHZWE1WHZXOVM3UWo2T2F5WV9YUkc0ZF96YjdSemVVWjg4S05oMTN5c2FpUTZPRUx2MlhqdXF5b214QmlvdFJNM1NBRGo2NDV1dVFDLVNMRA?oc=5"}, {"theme": "Materials", "title": "New Buy Rating for Pan American Silver (PAAS), the Basic Materials Giant - The Globe and Mail", "source": "The Globe and Mail", "published": "2026-06-03T11:52:00+00:00", "link": "https://news.google.com/rss/articles/CBMi7AFBVV95cUxQbHU1emZWZWU5UXVnY2JfWkNRN2VwV2hvdDJIVWxGT09yUVBIdXdlN3l5THNHNmI1cWxTZE5fYmVpRFIzSW13d0FrYl91SGRLWlE0cnp0S0lGYmt5eDluVU5pRjFoQm5lZzVrenFBbWxvdE5xWWJWSE5HOEt0UVlLLXZuUVR0ZUlpcS13Tm1lWXBTVGVHMnpXS1ZxTVJRaDF0cXJBbnZNb2d0Yk55ZkM1SGUwT2pmVzFaUXFnT1lmb1hBRTUydThsMUtKLVUxY0dKOENfV1k5aGRBaW9iQ005WXR1Rm4wLTlxZlVadQ?oc=5"}, {"theme": "Energy", "title": "Where to Invest $10,000 Right Now - Bloomberg.com", "source": "Bloomberg.com", "published": "2026-06-03T11:00:00+00:00", "link": "https://news.google.com/rss/articles/CBMibkFVX3lxTE5DQjdaeTExZF9oeVhiR3dNbVFzNGNUbVlIaHo2N0tyTEFZdVZmR191QnpaTHlpZklUWDlzVzF4YnFBR0FTb1RSV0xSMmliY25ueDlLS2ZPNlJTcjVZNkxBVVhQeXdMSnV6YWF2VHJn?oc=5"}, {"theme": "AI Mega-cap", "title": "Wall Street inches to more records thanks to booming AI stocks - WTOP", "source": "WTOP", "published": "2026-06-03T10:04:53+00:00", "link": "https://news.google.com/rss/articles/CBMirAFBVV95cUxNQTR1aGRBbzJtTmRyQVNlRS1vdDB1M2hGWExIYTl1SjJfcXR0MFZlQWlnMEwzN1pnVVZZSTVtcjBwT0YyeGtuaUVEUzJUOHUzS3p3a1hiaFExaE00a2FHLTV5RTJOcDROOTh4MDFjWG5TMnZjMFlpbjJiVzlOaVZOUnF6SXlVaWNaNU1BWlM0Y0ZnVkhKLVlTbllvUTRzdEVlSGFCN2ZyLTNiX3FM?oc=5"}, {"theme": "Materials", "title": "Has LyondellBasell Industries (LYB) outpaced other basic materials stocks this year? - MSN", "source": "MSN", "published": "2026-06-03T02:35:50+00:00", "link": "https://news.google.com/rss/articles/CBMi0AFBVV95cUxNUExVUG5SVUJ0LTR5WVRRc1RaeHloX0JKS2FndEV5MnNCQkJoRGVYUEdMZ2F5VVhuc2xxOFNLNlJ4MXdvclFsWkh2T1JXNXM0LTRNakc0WkpEQS1ObEVYTTdMNTI3Q0pmT1VuS2pFTG54NUpmNXJuUEN1QUZZTENMZDlCcWRUREp1aGptbTdMNjg4eFhvMHRmMlIxaVQxMkx3cUVmaTFwVWJZTjAxdnlyQWZuXzFEeTVrb0ZLODRpamMxY0VLV1gzWjlOSDBYa1Nl?oc=5"}, {"theme": "AI Mega-cap", "title": "Jim Cramer says look to buy these 5 stocks outside the AI trade for diversification - CNBC", "source": "CNBC", "published": "2026-06-02T22:24:15+00:00", "link": "https://news.google.com/rss/articles/CBMilgFBVV95cUxNRllwVWpJS2s0ZHRINlMyWkZ6ckFSRkJYOVp5alp1NVNVSGtDV3BiVGJJeDhuYVlyZWpvSFllZWhIY09iMFJuMURWT2N6M0hGaTZWMVZibEsxZzBJd19kR3VfaGttV3ZOVFF5Q05salFHX0p2WHBMY0s1bzhQek1sSlcyWEZWVk9wWWU1Qk1HZW5udkZLMVHSAZsBQVVfeXFMT3BzbFNaM2xqZDhTN2hpaWhvMnBFRldLWW1rTjcyU2phMi13dWhOeUtFbEY5UDJ3aEMyVDFRdGpjQ2ozQnBzeTY4a2JBbHlESFg3aTFGWDBjQjJEWXlFTEFwSmxOYUhRckEyU3czclFXdHdmZl91UC03Vm00NlNLOFN6ZnYyLW9tZWZKN0JmTGdPS3JuS1pzZkxEc2c?oc=5"}, {"theme": "Cybersecurity", "title": "Cybersecurity Stocks Add $280B Ahead of PANW, CRWD Earnings - Gotrade", "source": "Gotrade", "published": "2026-06-02T21:42:23+00:00", "link": "https://news.google.com/rss/articles/CBMiowFBVV95cUxNR3J4Yzl4ZkxvcTBoWDZOVGJ5YWZTd1VFQVNkeDFIVDE3Z3FQVzd3MjNaNC1LWHF5Q3hWY2QtcWZVblhDeG12ZzUwWGY0WTJvV0RRVExESDBjeG5TaW4zOU92RHIwVjRpb0hJVkFjSlV1V3I2ZzB3OTdybmpieWxyMDZSUGF0YmE4TkRuM0hqYXYtWlhlT2tfU1JjRnlqdUNvbEJF?oc=5"}, {"theme": "Cybersecurity", "title": "Palo Alto, CrowdStrike Earnings to Put 37% Cyber Rally to Test - Bloomberg.com", "source": "Bloomberg.com", "published": "2026-06-02T17:42:56+00:00", "link": "https://news.google.com/rss/articles/CBMisAFBVV95cUxPVUJFT3MzNHFsUm9qZ3ZKM3pxbDdObnpEcGJxRnkyRG03cGJLVkN1Q09jNC1FZ2Q0a3F0QkV0UmF5ano1b3VWc3pSMzFnU2t6NVRMNXYyQm9uc0RPdW1iM1h2ZkJiRENJaWc0VlhucFpnZDJQSmYtbHVpQ203NTlRMXhRU05qU3ZsbjMxQ3pNckl1QjE1U0YyT1E1LWtQUXNqUlBPbnZYbVJTd3hBbFJwLQ?oc=5"}, {"theme": "Cybersecurity", "title": "Cisco Advances 5% to Record Highs on AI Cybersecurity Push, Arista Climbs as Networking Trade Extends - 24/7 Wall St.", "source": "24/7 Wall St.", "published": "2026-06-02T17:38:04+00:00", "link": "https://news.google.com/rss/articles/CBMi2wFBVV95cUxQbVRzWmkwZzB6eHk2aU5Qc3hzekJ2ekVJSWVodFVCQXYzUVlDNG5GYnN0djhXd2JsR1VMVUp6Yy0zQXZwVm9LWXRPNjlBVDhiQ2lmV1VvVDhqOEMtZFg4eWtDb1lIVWU1TGxsTU12ZlU2SXBxUDdDYkRFMnBPbFZsci1FaGptODlZc21ZOENPQ0NybWtwYk8tTEQxV0RTTV9uQWRsV29oTXNiNjh2Z2hZb1NRSWlicDdIa2VBcnZ1YzVaUFdKbUl0d3lTT0Fibzljc2VrLWxhVW9aWUk?oc=5"}], "owner_pro": true};
+
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d'), tip=document.getElementById('tip');
+let DPR=Math.min(window.devicePixelRatio||1,2), W=0, H=0, panelW=0;
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth; H=window.innerHeight;
+  panelW=document.getElementById('panel').classList.contains('open')?300:0;
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+let _rzT=null;
+window.addEventListener('resize',()=>{
+  resize();
+  if(bubbles.length){ computeTargets(true);            // retaille pour la nouvelle fenetre
+    for(const b of bubbles){b.vx*=.25;b.vy*=.25;} }   // tue l'inertie -> pas d'emballement
+  clearTimeout(_rzT); _rzT=setTimeout(()=>{ if(bubbles.length)for(const b of bubbles){b.vx*=.4;b.vy*=.4;} },140);
+});
+
+const fmtPct=v=>(v==null)?'—':(v>=0?'+':'')+v.toFixed(1)+'%';
+const cls=v=>(v==null)?'':(v>=0?'pos':'neg');
+function fmtCap(v){ if(v==null)return '—';
+  if(v>=1e12)return (v/1e12).toFixed(2)+' T$'; if(v>=1e9)return (v/1e9).toFixed(1)+' Md$';
+  if(v>=1e6)return (v/1e6).toFixed(0)+' M$'; return v.toFixed(0)+'$'; }
+
+// ---- couleurs (3 schemas) ----
+function mix(a,b,t){return {r:a.r+(b.r-a.r)*t,g:a.g+(b.g-a.g)*t,b:a.b+(b.b-a.b)*t};}
+function perfColor(v,cap){
+  if(v==null)return {r:120,g:130,b:150};
+  const t=Math.max(-1,Math.min(1,v/cap)), a=Math.abs(t);
+  if(SCHEME==='by'){ const mid={r:95,g:105,b:125};
+    return mix(mid, t>=0?{r:90,g:160,b:255}:{r:255,g:208,b:64}, a); }
+  if(SCHEME==='heat'){ // froid->chaud sur la perf signee
+    const u=(t+1)/2; const stops=[{r:40,g:90,b:200},{r:80,g:200,b:200},{r:240,g:230,b:90},{r:240,g:70,b:50}];
+    const x=u*3, i=Math.min(2,Math.floor(x)); return mix(stops[i],stops[i+1],x-i); }
+  const mid={r:95,g:105,b:125}; // vert/rouge
+  return mix(mid, t>=0?{r:31,g:209,b:122}:{r:255,g:59,b:78}, a);
+}
+
+// ---- etat ----
+let MODE='stocks';          // 'stocks' | 'themes'
+let SIZE='perf';            // 'perf' | 'mcap' | 'score' — defaut perf: les gros movers grossissent
+let TF='perf_63d';
+let SCHEME='gr';
+let drillTheme=null;        // theme name when drilled from THEMES view
+let listFilter='all';       // all | gain | lose
+let sectorFilter='';
+let query='', hover=null, focusTicker=null, focusUntil=0;
+let bubbles=[];
+const STOCKS=DATA.stocks, BYTICKER={}; STOCKS.forEach(s=>BYTICKER[s.ticker]=s);
+
+// --- SaaS state (persistance localStorage) ---
+let PAUSED=false, PRO=false, alertTh=0;
+let dragBubble=null,dragPX=0,dragPY=0,dragVX=0,dragVY=0,dragOX=0,dragOY=0,dragSX=0,dragSY=0,dragMoved=false;
+let WATCH=new Set();
+const LS='nb_';
+try{const s=JSON.parse(localStorage.getItem(LS+'settings')||'{}');
+  if(s.MODE)MODE=s.MODE; if(s.SIZE)SIZE=s.SIZE; if(s.TF)TF=s.TF; if(s.SCHEME)SCHEME=s.SCHEME;}catch(e){}
+try{WATCH=new Set(JSON.parse(localStorage.getItem(LS+'watch')||'[]'));}catch(e){}
+PRO=localStorage.getItem(LS+'pro')==='1';
+function saveSettings(){try{localStorage.setItem(LS+'settings',JSON.stringify({MODE,SIZE,TF,SCHEME}));}catch(e){}}
+function saveWatch(){try{localStorage.setItem(LS+'watch',JSON.stringify([...WATCH]));}catch(e){}}
+
+if(!DATA.has_mcap && SIZE==='mcap') SIZE='score';
+
+// ---- logos (charges a la demande, caches) ----
+const logoCache={};
+function logo(ticker){
+  if(logoCache[ticker]!==undefined) return logoCache[ticker];
+  const img=new Image();
+  img.crossOrigin='anonymous';   // FMP renvoie ACAO:* -> canvas non taint -> export PNG possible
+  img.onload=()=>{logoCache[ticker]=img;};
+  img.onerror=()=>{logoCache[ticker]=null;};
+  logoCache[ticker]='loading';
+  img.src='https://financialmodelingprep.com/image-stock/'+encodeURIComponent(ticker)+'.png';
+  return 'loading';
+}
+
+// ---- construction des bulles ----
+function sizeValue(item,kind){
+  if(kind==='theme') return item.score||1;
+  if(SIZE==='mcap') return item.mcap||item.score||1;
+  if(SIZE==='perf') return Math.abs(item.perf[TF]||0)+1;
+  return item.score||1;
+}
+function currentStockList(){
+  let list=STOCKS;
+  if(MODE==='themes' && drillTheme) list=list.filter(s=>s.theme===drillTheme);
+  if(sectorFilter) list=list.filter(s=>s.theme===sectorFilter);
+  if(listFilter==='gain') list=list.filter(s=>(s.perf[TF]||0)>0);
+  if(listFilter==='lose') list=list.filter(s=>(s.perf[TF]||0)<0);
+  if(listFilter==='watch') list=list.filter(s=>WATCH.has(s.ticker));
+  return list;
+}
+// Calcule le rayon CIBLE de chaque bulle pour la metrique/periode courante.
+// Ecart volontairement marque (les gros movers dominent) + animation si demande.
+// Met les rayons a l'echelle pour que la somme des AIRES occupe `fill` de la
+// zone visible -> tout rentre quelle que soit la metrique (Perf/Cap/Score).
+// Le poids relatif (winners plus gros) est preserve car r ∝ sqrt(poids).
+function areaNormalize(weights, fill, minR, maxR, animated){
+  const availW=Math.max(220,W-panelW), availH=Math.max(220,H-76-30);
+  const target=fill*availW*availH;
+  let radii=weights.map(w=>Math.sqrt(Math.max(1e-4,w)));
+  // convergence: a chaque passe on recalcule l'echelle depuis l'etat courant
+  // (le clamp minR/maxR distord l'aire, donc on itere pour viser `fill`).
+  for(let pass=0;pass<4;pass++){
+    const area=radii.reduce((s,r)=>s+Math.PI*r*r,0)||1;
+    const scale=Math.sqrt(target/area);
+    radii=radii.map(r=>Math.max(minR,Math.min(maxR,r*scale)));
+  }
+  bubbles.forEach((b,i)=>b.tr=radii[i]);
+  if(!animated)for(const b of bubbles)b.r=b.tr;
+}
+function computeTargets(animated){
+  const big=Math.min(Math.max(220,W-panelW),Math.max(220,H));
+  if(MODE==='themes' && !drillTheme){
+    const vals=bubbles.map(b=>b.ref.score||1);
+    const lo=Math.min(...vals),hi=Math.max(...vals);
+    const ws=vals.map(v=>{const t=hi===lo?.5:((v-lo)/(hi-lo)); return .35+Math.pow(t,.8);});
+    areaNormalize(ws,.56,big*.05,big*.18,animated);
+  }else{
+    let ws;
+    if(SIZE==='mcap'){
+      // r ∝ cap^0.25 : megacaps nettement plus grosses, ecart visible mais borne
+      ws=bubbles.map(b=>Math.pow((b.ref.mcap||b.ref.score||1),0.5));
+    }else{
+      const vals=bubbles.map(b=>sizeValue(b.ref,'stock'));
+      const lo=Math.min(...vals),hi=Math.max(...vals);
+      ws=vals.map(v=>{const t=hi===lo?.5:((v-lo)/(hi-lo)); return .14+Math.pow(t,.85);});
+    }
+    const n=bubbles.length, fill=n>60?.54:n>25?.6:.64;
+    areaNormalize(ws,fill,big*.014,big*.17,animated);
+  }
+}
+function makeBubble(spec){
+  return {...spec,r:6,tr:30,x:W/2+(Math.random()-.5)*W*.6,y:H/2+(Math.random()-.5)*H*.5,
+    vx:(Math.random()-.5)*1.6,vy:(Math.random()-.5)*1.6};
+}
+function rebuild(){
+  resize();
+  if(MODE==='themes' && !drillTheme){
+    bubbles=DATA.themes.map(t=>makeBubble({kind:'theme',label:t.short,ref:t,validated:false}));
+  }else{
+    bubbles=currentStockList().map(s=>makeBubble({kind:'stock',label:s.ticker,ref:s,validated:s.validated}));
+  }
+  computeTargets(false);
+  for(const b of bubbles)b.r=b.tr*0.18;   // entree "pop": part petit puis grossit
+  renderRows();
+}
+
+// ---- physique ----
+function step(){
+  const cx=(W-panelW)/2, cy=H/2+12;
+  for(const b of bubbles){
+    b.r+=(b.tr-b.r)*.10;                                  // animation fluide de la taille
+    if(b===dragBubble) continue;                          // bulle tenue a la souris: pas de force
+    b.vx+=(cx-b.x)*.00055; b.vy+=(cy-b.y)*.00055;         // attraction douce (moins serree)
+    b.vx+=(Math.random()-.5)*.35; b.vy+=(Math.random()-.5)*.35;  // micro-mouvement vivant
+    b.vx*=.972; b.vy*=.972;
+    const sp=Math.hypot(b.vx,b.vy), mx=2.6; if(sp>mx){b.vx*=mx/sp;b.vy*=mx/sp;}
+    b.x+=b.vx; b.y+=b.vy;
+    const pad=6, top=pad+46, right=W-panelW-pad, bot=H-pad-30;
+    if(b.x-b.r<pad){b.x=b.r+pad;b.vx=Math.abs(b.vx)*.7;}
+    if(b.x+b.r>right){b.x=right-b.r;b.vx=-Math.abs(b.vx)*.7;}
+    if(b.y-b.r<top){b.y=b.r+top;b.vy=Math.abs(b.vy)*.7;}
+    if(b.y+b.r>bot){b.y=bot-b.r;b.vy=-Math.abs(b.vy)*.7;}
+  }
+  for(let i=0;i<bubbles.length;i++)for(let j=i+1;j<bubbles.length;j++){
+    const a=bubbles[i],b=bubbles[j]; let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||.01;
+    const min=a.r+b.r+2;
+    if(d<min){const ov=(min-d)/2,nx=dx/d,ny=dy/d;
+      a.x-=nx*ov;a.y-=ny*ov;b.x+=nx*ov;b.y+=ny*ov;
+      const p=(a.vx*nx+a.vy*ny-b.vx*nx-b.vy*ny);
+      if(p>0){a.vx-=p*nx*.65;a.vy-=p*ny*.65;b.vx+=p*nx*.65;b.vy+=p*ny*.65;}}
+  }
+  if(dragBubble){dragBubble.x=dragPX;dragBubble.y=dragPY;}  // re-epingle sous le pointeur
+}
+
+// ---- rendu ----
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const cap=(MODE==='themes'&&!drillTheme)?25:120;
+  const q=query.trim().toLowerCase();
+  const now=performance.now();
+  for(const b of bubbles){
+    const perf=b.ref.perf[TF], c=perfColor(perf,cap);
+    const match=q&&(b.label.toLowerCase().includes(q)||(b.ref.name||'').toLowerCase().includes(q)||(b.ref.theme||'').toLowerCase().includes(q));
+    const dim=q&&!match?.16:1;
+    const isFocus=focusTicker&&b.ref.ticker===focusTicker&&now<focusUntil;
+
+    if(b.validated){ctx.beginPath();ctx.arc(b.x,b.y,b.r+4,0,7);ctx.strokeStyle=`rgba(76,240,160,${.7*dim})`;
+      ctx.lineWidth=2;ctx.shadowColor='rgba(76,240,160,.6)';ctx.shadowBlur=14;ctx.stroke();ctx.shadowBlur=0;}
+    if(b.kind==='stock'&&WATCH.has(b.ref.ticker)){ctx.beginPath();ctx.arc(b.x,b.y,b.r+(b.validated?7:4),0,7);
+      ctx.strokeStyle=`rgba(255,216,107,${.95*dim})`;ctx.lineWidth=2.5;ctx.stroke();}
+    if(alertTh>0&&Math.abs(b.ref.perf[TF]||0)>=alertTh){const pl=.5+.5*Math.sin(now/200);
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r+6,0,7);ctx.strokeStyle=`rgba(255,216,107,${(.3+.55*pl)*dim})`;
+      ctx.lineWidth=3;ctx.shadowColor='rgba(255,216,107,.7)';ctx.shadowBlur=16;ctx.stroke();ctx.shadowBlur=0;}
+
+    const g=ctx.createRadialGradient(b.x-b.r*.32,b.y-b.r*.36,b.r*.1,b.x,b.y,b.r);
+    g.addColorStop(0,`rgba(${c.r+45|0},${c.g+45|0},${c.b+45|0},${.96*dim})`);
+    g.addColorStop(.7,`rgba(${c.r|0},${c.g|0},${c.b|0},${.5*dim})`);
+    g.addColorStop(1,`rgba(${c.r*.35|0},${c.g*.35|0},${c.b*.35|0},${.08*dim})`);
+    ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,7);ctx.fillStyle=g;ctx.fill();
+    ctx.lineWidth=1.5;ctx.strokeStyle=(isFocus?'rgba(56,225,255,.95)':`rgba(${c.r|0},${c.g|0},${c.b|0},${.9*dim})`);
+    if(isFocus)ctx.lineWidth=3; ctx.stroke();
+    if(hover===b){ctx.lineWidth=2.5;ctx.strokeStyle='rgba(255,255,255,.85)';ctx.stroke();}
+
+    // reflet glossy
+    ctx.beginPath();ctx.arc(b.x-b.r*.3,b.y-b.r*.34,b.r*.42,0,7);
+    const gl=ctx.createRadialGradient(b.x-b.r*.3,b.y-b.r*.34,0,b.x-b.r*.3,b.y-b.r*.34,b.r*.42);
+    gl.addColorStop(0,`rgba(255,255,255,${.22*dim})`);gl.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=gl;ctx.fill();
+
+    ctx.globalAlpha=dim;
+    // logo (actions seulement, bulles assez grandes)
+    let logoH=0;
+    if(b.kind==='stock'&&b.r>22){
+      const im=logo(b.ref.ticker);
+      if(im&&im!=='loading'){const s=b.r*.85,ix=b.x-s/2,iy=b.y-b.r*.52;
+        ctx.save();ctx.beginPath();ctx.rect(ix,iy,s,s*.6);ctx.clip();
+        try{ctx.drawImage(im,ix,iy,s,s*.55);}catch(e){} ctx.restore(); logoH=b.r*.24;}
+    }
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';
+    const big=b.r>26;
+    ctx.font=`700 ${Math.max(10,Math.min(b.r*.34,22))}px "Segoe UI",sans-serif`;
+    ctx.fillText(fitLabel(b.label,b.r),b.x,b.y+(logoH)-(big?b.r*.04:0));
+    if(big){ctx.font=`600 ${Math.max(9,Math.min(b.r*.26,16))}px "Segoe UI",sans-serif`;
+      ctx.fillStyle=perf>=0?'#d6ffe9':'#ffe0e4';ctx.fillText(fmtPct(perf),b.x,b.y+b.r*.34+logoH);}
+    ctx.globalAlpha=1;
+  }
+}
+function fitLabel(t,r){const m=Math.floor(r/4.2);return t.length>m?t.slice(0,Math.max(2,m-1))+'…':t;}
+function loop(){if(!PAUSED)step();draw();requestAnimationFrame(loop);}
+
+// ---- interaction canvas ----
+function bubbleAt(mx,my){for(let i=bubbles.length-1;i>=0;i--){const b=bubbles[i];
+  if(Math.hypot(mx-b.x,my-b.y)<=b.r)return b;}return null;}
+cv.addEventListener('mousedown',e=>{const b=bubbleAt(e.clientX,e.clientY);if(!b)return;
+  dragBubble=b;dragMoved=false;dragSX=e.clientX;dragSY=e.clientY;
+  dragOX=e.clientX-b.x;dragOY=e.clientY-b.y;dragPX=b.x;dragPY=b.y;dragVX=0;dragVY=0;
+  cv.style.cursor='grabbing';tip.style.display='none';});
+cv.addEventListener('mousemove',e=>{
+  if(dragBubble){const nx=e.clientX-dragOX,ny=e.clientY-dragOY;
+    dragVX=(nx-dragPX)*.45;dragVY=(ny-dragPY)*.45;dragPX=nx;dragPY=ny;dragBubble.x=nx;dragBubble.y=ny;
+    if(Math.hypot(e.clientX-dragSX,e.clientY-dragSY)>4)dragMoved=true; return;}
+  const b=bubbleAt(e.clientX,e.clientY);hover=b;cv.style.cursor=b?'grab':'default';
+  if(!b){tip.style.display='none';return;} showTip(b,e.clientX,e.clientY);});
+window.addEventListener('mouseup',()=>{
+  if(!dragBubble)return; const b=dragBubble,moved=dragMoved;
+  b.vx=Math.max(-9,Math.min(9,dragVX));b.vy=Math.max(-9,Math.min(9,dragVY));
+  dragBubble=null;cv.style.cursor='default';
+  if(!moved&&b.kind==='theme')drillIn(b.ref.theme);});
+cv.addEventListener('mouseleave',()=>{if(!dragBubble){hover=null;tip.style.display='none';}});
+
+function showTip(b,mx,my){
+  const perf=b.ref.perf[TF]; let html='';
+  if(b.kind==='theme'){const t=b.ref;
+    html=`<h4>${t.theme}</h4>
+      <div class="row"><span>Perf médiane (${labelOf(TF)})</span><b class="${cls(perf)}">${fmtPct(perf)}</b></div>
+      <div class="row"><span>Score composite</span><b>${(t.score??0).toFixed(1)}</b></div>
+      <div class="row"><span>Actions</span><b>${t.stocks}</b></div>
+      <div class="row"><span>% &gt; SMA50</span><b>${t.above50!=null?t.above50.toFixed(0)+'%':'—'}</b></div>
+      <div class="row"><span>Rel 63J vs QQQ</span><b class="${cls(t.rel63)}">${fmtPct(t.rel63)}</b></div>
+      <div class="row"><span>News</span><b>${t.news_hits}/${t.news_sources}</b></div>
+      <span class="tag">Cliquer pour éclater →</span>`;
+  }else{const s=b.ref;
+    html=`<h4>${s.ticker} — ${s.name}</h4>
+      <div class="row"><span>Perf (${labelOf(TF)})</span><b class="${cls(perf)}">${fmtPct(perf)}</b></div>
+      <div class="row"><span>Market cap</span><b>${fmtCap(s.mcap)}</b></div>
+      <div class="row"><span>Score</span><b>${(s.score??0).toFixed(1)}</b></div>
+      <div class="row"><span>RSI 14</span><b>${s.rsi!=null?s.rsi.toFixed(0):'—'}</b></div>
+      <div class="row"><span>Rel 63J vs QQQ</span><b class="${cls(s.rel63)}">${fmtPct(s.rel63)}</b></div>
+      <div class="row"><span>Secteur</span><b>${s.short_theme}</b></div>
+      ${s.validated?'<span class="tag">Renko 3M/M/W validé</span>':''}`;
+  }
+  tip.innerHTML=html;tip.style.display='block';
+  const tw=tip.offsetWidth,th=tip.offsetHeight; let x=mx+16,y=my+16;
+  if(x+tw>W)x=mx-tw-16; if(y+th>H)y=my-th-16; tip.style.left=x+'px';tip.style.top=y+'px';
+}
+function labelOf(k){return (DATA.timeframes.find(t=>t.key===k)||{}).label||k;}
+
+function drillIn(theme){MODE='themes';drillTheme=theme;
+  document.getElementById('crumb').style.display='flex';
+  document.getElementById('crumbHere').textContent=theme; tip.style.display='none'; rebuild();}
+function drillOut(){drillTheme=null;
+  document.getElementById('crumb').style.display='none';
+  if(MODE==='themes')rebuild(); }
+document.getElementById('backBtn').addEventListener('click',drillOut);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&drillTheme)drillOut();});
+
+// ---- panneau tableau ----
+function renderRows(){
+  const box=document.getElementById('rows');
+  let list=currentStockList().slice().sort((a,b)=>(b.perf[TF]||-999)-(a.perf[TF]||-999));
+  box.innerHTML='';
+  for(const s of list){
+    const perf=s.perf[TF];
+    const row=document.createElement('div'); row.className='r';
+    row.innerHTML=`<div class="star ${WATCH.has(s.ticker)?'on':''}">★</div>
+      <img loading="lazy" crossorigin="anonymous" src="https://financialmodelingprep.com/image-stock/${s.ticker}.png" onerror="this.style.visibility='hidden'">
+      <div style="min-width:0"><div class="tk">${s.ticker}${s.validated?' <span style="color:#4cf0a0">●</span>':''}</div>
+      <div class="nm">${s.name}</div></div>
+      <div class="pf ${cls(perf)}">${fmtPct(perf)}<div class="nm" style="text-align:right">${fmtCap(s.mcap)}</div></div>`;
+    const star=row.querySelector('.star');
+    star.onclick=ev=>{ev.stopPropagation();toggleWatch(s.ticker,star);};
+    row.onclick=()=>{focusTicker=s.ticker;focusUntil=performance.now()+2500;
+      const b=bubbles.find(x=>x.ref.ticker===s.ticker); if(b){b.vx+=(Math.random()-.5)*4;b.vy-=6;}};
+    box.appendChild(row);
+  }
+  updateBreadth();
+}
+function toggleWatch(tk,starEl){
+  if(WATCH.has(tk)){WATCH.delete(tk);}
+  else{ if(!PRO && WATCH.size>=5){window.__openPro&&window.__openPro();return;} WATCH.add(tk);}
+  saveWatch(); if(starEl)starEl.classList.toggle('on',WATCH.has(tk));
+  if(listFilter==='watch')rebuild();
+}
+function updateBreadth(){
+  const list=currentStockList(); let up=0,dn=0,sum=0,nn=0;
+  for(const s of list){const v=s.perf[TF]; if(v==null)continue; if(v>0.05)up++; else if(v<-0.05)dn++; sum+=v;nn++;}
+  const avg=nn?sum/nn:0;
+  document.getElementById('breadth').innerHTML=
+    `<b>${list.length}</b> actifs <span class="sep">|</span> <span class="up">▲ ${up}</span> `+
+    `<span class="dn">▼ ${dn}</span> <span class="sep">|</span> moy `+
+    `<b class="${avg>=0?'up':'dn'}">${(avg>=0?'+':'')+avg.toFixed(1)}%</b>`;
+}
+document.getElementById('panelToggle').addEventListener('click',()=>{
+  document.getElementById('panel').classList.toggle('open');resize();});
+document.querySelectorAll('.chip[data-f]').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('.chip[data-f]').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on'); listFilter=c.dataset.f; rebuild();}));
+document.getElementById('sectorFilter').addEventListener('change',e=>{sectorFilter=e.target.value;rebuild();});
+
+// ---- header ----
+function seg(id,items,cur,on){const el=document.getElementById(id);el.innerHTML='';
+  items.forEach(it=>{const b=document.createElement('button');b.textContent=it.label;b.dataset.k=it.key;
+    if(it.key===cur())b.classList.add('on');
+    b.onclick=()=>{on(it.key);[...el.children].forEach(c=>c.classList.toggle('on',c.dataset.k===cur()));};
+    el.appendChild(b);});}
+function buildHeader(){
+  seg('modeSeg',[{key:'stocks',label:'Actions'},{key:'themes',label:'Thèmes'}],()=>MODE,k=>{
+    MODE=k;drillOut();document.getElementById('sizeSeg').style.opacity=(k==='themes')?.4:1;saveSettings();rebuild();});
+  const sizeItems=[{key:'perf',label:'Perf'},{key:'mcap',label:'Cap'},{key:'score',label:'Score'}];
+  seg('sizeSeg',sizeItems,()=>SIZE,k=>{SIZE=k;saveSettings();computeTargets(true);renderRows();});
+  if(!DATA.has_mcap){const b=[...document.querySelectorAll('#sizeSeg button')].find(x=>x.dataset.k==='mcap');
+    if(b){b.title='Market cap absent — lance: python nasdaq_bubbles.py --enrich';b.style.opacity=.45;}}
+  seg('tfSeg',DATA.timeframes,()=>TF,k=>{TF=k;saveSettings();computeTargets(true);renderRows();});
+}
+function applyScheme(){document.getElementById('scheme').value=SCHEME;
+  document.getElementById('legbar').style.background=
+    SCHEME==='by'?'linear-gradient(90deg,#ffd040,#6b7280,#5aa0ff)':
+    SCHEME==='heat'?'linear-gradient(90deg,#285ec8,#50c8c8,#f0e65a,#f04632)':
+    'linear-gradient(90deg,#ff3b4e,#6b7280,#1fd17a)';}
+document.getElementById('scheme').addEventListener('change',e=>{SCHEME=e.target.value;saveSettings();applyScheme();});
+document.getElementById('search').addEventListener('input',e=>{query=e.target.value;});
+
+// ---- news ----
+function buildNews(){const tr=document.getElementById('newsTrack');
+  if(!DATA.news.length){document.getElementById('news').style.display='none';return;}
+  tr.innerHTML=DATA.news.map(n=>`<span>[<span style="color:var(--accent)">${n.theme}</span>] `+
+    `<a href="${n.link}" target="_blank">${n.title}</a> <span class="src">— ${n.source}</span></span>`).join('');}
+
+function buildSaaS(){
+  const bp=document.getElementById('btnPause');
+  bp.onclick=()=>{PAUSED=!PAUSED;bp.textContent=PAUSED?'▶':'⏸';bp.classList.toggle('on',PAUSED);};
+  document.addEventListener('keydown',e=>{const t=e.target.tagName;
+    if(e.code==='Space'&&t!=='INPUT'&&t!=='SELECT'){e.preventDefault();bp.click();}});
+  document.getElementById('btnFull').onclick=()=>{
+    if(!document.fullscreenElement){const f=document.documentElement.requestFullscreen;if(f)f.call(document.documentElement);}
+    else{const x=document.exitFullscreen;if(x)x.call(document);}};
+  document.getElementById('btnShot').onclick=()=>{
+    try{const a=document.createElement('a');a.href=cv.toDataURL('image/png');a.download='nasdaq_bubbles.png';a.click();}
+    catch(err){alert('Export PNG indisponible (logos bloqués par le cache navigateur). Recharge et réessaie.');}};
+  // --- Pro / paywall ---
+  const setPro=on=>{PRO=on;try{localStorage.setItem(LS+'pro',on?'1':'0');}catch(e){}
+    document.getElementById('alertLock').style.display=on?'none':'inline';
+    const pb=document.getElementById('btnPro');pb.textContent=on?'★ Pro actif':'★ Passer Pro';pb.classList.toggle('on',on);};
+  const openPro=()=>document.getElementById('proModal').classList.add('open');
+  const closePro=()=>document.getElementById('proModal').classList.remove('open');
+  window.__openPro=openPro;
+  document.getElementById('btnPro').onclick=openPro;
+  document.getElementById('proClose').onclick=closePro;
+  document.getElementById('proModal').addEventListener('click',e=>{if(e.target.id==='proModal')closePro();});
+  document.getElementById('tierPro').onclick=()=>{setPro(true);closePro();};
+  document.getElementById('tierTeam').onclick=()=>{location.href='mailto:sales@example.com?subject=NASDAQ%20Bubbles%20Team';};
+  setPro(PRO || !!DATA.owner_pro);   // build proprietaire (--pro): Pro par defaut
+  // --- CSV (Pro) ---
+  document.getElementById('csvBtn').onclick=()=>{ if(!PRO){openPro();return;}
+    const list=currentStockList().slice().sort((a,b)=>(b.perf[TF]||-999)-(a.perf[TF]||-999));
+    const head=['ticker','name','theme','perf_'+TF,'mcap','score','rsi','rel63','validated'];
+    const rows=list.map(s=>[s.ticker,'"'+(s.name||'').replace(/"/g,'')+'"',s.short_theme,
+      (s.perf[TF]??''),(s.mcap??''),(s.score??''),(s.rsi??''),(s.rel63??''),s.validated]);
+    const csv=[head.join(','),...rows.map(r=>r.join(','))].join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+    a.download='nasdaq_bubbles_'+TF+'.csv';a.click();};
+  // --- Alertes (Pro) ---
+  const ai=document.getElementById('alertInput');
+  ai.addEventListener('focus',()=>{if(!PRO){ai.blur();openPro();}});
+  ai.addEventListener('input',()=>{if(PRO)alertTh=Math.abs(parseFloat(ai.value)||0);});
+}
+
+// ---- init ----
+(function init(){
+  const dt=DATA.generated_at?new Date(DATA.generated_at):null;
+  document.getElementById('genAt').textContent=dt
+    ?'maj '+dt.toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+    +(DATA.has_mcap?'':' • cap: --enrich'):'';
+  const sf=document.getElementById('sectorFilter');
+  DATA.sectors.forEach(s=>{const o=document.createElement('option');o.value=s;
+    o.textContent=s.slice(0,26);sf.appendChild(o);});
+  buildHeader();buildNews();buildSaaS();applyScheme();
+  document.getElementById('sizeSeg').style.opacity=(MODE==='themes')?.4:1;
+  if(MODE==='themes')document.querySelector('#modeSeg button[data-k="themes"]').classList.add('on');
+  rebuild();loop();
+})();
+</script>
+</body>
+</html>

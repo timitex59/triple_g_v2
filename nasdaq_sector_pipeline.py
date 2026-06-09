@@ -274,6 +274,7 @@ class AssetMetrics:
     above_sma200: bool
     near_20d_high: bool
     score: float
+    market_cap: float | None = None
 
 
 @dataclass
@@ -438,9 +439,11 @@ def fetch_profiles(tickers: list[str], max_workers: int = 12) -> dict[str, dict[
                 "sector": str(info.get("sector") or ""),
                 "industry": str(info.get("industry") or ""),
                 "shortName": str(info.get("shortName") or info.get("longName") or ""),
+                # Capital boursier: alimente la taille des bulles dans nasdaq_bubbles.py.
+                "market_cap": str(info.get("marketCap") or ""),
             }
         except Exception:
-            return ticker, {"sector": "", "industry": "", "shortName": ""}
+            return ticker, {"sector": "", "industry": "", "shortName": "", "market_cap": ""}
 
     profiles: dict[str, dict[str, str]] = {}
     with ThreadPoolExecutor(max_workers=max_workers) as pool:
@@ -604,6 +607,7 @@ def build_asset_metrics(
             "above_sma50": bool(close.iloc[-1] > sma50) if not pd.isna(sma50) else False,
             "above_sma200": bool(close.iloc[-1] > sma200) if not pd.isna(sma200) else False,
             "near_20d_high": bool(close.iloc[-1] >= high20 * 0.97) if not pd.isna(high20) else False,
+            "market_cap": safe_float(profile.get("market_cap")),
         })
 
     score_fields = ["perf_21d", "perf_63d", "perf_126d", "rel_63d_vs_qqq", "volume_ratio"]
