@@ -411,9 +411,7 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
         fib_letter = "?"
         if h1_fib is not None:
             fib_letter = "A" if h1_fib["position"] == "ABOVE" else ("B" if h1_fib["position"] == "BELOW" else "=")
-        chg = row["daily_chg"]
-        chg_txt = "" if chg is None else f" {chg:+.2f}%"
-        lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%{chg_txt})")
+        lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%)")
 
     # Section CHG%D journalier, sur l'ensemble des paires (pas seulement les
     # signaux confirmes RENKO FIBO).
