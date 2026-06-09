@@ -68,6 +68,7 @@ jobs:
           ENABLE_TELEGRAM_SAR_MTF_FOREX: "false"
           ENABLE_TELEGRAM_RENKO_FOREX_V1: "false"
           ENABLE_TELEGRAM_RENKO_FOREX_V2: "false"
+          ENABLE_TELEGRAM_RENKO_SCORE_29: "true"
           ENABLE_TELEGRAM_RENKO_FOREX_V4: "true"
           ENABLE_TELEGRAM_TRACKER: "false"
         run: |
@@ -104,6 +105,7 @@ jobs:
           run_with_telegram "$ENABLE_TELEGRAM_SAR_MTF_FOREX" sarenki_V1_forex.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V1" renko_forex_V1.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V2" renko_forex_V2.py
+          run_with_telegram "$ENABLE_TELEGRAM_RENKO_SCORE_29" renko_score_29pairs_v16.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V4" renko_forex_V4.py --force-telegram
 
           echo "---- px_renko_index_tracker_state.json after tracker ----"
