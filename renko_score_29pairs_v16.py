@@ -374,32 +374,65 @@ def filter_strong_signals(rows: list[dict]) -> list[dict]:
     return [row for row in rows if row["confirmed"] != 0]
 
 
+MAJORS = {"AUD", "CAD", "CHF", "EUR", "GBP", "JPY", "NZD", "USD"}
+
+
+def currency_strength(rated: list[dict], min_pairs: int = 2) -> list[tuple[str, float]]:
+    """Force par devise (currency strength meter): pour chaque devise majeure,
+    moyenne du CHG%D qui lui est attribuable sur toutes les paires ou elle
+    apparait (signe + si devise de base, - si contre-devise). On n'inclut que
+    les paires 100% devises majeures: les paires metal (XAU) sont ecartees car
+    la volatilite de l'or polluerait la force de sa contre-devise (USD).
+    Retour trie du plus fort au plus faible."""
+    agg: dict[str, list[float]] = {}
+    for r in rated:
+        p = r["pair"]
+        if len(p) != 6:
+            continue
+        base, quote = p[:3], p[3:]
+        if base not in MAJORS or quote not in MAJORS:
+            continue
+        c = r["daily_chg"]
+        agg.setdefault(base, []).append(c)
+        agg.setdefault(quote, []).append(-c)
+    strength = {ccy: sum(v) / len(v) for ccy, v in agg.items() if len(v) >= min_pairs}
+    return sorted(strength.items(), key=lambda kv: kv[1], reverse=True)
+
+
 def daily_chg_section(all_rows: list[dict], top_n: int = 3, min_abs: float = 0.15) -> list[str]:
-    """Biais journalier du marche (breadth sur TOUTES les paires) + TOP <n>
-    hausses et TOP <n> baisses du jour sur le CHG%D. Les tops ne retiennent
-    que |CHG%D| > min_abs (defaut 0.15%) ; le biais, lui, compte tout."""
+    """Biais journalier credible du marche, sur le CHG%D:
+      1) verdict 🐂/🐻/⚖️ exigeant que breadth (nombre) ET force (moyenne) concordent
+      2) breadth chiffree + force moyenne
+      3) currency strength meter (devises fortes / faibles)
+      4) TOP <n> hausses / baisses (seulement |CHG%D| > min_abs)."""
     rated = [r for r in all_rows if r.get("daily_chg") is not None]
     lines: list[str] = []
+    if not rated:
+        return lines
 
-    # Biais du marche: qui domine aujourd'hui, sur l'ensemble des paires.
-    # On exige que le NOMBRE (breadth) ET la moyenne (force) concordent pour
-    # declarer une domination ; sinon -> partage.
-    if rated:
-        up = sum(1 for r in rated if r["daily_chg"] > 0)
-        dn = sum(1 for r in rated if r["daily_chg"] < 0)
-        avg = sum(r["daily_chg"] for r in rated) / len(rated)
-        if up > dn and avg > 0:
-            verdict = "🐂 BULL domine"
-        elif dn > up and avg < 0:
-            verdict = "🐻 BEAR domine"
-        else:
-            verdict = "⚖️ Partage"
-        lines.append(f"🧭 BIAIS JOUR: {verdict} (▲{up} ▼{dn} · moy {avg:+.2f}%)")
+    up = sum(1 for r in rated if r["daily_chg"] > 0)
+    dn = sum(1 for r in rated if r["daily_chg"] < 0)
+    avg = sum(r["daily_chg"] for r in rated) / len(rated)
+    if up > dn and avg > 0:
+        verdict = "🐂 BULL domine"
+    elif dn > up and avg < 0:
+        verdict = "🐻 BEAR domine"
+    else:
+        verdict = "⚖️ Partage"
+    lines.append(f"🧭 BIAIS JOUR: {verdict}")
+    lines.append(f"▲{up} ▼{dn} · force moy {avg:+.2f}%")
 
-    strong = [r for r in rated if abs(r["daily_chg"]) > min_abs]
-    bulls = sorted([r for r in strong if r["daily_chg"] > 0],
+    strength = currency_strength(rated)
+    if len(strength) >= 2:
+        strong = strength[:3]
+        weak = list(reversed(strength[-3:]))
+        lines.append("💪 Fortes: " + " · ".join(f"{c} {v:+.2f}" for c, v in strong))
+        lines.append("🥀 Faibles: " + " · ".join(f"{c} {v:+.2f}" for c, v in weak))
+
+    movers = [r for r in rated if abs(r["daily_chg"]) > min_abs]
+    bulls = sorted([r for r in movers if r["daily_chg"] > 0],
                    key=lambda r: r["daily_chg"], reverse=True)[:top_n]
-    bears = sorted([r for r in strong if r["daily_chg"] < 0],
+    bears = sorted([r for r in movers if r["daily_chg"] < 0],
                    key=lambda r: r["daily_chg"])[:top_n]
     if bulls:
         lines.append("")
