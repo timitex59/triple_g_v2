@@ -419,15 +419,30 @@ def daily_chg_section(all_rows: list[dict], top_n: int = 3, min_abs: float = 0.1
         verdict = "🐻 BEAR domine"
     else:
         verdict = "⚖️ Partage"
-    lines.append(f"🧭 BIAIS JOUR: {verdict}")
-    lines.append(f"▲{up} ▼{dn} · force moy {avg:+.2f}%")
 
     strength = currency_strength(rated)
+
+    # Si la devise la plus forte OU la plus faible du jour bouge < 0.1% en
+    # valeur absolue, le marche est trop calme pour parler de domination.
+    is_neutral = False
     if len(strength) >= 2:
-        strong = strength[:3]
-        weak = list(reversed(strength[-3:]))
-        lines.append("💪 Fortes: " + " · ".join(f"{c} {v:+.2f}" for c, v in strong))
-        lines.append("🥀 Faibles: " + " · ".join(f"{c} {v:+.2f}" for c, v in weak))
+        strongest_val = strength[0][1]
+        weakest_val = strength[-1][1]
+        if abs(strongest_val) < 0.1 or abs(weakest_val) < 0.1:
+            is_neutral = True
+
+    if is_neutral:
+        verdict_emoji = verdict.split(" ", 1)[0]
+        verdict = f"{verdict_emoji} NEUTRE"
+
+    lines.append(verdict)
+    lines.append(f"▲{up} ▼{dn} ({avg:+.2f}%)")
+
+    if not is_neutral and len(strength) >= 2:
+        strong = strength[0]
+        weak = strength[-1]
+        lines.append(f"💪 Fortes: {strong[0]} {strong[1]:+.2f}")
+        lines.append(f"🥀 Faibles: {weak[0]} {weak[1]:+.2f}")
 
     # Streak Renko HEBDO (W) dans le sens du mouvement (vert pour bull, rouge
     # pour bear). 0 = pas de run hebdo dans ce sens.
