@@ -375,23 +375,39 @@ def filter_strong_signals(rows: list[dict]) -> list[dict]:
 
 
 def daily_chg_section(all_rows: list[dict], top_n: int = 3, min_abs: float = 0.15) -> list[str]:
-    """TOP <n> hausses et TOP <n> baisses du jour, classees uniquement sur le
-    CHG%D (variation journaliere), sur l'ensemble des paires scannees.
-    Une paire n'est retenue que si |CHG%D| > min_abs (defaut 0.15%)."""
-    rated = [r for r in all_rows
-             if r.get("daily_chg") is not None and abs(r["daily_chg"]) > min_abs]
-    bulls = sorted([r for r in rated if r["daily_chg"] > 0],
-                   key=lambda r: r["daily_chg"], reverse=True)[:top_n]
-    bears = sorted([r for r in rated if r["daily_chg"] < 0],
-                   key=lambda r: r["daily_chg"])[:top_n]
+    """Biais journalier du marche (breadth sur TOUTES les paires) + TOP <n>
+    hausses et TOP <n> baisses du jour sur le CHG%D. Les tops ne retiennent
+    que |CHG%D| > min_abs (defaut 0.15%) ; le biais, lui, compte tout."""
+    rated = [r for r in all_rows if r.get("daily_chg") is not None]
     lines: list[str] = []
+
+    # Biais du marche: qui domine aujourd'hui, sur l'ensemble des paires.
+    # On exige que le NOMBRE (breadth) ET la moyenne (force) concordent pour
+    # declarer une domination ; sinon -> partage.
+    if rated:
+        up = sum(1 for r in rated if r["daily_chg"] > 0)
+        dn = sum(1 for r in rated if r["daily_chg"] < 0)
+        avg = sum(r["daily_chg"] for r in rated) / len(rated)
+        if up > dn and avg > 0:
+            verdict = "🐂 BULL domine"
+        elif dn > up and avg < 0:
+            verdict = "🐻 BEAR domine"
+        else:
+            verdict = "⚖️ Partage"
+        lines.append(f"🧭 BIAIS JOUR: {verdict} (▲{up} ▼{dn} · moy {avg:+.2f}%)")
+
+    strong = [r for r in rated if abs(r["daily_chg"]) > min_abs]
+    bulls = sorted([r for r in strong if r["daily_chg"] > 0],
+                   key=lambda r: r["daily_chg"], reverse=True)[:top_n]
+    bears = sorted([r for r in strong if r["daily_chg"] < 0],
+                   key=lambda r: r["daily_chg"])[:top_n]
     if bulls:
+        lines.append("")
         lines.append("TOP DAILY BULL")
         for r in bulls:
             lines.append(f"🟢{r['pair']} ({r['daily_chg']:+.2f})")
     if bears:
-        if bulls:
-            lines.append("")
+        lines.append("")
         lines.append("TOP DAILY BEAR")
         for r in bears:
             lines.append(f"🔴{r['pair']} ({r['daily_chg']:+.2f})")
