@@ -429,21 +429,31 @@ def daily_chg_section(all_rows: list[dict], top_n: int = 3, min_abs: float = 0.1
         lines.append("💪 Fortes: " + " · ".join(f"{c} {v:+.2f}" for c, v in strong))
         lines.append("🥀 Faibles: " + " · ".join(f"{c} {v:+.2f}" for c, v in weak))
 
+    # Streak Renko HEBDO (W) dans le sens du mouvement (vert pour bull, rouge
+    # pour bear). 0 = pas de run hebdo dans ce sens.
+    def wk_streak(r: dict, direction: int) -> int:
+        w = r.get("states", {}).get("W")
+        if w is None:
+            return 0
+        return w.green_streak if direction > 0 else w.red_streak
+
+    # Confluence: on ne garde dans un TOP que les paires dont le streak W est
+    # plein (>= 1) ET dans le sens du mouvement. Le streak est affiche (· W3).
     movers = [r for r in rated if abs(r["daily_chg"]) > min_abs]
-    bulls = sorted([r for r in movers if r["daily_chg"] > 0],
+    bulls = sorted([r for r in movers if r["daily_chg"] > 0 and wk_streak(r, 1) >= 1],
                    key=lambda r: r["daily_chg"], reverse=True)[:top_n]
-    bears = sorted([r for r in movers if r["daily_chg"] < 0],
+    bears = sorted([r for r in movers if r["daily_chg"] < 0 and wk_streak(r, -1) >= 1],
                    key=lambda r: r["daily_chg"])[:top_n]
     if bulls:
         lines.append("")
         lines.append("TOP DAILY BULL")
         for r in bulls:
-            lines.append(f"🟢{r['pair']} ({r['daily_chg']:+.2f})")
+            lines.append(f"🟢{r['pair']} ({r['daily_chg']:+.2f}) · W{wk_streak(r, 1)}")
     if bears:
         lines.append("")
         lines.append("TOP DAILY BEAR")
         for r in bears:
-            lines.append(f"🔴{r['pair']} ({r['daily_chg']:+.2f})")
+            lines.append(f"🔴{r['pair']} ({r['daily_chg']:+.2f}) · W{wk_streak(r, -1)}")
     return lines
 
 
