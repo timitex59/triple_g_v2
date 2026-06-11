@@ -444,31 +444,35 @@ def daily_chg_section(all_rows: list[dict], top_n: int = 3, min_abs: float = 0.1
         lines.append(f"💪 Fortes: {strong[0]} {strong[1]:+.2f}")
         lines.append(f"🥀 Faibles: {weak[0]} {weak[1]:+.2f}")
 
-    # Streak Renko HEBDO (W) dans le sens du mouvement (vert pour bull, rouge
-    # pour bear). 0 = pas de run hebdo dans ce sens.
-    def wk_streak(r: dict, direction: int) -> int:
-        w = r.get("states", {}).get("W")
-        if w is None:
+    # Streak Renko (vert pour bull, rouge pour bear) pour un timeframe donne.
+    # 0 = pas de run dans ce sens.
+    def tf_streak(r: dict, tf: str, direction: int) -> int:
+        s = r.get("states", {}).get(tf)
+        if s is None:
             return 0
-        return w.green_streak if direction > 0 else w.red_streak
+        return s.green_streak if direction > 0 else s.red_streak
 
-    # Confluence: on ne garde dans un TOP que les paires dont le streak W est
-    # plein (>= 1) ET dans le sens du mouvement. Le streak est affiche (· W3).
+    # Confluence: on ne garde dans un TOP que les paires dont les streaks HEBDO
+    # (W) ET JOURNALIER (D) sont pleins (>= 1) ET dans le sens du mouvement.
+    # Les deux streaks sont affiches (· W3 D2).
+    def aligned(r: dict, direction: int) -> bool:
+        return tf_streak(r, "W", direction) >= 1 and tf_streak(r, "D", direction) >= 1
+
     movers = [r for r in rated if abs(r["daily_chg"]) > min_abs]
-    bulls = sorted([r for r in movers if r["daily_chg"] > 0 and wk_streak(r, 1) >= 1],
+    bulls = sorted([r for r in movers if r["daily_chg"] > 0 and aligned(r, 1)],
                    key=lambda r: r["daily_chg"], reverse=True)[:top_n]
-    bears = sorted([r for r in movers if r["daily_chg"] < 0 and wk_streak(r, -1) >= 1],
+    bears = sorted([r for r in movers if r["daily_chg"] < 0 and aligned(r, -1)],
                    key=lambda r: r["daily_chg"])[:top_n]
     if bulls:
         lines.append("")
         lines.append("TOP DAILY BULL")
         for r in bulls:
-            lines.append(f"🟢{r['pair']} ({r['daily_chg']:+.2f}) · W{wk_streak(r, 1)}")
+            lines.append(f"🟢{r['pair']} ({r['daily_chg']:+.2f}) · W{tf_streak(r, 'W', 1)} D{tf_streak(r, 'D', 1)}")
     if bears:
         lines.append("")
         lines.append("TOP DAILY BEAR")
         for r in bears:
-            lines.append(f"🔴{r['pair']} ({r['daily_chg']:+.2f}) · W{wk_streak(r, -1)}")
+            lines.append(f"🔴{r['pair']} ({r['daily_chg']:+.2f}) · W{tf_streak(r, 'W', -1)} D{tf_streak(r, 'D', -1)}")
     return lines
 
 
