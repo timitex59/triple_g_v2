@@ -52,6 +52,14 @@ HISTORY_MAX_DAYS = 500     # borne la taille du fichier
 # partiel a des journees completes).
 INTRADAY_PROFILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                      "renko_intraday_profile.json")
+# Log vivant (auto-enrichissement): le spread de chaque heure est accumule a
+# chaque run. Des qu'une heure a >= MIN_LIVE echantillons, le percentile bascule
+# sur ces donnees RECENTES (le seed reste le repli, notamment pour les heures de
+# nuit hors fenetre cron).
+INTRADAY_LIVE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                  "renko_intraday_live.json")
+INTRADAY_LIVE_MIN = 60     # echantillons mini pour preferer le live au seed
+INTRADAY_LIVE_CAP = 300    # garde au plus N echantillons recents par heure
 NY_TZ = ZoneInfo("America/New_York")
 SESSION_OPEN_HOUR = 17     # 17:00 New York = ouverture journaliere OANDA
 
@@ -584,20 +592,55 @@ def session_hour_idx(now: datetime | None = None) -> int:
     return int((now - op).total_seconds() // 3600)
 
 
-def intraday_rank(profile: dict | None, spread: float, now: datetime | None = None) -> dict | None:
-    """Classe le spread courant vs la distribution historique de la MEME heure
-    (depuis l'ouverture de session). Renvoie pct, heure, mediane, label."""
-    if not profile:
-        return None
-    h = session_hour_idx(now)
-    bh = profile.get("by_hour", {}).get(str(h))
-    if not bh:
-        return None
-    q = bh["q"]                       # 101 quantiles tries P0..P100
-    pct = max(0, min(100, bisect.bisect_right(q, spread) - 1))
-    label = ("EXTREME" if pct >= 90 else "FORTE" if pct >= 66
-             else "NORMALE" if pct >= 33 else "FAIBLE")
-    return {"pct": float(pct), "hour": h, "n": bh.get("n", 0), "median": q[50], "label": label}
+def _load_intraday_live() -> dict:
+    try:
+        with open(INTRADAY_LIVE_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def update_intraday_live(live_log: dict, hour_idx: int, spread: float) -> None:
+    """Ajoute le spread de l'heure courante au log vivant (borne a INTRADAY_LIVE_CAP
+    echantillons recents par heure) et sauvegarde."""
+    key = str(hour_idx)
+    arr = live_log.get(key, [])
+    arr.append(round(spread, 4))
+    if len(arr) > INTRADAY_LIVE_CAP:
+        arr = arr[-INTRADAY_LIVE_CAP:]
+    live_log[key] = arr
+    try:
+        with open(INTRADAY_LIVE_PATH, "w", encoding="utf-8") as f:
+            json.dump(live_log, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def _intensity_label(pct: float) -> str:
+    return ("EXTREME" if pct >= 90 else "FORTE" if pct >= 66
+            else "NORMALE" if pct >= 33 else "FAIBLE")
+
+
+def intraday_rank(profile: dict | None, live_log: dict | None, spread: float,
+                  h_idx: int | None = None) -> dict | None:
+    """Classe le spread courant vs la MEME heure: en priorite sur les donnees
+    LIVE accumulees (si >= INTRADAY_LIVE_MIN echantillons), sinon sur le profil
+    seed. Renvoie pct, heure, mediane, source, label."""
+    h = h_idx if h_idx is not None else session_hour_idx()
+    samples = (live_log or {}).get(str(h))
+    if samples and len(samples) >= INTRADAY_LIVE_MIN:
+        srt = sorted(samples)
+        pct = max(0.0, min(100.0, 100.0 * bisect.bisect_right(srt, spread) / len(srt)))
+        return {"pct": pct, "hour": h, "n": len(srt), "median": srt[len(srt) // 2],
+                "src": "live", "label": _intensity_label(pct)}
+    bh = (profile or {}).get("by_hour", {}).get(str(h)) if profile else None
+    if bh:
+        q = bh["q"]                       # 101 quantiles tries P0..P100
+        pct = max(0.0, min(100.0, float(bisect.bisect_right(q, spread) - 1)))
+        return {"pct": pct, "hour": h, "n": bh.get("n", 0), "median": q[50],
+                "src": "seed", "label": _intensity_label(pct)}
+    return None
 
 
 def _load_regime_reference() -> dict | None:
@@ -657,14 +700,17 @@ def daily_chg_section(all_rows: list[dict]) -> list[str]:
 
     is_neutral = False
     intensity = ""
-    intra = intraday_rank(_load_intraday_profile(), spread)
+    h_idx = session_hour_idx()
+    live_log = _load_intraday_live()
+    intra = intraday_rank(_load_intraday_profile(), live_log, spread, h_idx)
+    update_intraday_live(live_log, h_idx, spread)   # accumule (today exclu du classement)
     if intra is not None:
         # Percentile TIME-OF-DAY: juste a chaque heure (vs la meme heure passee).
         pct = intra["pct"]
         is_neutral = pct < 33
         if not is_neutral and pct >= 66:
             intensity = " · EXTREME" if pct >= 90 else " · FORTE"
-        rank_txt = f"spread {spread:.2f} · P{pct:.0f} (h+{intra['hour']}, méd {intra['median']:.2f})"
+        rank_txt = f"spread {spread:.2f} · P{pct:.0f} (h+{intra['hour']} {intra['src']}, méd {intra['median']:.2f})"
     else:
         # Repli: percentile vs historique journalier (jours complets).
         rk = rank_spread(hist, day_key, spread)
