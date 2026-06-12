@@ -55,6 +55,13 @@ INTRADAY_PROFILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 NY_TZ = ZoneInfo("America/New_York")
 SESSION_OPEN_HOUR = 17     # 17:00 New York = ouverture journaliere OANDA
 
+# Reference de regime long terme (statique, construite par seed_regime_reference.py):
+# distribution du spread quotidien sur ~22 ans. Situe la PERIODE actuelle (calme /
+# agitee) vs le long terme.
+REGIME_REFERENCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                     "renko_regime_reference.json")
+REGIME_WINDOW = 30         # jours recents pour estimer le regime courant
+
 
 TIMEFRAME_LABELS = {"M": "Monthly", "W": "Weekly", "D": "Daily"}
 WEIGHTS = {"M": 3.0, "W": 2.0, "D": 1.0}
@@ -593,6 +600,34 @@ def intraday_rank(profile: dict | None, spread: float, now: datetime | None = No
     return {"pct": float(pct), "hour": h, "n": bh.get("n", 0), "median": q[50], "label": label}
 
 
+def _load_regime_reference() -> dict | None:
+    try:
+        with open(REGIME_REFERENCE_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) and data.get("q") else None
+    except Exception:
+        return None
+
+
+def regime_line(hist: dict) -> str | None:
+    """Situe la PERIODE recente (mediane du spread sur REGIME_WINDOW jours) vs la
+    distribution long terme (~22 ans). Renvoie une ligne '🌐 Régime: ...' ou None."""
+    ref = _load_regime_reference()
+    if not ref:
+        return None
+    recent = [v["spread"] for k, v in sorted(hist.items())
+              if isinstance(v, dict) and "spread" in v][-REGIME_WINDOW:]
+    if len(recent) < 10:
+        return None
+    med = statistics.median(recent)
+    q = ref["q"]
+    pct = max(0, min(100, bisect.bisect_right(q, med) - 1))
+    label = ("très agité" if pct >= 85 else "agité" if pct >= 66
+             else "normal" if pct >= 33 else "calme" if pct >= 15 else "très calme")
+    return (f"🌐 Régime: {label} — P{pct:.0f}/{ref['n'] // 250}ans "
+            f"(méd {REGIME_WINDOW}j {med:.2f} vs {ref['median']:.2f})")
+
+
 def daily_chg_section(all_rows: list[dict]) -> list[str]:
     """Biais journalier credible du marche, sur le CHG%D:
       1) verdict 🐂/🐻/⚖️ (breadth ET force concordent ; NEUTRE si marche calme)
@@ -651,6 +686,10 @@ def daily_chg_section(all_rows: list[dict]) -> list[str]:
     if not is_neutral and len(strength) >= 2:
         lines.append(f"💪 Fortes: {strength[0][0]} {strength[0][1]:+.2f}")
         lines.append(f"🥀 Faibles: {strength[-1][0]} {strength[-1][1]:+.2f}")
+
+    reg = regime_line(hist)
+    if reg:
+        lines.append(reg)
 
     return lines
 
