@@ -19,6 +19,9 @@ the logic of renko_forex_V16.pine:
 """
 
 import argparse
+import json
+import os
+import statistics
 import sys
 from dataclasses import dataclass
 from datetime import datetime
@@ -32,6 +35,15 @@ from ichimoku_v4 import PAIRS_29, fetch_tv_ohlc, send_telegram_message
 PARIS_TZ = ZoneInfo("Europe/Paris")
 SCORE_THRESHOLD = 60.0
 CHG_THRESHOLD = 0.1
+
+# Suivi historique de l'intensite de tendance (dispersion des devises majeures).
+# Sert a juger le jour en RELATIF (percentile sur une fenetre glissante) plutot
+# qu'avec un seuil fixe arbitraire.
+STRENGTH_HISTORY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                     "renko_strength_history.json")
+HISTORY_WINDOW = 60        # jours glissants de reference
+HISTORY_CALIB_MIN = 20     # jours mini avant d'utiliser le percentile
+HISTORY_MAX_DAYS = 500     # borne la taille du fichier
 
 
 TIMEFRAME_LABELS = {"M": "Monthly", "W": "Weekly", "D": "Daily"}
@@ -488,6 +500,55 @@ def top_daily_ok(r: dict, direction: int, min_abs: float = 0.15) -> bool:
     return tf_streak(r, "W", direction) >= 1 and tf_streak(r, "D", direction) >= 1
 
 
+def _load_strength_history() -> dict:
+    try:
+        with open(STRENGTH_HISTORY_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_strength_history(hist: dict) -> None:
+    try:
+        with open(STRENGTH_HISTORY_PATH, "w", encoding="utf-8") as f:
+            json.dump(hist, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def update_strength_history(day_key: str, spread: float, avg: float, up: int, dn: int) -> dict:
+    """Met a jour l'entree du JOUR (ecrasee a chaque run -> finit a la valeur de
+    cloture), borne l'historique, et renvoie tout l'historique."""
+    hist = _load_strength_history()
+    hist[day_key] = {
+        "spread": round(spread, 4),
+        "force": round(avg, 4),
+        "up": up,
+        "dn": dn,
+        "ts": datetime.now(PARIS_TZ).strftime("%Y-%m-%d %H:%M"),
+    }
+    keys = sorted(hist.keys())
+    for k in keys[:-HISTORY_MAX_DAYS]:
+        del hist[k]
+    _save_strength_history(hist)
+    return hist
+
+
+def rank_spread(hist: dict, day_key: str, value: float, window: int = HISTORY_WINDOW) -> dict:
+    """Classe la dispersion du jour vs les `window` derniers jours COMPLETS
+    (aujourd'hui exclu). Renvoie n, percentile, pic, mediane, label."""
+    past = [v["spread"] for k, v in sorted(hist.items())
+            if k != day_key and isinstance(v, dict) and "spread" in v][-window:]
+    n = len(past)
+    if n == 0:
+        return {"n": 0, "pct": 0.0, "peak": value, "median": value, "label": "?"}
+    pct = 100.0 * sum(1 for x in past if x <= value) / n
+    label = ("EXTREME" if pct >= 90 else "FORTE" if pct >= 66
+             else "NORMALE" if pct >= 33 else "FAIBLE")
+    return {"n": n, "pct": pct, "peak": max(past), "median": statistics.median(past), "label": label}
+
+
 def daily_chg_section(all_rows: list[dict]) -> list[str]:
     """Biais journalier credible du marche, sur le CHG%D:
       1) verdict 🐂/🐻/⚖️ (breadth ET force concordent ; NEUTRE si marche calme)
@@ -502,35 +563,41 @@ def daily_chg_section(all_rows: list[dict]) -> list[str]:
     dn = sum(1 for r in rated if r["daily_chg"] < 0)
     avg = sum(r["daily_chg"] for r in rated) / len(rated)
     if up > dn and avg > 0:
-        verdict = "🐂 BULL domine"
+        emoji, direction = "🐂", "BULL"
     elif dn > up and avg < 0:
-        verdict = "🐻 BEAR domine"
+        emoji, direction = "🐻", "BEAR"
     else:
-        verdict = "⚖️ Partage"
+        emoji, direction = "⚖️", "Partage"
 
     strength = currency_strength(rated)
+    # Intensite de tendance = dispersion des devises (la plus forte - la plus
+    # faible). On la classe vs l'historique glissant pour juger en relatif.
+    spread = (strength[0][1] - strength[-1][1]) if len(strength) >= 2 else 0.0
+    day_key = datetime.now(PARIS_TZ).date().isoformat()
+    hist = update_strength_history(day_key, spread, avg, up, dn)
+    rk = rank_spread(hist, day_key, spread)
 
-    # Si la devise la plus forte OU la plus faible du jour bouge < 0.1% en
-    # valeur absolue, le marche est trop calme pour parler de domination.
     is_neutral = False
-    if len(strength) >= 2:
-        strongest_val = strength[0][1]
-        weakest_val = strength[-1][1]
-        if abs(strongest_val) < 0.1 or abs(weakest_val) < 0.1:
+    intensity = ""
+    if rk["n"] >= HISTORY_CALIB_MIN:
+        # Seuil adaptatif: bas du panier (P<33) = pas de vraie tendance.
+        is_neutral = rk["pct"] < 33
+        if not is_neutral and rk["pct"] >= 66:
+            intensity = " · EXTREME" if rk["pct"] >= 90 else " · FORTE"
+        rank_txt = f"spread {spread:.2f} · P{rk['pct']:.0f} (pic{HISTORY_WINDOW}j {rk['peak']:.2f})"
+    else:
+        # Calibrage (pas assez d'historique): garde-fou fixe a 0.1% comme avant.
+        if len(strength) >= 2 and (abs(strength[0][1]) < 0.1 or abs(strength[-1][1]) < 0.1):
             is_neutral = True
+        rank_txt = f"spread {spread:.2f} (calibrage {rk['n']}/{HISTORY_CALIB_MIN}j)"
 
-    if is_neutral:
-        verdict_emoji = verdict.split(" ", 1)[0]
-        verdict = f"{verdict_emoji} NEUTRE"
-
+    verdict = f"{emoji} NEUTRE" if is_neutral else f"{emoji} {direction}{intensity}"
     lines.append(verdict)
-    lines.append(f"▲{up} ▼{dn} ({avg:+.2f}%)")
+    lines.append(f"▲{up} ▼{dn} ({avg:+.2f}%) · {rank_txt}")
 
     if not is_neutral and len(strength) >= 2:
-        strong = strength[0]
-        weak = strength[-1]
-        lines.append(f"💪 Fortes: {strong[0]} {strong[1]:+.2f}")
-        lines.append(f"🥀 Faibles: {weak[0]} {weak[1]:+.2f}")
+        lines.append(f"💪 Fortes: {strength[0][0]} {strength[0][1]:+.2f}")
+        lines.append(f"🥀 Faibles: {strength[-1][0]} {strength[-1][1]:+.2f}")
 
     return lines
 
