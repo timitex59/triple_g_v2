@@ -19,12 +19,13 @@ the logic of renko_forex_V16.pine:
 """
 
 import argparse
+import bisect
 import json
 import os
 import statistics
 import sys
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -44,6 +45,15 @@ STRENGTH_HISTORY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 HISTORY_WINDOW = 60        # jours glissants de reference
 HISTORY_CALIB_MIN = 20     # jours mini avant d'utiliser le percentile
 HISTORY_MAX_DAYS = 500     # borne la taille du fichier
+
+# Profil intraday (statique, construit par seed_intraday_profile.py): pour chaque
+# heure depuis l'ouverture de session NY, la distribution historique du spread.
+# Permet un percentile JUSTE a chaque heure (au lieu de comparer un mouvement
+# partiel a des journees completes).
+INTRADAY_PROFILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                     "renko_intraday_profile.json")
+NY_TZ = ZoneInfo("America/New_York")
+SESSION_OPEN_HOUR = 17     # 17:00 New York = ouverture journaliere OANDA
 
 
 TIMEFRAME_LABELS = {"M": "Monthly", "W": "Weekly", "D": "Daily"}
@@ -549,6 +559,40 @@ def rank_spread(hist: dict, day_key: str, value: float, window: int = HISTORY_WI
     return {"n": n, "pct": pct, "peak": max(past), "median": statistics.median(past), "label": label}
 
 
+def _load_intraday_profile() -> dict | None:
+    try:
+        with open(INTRADAY_PROFILE_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) and data.get("by_hour") else None
+    except Exception:
+        return None
+
+
+def session_hour_idx(now: datetime | None = None) -> int:
+    """Nombre d'heures ecoulees depuis l'ouverture de session NY (17:00)."""
+    now = (now or datetime.now(NY_TZ)).astimezone(NY_TZ)
+    op = now.replace(hour=SESSION_OPEN_HOUR, minute=0, second=0, microsecond=0)
+    if now < op:
+        op -= timedelta(days=1)
+    return int((now - op).total_seconds() // 3600)
+
+
+def intraday_rank(profile: dict | None, spread: float, now: datetime | None = None) -> dict | None:
+    """Classe le spread courant vs la distribution historique de la MEME heure
+    (depuis l'ouverture de session). Renvoie pct, heure, mediane, label."""
+    if not profile:
+        return None
+    h = session_hour_idx(now)
+    bh = profile.get("by_hour", {}).get(str(h))
+    if not bh:
+        return None
+    q = bh["q"]                       # 101 quantiles tries P0..P100
+    pct = max(0, min(100, bisect.bisect_right(q, spread) - 1))
+    label = ("EXTREME" if pct >= 90 else "FORTE" if pct >= 66
+             else "NORMALE" if pct >= 33 else "FAIBLE")
+    return {"pct": float(pct), "hour": h, "n": bh.get("n", 0), "median": q[50], "label": label}
+
+
 def daily_chg_section(all_rows: list[dict]) -> list[str]:
     """Biais journalier credible du marche, sur le CHG%D:
       1) verdict 🐂/🐻/⚖️ (breadth ET force concordent ; NEUTRE si marche calme)
@@ -575,21 +619,30 @@ def daily_chg_section(all_rows: list[dict]) -> list[str]:
     spread = (strength[0][1] - strength[-1][1]) if len(strength) >= 2 else 0.0
     day_key = datetime.now(PARIS_TZ).date().isoformat()
     hist = update_strength_history(day_key, spread, avg, up, dn)
-    rk = rank_spread(hist, day_key, spread)
 
     is_neutral = False
     intensity = ""
-    if rk["n"] >= HISTORY_CALIB_MIN:
-        # Seuil adaptatif: bas du panier (P<33) = pas de vraie tendance.
-        is_neutral = rk["pct"] < 33
-        if not is_neutral and rk["pct"] >= 66:
-            intensity = " · EXTREME" if rk["pct"] >= 90 else " · FORTE"
-        rank_txt = f"spread {spread:.2f} · P{rk['pct']:.0f} (pic{HISTORY_WINDOW}j {rk['peak']:.2f})"
+    intra = intraday_rank(_load_intraday_profile(), spread)
+    if intra is not None:
+        # Percentile TIME-OF-DAY: juste a chaque heure (vs la meme heure passee).
+        pct = intra["pct"]
+        is_neutral = pct < 33
+        if not is_neutral and pct >= 66:
+            intensity = " · EXTREME" if pct >= 90 else " · FORTE"
+        rank_txt = f"spread {spread:.2f} · P{pct:.0f} (h+{intra['hour']}, méd {intra['median']:.2f})"
     else:
-        # Calibrage (pas assez d'historique): garde-fou fixe a 0.1% comme avant.
-        if len(strength) >= 2 and (abs(strength[0][1]) < 0.1 or abs(strength[-1][1]) < 0.1):
-            is_neutral = True
-        rank_txt = f"spread {spread:.2f} (calibrage {rk['n']}/{HISTORY_CALIB_MIN}j)"
+        # Repli: percentile vs historique journalier (jours complets).
+        rk = rank_spread(hist, day_key, spread)
+        if rk["n"] >= HISTORY_CALIB_MIN:
+            is_neutral = rk["pct"] < 33
+            if not is_neutral and rk["pct"] >= 66:
+                intensity = " · EXTREME" if rk["pct"] >= 90 else " · FORTE"
+            rank_txt = f"spread {spread:.2f} · P{rk['pct']:.0f} (pic{HISTORY_WINDOW}j {rk['peak']:.2f})"
+        else:
+            # Calibrage: garde-fou fixe a 0.1% comme avant.
+            if len(strength) >= 2 and (abs(strength[0][1]) < 0.1 or abs(strength[-1][1]) < 0.1):
+                is_neutral = True
+            rank_txt = f"spread {spread:.2f} (calibrage {rk['n']}/{HISTORY_CALIB_MIN}j)"
 
     verdict = f"{emoji} NEUTRE" if is_neutral else f"{emoji} {direction}{intensity}"
     lines.append(verdict)
