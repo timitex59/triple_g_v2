@@ -174,6 +174,63 @@ def streaks_from_bricks(bricks: list[tuple[float, float, int]], max_bars: int) -
     return green, red
 
 
+# Parabolic SAR (rapide) pour le timing 1H: start AF 0.1, increment 0.1, max 0.2.
+SAR_AF_START = 0.1
+SAR_AF_STEP = 0.1
+SAR_AF_MAX = 0.2
+
+
+def parabolic_sar(df: pd.DataFrame,
+                  af_start: float = SAR_AF_START,
+                  af_step: float = SAR_AF_STEP,
+                  af_max: float = SAR_AF_MAX) -> list[int] | None:
+    """Parabolic SAR classique. Renvoie la liste des directions de tendance par
+    barre: +1 = haussier (SAR sous le prix), -1 = baissier (SAR au-dessus).
+    Un changement de valeur entre deux barres = retournement (cross du prix vs
+    SAR). None si pas assez de barres."""
+    high = [float(x) for x in df["high"].tolist()]
+    low = [float(x) for x in df["low"].tolist()]
+    n = len(high)
+    if n < 3:
+        return None
+
+    trend = [1] * n
+    trend[0] = 1 if high[1] >= high[0] else -1
+    if trend[0] == 1:
+        ep, sar = high[0], low[0]
+    else:
+        ep, sar = low[0], high[0]
+    af = af_start
+
+    for i in range(1, n):
+        sar = sar + af * (ep - sar)
+        if trend[i - 1] == 1:
+            sar = min(sar, low[i - 1], low[i - 2] if i >= 2 else low[i - 1])
+            if low[i] < sar:                      # retournement haussier -> baissier
+                trend[i] = -1
+                sar = ep
+                ep = low[i]
+                af = af_start
+            else:
+                trend[i] = 1
+                if high[i] > ep:
+                    ep = high[i]
+                    af = min(af + af_step, af_max)
+        else:
+            sar = max(sar, high[i - 1], high[i - 2] if i >= 2 else high[i - 1])
+            if high[i] > sar:                     # retournement baissier -> haussier
+                trend[i] = 1
+                sar = ep
+                ep = high[i]
+                af = af_start
+            else:
+                trend[i] = -1
+                if low[i] < ep:
+                    ep = low[i]
+                    af = min(af + af_step, af_max)
+    return trend
+
+
 def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
     """Same Fibo as the V15 Pine "Monthly Reset" panel, but built from H1
     bars: range = high/low accumulated since the start of the current
@@ -199,6 +256,13 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
     live_price = float(df["close"].iloc[-1])
     position = "ABOVE" if live_price > fib50 else ("BELOW" if live_price < fib50 else "AT")
 
+    # Parabolic SAR 1H: direction courante + retournement sur la derniere barre
+    # (le prix vient de croiser le SAR). Sert a poser la 🔥 si le retournement
+    # va dans le sens de la tendance RENKO FIBO.
+    sar_trend = parabolic_sar(df)
+    sar_dir = sar_trend[-1] if sar_trend else 0
+    sar_flipped = bool(sar_trend and len(sar_trend) >= 2 and sar_trend[-1] != sar_trend[-2])
+
     return {
         "fib50": fib50,
         "position": position,
@@ -206,6 +270,8 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
         "month_high": month_high,
         "month_low": month_low,
         "pct_of_range": (live_price - month_low) / fib_range * 100.0,
+        "sar_dir": sar_dir,
+        "sar_flipped": sar_flipped,
     }
 
 
@@ -486,7 +552,13 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
         fib_letter = "?"
         if h1_fib is not None:
             fib_letter = "A" if h1_fib["position"] == "ABOVE" else ("B" if h1_fib["position"] == "BELOW" else "=")
-        lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%)")
+        # 🔥 si le Parabolic SAR 1H vient de se retourner dans le sens du signal
+        # (sortie de retracement en faveur de la tendance).
+        flame = ""
+        if (h1_fib is not None and h1_fib.get("sar_flipped")
+                and h1_fib.get("sar_dir") == row["signal_state"]):
+            flame = " 🔥"
+        lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){flame}")
 
     # Section CHG%D journalier, sur l'ensemble des paires (pas seulement les
     # signaux confirmes RENKO FIBO).
