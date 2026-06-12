@@ -399,12 +399,34 @@ def currency_strength(rated: list[dict], min_pairs: int = 2) -> list[tuple[str, 
     return sorted(strength.items(), key=lambda kv: kv[1], reverse=True)
 
 
-def daily_chg_section(all_rows: list[dict], top_n: int = 3, min_abs: float = 0.15) -> list[str]:
+def tf_streak(r: dict, tf: str, direction: int) -> int:
+    """Streak Renko (vert si direction>0, rouge sinon) pour un timeframe (M/W/D).
+    0 = pas de run dans ce sens."""
+    s = r.get("states", {}).get(tf)
+    if s is None:
+        return 0
+    return s.green_streak if direction > 0 else s.red_streak
+
+
+def top_daily_ok(r: dict, direction: int, min_abs: float = 0.15) -> bool:
+    """Qualification 'TOP DAILY' qui renforce RENKO FIBO: mouvement du jour dans
+    le sens `direction` et > min_abs, ET streaks Renko HEBDO (W) ET JOURNALIER (D)
+    pleins (>= 1) et alignes avec ce sens."""
+    chg = r.get("daily_chg")
+    if chg is None:
+        return False
+    if direction > 0 and chg <= min_abs:
+        return False
+    if direction < 0 and chg >= -min_abs:
+        return False
+    return tf_streak(r, "W", direction) >= 1 and tf_streak(r, "D", direction) >= 1
+
+
+def daily_chg_section(all_rows: list[dict]) -> list[str]:
     """Biais journalier credible du marche, sur le CHG%D:
-      1) verdict 🐂/🐻/⚖️ exigeant que breadth (nombre) ET force (moyenne) concordent
+      1) verdict 🐂/🐻/⚖️ (breadth ET force concordent ; NEUTRE si marche calme)
       2) breadth chiffree + force moyenne
-      3) currency strength meter (devises fortes / faibles)
-      4) TOP <n> hausses / baisses (seulement |CHG%D| > min_abs)."""
+      3) currency strength meter (devise forte / faible)."""
     rated = [r for r in all_rows if r.get("daily_chg") is not None]
     lines: list[str] = []
     if not rated:
@@ -444,35 +466,6 @@ def daily_chg_section(all_rows: list[dict], top_n: int = 3, min_abs: float = 0.1
         lines.append(f"💪 Fortes: {strong[0]} {strong[1]:+.2f}")
         lines.append(f"🥀 Faibles: {weak[0]} {weak[1]:+.2f}")
 
-    # Streak Renko (vert pour bull, rouge pour bear) pour un timeframe donne.
-    # 0 = pas de run dans ce sens.
-    def tf_streak(r: dict, tf: str, direction: int) -> int:
-        s = r.get("states", {}).get(tf)
-        if s is None:
-            return 0
-        return s.green_streak if direction > 0 else s.red_streak
-
-    # Confluence: on ne garde dans un TOP que les paires dont les streaks HEBDO
-    # (W) ET JOURNALIER (D) sont pleins (>= 1) ET dans le sens du mouvement.
-    # Les deux streaks sont affiches (· W3 D2).
-    def aligned(r: dict, direction: int) -> bool:
-        return tf_streak(r, "W", direction) >= 1 and tf_streak(r, "D", direction) >= 1
-
-    movers = [r for r in rated if abs(r["daily_chg"]) > min_abs]
-    bulls = sorted([r for r in movers if r["daily_chg"] > 0 and aligned(r, 1)],
-                   key=lambda r: r["daily_chg"], reverse=True)[:top_n]
-    bears = sorted([r for r in movers if r["daily_chg"] < 0 and aligned(r, -1)],
-                   key=lambda r: r["daily_chg"])[:top_n]
-    if bulls:
-        lines.append("")
-        lines.append("TOP DAILY BULL")
-        for r in bulls:
-            lines.append(f"🟢{r['pair']} ({r['daily_chg']:+.2f}) · W{tf_streak(r, 'W', 1)} D{tf_streak(r, 'D', 1)}")
-    if bears:
-        lines.append("")
-        lines.append("TOP DAILY BEAR")
-        for r in bears:
-            lines.append(f"🔴{r['pair']} ({r['daily_chg']:+.2f}) · W{tf_streak(r, 'W', -1)} D{tf_streak(r, 'D', -1)}")
     return lines
 
 
@@ -482,6 +475,10 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
     # instead of a flat descending sort that buries the strongest BEAR
     # (-100%) at the bottom, after the weaker BULL signals.
     ordered = sorted(rows, key=lambda r: (-r["signal_state"], -abs(r["weighted_pct"])))
+    # Renforcement: une paire confirmee n'apparait dans RENKO FIBO que si elle
+    # qualifie aussi pour le TOP DAILY de son sens (mouvement du jour > seuil +
+    # streaks Renko W et D pleins et alignes).
+    ordered = [r for r in ordered if top_daily_ok(r, r["signal_state"])]
     lines = ["📊 RENKO FIBO", ""]
     for row in ordered:
         icon = "🟢" if row["signal_state"] == 1 else "🔴"
