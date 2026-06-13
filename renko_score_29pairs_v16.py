@@ -652,23 +652,24 @@ def _load_regime_reference() -> dict | None:
         return None
 
 
-def regime_line(hist: dict) -> str | None:
+def regime_block(hist: dict) -> list[str]:
     """Situe la PERIODE recente (mediane du spread sur REGIME_WINDOW jours) vs la
-    distribution long terme (~22 ans). Renvoie une ligne '🌐 Régime: ...' ou None."""
+    distribution long terme (~22 ans). Renvoie 2 lignes (label + valeurs) ou []."""
     ref = _load_regime_reference()
     if not ref:
-        return None
+        return []
     recent = [v["spread"] for k, v in sorted(hist.items())
               if isinstance(v, dict) and "spread" in v][-REGIME_WINDOW:]
     if len(recent) < 10:
-        return None
+        return []
     med = statistics.median(recent)
     q = ref["q"]
     pct = max(0, min(100, bisect.bisect_right(q, med) - 1))
-    label = ("très agité" if pct >= 85 else "agité" if pct >= 66
-             else "normal" if pct >= 33 else "calme" if pct >= 15 else "très calme")
-    return (f"🌐 Régime: {label} — P{pct:.0f}/{ref['n'] // 250}ans "
-            f"(méd {REGIME_WINDOW}j {med:.2f} vs {ref['median']:.2f})")
+    label = ("TRÈS AGITÉ" if pct >= 85 else "AGITÉ" if pct >= 66
+             else "NORMAL" if pct >= 33 else "CALME" if pct >= 15 else "TRÈS CALME")
+    years = max(1, ref["n"] // 250)
+    return [f"🌐 RÉGIME: {label} · P{pct:.0f}/{years}ans",
+            f"    30j {med:.2f} / {years}ans {ref['median']:.2f}"]
 
 
 def daily_chg_section(all_rows: list[dict]) -> list[str]:
@@ -692,50 +693,40 @@ def daily_chg_section(all_rows: list[dict]) -> list[str]:
         emoji, direction = "⚖️", "Partage"
 
     strength = currency_strength(rated)
-    # Intensite de tendance = dispersion des devises (la plus forte - la plus
-    # faible). On la classe vs l'historique glissant pour juger en relatif.
     spread = (strength[0][1] - strength[-1][1]) if len(strength) >= 2 else 0.0
     day_key = datetime.now(PARIS_TZ).date().isoformat()
     hist = update_strength_history(day_key, spread, avg, up, dn)
 
-    is_neutral = False
-    intensity = ""
+    # 1) DIRECTION (le marche penche-t-il ?) + breadth + devises fortes/faibles.
+    if direction == "Partage":
+        lines.append("⚖️ Partagé")
+    else:
+        lines.append(f"{emoji} {direction} domine")
+    lines.append(f"▲{up} ▼{dn} ({avg:+.2f}%)")
+    if len(strength) >= 2:
+        lines.append(f"💪 Fortes: {strength[0][0]} {strength[0][1]:+.2f}")
+        lines.append(f"🥀 Faibles: {strength[-1][0]} {strength[-1][1]:+.2f}")
+
+    # 2) INTENSITE (force du mouvement, relative a l'HEURE).
     h_idx = session_hour_idx()
     live_log = _load_intraday_live()
     intra = intraday_rank(_load_intraday_profile(), live_log, spread, h_idx)
     update_intraday_live(live_log, h_idx, spread)   # accumule (today exclu du classement)
+    lines.append("")
     if intra is not None:
-        # Percentile TIME-OF-DAY: juste a chaque heure (vs la meme heure passee).
-        pct = intra["pct"]
-        is_neutral = pct < 33
-        if not is_neutral and pct >= 66:
-            intensity = " · EXTREME" if pct >= 90 else " · FORTE"
-        rank_txt = f"spread {spread:.2f} · P{pct:.0f} (h+{intra['hour']} {intra['src']}, méd {intra['median']:.2f})"
+        lines.append(f"⚡ INTENSITÉ (h+{intra['hour']}): {intra['label']} · P{intra['pct']:.0f}")
+        lines.append(f"    spread {spread:.2f} / norme {intra['median']:.2f}")
     else:
-        # Repli: percentile vs historique journalier (jours complets).
         rk = rank_spread(hist, day_key, spread)
         if rk["n"] >= HISTORY_CALIB_MIN:
-            is_neutral = rk["pct"] < 33
-            if not is_neutral and rk["pct"] >= 66:
-                intensity = " · EXTREME" if rk["pct"] >= 90 else " · FORTE"
-            rank_txt = f"spread {spread:.2f} · P{rk['pct']:.0f} (pic{HISTORY_WINDOW}j {rk['peak']:.2f})"
+            lines.append(f"⚡ INTENSITÉ: {_intensity_label(rk['pct'])} · P{rk['pct']:.0f}")
+            lines.append(f"    spread {spread:.2f} / pic{HISTORY_WINDOW}j {rk['peak']:.2f}")
         else:
-            # Calibrage: garde-fou fixe a 0.1% comme avant.
-            if len(strength) >= 2 and (abs(strength[0][1]) < 0.1 or abs(strength[-1][1]) < 0.1):
-                is_neutral = True
-            rank_txt = f"spread {spread:.2f} (calibrage {rk['n']}/{HISTORY_CALIB_MIN}j)"
+            lines.append(f"⚡ INTENSITÉ: calibrage ({rk['n']}/{HISTORY_CALIB_MIN}j)")
+            lines.append(f"    spread {spread:.2f}")
 
-    verdict = f"{emoji} NEUTRE" if is_neutral else f"{emoji} {direction}{intensity}"
-    lines.append(verdict)
-    lines.append(f"▲{up} ▼{dn} ({avg:+.2f}%) · {rank_txt}")
-
-    if not is_neutral and len(strength) >= 2:
-        lines.append(f"💪 Fortes: {strength[0][0]} {strength[0][1]:+.2f}")
-        lines.append(f"🥀 Faibles: {strength[-1][0]} {strength[-1][1]:+.2f}")
-
-    reg = regime_line(hist)
-    if reg:
-        lines.append(reg)
+    # 3) REGIME (contexte de la periode vs ~22 ans).
+    lines.extend(regime_block(hist))
 
     return lines
 
