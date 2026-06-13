@@ -701,7 +701,12 @@ def daily_chg_section(all_rows: list[dict]) -> list[str]:
         lines.append("⚖️ Partagé")
     else:
         lines.append(f"{emoji} {direction} domine")
-    lines.append(f"▲{up} ▼{dn} ({avg:+.2f}%)")
+    # % de paires haussieres vs la norme 22 ans (mediane ~52%).
+    _ref = _load_regime_reference()
+    breadth_txt = ""
+    if _ref and _ref.get("breadth_median") is not None and (up + dn) > 0:
+        breadth_txt = f" · ({100.0 * up / (up + dn):.0f}% / {_ref['breadth_median']:.0f}%)"
+    lines.append(f"▲{up} ▼{dn} ({avg:+.2f}%){breadth_txt}")
     if len(strength) >= 2:
         lines.append(f"💪 Fortes: {strength[0][0]} {strength[0][1]:+.2f}")
         lines.append(f"🥀 Faibles: {strength[-1][0]} {strength[-1][1]:+.2f}")

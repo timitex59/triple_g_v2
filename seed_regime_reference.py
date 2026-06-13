@@ -35,7 +35,7 @@ OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "renko_regim
 MIN_PAIRS = 10
 
 
-def daily_spreads() -> list[float]:
+def daily_spreads() -> tuple[list[float], list[float]]:
     by_pair: dict[str, list[dict]] = {}
     for f in glob.glob(os.path.join(DATA_DIR, "OANDA_*.csv")):
         m = re.search(r"OANDA_([A-Z]{6})", os.path.basename(f))
@@ -58,7 +58,7 @@ def daily_spreads() -> list[float]:
         chg[p] = d
 
     dates = sorted(set().union(*[set(d) for d in chg.values()]))
-    spreads = []
+    spreads, breadth = [], []
     for dt in dates:
         rws = [{"pair": p, "daily_chg": chg[p][dt]} for p in chg if dt in chg[p]]
         if len(rws) < MIN_PAIRS:
@@ -67,7 +67,11 @@ def daily_spreads() -> list[float]:
         if len(s) < 2:
             continue
         spreads.append(s[0][1] - s[-1][1])
-    return spreads
+        up = sum(1 for r in rws if r["daily_chg"] > 0)
+        dn = sum(1 for r in rws if r["daily_chg"] < 0)
+        if up + dn > 0:
+            breadth.append(100.0 * up / (up + dn))   # % de paires haussieres
+    return spreads, breadth
 
 
 def main() -> int:
@@ -75,21 +79,27 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    vals = daily_spreads()
+    vals, breadth = daily_spreads()
     if len(vals) < 200:
         print(f"Pas assez de jours ({len(vals)}).")
         return 1
     vals.sort()
     n = len(vals)
     q = [round(vals[round(p / 100 * (n - 1))], 4) for p in range(101)]
+    breadth.sort()
+    nb = len(breadth)
+    bq = [round(breadth[round(p / 100 * (nb - 1))], 1) for p in range(101)] if nb else []
     ref = {
         "q": q,
         "median": round(statistics.median(vals), 4),
         "n": n,
+        "breadth_q": bq,                                   # % paires haussieres, P0..P100
+        "breadth_median": round(statistics.median(breadth), 1) if breadth else 50.0,
         "meta": {"generated_at": datetime.now(timezone.utc).isoformat()},
     }
     print(f"Jours: {n}")
-    print(f"Mediane {ref['median']} | P25 {q[25]} | P75 {q[75]} | P90 {q[90]} | pic {q[100]}")
+    print(f"Spread  mediane {ref['median']} | P25 {q[25]} | P75 {q[75]} | P90 {q[90]} | pic {q[100]}")
+    print(f"Breadth mediane {ref['breadth_median']}% | P25 {bq[25]}% | P75 {bq[75]}% | P90 {bq[90]}%")
 
     if args.dry_run:
         print("(dry-run: rien ecrit)")
