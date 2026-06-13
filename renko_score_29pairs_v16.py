@@ -667,9 +667,8 @@ def regime_block(hist: dict) -> list[str]:
     pct = max(0, min(100, bisect.bisect_right(q, med) - 1))
     label = ("TRÈS AGITÉ" if pct >= 85 else "AGITÉ" if pct >= 66
              else "NORMAL" if pct >= 33 else "CALME" if pct >= 15 else "TRÈS CALME")
-    years = max(1, ref["n"] // 250)
-    return [f"🌐 RÉGIME: {label} · P{pct:.0f}/{years}ans",
-            f"    30j {med:.2f} / {years}ans {ref['median']:.2f}"]
+    return [f"🌐 RÉGIME: {label}",
+            f"    ({med:.2f} / {ref['median']:.2f})"]
 
 
 def daily_chg_section(all_rows: list[dict]) -> list[str]:
@@ -714,16 +713,16 @@ def daily_chg_section(all_rows: list[dict]) -> list[str]:
     update_intraday_live(live_log, h_idx, spread)   # accumule (today exclu du classement)
     lines.append("")
     if intra is not None:
-        lines.append(f"⚡ INTENSITÉ (h+{intra['hour']}): {intra['label']} · P{intra['pct']:.0f}")
-        lines.append(f"    spread {spread:.2f} / norme {intra['median']:.2f}")
+        lines.append(f"⚡️ INTENSITÉ (h+{intra['hour']}): {intra['label']}")
+        lines.append(f"    ({spread:.2f} / {intra['median']:.2f})")
     else:
         rk = rank_spread(hist, day_key, spread)
         if rk["n"] >= HISTORY_CALIB_MIN:
-            lines.append(f"⚡ INTENSITÉ: {_intensity_label(rk['pct'])} · P{rk['pct']:.0f}")
-            lines.append(f"    spread {spread:.2f} / pic{HISTORY_WINDOW}j {rk['peak']:.2f}")
+            lines.append(f"⚡️ INTENSITÉ: {_intensity_label(rk['pct'])}")
+            lines.append(f"    ({spread:.2f} / {rk['peak']:.2f})")
         else:
-            lines.append(f"⚡ INTENSITÉ: calibrage ({rk['n']}/{HISTORY_CALIB_MIN}j)")
-            lines.append(f"    spread {spread:.2f}")
+            lines.append(f"⚡️ INTENSITÉ: calibrage ({rk['n']}/{HISTORY_CALIB_MIN}j)")
+            lines.append(f"    ({spread:.2f})")
 
     # 3) REGIME (contexte de la periode vs ~22 ans).
     lines.extend(regime_block(hist))
