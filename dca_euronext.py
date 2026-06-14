@@ -382,7 +382,10 @@ def main() -> int:
         sym = symbol if ":" in symbol else f"{DEFAULT_EXCHANGE}:{symbol}"
         ticker = sym.split(":")[-1]
         df = fetch_tv_ohlc(sym, "D", args.candles)
-        if df is None or df.empty or len(df) < 30:
+        # >=2 barres suffisent (PSAR a besoin de 2); les nouvelles cotations
+        # comme SPCX (SpaceX, IPO recente) sont suivies des qu'elles ont un peu
+        # d'historique, le 1er plus-haut servant de reference de drawdown.
+        if df is None or df.empty or len(df) < 2:
             print(f"{ticker}: pas de données")
             continue
         cycles, last = replay(df, ticker)
