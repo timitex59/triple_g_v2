@@ -323,17 +323,13 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
 
 
 def regular_global_message() -> str:
-    """Message GLOBAL (unique) du jour d'achat regulier — liste le(s) actif(s)."""
-    items = []
-    for t in REGULAR_TICKERS:
-        idx = INDEX_MAP.get(t)
-        items.append(f"• {t} = {idx}" if idx else f"• {t}")
-    titre = "Actif suivi en régulier" if len(REGULAR_TICKERS) == 1 else "Actifs suivis en régulier"
-    body = ("💼 ETF DCA — Achat régulier\n\n"
-            "📅 C'est le jour de l'achat régulier !\n\n"
-            f"📌 {titre} :\n" + "\n".join(items) +
-            f"\n\n💶 Montant prévu : {REGULAR_AMOUNT:.0f} € par actif")
-    return body + f"\n\n{DISCLAIMER}\n⏰ {_stamp()}"
+    """Message GLOBAL (unique) du jour d'achat regulier — accroche engageante."""
+    return ("💼 ETF DCA — Achat régulier\n\n"
+            "C'est le grand jour\n\n"
+            "📌 Quel Actif tu suis ?\n\n"
+            "💶 Quel Montant ?\n\n"
+            f"{DISCLAIMER}\n\n"
+            f"⏰ {_stamp()}")
 
 
 # --------------------------------------------------------------------------- #
