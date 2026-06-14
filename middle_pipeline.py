@@ -193,10 +193,10 @@ def build_telegram_summary(
     stock_metrics: list[AssetMetrics],
     renko: dict,
 ) -> str:
-    lines = ["🇺🇸 MID-CAP TECH (S&P 400)"]
+    lines = ["🇺🇸 MID-CAP TECH"]
     if theme_scores:
         top = ", ".join(s.theme.split(" / ")[0] for s in theme_scores[:2])
-        lines.append(f"🔥 Sous-thèmes forts: {top}")
+        lines.append(f"🔥 {top}")
 
     ranked = [(r, c, a) for r, c, a in retained_assets_ranked(renko, stock_metrics, [])
               if c.asset_type == "STOCK"]
@@ -206,7 +206,7 @@ def build_telegram_summary(
         reverse=True,
     )
     lines.append("")
-    lines.append("📈 TOP STOCKS (Renko ✅, Rel vs IWR)")
+    lines.append("📈 TOP STOCKS (vs IWR)")
     used: set[str] = set()
     idx = 1
     for _, c, asset in ranked:
@@ -229,6 +229,8 @@ def build_telegram_summary(
         idx += 1
     if idx == 1:
         lines.append("---")
+    stamp = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
+    lines += ["", f"⏰ {stamp} Paris"]
     return "\n".join(lines)
 
 
