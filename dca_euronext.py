@@ -56,7 +56,7 @@ DEFAULT_EXCHANGE = "EURONEXT"
 DCA_PCT = 0.05
 DCA_AMOUNT = 500.0
 REGULAR_AMOUNT = 500.0
-REGULAR_TICKER = "PUST"            # le rappel d'achat regulier ne sonne que la-dessus
+REGULAR_TICKERS = ["PUST"]         # actif(s) suivi(s) en achat regulier (rappel global)
 SAR_START, SAR_STEP, SAR_MAX = 0.1, 0.1, 0.2
 CANDLES = 5000                     # profondeur d'historique journalier
 
@@ -173,7 +173,7 @@ def replay(df: pd.DataFrame, ticker: str) -> tuple[list[dict], dict]:
 
         irbd = is_regular_buy_day(di)
         regular_due = irbd and not prev_irbd
-        regular_signal = regular_due and ticker == REGULAR_TICKER
+        regular_signal = regular_due and ticker in REGULAR_TICKERS
 
         pre_alert = False
         dca_signal_index = None
@@ -316,10 +316,24 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
         body += (f"\n⚪ Régulier — PMA {r['regular']['avg_price']:.2f} · {r['regular']['gain_pct']:+.2f}%"
                  if r["regular"] else "\n⚪ Régulier — aucun achat")
         msgs.append(body + foot)
-    if last["regular_signal"]:
-        msgs.append("💼 ETF DCA\n\n⚪ Achat régulier\n\n📅 La date d'achat régulier est arrivée.\n\n"
-                    "📌 Pensez à acheter l'actif que vous suivez." + foot)
+    # NB: l'achat regulier ne produit PAS de message ici (il est global, voir
+    # regular_global_message + main): il concerne le(s) actif(s) suivi(s) en
+    # regulier, pas l'actif courant de l'iteration.
     return msgs
+
+
+def regular_global_message() -> str:
+    """Message GLOBAL (unique) du jour d'achat regulier — liste le(s) actif(s)."""
+    items = []
+    for t in REGULAR_TICKERS:
+        idx = INDEX_MAP.get(t)
+        items.append(f"• {t} = {idx}" if idx else f"• {t}")
+    titre = "Actif suivi en régulier" if len(REGULAR_TICKERS) == 1 else "Actifs suivis en régulier"
+    body = ("💼 ETF DCA — Achat régulier\n\n"
+            "📅 C'est le jour de l'achat régulier !\n\n"
+            f"📌 {titre} :\n" + "\n".join(items) +
+            f"\n\n💶 Montant prévu : {REGULAR_AMOUNT:.0f} € par actif")
+    return body + f"\n\n⏰ {_stamp()}\n\n{DISCLAIMER}"
 
 
 # --------------------------------------------------------------------------- #
@@ -378,6 +392,7 @@ def main() -> int:
 
     all_alerts: list[str] = []
     last_dates: list[date] = []
+    regular_today = False
     for symbol in args.assets:
         sym = symbol if ":" in symbol else f"{DEFAULT_EXCHANGE}:{symbol}"
         ticker = sym.split(":")[-1]
@@ -399,11 +414,17 @@ def main() -> int:
             print(f"{ticker}: {last.get('date')} close {last.get('close', float('nan')):.2f} "
                   f"[{tag}, DCA{last.get('dca_index', 0)}] — {len(msgs)} alerte(s)")
             all_alerts.extend(msgs)
+            if last.get("regular_signal"):
+                regular_today = True
             if last.get("date"):
                 last_dates.append(last["date"])
 
     if args.backtest:
         return 0
+
+    # Achat regulier: UN SEUL message global (le jour venu), en tete des alertes.
+    if regular_today:
+        all_alerts.insert(0, regular_global_message())
 
     for m in all_alerts:
         print("\n----- ALERTE -----\n" + m)
