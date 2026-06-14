@@ -73,7 +73,7 @@ INDEX_MAP = {
     "SEME": "Semiconducteurs",          # iShares MSCI Global Semiconductors (IE000I8KRLL9)
     "SPCX": "SpaceX",                   # NASDAQ:SPCX — Space Exploration Technologies Corp
 }
-DISCLAIMER = "⚠️ Investir comporte des risques"
+DISCLAIMER = "⚠️ Investir = risques"
 
 
 # --------------------------------------------------------------------------- #
@@ -294,7 +294,7 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
     idx = INDEX_MAP.get(ticker)
     idx_lines = f"\n{ticker} = {idx}\n{idx}, ça t'intéresse ?" if idx else ""
     head = f"💼 ETF DCA\n\n📊 Actif :  {ticker}{idx_lines}\n\n💰 Prix {px}\n\n"
-    foot = f"\n\n⏰ {_stamp()}\n\n{DISCLAIMER}"
+    foot = f"\n\n{DISCLAIMER}\n⏰ {_stamp()}"
     if last["pre_alert"]:
         msgs.append(head + "🟠 Pré-alerte DCA" + foot)
     if last["dca_signal_index"]:
@@ -333,7 +333,7 @@ def regular_global_message() -> str:
             "📅 C'est le jour de l'achat régulier !\n\n"
             f"📌 {titre} :\n" + "\n".join(items) +
             f"\n\n💶 Montant prévu : {REGULAR_AMOUNT:.0f} € par actif")
-    return body + f"\n\n⏰ {_stamp()}\n\n{DISCLAIMER}"
+    return body + f"\n\n{DISCLAIMER}\n⏰ {_stamp()}"
 
 
 # --------------------------------------------------------------------------- #
