@@ -47,7 +47,7 @@ STATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dca_euron
 
 # ---- Parametres (identiques au Pine) ----
 EXCHANGE = "EURONEXT"
-ASSETS = ["PUST", "ISOE", "PSP5", "CL2", "LWLD", "PAEEM", "WQTM", "LQQ"]
+ASSETS = ["PUST", "ISOE", "PSP5", "CL2", "LWLD", "PAEEM", "WQTM", "LQQ", "SEME"]
 DCA_PCT = 0.05
 DCA_AMOUNT = 500.0
 REGULAR_AMOUNT = 500.0
@@ -59,11 +59,13 @@ CANDLES = 5000                     # profondeur d'historique journalier
 INDEX_MAP = {
     "LQQ": "Nasdaq-100 ×2",
     "PUST": "Nasdaq-100",
-    "CL2": "MSCI USA ×2",
-    "LWLD": "MSCI World ×2",
+    "ISOE": "Or",
     "PSP5": "S&P 500",
-    "PAEEM": "MSCI Emerging Markets",
-    "WQTM": "WisdomTree Quantum Computing",
+    "PAEEM": "Pays Émergents",
+    "WQTM": "Ordinateur Quantique",
+    "LWLD": "ETF Monde",
+    "CL2": "MSCI USA ×2",
+    "SEME": "Semiconducteurs",          # iShares MSCI Global Semiconductors (IE000I8KRLL9)
 }
 DISCLAIMER = "⚠️ Investir comporte des risques"
 
@@ -284,7 +286,7 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
     msgs = []
     px = f"{last['close']:.2f}"
     idx = INDEX_MAP.get(ticker)
-    idx_lines = f"\n{ticker} = {idx}\nLe {idx} t'intéresse ?" if idx else ""
+    idx_lines = f"\n{ticker} = {idx}\n{idx}, ça t'intéresse ?" if idx else ""
     head = f"💼 ETF DCA\n\n📊 Actif :  {ticker}{idx_lines}\n\n💰 Prix {px}\n\n"
     foot = f"\n\n⏰ {_stamp()}\n\n{DISCLAIMER}"
     if last["pre_alert"]:
@@ -292,10 +294,10 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
     if last["dca_signal_index"]:
         n = last["dca_signal_index"]
         txt = "DCA 20+" if n > 20 else f"DCA {n}"
-        pot = "" if last["potential_pct"] is None else f"\n📈 Potentiel = +{last['potential_pct']:.2f}%"
+        pot = "" if last["potential_pct"] is None else f"\n📈 Potentiel = {last['potential_pct']:+.2f}%"
         msgs.append(head + f"🔴 Signal: {txt}{pot}" + foot)
     if last["grouped_signal"]:
-        pot = "" if last.get("grouped_potential") is None else f"\n📈 Potentiel = +{last['grouped_potential']:.2f}%"
+        pot = "" if last.get("grouped_potential") is None else f"\n📈 Potentiel = {last['grouped_potential']:+.2f}%"
         msgs.append(head + f"🟩 Achat groupé\n📦 DCA groupés = {last['grouped_count']}\n"
                            f"💵 Prix achat = {last['grouped_price']:.2f}{pot}" + foot)
     if last["back_to_normal"] and last["results"]:
