@@ -55,6 +55,18 @@ REGULAR_TICKER = "PUST"            # le rappel d'achat regulier ne sonne que la-
 SAR_START, SAR_STEP, SAR_MAX = 0.1, 0.1, 0.2
 CANDLES = 5000                     # profondeur d'historique journalier
 
+# Indice suivi par chaque ETF (affiche dans le message). ISOE non confirme.
+INDEX_MAP = {
+    "LQQ": "Nasdaq-100 ×2",
+    "PUST": "Nasdaq-100",
+    "CL2": "MSCI USA ×2",
+    "LWLD": "MSCI World ×2",
+    "PSP5": "S&P 500",
+    "PAEEM": "MSCI Emerging Markets",
+    "WQTM": "WisdomTree Quantum Computing",
+}
+DISCLAIMER = "⚠️ Investir comporte des risques"
+
 
 # --------------------------------------------------------------------------- #
 # Indicateurs                                                                  #
@@ -271,18 +283,21 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
     """Construit les messages d'alerte pour la derniere barre (fidele au Pine)."""
     msgs = []
     px = f"{last['close']:.2f}"
-    head = f"💼 ETF DCA\n\n📊 Actif :  {ticker}\n\n💰 Prix {px}\n\n"
+    idx = INDEX_MAP.get(ticker)
+    idx_lines = f"\n{ticker} = {idx}\nLe {idx} t'intéresse ?" if idx else ""
+    head = f"💼 ETF DCA\n\n📊 Actif :  {ticker}{idx_lines}\n\n💰 Prix {px}\n\n"
+    foot = f"\n\n⏰ {_stamp()}\n\n{DISCLAIMER}"
     if last["pre_alert"]:
-        msgs.append(head + f"🟠 Pré-alerte DCA\n\n⏰ {_stamp()}")
+        msgs.append(head + "🟠 Pré-alerte DCA" + foot)
     if last["dca_signal_index"]:
-        idx = last["dca_signal_index"]
-        txt = "DCA 20+" if idx > 20 else f"DCA {idx}"
+        n = last["dca_signal_index"]
+        txt = "DCA 20+" if n > 20 else f"DCA {n}"
         pot = "" if last["potential_pct"] is None else f"\n📈 Potentiel = +{last['potential_pct']:.2f}%"
-        msgs.append(head + f"🔴 Signal: {txt}{pot}\n\n⏰ {_stamp()}")
+        msgs.append(head + f"🔴 Signal: {txt}{pot}" + foot)
     if last["grouped_signal"]:
         pot = "" if last.get("grouped_potential") is None else f"\n📈 Potentiel = +{last['grouped_potential']:.2f}%"
         msgs.append(head + f"🟩 Achat groupé\n📦 DCA groupés = {last['grouped_count']}\n"
-                           f"💵 Prix achat = {last['grouped_price']:.2f}{pot}\n\n⏰ {_stamp()}")
+                           f"💵 Prix achat = {last['grouped_price']:.2f}{pot}" + foot)
     if last["back_to_normal"] and last["results"]:
         r = last["results"]
         body = head + f"🟢 Retour à la normale ({r['n_dca']} DCA)\n"
@@ -292,10 +307,10 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
                  if r["grouped"] else "\n🟩 Groupé — aucun achat")
         body += (f"\n⚪ Régulier — PMA {r['regular']['avg_price']:.2f} · {r['regular']['gain_pct']:+.2f}%"
                  if r["regular"] else "\n⚪ Régulier — aucun achat")
-        msgs.append(body + f"\n\n⏰ {_stamp()}")
+        msgs.append(body + foot)
     if last["regular_signal"]:
         msgs.append("💼 ETF DCA\n\n⚪ Achat régulier\n\n📅 La date d'achat régulier est arrivée.\n\n"
-                    "📌 Pensez à acheter l'actif que vous suivez.\n\n⏰ " + _stamp())
+                    "📌 Pensez à acheter l'actif que vous suivez." + foot)
     return msgs
 
 
