@@ -46,8 +46,13 @@ SEND_FROM_HOUR = 20
 STATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dca_euronext_state.json")
 
 # ---- Parametres (identiques au Pine) ----
-EXCHANGE = "EURONEXT"
-ASSETS = ["PUST", "ISOE", "PSP5", "CL2", "LWLD", "PAEEM", "WQTM", "LQQ", "SEME"]
+# Symboles complets EXCHANGE:TICKER (exchange par actif: Euronext + NASDAQ pour SPCX).
+ASSETS = [
+    "EURONEXT:PUST", "EURONEXT:ISOE", "EURONEXT:PSP5", "EURONEXT:CL2",
+    "EURONEXT:LWLD", "EURONEXT:PAEEM", "EURONEXT:WQTM", "EURONEXT:LQQ",
+    "EURONEXT:SEME", "NASDAQ:SPCX",
+]
+DEFAULT_EXCHANGE = "EURONEXT"
 DCA_PCT = 0.05
 DCA_AMOUNT = 500.0
 REGULAR_AMOUNT = 500.0
@@ -63,9 +68,10 @@ INDEX_MAP = {
     "PSP5": "S&P 500",
     "PAEEM": "Pays Émergents",
     "WQTM": "Ordinateur Quantique",
-    "LWLD": "ETF Monde",
-    "CL2": "MSCI USA ×2",
+    "LWLD": "Monde ×2",                 # Amundi MSCI World Daily ×2 Leveraged
+    "CL2": "USA ×2",                    # Amundi MSCI USA Daily ×2 Leveraged
     "SEME": "Semiconducteurs",          # iShares MSCI Global Semiconductors (IE000I8KRLL9)
+    "SPCX": "SpaceX",                   # NASDAQ:SPCX — Space Exploration Technologies Corp
 }
 DISCLAIMER = "⚠️ Investir comporte des risques"
 
@@ -372,8 +378,10 @@ def main() -> int:
 
     all_alerts: list[str] = []
     last_dates: list[date] = []
-    for ticker in args.assets:
-        df = fetch_tv_ohlc(f"{EXCHANGE}:{ticker}", "D", args.candles)
+    for symbol in args.assets:
+        sym = symbol if ":" in symbol else f"{DEFAULT_EXCHANGE}:{symbol}"
+        ticker = sym.split(":")[-1]
+        df = fetch_tv_ohlc(sym, "D", args.candles)
         if df is None or df.empty or len(df) < 30:
             print(f"{ticker}: pas de données")
             continue
