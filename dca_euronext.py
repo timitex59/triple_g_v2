@@ -163,6 +163,7 @@ def replay(df: pd.DataFrame, ticker: str) -> tuple[list[dict], dict]:
         back_to_normal = False
         results = None
         potential_pct = None
+        grouped_potential = None
 
         if not inDcaCycle:
             if hi > trackingHigh:
@@ -215,6 +216,7 @@ def replay(df: pd.DataFrame, ticker: str) -> tuple[list[dict], dict]:
                         grp_inv += amt
                         grp_u += amt / ci
                     grouped_price = ci
+                    grouped_potential = (zeroLevel / ci - 1.0) * 100.0 if zeroLevel and ci > 0 else None
                     lastGroupedBuyDcaIndex = dcaIndex
                     groupedBuyArmed = False
 
@@ -251,6 +253,7 @@ def replay(df: pd.DataFrame, ticker: str) -> tuple[list[dict], dict]:
                 "pre_alert": pre_alert, "dca_signal_index": dca_signal_index,
                 "potential_pct": potential_pct, "grouped_signal": grouped_signal,
                 "grouped_count": grouped_count, "grouped_price": grouped_price,
+                "grouped_potential": grouped_potential,
                 "back_to_normal": back_to_normal, "results": results,
                 "regular_signal": regular_signal,
             }
@@ -268,7 +271,7 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
     """Construit les messages d'alerte pour la derniere barre (fidele au Pine)."""
     msgs = []
     px = f"{last['close']:.2f}"
-    head = f"💼 ETF DCA\n\n📊 Asset {ticker}\n\n💰 Prix {px}\n\n"
+    head = f"💼 ETF DCA\n\n📊 Actif :  {ticker}\n\n💰 Prix {px}\n\n"
     if last["pre_alert"]:
         msgs.append(head + f"🟠 Pré-alerte DCA\n\n⏰ {_stamp()}")
     if last["dca_signal_index"]:
@@ -277,8 +280,9 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
         pot = "" if last["potential_pct"] is None else f"\n📈 Potentiel = +{last['potential_pct']:.2f}%"
         msgs.append(head + f"🔴 Signal: {txt}{pot}\n\n⏰ {_stamp()}")
     if last["grouped_signal"]:
+        pot = "" if last.get("grouped_potential") is None else f"\n📈 Potentiel = +{last['grouped_potential']:.2f}%"
         msgs.append(head + f"🟩 Achat groupé\n📦 DCA groupés = {last['grouped_count']}\n"
-                           f"💵 Prix achat = {last['grouped_price']:.2f}\n\n⏰ {_stamp()}")
+                           f"💵 Prix achat = {last['grouped_price']:.2f}{pot}\n\n⏰ {_stamp()}")
     if last["back_to_normal"] and last["results"]:
         r = last["results"]
         body = head + f"🟢 Retour à la normale ({r['n_dca']} DCA)\n"
