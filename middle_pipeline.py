@@ -351,14 +351,15 @@ def tracker_lines(ev: dict) -> list[str]:
         return []
     out: list[str] = []
     if ev.get("durable"):
-        out.append("💎 Durables: " + ", ".join(
-            f"{t} {s}j({rel:+.0f}%)" for t, s, rel, _ in ev["durable"][:4]))
+        out.append("💎 Durables")
+        for t, s, rel, _ in ev["durable"][:3]:
+            out.append(f"{t} {s}j · {rel:+.0f}%")
     if ev.get("new"):
-        out.append("🆕 Entrants: " + ", ".join(ev["new"][:4]))
+        out.append("🆕 Entrants: " + ", ".join(ev["new"][:3]))
     if ev.get("weakening"):
-        out.append("📉 Faiblissent: " + ", ".join(w["ticker"] for w in ev["weakening"][:4]))
+        out.append("📉 Faiblissent: " + ", ".join(w["ticker"] for w in ev["weakening"][:3]))
     if ev.get("dropped"):
-        out.append("❌ Sortis: " + ", ".join(ev["dropped"][:4]))
+        out.append("❌ Sortis: " + ", ".join(ev["dropped"][:3]))
     return out
 
 
