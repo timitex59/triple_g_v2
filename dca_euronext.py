@@ -292,8 +292,14 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
     msgs = []
     px = f"{last['close']:.2f}"
     idx = INDEX_MAP.get(ticker)
-    idx_lines = f"\n{ticker} = {idx}\n{idx}, ça t'intéresse ?" if idx else ""
-    head = f"💼 ETF DCA\n\n📊 Actif :  {ticker}{idx_lines}\n\n💰 Prix {px}\n\n"
+
+    def _head(hook: str) -> str:
+        idx_lines = f"\n{ticker} = {idx}\n{hook}" if idx else ""
+        return f"💼 ETF DCA\n\n📊 Actif :  {ticker}{idx_lines}\n\n💰 Prix {px}\n\n"
+
+    # Phase d'accumulation: incitation a entrer. Fin de cycle: on recolte.
+    head = _head(f"{idx}, ça t'intéresse ?")
+    harvest_head = _head("🍒 Récolte les fruits !")
     foot = f"\n\n{DISCLAIMER}\n⏰ {_stamp()}"
     if last["pre_alert"]:
         msgs.append(head + "🟠 Pré-alerte DCA" + foot)
@@ -308,7 +314,7 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
                            f"💵 Prix achat = {last['grouped_price']:.2f}{pot}" + foot)
     if last["back_to_normal"] and last["results"]:
         r = last["results"]
-        body = head + f"🟢 Retour à la normale ({r['n_dca']} DCA)\n"
+        body = harvest_head + f"🟢 Retour à la normale ({r['n_dca']} DCA)\n"
         if r["dca"]:
             body += f"\n📌 DCA — PMA {r['dca']['avg_price']:.2f} · {r['dca']['gain_pct']:+.2f}%"
         body += (f"\n🟩 Groupé — PMA {r['grouped']['avg_price']:.2f} · {r['grouped']['gain_pct']:+.2f}%"
