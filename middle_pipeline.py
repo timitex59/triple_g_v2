@@ -95,6 +95,44 @@ def midcap_tv_symbol(ticker: str) -> str:
     return f"{TICKER_EXCHANGE.get(ticker, 'NASDAQ')}:{ticker}"
 
 
+# Sous-industrie GICS de chaque action (depuis le S&P 400), pour la classification.
+TICKER_SUBIND: dict[str, str] = {}
+
+
+def classify_subtheme(sub_industry: str, yahoo_industry: str = "") -> str:
+    """Mappe la sous-industrie GICS (12 sous-secteurs Info Tech) sur 5 themes
+    parlants: Semis / Logiciels / Hardware / Distributors / IT / Internet."""
+    blob = f"{sub_industry} {yahoo_industry}".lower()
+    if "semiconductor" in blob:
+        return "Semis"
+    if "software" in blob:
+        return "Logiciels"
+    if "distributor" in blob:
+        return "Distributors"
+    if ("it consulting" in blob or "it services" in blob or "internet" in blob
+            or "information technology services" in blob
+            or "internet services" in blob):
+        return "IT / Internet"
+    # Communications Equipment, Hardware/Storage/Peripherals, Electronic
+    # Equipment/Components, Manufacturing Services, Instruments...
+    return "Hardware"
+
+
+def midcap_infer_theme(ticker: str, sector: str, industry: str) -> str:
+    """Remplace nsp.infer_theme: classe par sous-industrie GICS (sinon Yahoo)."""
+    return classify_subtheme(TICKER_SUBIND.get(ticker, ""), industry)
+
+
+# Mots-cles d'actualite par sous-theme (pour des requetes news pertinentes).
+MIDCAP_THEME_KEYWORDS = {
+    "Semis": ["semiconductor", "chip", "foundry", "wafer", "semiconductor equipment"],
+    "Logiciels": ["software", "saas", "application software", "cloud software"],
+    "Hardware": ["electronic components", "networking", "communications equipment", "hardware"],
+    "Distributors": ["technology distributor", "it distribution", "electronics distribution"],
+    "IT / Internet": ["it services", "internet infrastructure", "it consulting", "cloud infrastructure"],
+}
+
+
 def fetch_from_ishares_csv(path: str) -> tuple[pd.DataFrame, dict[str, str]]:
     """Lit un CSV de holdings iShares (IWR) telecharge manuellement.
     Filtre Equity + Information Technology. Renvoie (DataFrame, exchange_map)."""
@@ -195,7 +233,7 @@ def build_telegram_summary(
 ) -> str:
     lines = ["🇺🇸 MID-CAP TECH"]
     if theme_scores:
-        top = ", ".join(s.theme.split(" / ")[0] for s in theme_scores[:2])
+        top = ", ".join(s.theme for s in theme_scores[:2])
         lines.append(f"🔥 {top}")
 
     ranked = [(r, c, a) for r, c, a in retained_assets_ranked(renko, stock_metrics, [])
@@ -375,10 +413,16 @@ def main() -> int:
     profiles = fetch_profiles_ex(tickers)
 
     # Resolution exchange pour le scan Renko (iShares CSV prioritaire, sinon Yahoo).
-    global TICKER_EXCHANGE
+    global TICKER_EXCHANGE, TICKER_SUBIND
     TICKER_EXCHANGE = {t: ishares_ex_map.get(t) or profiles.get(t, {}).get("exchange_tv", "NASDAQ")
                        for t in tickers}
     nsp.stock_tv_symbol = midcap_tv_symbol  # monkeypatch: run_renko_filter l'utilise
+
+    # Classification par sous-industrie GICS (Semis/Logiciels/Hardware/...).
+    if "sub_industry" in components.columns:
+        TICKER_SUBIND = dict(zip(components["ticker"], components["sub_industry"]))
+    nsp.infer_theme = midcap_infer_theme            # monkeypatch: build_asset_metrics l'utilise
+    nsp.THEME_KEYWORDS.update(MIDCAP_THEME_KEYWORDS)  # requetes news pertinentes
 
     print("Computing stock and sub-theme metrics...")
     stock_histories = {k: v for k, v in histories.items() if k != BENCHMARK}
