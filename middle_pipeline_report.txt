@@ -1,47 +1,101 @@
 MID-CAP TECH PIPELINE (S&P MidCap 400 — Information Technology)
-Generated: 2026-06-14 22:53 CEST
+Generated: 2026-06-15 17:18 CEST
 Universe: 48 mid-cap tech stocks | Benchmark: IWR | News window: 14 days
 
 DOMINANT SUB-THEMES
-| Theme                              |   Score |   N | 21D    | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
-|------------------------------------|---------|-----|--------|---------|----------------|----------|------------|
-| Semiconductors / AI infrastructure |   53.1  |  18 | +3.94% | +58.91% | +46.62%        | 72%      | 0/0        |
-| Technology                         |   49.72 |   8 | +5.56% | +44.86% | +32.57%        | 75%      | 0/0        |
-| Cloud / Data software              |   27.29 |  19 | +5.96% | -4.29%  | -16.58%        | 47%      | 0/0        |
+| Theme        |   Score |   N | 21D     | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
+|--------------|---------|-----|---------|---------|----------------|----------|------------|
+| Semis        |   73.72 |  15 | +10.09% | +65.27% | +53.09%        | 87%      | 12/12      |
+| Distributors |   71.88 |   3 | +7.58%  | +63.42% | +51.24%        | 100%     | 6/2        |
+| Hardware     |   56    |  10 | +3.46%  | +28.35% | +16.18%        | 80%      | 12/8       |
 
 TOP STOCKS BY SUB-THEME
 
-Semiconductors / AI infrastructure
-| Ticker   | Name             | Theme                          |   Score | 21D     | 63D      | Rel63    |   RSI | >SMA50   |
-|----------|------------------|--------------------------------|---------|---------|----------|----------|-------|----------|
-| AMKR     | Amkor Technology | Semiconductors / AI infrastruc |     100 | +11.08% | +92.77%  | +80.48%  |  67.8 | Y        |
-| FLEX     | Flex Ltd.        | Semiconductors / AI infrastruc |     100 | +4.11%  | +135.95% | +123.66% |  61.6 | Y        |
-| TTMI     | TTM Technologies | Semiconductors / AI infrastruc |     100 | +14.94% | +114.09% | +101.80% |  51.9 | Y        |
+Semis
+| Ticker   | Name             | Theme   |   Score | 21D     | 63D      | Rel63    |   RSI | >SMA50   |
+|----------|------------------|---------|---------|---------|----------|----------|-------|----------|
+| AMKR     | Amkor Technology | Semis   |  100    | +18.42% | +91.27%  | +79.10%  |  63.9 | Y        |
+| ONTO     | Onto Innovation  | Semis   |  100    | +21.98% | +73.77%  | +61.60%  |  69.5 | Y        |
+| SITM     | SiTime           | Semis   |   96.08 | -9.80%  | +116.51% | +104.34% |  49.5 | Y        |
 
-Technology
-| Ticker   | Name              | Theme      |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|-------------------|------------|---------|---------|---------|---------|-------|----------|
-| SNX      | TD Synnex         | Technology |  100    | +21.10% | +83.69% | +71.40% |  78.7 | Y        |
-| MKSI     | MKS Instruments   | Technology |   87.51 | +12.18% | +66.76% | +54.47% |  62   | Y        |
-| ARW      | Arrow Electronics | Technology |   73.95 | +7.06%  | +61.48% | +49.19% |  58.6 | Y        |
+Distributors
+| Ticker   | Name              | Theme        |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|-------------------|--------------|---------|---------|---------|---------|-------|----------|
+| SNX      | TD Synnex         | Distributors |   95.17 | +21.44% | +85.78% | +73.61% |  79.1 | Y        |
+| ARW      | Arrow Electronics | Distributors |   74.08 | +7.58%  | +63.42% | +51.24% |  57   | Y        |
+| AVT      | Avnet             | Distributors |   65.55 | +6.31%  | +52.85% | +40.67% |  56.5 | Y        |
 
-Cloud / Data software
-| Ticker   | Name              | Theme                 |   Score | 21D     | 63D      | Rel63    |   RSI | >SMA50   |
-|----------|-------------------|-----------------------|---------|---------|----------|----------|-------|----------|
-| DOCN     | DigitalOcean      | Cloud / Data software |  100    | +7.07%  | +148.35% | +136.06% |  59   | Y        |
-| OKTA     | Okta, Inc.        | Cloud / Data software |   88.01 | +48.71% | +46.90%  | +34.61%  |  63.2 | Y        |
-| CVLT     | CommVault Systems | Cloud / Data software |   87.28 | +28.00% | +61.80%  | +49.51%  |  82.4 | Y        |
+Hardware
+| Ticker   | Name             | Theme    |   Score | 21D     | 63D      | Rel63    |   RSI | >SMA50   |
+|----------|------------------|----------|---------|---------|----------|----------|-------|----------|
+| FLEX     | Flex Ltd.        | Hardware |  100    | +1.22%  | +125.52% | +113.35% |  51.6 | Y        |
+| TTMI     | TTM Technologies | Hardware |  100    | +17.68% | +109.56% | +97.39%  |  52.4 | Y        |
+| LFUS     | Littelfuse       | Hardware |   64.64 | +3.92%  | +44.96%  | +32.79%  |  50.2 | Y        |
 
-RENKO FILTER
-Skipped (--no-renko).
+FINAL SELECTION - RENKO VALIDATED
+| Final     | Type   | Ticker   | Theme        | Renko          | Bias   | 3M/M/W   | ROC14    | ROC21    | PnL    |
+|-----------|--------|----------|--------------|----------------|--------|----------|----------|----------|--------|
+| VALIDATED | STOCK  | ARW      | Distributors | BULL CONFIRMED | BULL   | 1/1/1    | +64.08%  | +97.53%  | +0.00% |
+| VALIDATED | STOCK  | AVT      | Distributors | BULL CONFIRMED | BULL   | 1/1/1    | +53.74%  | +80.66%  | +0.00% |
+| VALIDATED | STOCK  | SNX      | Distributors | BULL CONFIRMED | BULL   | 1/1/1    | +86.03%  | +85.92%  | +0.00% |
+| VALIDATED | STOCK  | LFUS     | Hardware     | BULL CONFIRMED | BULL   | 1/1/1    | +46.30%  | +64.35%  | +0.00% |
+| VALIDATED | STOCK  | TTMI     | Hardware     | BULL CONFIRMED | BULL   | 1/1/1    | +123.21% | +112.92% | +0.00% |
+| VALIDATED | STOCK  | CVLT     | Logiciels    | BULL CONFIRMED | BULL   | 1/1/1    | +64.15%  | +4.65%   | +0.00% |
+| VALIDATED | STOCK  | DOCN     | Logiciels    | BULL CONFIRMED | BULL   | 1/1/1    | +167.03% | +241.84% | +0.00% |
+| VALIDATED | STOCK  | AMKR     | Semis        | BULL CONFIRMED | BULL   | 1/1/1    | +98.51%  | +71.68%  | +0.00% |
+| VALIDATED | STOCK  | ONTO     | Semis        | BULL CONFIRMED | BULL   | 1/1/1    | +78.60%  | +59.76%  | +0.00% |
+| VALIDATED | STOCK  | SITM     | Semis        | BULL CONFIRMED | BULL   | 1/1/1    | +126.75% | +115.66% | +0.00% |
+
+GLOBAL RANKING - RETAINED STOCKS
+|   # | Ticker   | Type   | Theme        |   Rank |   Score | 63D      | Rel63    | R14      | R21      | PnL Renko   |
+|-----|----------|--------|--------------|--------|---------|----------|----------|----------|----------|-------------|
+|   1 | DOCN     | STOCK  | Logiciels    | 136.92 |  100    | +153.99% | +141.82% | +167.03% | +241.84% | +0.00%      |
+|   2 | SITM     | STOCK  | Semis        |  99.7  |   96.08 | +116.51% | +104.34% | +126.75% | +115.66% | +0.00%      |
+|   3 | TTMI     | STOCK  | Hardware     |  97.63 |  100    | +109.56% | +97.39%  | +123.21% | +112.92% | +0.00%      |
+|   4 | AMKR     | STOCK  | Semis        |  82.18 |  100    | +91.27%  | +79.10%  | +98.51%  | +71.68%  | +0.00%      |
+|   5 | SNX      | STOCK  | Distributors |  79.11 |   95.17 | +85.78%  | +73.61%  | +86.03%  | +85.92%  | +0.00%      |
+|   6 | ONTO     | STOCK  | Semis        |  71.77 |  100    | +73.77%  | +61.60%  | +78.60%  | +59.76%  | +0.00%      |
+|   7 | ARW      | STOCK  | Distributors |  63.73 |   74.08 | +63.42%  | +51.24%  | +64.08%  | +97.53%  | +0.00%      |
+|   8 | AVT      | STOCK  | Distributors |  53.77 |   65.55 | +52.85%  | +40.67%  | +53.74%  | +80.66%  | +0.00%      |
+|   9 | CVLT     | STOCK  | Logiciels    |  51.76 |   79.14 | +61.94%  | +49.77%  | +64.15%  | +4.65%   | +0.00%      |
+|  10 | LFUS     | STOCK  | Hardware     |  47.49 |   64.64 | +44.96%  | +32.79%  | +46.30%  | +64.35%  | +0.00%      |
+
+ANALYTIC CLASSIFICATION
+| Theme        | Bucket          | Type   | Ticker   |   Score | 63D      | Rel63    | R14      | R21      | Role                        | Use                                               |
+|--------------|-----------------|--------|----------|---------|----------|----------|----------|----------|-----------------------------|---------------------------------------------------|
+| Distributors | SATELLITE STOCK | STOCK  | ARW      |   74.08 | +63.42%  | +51.24%  | +64.08%  | +97.53%  | Confirmed but less dominant | Use after stronger leaders or for diversification |
+| Distributors | SATELLITE STOCK | STOCK  | AVT      |   65.55 | +52.85%  | +40.67%  | +53.74%  | +80.66%  | Confirmed but less dominant | Use after stronger leaders or for diversification |
+| Distributors | LEADER STOCK    | STOCK  | SNX      |   95.17 | +85.78%  | +73.61%  | +86.03%  | +85.92%  | Primary momentum leader     | Best single-name expression of the theme          |
+| Hardware     | SATELLITE STOCK | STOCK  | LFUS     |   64.64 | +44.96%  | +32.79%  | +46.30%  | +64.35%  | Confirmed but less dominant | Use after stronger leaders or for diversification |
+| Hardware     | LEADER STOCK    | STOCK  | TTMI     |  100    | +109.56% | +97.39%  | +123.21% | +112.92% | Primary momentum leader     | Best single-name expression of the theme          |
+| Logiciels    | SATELLITE STOCK | STOCK  | CVLT     |   79.14 | +61.94%  | +49.77%  | +64.15%  | +4.65%   | Confirmed but less dominant | Use after stronger leaders or for diversification |
+| Logiciels    | LEADER STOCK    | STOCK  | DOCN     |  100    | +153.99% | +141.82% | +167.03% | +241.84% | Primary momentum leader     | Best single-name expression of the theme          |
+| Semis        | LEADER STOCK    | STOCK  | AMKR     |  100    | +91.27%  | +79.10%  | +98.51%  | +71.68%  | Primary momentum leader     | Best single-name expression of the theme          |
+| Semis        | LEADER STOCK    | STOCK  | ONTO     |  100    | +73.77%  | +61.60%  | +78.60%  | +59.76%  | Primary momentum leader     | Best single-name expression of the theme          |
+| Semis        | LEADER STOCK    | STOCK  | SITM     |   96.08 | +116.51% | +104.34% | +126.75% | +115.66% | Primary momentum leader     | Best single-name expression of the theme          |
+
+WATCHLIST - GOOD THEME, WAITING FOR RENKO
+| Final     | Type   | Ticker   | Theme     | Renko   | Bias   | 3M/M/W   | ROC14    | ROC21    | PnL   |
+|-----------|--------|----------|-----------|---------|--------|----------|----------|----------|-------|
+| WATCHLIST | STOCK  | FLEX     | Hardware  | MIXED   | MIXED  | 1/-1/0   | +129.33% | +128.15% | ---   |
+| WATCHLIST | STOCK  | OKTA     | Logiciels | MIXED   | MIXED  | 1/0/0    | +49.57%  | +30.45%  | ---   |
+
+REJECTED BY RENKO
+None.
 
 NEWS VALIDATION
 
-Semiconductors / AI infrastructure: score=0 hits=0 sources=0
+Semis: score=100.0 hits=12 sources=12
+- 2026-06-13 | Yahoo Finance | 3 Semiconductor Stocks to Buy While They Are Down in June - Yahoo Finance
+- 2026-06-15 | Seeking Alpha | Semiconductor stocks surge as the AI tech rally resumes - Seeking Alpha
 
-Technology: score=0 hits=0 sources=0
+Distributors: score=42.0 hits=6 sources=2
+- 2026-06-12 | Yahoo Finance | A Look Back at Industrial Distributors Stocks’ Q1 Earnings: Core & Main (NYSE:CNM) Vs The Rest Of The Pack - Yahoo Finance
+- 2026-06-11 | StockStory | Industrial Distributors Stocks Q1 Recap: Benchmarking Boise Cascade (NYSE:BCC) - StockStory
 
-Cloud / Data software: score=0 hits=0 sources=0
+Hardware: score=100.0 hits=12 sources=8
+- 2026-06-15 | StockStory | A Look Back at Social Networking Stocks’ Q1 Earnings: Yelp (NYSE:YELP) Vs The Rest Of The Pack - StockStory
+- 2026-06-15 | Insider Monkey | 10 Best Computer Hardware Stocks to Buy for the Next 5 Years - Insider Monkey
 
 METHOD
 Univers = actions MID-CAP (S&P 400) du seul secteur Information Technology.
