@@ -298,7 +298,7 @@ def live_alerts(ticker: str, last: dict) -> list[str]:
         return f"💼 ETF DCA\n\n📊 Actif :  {ticker}{idx_lines}\n\n💰 Prix {px}\n\n"
 
     # Phase d'accumulation: incitation a entrer. Fin de cycle: on recolte.
-    head = _head(f"{idx}, ça t'intéresse ?")
+    head = _head("ça t'intéresse ?")
     harvest_head = _head("🍒 Récolte les fruits !")
     foot = f"\n\n{DISCLAIMER}\n⏰ {_stamp()}"
     if last["pre_alert"]:
