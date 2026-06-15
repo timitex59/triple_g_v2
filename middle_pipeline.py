@@ -68,7 +68,8 @@ BENCHMARK = "IWR"  # iShares Russell Mid-Cap ETF — reference mid-cap
 REPORT_JSON = os.path.join(SCRIPT_DIR, "middle_pipeline_report.json")
 REPORT_TXT = os.path.join(SCRIPT_DIR, "middle_pipeline_report.txt")
 TRACKER_PATH = os.path.join(SCRIPT_DIR, "middle_pipeline_tracker.json")
-TRACK_TOP_N = 10  # taille du vivier suivi (persistance / faiblesse / sortie)
+TRACK_TOP_N = 10      # taille du vivier suivi (persistance / faiblesse / sortie)
+SWITCH_CONFIRM_DAYS = 3  # jours ou un nouveau #1 doit tenir pour confirmer une bascule
 
 # Codes d'echange Yahoo -> exchange TradingView (pour le scan Renko).
 YF_EXCH_TV = {
@@ -244,12 +245,16 @@ def _save_tracker(state: dict) -> None:
         pass
 
 
-def update_tracker(stock_metrics: list[AssetMetrics], top_n: int = TRACK_TOP_N) -> dict:
+def update_tracker(stock_metrics: list[AssetMetrics], theme_scores=None,
+                   top_n: int = TRACK_TOP_N) -> dict:
     """Suivi de persistance du vivier TOP (1x/jour, idempotent intra-journee).
 
     Maintient par ticker: streak (jours consecutifs dans le TOP), jours cumules,
-    rang, force relative, et detecte chaque jour: nouveaux entrants, valeurs qui
-    faiblissent (rang ou Rel en baisse) et valeurs sorties du TOP.
+    rang, force relative. Detecte chaque jour: nouveaux entrants, valeurs qui
+    faiblissent, sorties du TOP. Calcule aussi:
+      - un score de PERSISTANCE PONDERE (streak x force relative) -> "durables"
+      - une ALERTE DE BASCULE quand un nouveau sous-theme prend la 1re place et
+        la conserve >= SWITCH_CONFIRM_DAYS jours.
     """
     today = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d")
     state = _load_tracker()
@@ -270,7 +275,7 @@ def update_tracker(stock_metrics: list[AssetMetrics], top_n: int = TRACK_TOP_N) 
 
     prev_update = state.get("updated")  # date de la derniere mise a jour
     prev_active = {t for t, i in tickers_state.items() if i.get("active")}
-    events: dict[str, list] = {"persistent": [], "new": [], "weakening": [], "dropped": []}
+    events: dict = {"persistent": [], "new": [], "weakening": [], "dropped": []}
 
     for rank, m in enumerate(current, 1):
         info = tickers_state.get(m.ticker, {})
@@ -307,8 +312,35 @@ def update_tracker(stock_metrics: list[AssetMetrics], top_n: int = TRACK_TOP_N) 
         key=lambda x: -x[1],
     )[:5]
 
+    # Score de persistance PONDERE = streak x force relative (longevite ET force).
+    events["durable"] = sorted(
+        ([t, tickers_state[t]["streak"], tickers_state[t]["last_rel"],
+          round(tickers_state[t]["streak"] * tickers_state[t]["last_rel"], 1)]
+         for t in cur_set),
+        key=lambda x: -x[3],
+    )[:5]
+
+    # ALERTE DE BASCULE: le sous-theme #1 change et tient >= SWITCH_CONFIRM_DAYS.
+    top_theme = theme_scores[0].theme if theme_scores else None
+    leader_raw = state.get("leader_raw")
+    leader_days = int(state.get("leader_raw_days", 0))
+    confirmed = state.get("leader_confirmed")
+    switch = None
+    if top_theme:
+        if top_theme == leader_raw:
+            leader_days += 1
+        else:
+            leader_raw, leader_days = top_theme, 1
+        if top_theme != confirmed and leader_days >= SWITCH_CONFIRM_DAYS:
+            if confirmed is not None:                       # 1re etablie en silence
+                switch = {"from": confirmed, "to": top_theme, "days": leader_days}
+            confirmed = top_theme
+    events["switch"] = switch
+
     state.update({"updated": today, "prev_update": prev_update,
-                  "tickers": tickers_state, "last_events": events})
+                  "tickers": tickers_state, "last_events": events,
+                  "leader_raw": leader_raw, "leader_raw_days": leader_days,
+                  "leader_confirmed": confirmed})
     _save_tracker(state)
     return events
 
@@ -318,8 +350,9 @@ def tracker_lines(ev: dict) -> list[str]:
     if not ev:
         return []
     out: list[str] = []
-    if ev.get("persistent"):
-        out.append("🏅 Persistants: " + ", ".join(f"{t} {s}j" for t, s in ev["persistent"][:4]))
+    if ev.get("durable"):
+        out.append("💎 Durables: " + ", ".join(
+            f"{t} {s}j({rel:+.0f}%)" for t, s, rel, _ in ev["durable"][:4]))
     if ev.get("new"):
         out.append("🆕 Entrants: " + ", ".join(ev["new"][:4]))
     if ev.get("weakening"):
@@ -339,6 +372,9 @@ def build_telegram_summary(
     if theme_scores:
         top = ", ".join(s.theme for s in theme_scores[:2])
         lines.append(f"🔥 {top}")
+    if events and events.get("switch"):
+        sw = events["switch"]
+        lines.append(f"🔄 BASCULE: {sw['from']} → {sw['to']} ({sw['days']}j)")
 
     ranked = [(r, c, a) for r, c, a in retained_assets_ranked(renko, stock_metrics, [])
               if c.asset_type == "STOCK"]
@@ -400,9 +436,13 @@ def build_report(theme_scores, stock_metrics, news, renko, args, events=None) ->
     ]
     if events:
         lines += ["", "SUIVI DE PERSISTANCE (vivier TOP)"]
-        if events.get("persistent"):
-            lines.append("Persistants (jours consecutifs): "
-                         + ", ".join(f"{t} {s}j" for t, s in events["persistent"]))
+        if events.get("switch"):
+            sw = events["switch"]
+            lines.append(f"🔄 BASCULE confirmee: {sw['from']} -> {sw['to']} ({sw['days']}j de #1)")
+        if events.get("durable"):
+            lines.append("Durables (streak x force): "
+                         + ", ".join(f"{t} [{s}j, Rel {rel:+.0f}%, score {sc:.0f}]"
+                                     for t, s, rel, sc in events["durable"]))
         if events.get("new"):
             lines.append("Entrants: " + ", ".join(events["new"]))
         if events.get("weakening"):
@@ -588,7 +628,7 @@ def main() -> int:
         renko = run_renko_filter(candidates, [], atr_length=args.renko_length,
                                  max_workers=args.renko_workers, debug=args.renko_debug)
 
-    events = update_tracker(stock_metrics)
+    events = update_tracker(stock_metrics, theme_scores)
 
     report = build_report(theme_scores, stock_metrics, news, renko, args, events)
     print()
