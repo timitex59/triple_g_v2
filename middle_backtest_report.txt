@@ -1,0 +1,25 @@
+MID-CAP TECH — BACKTEST ROTATION (walk-forward)
+Generated: 2026-06-15 22:22 CEST
+Univers: 48 actions | Benchmark: IWR | Periode: ~3 an(s) (36 mois) | Rebal: mensuel | Frais: 10 bps
+
+PERFORMANCE COMPAREE
+| Strategie         | Total   | CAGR   | Vol    |   Sharpe | MaxDD   | Win%   | Alpha CAGR   |
+|-------------------|---------|--------|--------|----------|---------|--------|--------------|
+| Rotation Top-1    | +190.2% | +42.6% | +28.5% |     1.4  | -18.3%  | 44%    | +25.8%       |
+| Rotation Top-2    | +106.6% | +27.4% | +25.0% |     1.09 | -21.5%  | 53%    | +10.5%       |
+| Equal-Weight Tech | +82.7%  | +22.2% | +18.5% |     1.18 | -14.5%  | 50%    | +5.4%        |
+| IWR Buy & Hold    | +59.6%  | +16.9% | +14.3% |     1.16 | -12.2%  | 67%    | +0.0%        |
+
+ROTATION TOP-1 — derniers choix mensuels
+2025-06:Hardware, 2025-07:Hardware, 2025-08:Hardware, 2025-09:Hardware, 2025-10:Hardware, 2025-11:Hardware, 2025-12:Semis, 2026-01:Semis, 2026-02:Semis, 2026-03:Semis, 2026-04:IT / Internet, 2026-05:Distributors
+
+METHODE
+Walk-forward: a chaque debut de mois, classement des sous-themes par
+momentum (rendements 21/63/126j, ponderes), detention du/des plus forts
+le mois suivant. Aucune donnee future utilisee. Frais appliques au
+turnover de chaque rebalancement.
+
+⚠️ BIAIS DU SURVIVANT: univers = membres ACTUELS du S&P MidCap 400 tech.
+Les valeurs sorties de l'indice (souvent perdantes) sont absentes -> les
+performances sont surestimees. A lire comme un ORDRE DE GRANDEUR d'edge,
+pas une performance realisable telle quelle.
