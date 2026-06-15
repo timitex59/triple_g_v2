@@ -67,6 +67,8 @@ SP400_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_400_companies"
 BENCHMARK = "IWR"  # iShares Russell Mid-Cap ETF — reference mid-cap
 REPORT_JSON = os.path.join(SCRIPT_DIR, "middle_pipeline_report.json")
 REPORT_TXT = os.path.join(SCRIPT_DIR, "middle_pipeline_report.txt")
+TRACKER_PATH = os.path.join(SCRIPT_DIR, "middle_pipeline_tracker.json")
+TRACK_TOP_N = 10  # taille du vivier suivi (persistance / faiblesse / sortie)
 
 # Codes d'echange Yahoo -> exchange TradingView (pour le scan Renko).
 YF_EXCH_TV = {
@@ -226,10 +228,112 @@ def fetch_profiles_ex(tickers: list[str], max_workers: int = 12) -> dict[str, di
     return profiles
 
 
+def _load_tracker() -> dict:
+    try:
+        with open(TRACKER_PATH, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def _save_tracker(state: dict) -> None:
+    try:
+        with open(TRACKER_PATH, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def update_tracker(stock_metrics: list[AssetMetrics], top_n: int = TRACK_TOP_N) -> dict:
+    """Suivi de persistance du vivier TOP (1x/jour, idempotent intra-journee).
+
+    Maintient par ticker: streak (jours consecutifs dans le TOP), jours cumules,
+    rang, force relative, et detecte chaque jour: nouveaux entrants, valeurs qui
+    faiblissent (rang ou Rel en baisse) et valeurs sorties du TOP.
+    """
+    today = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d")
+    state = _load_tracker()
+    tickers_state: dict[str, dict] = state.get("tickers", {})
+
+    ranked = sorted(
+        [m for m in stock_metrics if m.rel_63d_vs_qqq is not None],
+        key=lambda m: (m.rel_63d_vs_qqq or 0.0, m.score),
+        reverse=True,
+    )
+    current = ranked[:top_n]
+    cur_set = {m.ticker for m in current}
+
+    # Idempotent: si deja calcule aujourd'hui (CI tourne plusieurs fois/soir),
+    # on renvoie les evenements du jour sans muter l'historique.
+    if state.get("updated") == today:
+        return state.get("last_events", {})
+
+    prev_update = state.get("updated")  # date de la derniere mise a jour
+    prev_active = {t for t, i in tickers_state.items() if i.get("active")}
+    events: dict[str, list] = {"persistent": [], "new": [], "weakening": [], "dropped": []}
+
+    for rank, m in enumerate(current, 1):
+        info = tickers_state.get(m.ticker, {})
+        was_in = bool(info.get("active")) and info.get("last_seen") == prev_update
+        rel = round(float(m.rel_63d_vs_qqq or 0.0), 2)
+        prev_rel = info.get("last_rel")
+        prev_rank = info.get("last_rank")
+        streak = (info.get("streak", 0) + 1) if was_in else 1
+        if not was_in:
+            events["new"].append(m.ticker)
+        elif prev_rel is not None and (rel < prev_rel - 1.0 or (prev_rank and rank > prev_rank)):
+            events["weakening"].append({
+                "ticker": m.ticker, "rank": rank, "prev_rank": prev_rank,
+                "rel": rel, "prev_rel": prev_rel,
+            })
+        tickers_state[m.ticker] = {
+            "streak": streak,
+            "days": info.get("days", 0) + 1,
+            "first_seen": info.get("first_seen", today),
+            "last_seen": today,
+            "last_rank": rank,
+            "peak_rank": min(rank, info.get("peak_rank", rank)),
+            "last_rel": rel,
+            "active": True,
+        }
+
+    for t in prev_active - cur_set:
+        tickers_state[t]["active"] = False
+        tickers_state[t]["dropped_on"] = today
+        events["dropped"].append(t)
+
+    events["persistent"] = sorted(
+        ([m.ticker, tickers_state[m.ticker]["streak"]] for m in current),
+        key=lambda x: -x[1],
+    )[:5]
+
+    state.update({"updated": today, "prev_update": prev_update,
+                  "tickers": tickers_state, "last_events": events})
+    _save_tracker(state)
+    return events
+
+
+def tracker_lines(ev: dict) -> list[str]:
+    """Lignes Telegram du suivi de persistance (compactes)."""
+    if not ev:
+        return []
+    out: list[str] = []
+    if ev.get("persistent"):
+        out.append("🏅 Persistants: " + ", ".join(f"{t} {s}j" for t, s in ev["persistent"][:4]))
+    if ev.get("new"):
+        out.append("🆕 Entrants: " + ", ".join(ev["new"][:4]))
+    if ev.get("weakening"):
+        out.append("📉 Faiblissent: " + ", ".join(w["ticker"] for w in ev["weakening"][:4]))
+    if ev.get("dropped"):
+        out.append("❌ Sortis: " + ", ".join(ev["dropped"][:4]))
+    return out
+
+
 def build_telegram_summary(
     theme_scores,
     stock_metrics: list[AssetMetrics],
     renko: dict,
+    events: dict | None = None,
 ) -> str:
     lines = ["🇺🇸 MID-CAP TECH"]
     if theme_scores:
@@ -267,12 +371,19 @@ def build_telegram_summary(
         idx += 1
     if idx == 1:
         lines.append("---")
+
+    tl = tracker_lines(events or {})
+    if tl:
+        lines.append("")
+        lines.append("🛰️ SUIVI")
+        lines.extend(tl)
+
     stamp = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d %H:%M")
     lines += ["", f"⏰ {stamp} Paris"]
     return "\n".join(lines)
 
 
-def build_report(theme_scores, stock_metrics, news, renko, args) -> str:
+def build_report(theme_scores, stock_metrics, news, renko, args, events=None) -> str:
     paris = pytz.timezone("Europe/Paris")
     now = datetime.now(paris).strftime("%Y-%m-%d %H:%M %Z")
     top_themes = [s.theme for s in theme_scores[:args.top_themes]]
@@ -286,6 +397,21 @@ def build_report(theme_scores, stock_metrics, news, renko, args) -> str:
         "",
         "DOMINANT SUB-THEMES",
         table_theme_scores(theme_scores, args.top_themes),
+    ]
+    if events:
+        lines += ["", "SUIVI DE PERSISTANCE (vivier TOP)"]
+        if events.get("persistent"):
+            lines.append("Persistants (jours consecutifs): "
+                         + ", ".join(f"{t} {s}j" for t, s in events["persistent"]))
+        if events.get("new"):
+            lines.append("Entrants: " + ", ".join(events["new"]))
+        if events.get("weakening"):
+            lines.append("Faiblissent: " + ", ".join(
+                f"{w['ticker']} (rang {w['prev_rank']}→{w['rank']}, Rel {w['prev_rel']:+.0f}→{w['rel']:+.0f})"
+                for w in events["weakening"]))
+        if events.get("dropped"):
+            lines.append("Sortis du TOP: " + ", ".join(events["dropped"]))
+    lines += [
         "",
         "TOP STOCKS BY SUB-THEME",
     ]
@@ -462,7 +588,9 @@ def main() -> int:
         renko = run_renko_filter(candidates, [], atr_length=args.renko_length,
                                  max_workers=args.renko_workers, debug=args.renko_debug)
 
-    report = build_report(theme_scores, stock_metrics, news, renko, args)
+    events = update_tracker(stock_metrics)
+
+    report = build_report(theme_scores, stock_metrics, news, renko, args, events)
     print()
     print(report)
 
@@ -483,7 +611,7 @@ def main() -> int:
     print(f"\nSaved: {args.txt}")
     print(f"Saved: {args.json}")
 
-    text = report if args.telegram_full else build_telegram_summary(theme_scores, stock_metrics, renko)
+    text = report if args.telegram_full else build_telegram_summary(theme_scores, stock_metrics, renko, events)
     print("\nTELEGRAM SUMMARY:\n" + text)
     if args.telegram:
         send_telegram(text)
