@@ -85,6 +85,9 @@ class TFState:
     red_streak: int
     renko_open: float
     renko_close: float
+    streak_count: int
+    streak_low: float
+    streak_high: float
 
 
 def parse_args():
@@ -212,6 +215,52 @@ def streaks_from_bricks(bricks: list[tuple[float, float, int]], max_bars: int) -
     return green, red
 
 
+def streak_range_from_bricks(bricks: list[tuple[float, float, int]]) -> tuple[int, float, float]:
+    """Range complet du dernier streak Renko valide: toutes les briques finales
+    consecutives dans le meme sens que la derniere brique."""
+    direction = bricks[-1][2]
+    run: list[tuple[float, float, int]] = []
+    for brick in reversed(bricks):
+        if brick[2] != direction:
+            break
+        run.append(brick)
+
+    lows = [min(o, c) for o, c, _ in run]
+    highs = [max(o, c) for o, c, _ in run]
+    return len(run), min(lows), max(highs)
+
+
+def h1_vs_streak_position(states: dict[str, TFState], h1_price: float | None) -> dict | None:
+    """Compare le close H1 actuel au range du dernier streak Renko D/W/M.
+    +1 = au-dessus du streak, -1 = en-dessous, 0 = dans le range du streak."""
+    if h1_price is None:
+        return None
+
+    pos: dict[str, int] = {}
+    counts = {1: 0, -1: 0, 0: 0}
+    for tf in ("D", "W", "M"):
+        state = states.get(tf)
+        if state is None:
+            continue
+        if h1_price > state.streak_high:
+            v = 1
+        elif h1_price < state.streak_low:
+            v = -1
+        else:
+            v = 0
+        pos[tf] = v
+        counts[v] += 1
+
+    parts = []
+    if counts[1]:
+        parts.append(f"🟢{counts[1]}")
+    if counts[-1]:
+        parts.append(f"🔴{counts[-1]}")
+    if counts[0]:
+        parts.append(f"⚪{counts[0]}")
+    return {"tag": " ".join(parts), "pos": pos, "counts": counts}
+
+
 # Parabolic SAR (rapide) pour le timing 1H: start AF 0.1, increment 0.1, max 0.2.
 SAR_AF_START = 0.1
 SAR_AF_STEP = 0.1
@@ -324,6 +373,7 @@ def compute_tf_state(pair: str, interval: str, length: int, candles: int, max_st
 
     renko_open, renko_close, direction = bricks[-1]
     green_streak, red_streak = streaks_from_bricks(bricks, max_streak)
+    streak_count, streak_low, streak_high = streak_range_from_bricks(bricks)
 
     px_state = f_px_state(renko_open, renko_close, live_price)
     bias = f_effective_bias(px_state, green_streak, red_streak)
@@ -336,6 +386,9 @@ def compute_tf_state(pair: str, interval: str, length: int, candles: int, max_st
         red_streak=red_streak,
         renko_open=renko_open,
         renko_close=renko_close,
+        streak_count=streak_count,
+        streak_low=streak_low,
+        streak_high=streak_high,
     )
 
 
@@ -382,10 +435,13 @@ def compute_pair_score(pair: str, length: int, candles: int, max_streak: int) ->
     confirmed = 1 if confirmed_bull else (-1 if confirmed_bear else 0)
 
     h1_fib = compute_h1_month_fib(pair)
+    h1_price = h1_fib["live_price"] if h1_fib is not None else None
+    streak_position = h1_vs_streak_position(states, h1_price)
 
     return {
         "pair": pair,
         "live_price": live_price,
+        "h1_price": h1_price,
         "daily_chg": daily_chg,
         "states": states,
         "px": px,
@@ -397,6 +453,8 @@ def compute_pair_score(pair: str, length: int, candles: int, max_streak: int) ->
         "score_state": score_state,
         "confirmed": confirmed,
         "h1_fib": h1_fib,
+        "streak_position": streak_position,
+        "streak_tag": streak_position["tag"] if streak_position else "",
     }
 
 
@@ -438,10 +496,10 @@ def confirmed_text(confirmed: int) -> str:
 def print_table(rows: list[dict]) -> None:
     print(
         f"{'PAIR':<8} {'SIGNAL':<7} {'SCORE_ST':<9} {'BASE%':<8} {'FINAL%':<8} {'CHG%D':<8} {'CONFIRMED':<10} "
-        f"{'M(px/bias)':<12} {'W(px/bias)':<12} {'D(px/bias)':<12} {'PRICE':<12} "
+        f"{'M(px/bias)':<12} {'W(px/bias)':<12} {'D(px/bias)':<12} {'PRICE':<12} {'H1/STREAK':<12} "
         f"{'1H vs FIB 0.5 (month)':<28}"
     )
-    print("-" * 148)
+    print("-" * 160)
     for row in sorted(rows, key=lambda r: r["weighted_pct"], reverse=True):
         pair = row["pair"]
         signal = state_text(row["signal_state"])
@@ -454,6 +512,7 @@ def print_table(rows: list[dict]) -> None:
         m_txt = f"{row['px']['M']:+d}/{row['bias']['M']:+d}"
         w_txt = f"{row['px']['W']:+d}/{row['bias']['W']:+d}"
         d_txt = f"{row['px']['D']:+d}/{row['bias']['D']:+d}"
+        streak_txt = row.get("streak_tag") or "N/A"
 
         h1_fib = row["h1_fib"]
         if h1_fib is None:
@@ -467,7 +526,7 @@ def print_table(rows: list[dict]) -> None:
 
         print(
             f"{pair:<8} {signal:<7} {score_st:<9} {base_txt:<8} {score_txt:<8} {chg_txt:<8} {conf_txt:<10} "
-            f"{m_txt:<12} {w_txt:<12} {d_txt:<12} {row['live_price']:<12.5f} "
+            f"{m_txt:<12} {w_txt:<12} {d_txt:<12} {row['live_price']:<12.5f} {streak_txt:<12} "
             f"{fib_txt:<28}"
         )
 
@@ -759,7 +818,9 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
         if (h1_fib is not None and h1_fib.get("sar_flipped")
                 and h1_fib.get("sar_dir") == row["signal_state"]):
             flame = " 🔥"
-        lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){flame}")
+        streak_tag = row.get("streak_tag", "")
+        streak_txt = f" {streak_tag}" if streak_tag else ""
+        lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){streak_txt}{flame}")
 
     # Section CHG%D journalier, sur l'ensemble des paires (pas seulement les
     # signaux confirmes RENKO FIBO).
