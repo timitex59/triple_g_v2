@@ -279,23 +279,25 @@ SAR_AF_MAX = 0.2
 def parabolic_sar(df: pd.DataFrame,
                   af_start: float = SAR_AF_START,
                   af_step: float = SAR_AF_STEP,
-                  af_max: float = SAR_AF_MAX) -> list[int] | None:
-    """Parabolic SAR classique. Renvoie la liste des directions de tendance par
-    barre: +1 = haussier (SAR sous le prix), -1 = baissier (SAR au-dessus).
-    Un changement de valeur entre deux barres = retournement (cross du prix vs
-    SAR). None si pas assez de barres."""
+                  af_max: float = SAR_AF_MAX) -> dict | None:
+    """Parabolic SAR classique. Renvoie directions et niveaux SAR par barre.
+    trend: +1 = haussier (SAR sous le prix), -1 = baissier (SAR au-dessus).
+    None si pas assez de barres."""
+    open_ = [float(x) for x in df["open"].tolist()]
     high = [float(x) for x in df["high"].tolist()]
     low = [float(x) for x in df["low"].tolist()]
     n = len(high)
-    if n < 3:
+    if n < 3 or len(open_) != n:
         return None
 
     trend = [1] * n
+    sar_values = [0.0] * n
     trend[0] = 1 if high[1] >= high[0] else -1
     if trend[0] == 1:
         ep, sar = high[0], low[0]
     else:
         ep, sar = low[0], high[0]
+    sar_values[0] = sar
     af = af_start
 
     for i in range(1, n):
@@ -324,7 +326,30 @@ def parabolic_sar(df: pd.DataFrame,
                 if low[i] < ep:
                     ep = low[i]
                     af = min(af + af_step, af_max)
-    return trend
+        sar_values[i] = sar
+    return {"trend": trend, "sar": sar_values}
+
+
+def sar_flip_event(df: pd.DataFrame, sar_state: dict | None) -> tuple[bool, int]:
+    """Retournement SAR strict sur les deux dernieres bougies H1.
+    BULL: trend -1 -> +1, open precedent sous son SAR, close courant au-dessus du SAR.
+    BEAR: trend +1 -> -1, open precedent au-dessus de son SAR, close courant sous le SAR."""
+    if not sar_state:
+        return False, 0
+    trend = sar_state.get("trend") or []
+    sar_values = sar_state.get("sar") or []
+    if len(trend) < 2 or len(sar_values) < 2 or len(df) < 2:
+        return False, 0
+
+    prev_dir, cur_dir = trend[-2], trend[-1]
+    prev_open = float(df["open"].iloc[-2])
+    cur_close = float(df["close"].iloc[-1])
+    prev_sar = float(sar_values[-2])
+    cur_sar = float(sar_values[-1])
+
+    bull = prev_dir == -1 and cur_dir == 1 and prev_open < prev_sar and cur_close > cur_sar
+    bear = prev_dir == 1 and cur_dir == -1 and prev_open > prev_sar and cur_close < cur_sar
+    return bool(bull or bear), cur_dir
 
 
 def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
@@ -352,12 +377,12 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
     live_price = float(df["close"].iloc[-1])
     position = "ABOVE" if live_price > fib50 else ("BELOW" if live_price < fib50 else "AT")
 
-    # Parabolic SAR 1H: direction courante + retournement sur la derniere barre
-    # (le prix vient de croiser le SAR). Sert a poser la 🔥 si le retournement
-    # va dans le sens de la tendance RENKO FIBO.
-    sar_trend = parabolic_sar(df)
-    sar_dir = sar_trend[-1] if sar_trend else 0
-    sar_flipped = bool(sar_trend and len(sar_trend) >= 2 and sar_trend[-1] != sar_trend[-2])
+    # Parabolic SAR 1H: retournement strict sur les deux dernieres barres.
+    # BULL: open precedent sous SAR precedent, close courant au-dessus du SAR.
+    # BEAR: open precedent au-dessus SAR precedent, close courant sous le SAR.
+    sar_state = parabolic_sar(df)
+    sar_flipped, sar_dir = sar_flip_event(df, sar_state)
+    sar_values = sar_state.get("sar") if sar_state else None
 
     return {
         "fib50": fib50,
@@ -368,6 +393,8 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
         "pct_of_range": (live_price - month_low) / fib_range * 100.0,
         "sar_dir": sar_dir,
         "sar_flipped": sar_flipped,
+        "sar_value": sar_values[-1] if sar_values else None,
+        "sar_prev_value": sar_values[-2] if sar_values and len(sar_values) >= 2 else None,
     }
 
 
