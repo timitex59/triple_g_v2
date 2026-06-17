@@ -341,6 +341,26 @@ def update_tracker(ranking: list[dict], theme_scores=None,
     return events
 
 
+SUIVI_MAXW = 24   # largeur max d'une ligne horizontale (= ligne horodatage "... Paris")
+
+
+def _wrap_csv(label: str, items: list[str], maxw: int = SUIVI_MAXW) -> list[str]:
+    """Decoupe une liste en lignes <= maxw (label sur la 1re). Garantit qu'aucune
+    ligne horizontale ne depasse la largeur de l'horodatage 'Paris'."""
+    lines, cur = [], label
+    for i, it in enumerate(items):
+        token = it + ("," if i < len(items) - 1 else "")
+        trial = f"{cur} {token}" if cur else token
+        if len(trial) <= maxw or cur == label:
+            cur = trial
+        else:
+            lines.append(cur)
+            cur = token
+    if cur:
+        lines.append(cur)
+    return lines
+
+
 def tracker_lines(ev: dict) -> list[str]:
     """Lignes Telegram du suivi de persistance (compactes)."""
     if not ev:
@@ -351,11 +371,11 @@ def tracker_lines(ev: dict) -> list[str]:
         for t, s, rel, _ in ev["durable"][:TRACK_TOP_N]:
             out.append(f"{t} {s}j · {rel:+.0f}%")
     if ev.get("new"):
-        out.append("🆕 Entrants: " + ", ".join(ev["new"][:TRACK_TOP_N]))
+        out += _wrap_csv("🆕 Entrants:", ev["new"][:TRACK_TOP_N])
     if ev.get("weakening"):
-        out.append("📉 Faiblissent: " + ", ".join(w["ticker"] for w in ev["weakening"][:TRACK_TOP_N]))
+        out += _wrap_csv("📉 Faiblissent:", [w["ticker"] for w in ev["weakening"][:TRACK_TOP_N]])
     if ev.get("dropped"):
-        out.append("❌ Sortis: " + ", ".join(ev["dropped"][:TRACK_TOP_N]))
+        out += _wrap_csv("❌ Sortis:", ev["dropped"][:TRACK_TOP_N])
     return out
 
 
@@ -388,8 +408,7 @@ def build_telegram_summary(
 ) -> str:
     lines = ["🇺🇸 MID-CAP TECH"]
     if theme_scores:
-        top = ", ".join(s.theme for s in theme_scores[:2])
-        lines.append(f"🔥 {top}")
+        lines += _wrap_csv("🔥", [s.theme for s in theme_scores[:2]])
     if events and events.get("switch"):
         sw = events["switch"]
         lines.append(f"🔄 BASCULE: {sw['from']} → {sw['to']} ({sw['days']}j)")
