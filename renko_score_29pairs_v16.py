@@ -806,6 +806,34 @@ def daily_chg_section(all_rows: list[dict]) -> list[str]:
     return lines
 
 
+def sar_streak_turn_section(all_rows: list[dict]) -> list[str]:
+    """Paires dont le prix H1 est au-dessus/en-dessous des 3 streaks D/W/M et
+    dont le SAR 1H vient de se retourner dans le meme sens."""
+    matches: list[tuple[int, dict]] = []
+    for row in all_rows:
+        h1_fib = row.get("h1_fib") or {}
+        if not h1_fib.get("sar_flipped"):
+            continue
+
+        sar_dir = h1_fib.get("sar_dir")
+        counts = (row.get("streak_position") or {}).get("counts") or {}
+        if sar_dir == 1 and counts.get(1, 0) == 3:
+            matches.append((1, row))
+        elif sar_dir == -1 and counts.get(-1, 0) == 3:
+            matches.append((-1, row))
+
+    if not matches:
+        return []
+
+    lines = ["🔥 SAR H1 + STREAK"]
+    for direction, row in sorted(matches, key=lambda x: (-x[0], x[1]["pair"])):
+        icon = "🟢" if direction == 1 else "🔴"
+        tag = "🟢3" if direction == 1 else "🔴3"
+        sar_txt = "SAR↑" if direction == 1 else "SAR↓"
+        lines.append(f"{icon} {row['pair']} {tag} {sar_txt}")
+    return lines
+
+
 def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None) -> str:
     # Group BULL together and BEAR together (strongest signal_state first),
     # and within each group rank by conviction — strongest |score| first —
@@ -832,6 +860,11 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
         streak_tag = row.get("streak_tag", "")
         streak_txt = f" {streak_tag}" if streak_tag else ""
         lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){streak_txt}{flame}")
+
+    sar_lines = sar_streak_turn_section(all_rows if all_rows is not None else rows)
+    if sar_lines:
+        lines.append("")
+        lines.extend(sar_lines)
 
     # Section CHG%D journalier, sur l'ensemble des paires (pas seulement les
     # signaux confirmes RENKO FIBO).
