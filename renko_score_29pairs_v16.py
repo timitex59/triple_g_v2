@@ -46,8 +46,8 @@ HISTORY_WINDOW = 60        # jours glissants de reference
 HISTORY_CALIB_MIN = 20     # jours mini avant d'utiliser le percentile
 HISTORY_MAX_DAYS = 500     # borne la taille du fichier
 
-# Profil intraday (statique, construit par seed_intraday_profile.py): pour chaque
-# heure depuis l'ouverture de session NY, la distribution historique du spread.
+# Profil intraday (statique, construit par seed_intraday_profile.py sur 1 an):
+# pour chaque heure depuis l'ouverture de session NY, la distribution historique du spread.
 # Permet un percentile JUSTE a chaque heure (au lieu de comparer un mouvement
 # partiel a des journees completes).
 INTRADAY_PROFILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -58,14 +58,15 @@ INTRADAY_PROFILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 # nuit hors fenetre cron).
 INTRADAY_LIVE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                   "renko_intraday_live.json")
+USE_INTRADAY_LIVE_PROFILE = False  # garde l'intensite calibree sur le profil 1 an
 INTRADAY_LIVE_MIN = 60     # echantillons mini pour preferer le live au seed
 INTRADAY_LIVE_CAP = 300    # garde au plus N echantillons recents par heure
 NY_TZ = ZoneInfo("America/New_York")
 SESSION_OPEN_HOUR = 17     # 17:00 New York = ouverture journaliere OANDA
 
-# Reference de regime long terme (statique, construite par seed_regime_reference.py):
-# distribution du spread quotidien sur ~22 ans. Situe la PERIODE actuelle (calme /
-# agitee) vs le long terme.
+# Reference de regime recente (statique, construite par seed_regime_reference.py):
+# distribution du spread quotidien sur 3 ans. Situe la PERIODE actuelle (calme /
+# agitee) vs le regime recent du forex.
 REGIME_REFERENCE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                      "renko_regime_reference.json")
 REGIME_WINDOW = 30         # jours recents pour estimer le regime courant
@@ -629,7 +630,7 @@ def intraday_rank(profile: dict | None, live_log: dict | None, spread: float,
     seed. Renvoie pct, heure, mediane, source, label."""
     h = h_idx if h_idx is not None else session_hour_idx()
     samples = (live_log or {}).get(str(h))
-    if samples and len(samples) >= INTRADAY_LIVE_MIN:
+    if USE_INTRADAY_LIVE_PROFILE and samples and len(samples) >= INTRADAY_LIVE_MIN:
         srt = sorted(samples)
         pct = max(0.0, min(100.0, 100.0 * bisect.bisect_right(srt, spread) / len(srt)))
         return {"pct": pct, "hour": h, "n": len(srt), "median": srt[len(srt) // 2],
@@ -654,7 +655,7 @@ def _load_regime_reference() -> dict | None:
 
 def regime_block(hist: dict) -> list[str]:
     """Situe la PERIODE recente (mediane du spread sur REGIME_WINDOW jours) vs la
-    distribution long terme (~22 ans). Renvoie 2 lignes (label + valeurs) ou []."""
+    distribution recente (3 ans). Renvoie 2 lignes (label + valeurs) ou []."""
     ref = _load_regime_reference()
     if not ref:
         return []
@@ -729,7 +730,7 @@ def daily_chg_section(all_rows: list[dict]) -> list[str]:
             lines.append(f"⚡️ INTENSITÉ: calibrage ({rk['n']}/{HISTORY_CALIB_MIN}j)")
             lines.append(f"    ({spread:.2f})")
 
-    # 3) REGIME (contexte de la periode vs ~22 ans).
+    # 3) REGIME (contexte de la periode vs reference 3 ans).
     lines.extend(regime_block(hist))
 
     return lines

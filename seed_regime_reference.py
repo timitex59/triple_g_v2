@@ -3,11 +3,10 @@
 """
 seed_regime_reference.py
 
-Construit la REFERENCE DE REGIME long terme: la distribution du spread quotidien
-(dispersion des devises) sur tout l'historique daily disponible (forex_data/,
-jusqu'a ~22 ans). Sert a situer la PERIODE actuelle (calme / agitee) par rapport
-au long terme, ce que ni la fenetre 60j ni le profil intraday (3,4 ans) ne
-peuvent donner.
+Construit la REFERENCE DE REGIME recente: la distribution du spread quotidien
+(dispersion des devises) sur les 3 dernieres annees disponibles dans forex_data/.
+Sert a situer la PERIODE actuelle (calme / agitee) par rapport au regime forex
+recent.
 
 Sortie: renko_regime_reference.json
   { "q": [101 quantiles tries P0..P100], "median": .., "n": .., "meta": {...} }
@@ -33,9 +32,10 @@ import renko_score_29pairs_v16 as rk
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "forex_data")
 OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "renko_regime_reference.json")
 MIN_PAIRS = 10
+REGIME_LOOKBACK_YEARS = 3
 
 
-def daily_spreads() -> tuple[list[float], list[float]]:
+def daily_spreads() -> tuple[list[float], list[float], int, int]:
     by_pair: dict[str, list[dict]] = {}
     for f in glob.glob(os.path.join(DATA_DIR, "OANDA_*.csv")):
         m = re.search(r"OANDA_([A-Z]{6})", os.path.basename(f))
@@ -45,14 +45,18 @@ def daily_spreads() -> tuple[list[float], list[float]]:
         if m.group(1) not in by_pair or len(rows) > len(by_pair[m.group(1)]):
             by_pair[m.group(1)] = rows
 
+    max_ts = max(int(r["time"]) for rows in by_pair.values() for r in rows)
+    cutoff_ts = max_ts - int(365.25 * REGIME_LOOKBACK_YEARS * 24 * 3600)
+
     chg: dict[str, dict[str, float]] = {}
     for p, rows in by_pair.items():
         rows = sorted(rows, key=lambda r: int(r["time"]))
         d, prev = {}, None
         for r in rows:
+            ts = int(r["time"])
             c = float(r["close"])
-            dt = datetime.fromtimestamp(int(r["time"]), timezone.utc).date().isoformat()
-            if prev:
+            dt = datetime.fromtimestamp(ts, timezone.utc).date().isoformat()
+            if prev and ts >= cutoff_ts:
                 d[dt] = (c - prev) / prev * 100.0
             prev = c
         chg[p] = d
@@ -71,7 +75,7 @@ def daily_spreads() -> tuple[list[float], list[float]]:
         dn = sum(1 for r in rws if r["daily_chg"] < 0)
         if up + dn > 0:
             breadth.append(100.0 * up / (up + dn))   # % de paires haussieres
-    return spreads, breadth
+    return spreads, breadth, cutoff_ts, max_ts
 
 
 def main() -> int:
@@ -79,7 +83,7 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    vals, breadth = daily_spreads()
+    vals, breadth, cutoff_ts, max_ts = daily_spreads()
     if len(vals) < 200:
         print(f"Pas assez de jours ({len(vals)}).")
         return 1
@@ -95,9 +99,15 @@ def main() -> int:
         "n": n,
         "breadth_q": bq,                                   # % paires haussieres, P0..P100
         "breadth_median": round(statistics.median(breadth), 1) if breadth else 50.0,
-        "meta": {"generated_at": datetime.now(timezone.utc).isoformat()},
+        "meta": {
+            "lookback_years": REGIME_LOOKBACK_YEARS,
+            "reference_start": datetime.fromtimestamp(cutoff_ts, timezone.utc).date().isoformat(),
+            "reference_end": datetime.fromtimestamp(max_ts, timezone.utc).date().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+        },
     }
     print(f"Jours: {n}")
+    print(f"Fenetre reference: {ref['meta']['reference_start']} -> {ref['meta']['reference_end']} ({REGIME_LOOKBACK_YEARS} ans)")
     print(f"Spread  mediane {ref['median']} | P25 {q[25]} | P75 {q[75]} | P90 {q[90]} | pic {q[100]}")
     print(f"Breadth mediane {ref['breadth_median']}% | P25 {bq[25]}% | P75 {bq[75]}% | P90 {bq[90]}%")
 

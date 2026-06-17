@@ -3,8 +3,8 @@
 """
 seed_intraday_profile.py
 
-Construit un PROFIL INTRADAY de l'intensite de tendance a partir des CSV 1H des
-29 paires (forex_1h_data/). Objectif: pouvoir juger l'intensite du jour de
+Construit un PROFIL INTRADAY de l'intensite de tendance a partir de la derniere
+annee des CSV 1H des 29 paires (forex_1h_data/). Objectif: pouvoir juger l'intensite du jour de
 maniere JUSTE a n'importe quelle heure, en comparant la dispersion accumulee
 "a l'heure H" a la distribution historique de la meme heure H (et non a des
 journees completes, ce qui sous-estime en cours de journee).
@@ -36,6 +36,7 @@ import glob
 import json
 import os
 import re
+import sys
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -48,6 +49,7 @@ OUT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "renko_intra
 NY = ZoneInfo("America/New_York")
 SESSION_OPEN_HOUR = 17           # 17:00 New York = ouverture journaliere OANDA
 MIN_PAIRS_PER_CELL = 10          # nb mini de paires pour calculer une dispersion
+PROFILE_LOOKBACK_DAYS = 365      # reference recente pour l'intensite intraday
 
 
 def session_open_dt(ts: int) -> datetime:
@@ -74,6 +76,17 @@ def load_1h() -> dict[str, pd.DataFrame]:
         if pair not in by_pair or len(df) > len(by_pair[pair]):   # garde le + fourni
             by_pair[pair] = df
     return by_pair
+
+
+def trim_to_recent_window(by_pair: dict[str, pd.DataFrame], days: int) -> tuple[dict[str, pd.DataFrame], int, int]:
+    max_ts = max(int(df["time"].max()) for df in by_pair.values() if len(df))
+    cutoff_ts = max_ts - days * 24 * 3600
+    trimmed = {}
+    for pair, df in by_pair.items():
+        df2 = df[df["time"].astype(int) >= cutoff_ts].copy()
+        if len(df2):
+            trimmed[pair] = df2
+    return trimmed, cutoff_ts, max_ts
 
 
 def pair_chg_cells(df: pd.DataFrame) -> dict[tuple[str, int], float]:
@@ -106,7 +119,7 @@ def pair_chg_cells(df: pd.DataFrame) -> dict[tuple[str, int], float]:
     return cells
 
 
-def build_profile(by_pair: dict[str, pd.DataFrame]) -> dict:
+def build_profile(by_pair: dict[str, pd.DataFrame], cutoff_ts: int, max_ts: int) -> dict:
     # chg par paire par cellule
     chg = {p: pair_chg_cells(df) for p, df in by_pair.items()}
     # toutes les cellules (jour, heure)
@@ -139,12 +152,18 @@ def build_profile(by_pair: dict[str, pd.DataFrame]) -> dict:
         "meta": {
             "pairs": sorted(by_pair),
             "session_open_ny": SESSION_OPEN_HOUR,
+            "lookback_days": PROFILE_LOOKBACK_DAYS,
+            "reference_start": datetime.fromtimestamp(cutoff_ts, timezone.utc).date().isoformat(),
+            "reference_end": datetime.fromtimestamp(max_ts, timezone.utc).date().isoformat(),
             "generated_at": datetime.now(timezone.utc).isoformat(),
         },
     }
 
 
 def main() -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+
     parser = argparse.ArgumentParser(description="Construit renko_intraday_profile.json depuis forex_1h_data/.")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
@@ -155,7 +174,14 @@ def main() -> int:
         print("Pas assez de paires.")
         return 1
 
-    profile = build_profile(by_pair)
+    by_pair, cutoff_ts, max_ts = trim_to_recent_window(by_pair, PROFILE_LOOKBACK_DAYS)
+    print(f"Fenetre reference: {datetime.fromtimestamp(cutoff_ts, timezone.utc).date()} -> "
+          f"{datetime.fromtimestamp(max_ts, timezone.utc).date()} ({PROFILE_LOOKBACK_DAYS}j)")
+    if len(by_pair) < 10:
+        print("Pas assez de paires apres filtrage.")
+        return 1
+
+    profile = build_profile(by_pair, cutoff_ts, max_ts)
     hours = sorted(int(h) for h in profile["by_hour"])
     print(f"Heures profilees: {len(hours)}  ({hours[0]}..{hours[-1]} depuis l'ouverture NY)")
     print("Courbe du spread MEDIAN par heure (montee typique de la tendance dans la journee):")
