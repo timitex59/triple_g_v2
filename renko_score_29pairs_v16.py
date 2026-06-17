@@ -171,6 +171,15 @@ def build_renko_bricks(df: pd.DataFrame, length: int) -> list[tuple[float, float
     return bricks
 
 
+def closed_renko_source(df: pd.DataFrame) -> pd.DataFrame:
+    """Retire la derniere bougie du timeframe source: en live elle peut encore
+    former une brique Renko non cloturee. Le prix H1 live reste compare ensuite
+    a ces niveaux valides."""
+    if len(df) <= 1:
+        return df.iloc[0:0]
+    return df.iloc[:-1]
+
+
 def f_px_state(renko_open: float, renko_close: float, price: float) -> int:
     hi = max(renko_open, renko_close)
     lo = min(renko_open, renko_close)
@@ -367,7 +376,9 @@ def compute_tf_state(pair: str, interval: str, length: int, candles: int, max_st
     if df is None or df.empty:
         return None
 
-    bricks = build_renko_bricks(df, length)
+    # Le dernier candle D/W/M est le candle en cours dans les runs live.
+    # Les streaks Renko doivent rester bases sur des briques cloturees.
+    bricks = build_renko_bricks(closed_renko_source(df), length)
     if not bricks:
         return None
 
