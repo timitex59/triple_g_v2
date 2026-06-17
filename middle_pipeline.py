@@ -68,7 +68,8 @@ BENCHMARK = "IWR"  # iShares Russell Mid-Cap ETF — reference mid-cap
 REPORT_JSON = os.path.join(SCRIPT_DIR, "middle_pipeline_report.json")
 REPORT_TXT = os.path.join(SCRIPT_DIR, "middle_pipeline_report.txt")
 TRACKER_PATH = os.path.join(SCRIPT_DIR, "middle_pipeline_tracker.json")
-TRACK_TOP_N = 10      # taille du vivier suivi (persistance / faiblesse / sortie)
+TRACK_TOP_N = 5       # vivier suivi = EXACTEMENT le TOP STOCKS affiche (il faut
+                      # avoir atteint le TOP pour etre suivi / devenir durable)
 SWITCH_CONFIRM_DAYS = 3  # jours ou un nouveau #1 doit tenir pour confirmer une bascule
 
 # Codes d'echange Yahoo -> exchange TradingView (pour le scan Renko).
@@ -396,7 +397,7 @@ def build_telegram_summary(
     lines.append("")
     lines.append("📈 TOP STOCKS (vs IWR)")
     if ranking:
-        for i, e in enumerate(ranking[:5], 1):
+        for i, e in enumerate(ranking[:TRACK_TOP_N], 1):
             tag = "" if e["validated"] else " ⏳"
             lines.append(f"{i}. {e['ticker']} ({format_pct(e['rel'])}){tag}")
     else:
