@@ -245,28 +245,22 @@ def _save_tracker(state: dict) -> None:
         pass
 
 
-def update_tracker(stock_metrics: list[AssetMetrics], theme_scores=None,
+def update_tracker(ranking: list[dict], theme_scores=None,
                    top_n: int = TRACK_TOP_N) -> dict:
     """Suivi de persistance du vivier TOP (1x/jour, idempotent intra-journee).
 
-    Maintient par ticker: streak (jours consecutifs dans le TOP), jours cumules,
-    rang, force relative. Detecte chaque jour: nouveaux entrants, valeurs qui
-    faiblissent, sorties du TOP. Calcule aussi:
-      - un score de PERSISTANCE PONDERE (streak x force relative) -> "durables"
-      - une ALERTE DE BASCULE quand un nouveau sous-theme prend la 1re place et
-        la conserve >= SWITCH_CONFIRM_DAYS jours.
+    Le vivier suit EXACTEMENT le meme classement que le TOP STOCKS (validees
+    Renko d'abord, voir unified_ranking) -> ce qui est affiche = ce qui est
+    suivi. Maintient par ticker: streak, jours cumules, rang, force relative.
+    Detecte: entrants, valeurs qui faiblissent, sorties. Calcule aussi le
+    score de PERSISTANCE PONDERE (streak x force) et l'ALERTE DE BASCULE.
     """
     today = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d")
     state = _load_tracker()
     tickers_state: dict[str, dict] = state.get("tickers", {})
 
-    ranked = sorted(
-        [m for m in stock_metrics if m.rel_63d_vs_qqq is not None],
-        key=lambda m: (m.rel_63d_vs_qqq or 0.0, m.score),
-        reverse=True,
-    )
-    current = ranked[:top_n]
-    cur_set = {m.ticker for m in current}
+    current = ranking[:top_n]
+    cur_set = {e["ticker"] for e in current}
 
     # Idempotent: si deja calcule aujourd'hui (CI tourne plusieurs fois/soir),
     # on renvoie les evenements du jour sans muter l'historique.
@@ -277,21 +271,22 @@ def update_tracker(stock_metrics: list[AssetMetrics], theme_scores=None,
     prev_active = {t for t, i in tickers_state.items() if i.get("active")}
     events: dict = {"persistent": [], "new": [], "weakening": [], "dropped": []}
 
-    for rank, m in enumerate(current, 1):
-        info = tickers_state.get(m.ticker, {})
+    for rank, e in enumerate(current, 1):
+        ticker = e["ticker"]
+        info = tickers_state.get(ticker, {})
         was_in = bool(info.get("active")) and info.get("last_seen") == prev_update
-        rel = round(float(m.rel_63d_vs_qqq or 0.0), 2)
+        rel = round(float(e["rel"] or 0.0), 2)
         prev_rel = info.get("last_rel")
         prev_rank = info.get("last_rank")
         streak = (info.get("streak", 0) + 1) if was_in else 1
         if not was_in:
-            events["new"].append(m.ticker)
+            events["new"].append(ticker)
         elif prev_rel is not None and (rel < prev_rel - 1.0 or (prev_rank and rank > prev_rank)):
             events["weakening"].append({
-                "ticker": m.ticker, "rank": rank, "prev_rank": prev_rank,
+                "ticker": ticker, "rank": rank, "prev_rank": prev_rank,
                 "rel": rel, "prev_rel": prev_rel,
             })
-        tickers_state[m.ticker] = {
+        tickers_state[ticker] = {
             "streak": streak,
             "days": info.get("days", 0) + 1,
             "first_seen": info.get("first_seen", today),
@@ -308,7 +303,7 @@ def update_tracker(stock_metrics: list[AssetMetrics], theme_scores=None,
         events["dropped"].append(t)
 
     events["persistent"] = sorted(
-        ([m.ticker, tickers_state[m.ticker]["streak"]] for m in current),
+        ([e["ticker"], tickers_state[e["ticker"]]["streak"]] for e in current),
         key=lambda x: -x[1],
     )[:5]
 
@@ -363,10 +358,31 @@ def tracker_lines(ev: dict) -> list[str]:
     return out
 
 
+def unified_ranking(stock_metrics: list[AssetMetrics], renko: dict) -> list[dict]:
+    """Classement UNIQUE servant a la fois au TOP STOCKS et au vivier suivi.
+
+    Ordre: actions validees Renko d'abord (par score combine), puis le reste
+    par force relative. Garantit la coherence: ce qui est affiche = ce qui est
+    suivi (une valeur du TOP est forcement dans le vivier)."""
+    order: list[dict] = []
+    seen: set[str] = set()
+    for _, c, a in retained_assets_ranked(renko, stock_metrics, []):
+        if c.asset_type != "STOCK" or a is None or c.ticker in seen:
+            continue
+        order.append({"ticker": c.ticker, "rel": a.rel_63d_vs_qqq, "validated": True})
+        seen.add(c.ticker)
+    rest = sorted(
+        [m for m in stock_metrics if m.ticker not in seen and m.rel_63d_vs_qqq is not None],
+        key=lambda m: (m.rel_63d_vs_qqq or 0.0, m.score), reverse=True,
+    )
+    for m in rest:
+        order.append({"ticker": m.ticker, "rel": m.rel_63d_vs_qqq, "validated": False})
+    return order
+
+
 def build_telegram_summary(
     theme_scores,
-    stock_metrics: list[AssetMetrics],
-    renko: dict,
+    ranking: list[dict],
     events: dict | None = None,
 ) -> str:
     lines = ["🇺🇸 MID-CAP TECH"]
@@ -377,36 +393,13 @@ def build_telegram_summary(
         sw = events["switch"]
         lines.append(f"🔄 BASCULE: {sw['from']} → {sw['to']} ({sw['days']}j)")
 
-    ranked = [(r, c, a) for r, c, a in retained_assets_ranked(renko, stock_metrics, [])
-              if c.asset_type == "STOCK"]
-    fallback = sorted(
-        [m for m in stock_metrics if m.rel_63d_vs_qqq is not None],
-        key=lambda m: ((m.rel_63d_vs_qqq or 0.0), m.score),
-        reverse=True,
-    )
     lines.append("")
     lines.append("📈 TOP STOCKS (vs IWR)")
-    used: set[str] = set()
-    idx = 1
-    for _, c, asset in ranked:
-        if idx > 5:
-            break
-        if asset is None or c.ticker in used:
-            continue
-        lines.append(f"{idx}. {c.ticker} ({format_pct(asset.rel_63d_vs_qqq)})")
-        used.add(c.ticker)
-        idx += 1
-    for asset in fallback:
-        if idx > 5:
-            break
-        if asset.ticker in used:
-            continue
-        tag = "" if any(c.ticker == asset.ticker and c.final_action == "VALIDATED"
-                        for c in renko.values()) else " ⏳"
-        lines.append(f"{idx}. {asset.ticker} ({format_pct(asset.rel_63d_vs_qqq)}){tag}")
-        used.add(asset.ticker)
-        idx += 1
-    if idx == 1:
+    if ranking:
+        for i, e in enumerate(ranking[:5], 1):
+            tag = "" if e["validated"] else " ⏳"
+            lines.append(f"{i}. {e['ticker']} ({format_pct(e['rel'])}){tag}")
+    else:
         lines.append("---")
 
     tl = tracker_lines(events or {})
@@ -629,7 +622,8 @@ def main() -> int:
         renko = run_renko_filter(candidates, [], atr_length=args.renko_length,
                                  max_workers=args.renko_workers, debug=args.renko_debug)
 
-    events = update_tracker(stock_metrics, theme_scores)
+    ranking = unified_ranking(stock_metrics, renko)
+    events = update_tracker(ranking, theme_scores)
 
     report = build_report(theme_scores, stock_metrics, news, renko, args, events)
     print()
@@ -652,7 +646,7 @@ def main() -> int:
     print(f"\nSaved: {args.txt}")
     print(f"Saved: {args.json}")
 
-    text = report if args.telegram_full else build_telegram_summary(theme_scores, stock_metrics, renko, events)
+    text = report if args.telegram_full else build_telegram_summary(theme_scores, ranking, events)
     print("\nTELEGRAM SUMMARY:\n" + text)
     if args.telegram:
         send_telegram(text)
