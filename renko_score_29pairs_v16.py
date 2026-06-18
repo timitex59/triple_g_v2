@@ -835,32 +835,20 @@ def daily_chg_section(all_rows: list[dict]) -> list[str]:
     return lines
 
 
-def sar_streak_turn_section(all_rows: list[dict]) -> list[str]:
-    """Paires dont le prix H1 est au-dessus/en-dessous des 3 streaks D/W/M et
-    dont le SAR 1H vient de se retourner dans le meme sens."""
-    matches: list[tuple[int, dict]] = []
-    for row in all_rows:
-        h1_fib = row.get("h1_fib") or {}
-        if not h1_fib.get("sar_flipped"):
-            continue
-
-        sar_dir = h1_fib.get("sar_dir")
-        counts = (row.get("streak_position") or {}).get("counts") or {}
-        if sar_dir == 1 and counts.get(1, 0) == 3:
-            matches.append((1, row))
-        elif sar_dir == -1 and counts.get(-1, 0) == 3:
-            matches.append((-1, row))
-
-    if not matches:
-        return []
-
-    lines = ["🔥 SAR H1 + STREAK"]
-    for direction, row in sorted(matches, key=lambda x: (-x[0], x[1]["pair"])):
-        icon = "🟢" if direction == 1 else "🔴"
-        tag = "🟢3" if direction == 1 else "🔴3"
-        sar_txt = "SAR↑" if direction == 1 else "SAR↓"
-        lines.append(f"{icon} {row['pair']} {tag} {sar_txt}")
-    return lines
+def sar_streak_full(r: dict) -> bool:
+    """Confluence maximale = LE SEUL profil retenu dans RENKO FIBO:
+      - prix H1 au-dela des plages des 3 streaks Renko D/W/M (compteur == 3,
+        soit le tag 🟢3 / 🔴3), ET
+      - SAR H1 aligne avec le sens du biais (sar_dir == signal_state).
+    Toutes les unites de temps + le timing H1 pointent dans le meme sens."""
+    d = r.get("signal_state")
+    if d not in (1, -1):
+        return False
+    h1 = r.get("h1_fib") or {}
+    if h1.get("sar_dir") != d:
+        return False
+    counts = (r.get("streak_position") or {}).get("counts") or {}
+    return counts.get(d, 0) == 3
 
 
 def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None) -> str:
@@ -869,10 +857,9 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
     # instead of a flat descending sort that buries the strongest BEAR
     # (-100%) at the bottom, after the weaker BULL signals.
     ordered = sorted(rows, key=lambda r: (-r["signal_state"], -abs(r["weighted_pct"])))
-    # Renforcement: une paire confirmee n'apparait dans RENKO FIBO que si elle
-    # qualifie aussi pour le TOP DAILY de son sens (mouvement du jour > seuil +
-    # streaks Renko W et D pleins et alignes).
-    ordered = [r for r in ordered if top_daily_ok(r, r["signal_state"])]
+    # RENKO FIBO ne retient QUE le profil de confluence maximale: prix H1
+    # au-dela des 3 streaks D/W/M (🟢3 / 🔴3) ET SAR H1 aligne avec le biais.
+    ordered = [r for r in ordered if sar_streak_full(r)]
     lines = ["📊 RENKO FIBO", ""]
     for row in ordered:
         icon = "🟢" if row["signal_state"] == 1 else "🔴"
@@ -889,11 +876,6 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
         streak_tag = row.get("streak_tag", "")
         streak_txt = f" {streak_tag}" if streak_tag else ""
         lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){streak_txt}{flame}")
-
-    sar_lines = sar_streak_turn_section(all_rows if all_rows is not None else rows)
-    if sar_lines:
-        lines.append("")
-        lines.extend(sar_lines)
 
     # Section CHG%D journalier, sur l'ensemble des paires (pas seulement les
     # signaux confirmes RENKO FIBO).
