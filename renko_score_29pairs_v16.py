@@ -610,9 +610,9 @@ def tf_streak(r: dict, tf: str, direction: int) -> int:
 
 
 def top_daily_ok(r: dict, direction: int, min_abs: float = 0.15) -> bool:
-    """Qualification 'TOP DAILY' qui renforce RENKO FIBO: mouvement du jour dans
-    le sens `direction` et > min_abs, ET streaks Renko HEBDO (W) ET JOURNALIER (D)
-    pleins (>= 1) et alignes avec ce sens."""
+    """Qualification qui renforce RENKO FIBO: mouvement du jour dans le sens
+    `direction` et > min_abs, ET streaks Renko MENSUEL (M), HEBDO (W) ET
+    JOURNALIER (D) pleins (>= 1) et alignes avec ce sens (biais + D/W/M alignes)."""
     chg = r.get("daily_chg")
     if chg is None:
         return False
@@ -620,7 +620,9 @@ def top_daily_ok(r: dict, direction: int, min_abs: float = 0.15) -> bool:
         return False
     if direction < 0 and chg >= -min_abs:
         return False
-    return tf_streak(r, "W", direction) >= 1 and tf_streak(r, "D", direction) >= 1
+    return (tf_streak(r, "M", direction) >= 1
+            and tf_streak(r, "W", direction) >= 1
+            and tf_streak(r, "D", direction) >= 1)
 
 
 def _load_strength_history() -> dict:
