@@ -851,7 +851,7 @@ def sar_streak_full(r: dict) -> bool:
     return counts.get(d, 0) == 3
 
 
-def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None) -> str:
+def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None) -> str | None:
     # Group BULL together and BEAR together (strongest signal_state first),
     # and within each group rank by conviction — strongest |score| first —
     # instead of a flat descending sort that buries the strongest BEAR
@@ -860,6 +860,9 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
     # RENKO FIBO ne retient QUE le profil de confluence maximale: prix H1
     # au-dela des 3 streaks D/W/M (🟢3 / 🔴3) ET SAR H1 aligne avec le biais.
     ordered = [r for r in ordered if sar_streak_full(r)]
+    # Si RENKO FIBO est vide (aucune confluence), on n'envoie aucun message.
+    if not ordered:
+        return None
     lines = ["📊 RENKO FIBO", ""]
     for row in ordered:
         icon = "🟢" if row["signal_state"] == 1 else "🔴"
@@ -910,6 +913,9 @@ def main() -> int:
 
     strong_rows = filter_strong_signals(rows)
     message = build_telegram_message(strong_rows, rows)
+    if message is None:
+        print("\nRENKO FIBO vide — aucun message Telegram envoyé.")
+        return 0
     print("")
     print(message)
     send_telegram_message(message)
