@@ -642,6 +642,12 @@ def main() -> int:
         renko = run_renko_filter(candidates, [], atr_length=args.renko_length,
                                  max_workers=args.renko_workers, debug=args.renko_debug)
 
+    # Anti-doublon journalier: le tracker note sa date de maj (updated). Si elle
+    # vaut deja aujourd'hui AVANT cette maj, c'est un run ulterieur du jour ->
+    # on n'enverra pas de nouveau Telegram (1x/jour). Etat persiste par le CI.
+    today_paris = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d")
+    already_sent_today = _load_tracker().get("updated") == today_paris
+
     ranking = unified_ranking(stock_metrics, renko)
     events = update_tracker(ranking, theme_scores)
 
@@ -668,8 +674,10 @@ def main() -> int:
 
     text = report if args.telegram_full else build_telegram_summary(theme_scores, ranking, events)
     print("\nTELEGRAM SUMMARY:\n" + text)
-    if args.telegram:
+    if args.telegram and not already_sent_today:
         send_telegram(text)
+    elif args.telegram and already_sent_today:
+        print(f"Deja envoye aujourd'hui ({today_paris}) — 1x/jour, pas de renvoi.")
 
     return 0
 

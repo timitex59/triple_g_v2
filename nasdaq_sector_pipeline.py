@@ -53,6 +53,8 @@ REPORT_TXT = os.path.join(SCRIPT_DIR, "nasdaq_sector_pipeline_report.txt")
 # Passerelle vers renko_etf_strategy_V3.py: TOP 3 ETF UCITS exportes en symboles
 # TradingView, lus et fusionnes dans l'univers de ETF_V3.
 TOP_UCITS_JSON = os.path.join(SCRIPT_DIR, "nasdaq_top_ucits_etf.json")
+# Anti-doublon Telegram: n'envoyer qu'une fois par jour (date Paris).
+SEND_STATE_PATH = os.path.join(SCRIPT_DIR, "nasdaq_pipeline_send.json")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -1582,10 +1584,25 @@ def main() -> int:
         print(f"  -> {e['tv_symbol']} ({e['ticker']}, Rel63 {format_pct(e['rel63'])})")
 
     if args.telegram:
-        telegram_text = report if args.telegram_full else build_telegram_summary(
-            theme_scores, stock_metrics, etf_metrics, europe_etf_metrics, renko
-        )
-        send_telegram(telegram_text)
+        # Anti-doublon: n'envoyer qu'une fois par jour (date Paris). L'etat est
+        # persiste par le CI (nasdaq_pipeline_send.json dans STATE_FILES).
+        paris_today = datetime.now(pytz.timezone("Europe/Paris")).strftime("%Y-%m-%d")
+        try:
+            last_sent = json.load(open(SEND_STATE_PATH, encoding="utf-8")).get("last_sent_date")
+        except Exception:
+            last_sent = None
+        if last_sent == paris_today:
+            print(f"Telegram deja envoye aujourd'hui ({paris_today}) — 1x/jour, pas de renvoi.")
+        else:
+            telegram_text = report if args.telegram_full else build_telegram_summary(
+                theme_scores, stock_metrics, etf_metrics, europe_etf_metrics, renko
+            )
+            send_telegram(telegram_text)
+            try:
+                with open(SEND_STATE_PATH, "w", encoding="utf-8") as f:
+                    json.dump({"last_sent_date": paris_today}, f)
+            except Exception:
+                pass
 
     return 0
 
