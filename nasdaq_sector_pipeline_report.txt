@@ -1,22 +1,15 @@
 NASDAQ SECTOR PIPELINE
-Generated: 2026-06-19 18:19 CEST
+Generated: 2026-06-19 19:17 CEST
 Universe: Nasdaq-100 | News window: 14 days
 
 DOMINANT THEMES
 | Theme                              |   Score |   N | 21D     | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
 |------------------------------------|---------|-----|---------|---------|----------------|----------|------------|
-| Cybersecurity                      |   66.75 |   5 | +10.36% | +56.71% | +35.11%        | 80%      | 12/8       |
-| Semiconductors / AI infrastructure |   64.17 |  21 | +21.73% | +63.84% | +42.23%        | 81%      | 0/0        |
+| Semiconductors / AI infrastructure |   78.17 |  21 | +21.73% | +63.84% | +42.23%        | 81%      | 12/11      |
+| Cybersecurity                      |   66.75 |   5 | +10.36% | +56.71% | +35.11%        | 80%      | 12/9       |
 | Industrials / Automation           |   42.82 |  11 | +2.29%  | -0.02%  | -21.63%        | 54%      | 12/10      |
 
 TOP STOCKS BY DOMINANT THEME
-
-Cybersecurity
-| Ticker   | Name               | Theme         |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|--------------------|---------------|---------|---------|---------|---------|-------|----------|
-| FTNT     | Fortinet           | Cybersecurity |   84.04 | +13.94% | +72.85% | +51.25% |  63.8 | Y        |
-| PANW     | Palo Alto Networks | Cybersecurity |   76.07 | +13.97% | +67.03% | +45.43% |  60.7 | Y        |
-| CRWD     | CrowdStrike        | Cybersecurity |   69.96 | +10.36% | +56.71% | +35.11% |  51.8 | Y        |
 
 Semiconductors / AI infrastructure
 | Ticker   | Name                   | Theme                          |   Score | 21D     | 63D      | Rel63    |   RSI | >SMA50   |
@@ -24,6 +17,13 @@ Semiconductors / AI infrastructure
 | AMD      | Advanced Micro Devices | Semiconductors / AI infrastruc |     100 | +21.73% | +156.93% | +135.33% |  49.1 | Y        |
 | AMAT     | Applied Materials      | Semiconductors / AI infrastruc |     100 | +43.54% | +69.87%  | +48.27%  |  75.6 | Y        |
 | ARM      | Arm Holdings           | Semiconductors / AI infrastruc |     100 | +94.72% | +226.33% | +204.73% |  62.2 | Y        |
+
+Cybersecurity
+| Ticker   | Name               | Theme         |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|--------------------|---------------|---------|---------|---------|---------|-------|----------|
+| FTNT     | Fortinet           | Cybersecurity |   84.04 | +13.94% | +72.85% | +51.25% |  63.8 | Y        |
+| PANW     | Palo Alto Networks | Cybersecurity |   76.07 | +13.97% | +67.03% | +45.43% |  60.7 | Y        |
+| CRWD     | CrowdStrike        | Cybersecurity |   69.96 | +10.36% | +56.71% | +35.11% |  51.8 | Y        |
 
 Industrials / Automation
 | Ticker   | Name                      | Theme                    |   Score | 21D    | 63D     | Rel63   |   RSI | >SMA50   |
@@ -49,10 +49,10 @@ BEST ETF PROXIES
 ETF UCITS EUROPE / FRANCE
 | Theme                          | Ticker   | ISIN         | Listing            | Ccy   | UCITS ETF                                  |
 |--------------------------------|----------|--------------|--------------------|-------|--------------------------------------------|
-| Cybersecurity                  | WCBR     | IE00BLPK3577 | Euronext Paris     | EUR   | WisdomTree Cybersecurity UCITS ETF         |
-| Cybersecurity                  | ISPY     | IE00BYPLS672 | Euronext Amsterdam | EUR   | L&G Cyber Security UCITS ETF               |
 | Semiconductors / AI infrastruc | SMH      | IE00BMC38736 | Euronext Paris     | EUR   | VanEck Semiconductor UCITS ETF             |
 | Semiconductors / AI infrastruc | SEME     | IE000I8KRLL9 | Euronext Paris     | EUR   | iShares MSCI Global Semiconductors UCITS E |
+| Cybersecurity                  | WCBR     | IE00BLPK3577 | Euronext Paris     | EUR   | WisdomTree Cybersecurity UCITS ETF         |
+| Cybersecurity                  | ISPY     | IE00BYPLS672 | Euronext Amsterdam | EUR   | L&G Cyber Security UCITS ETF               |
 
 ETF UCITS SCORED
 | Ticker   | Theme                          |   Score | 63D     | Rel63 vs EQQQ   | Listing / ISIN                    |
@@ -139,19 +139,23 @@ REJECTED BY RENKO
 
 NEWS VALIDATION
 
-Cybersecurity: score=100.0 hits=12 sources=8
+Semiconductors / AI infrastructure: score=100.0 hits=12 sources=11
+- 2026-06-19 | StockStory | 3 Semiconductor Stocks We’re Skeptical Of - StockStory
+  https://news.google.com/rss/articles/CBMiowFBVV95cUxPNFZJNy1UTHdRbGFsUDZqSkxUaG52NzZuWHlvVnRiTFVCVlY5bjZLS0RPQkxmcVRMVW5WSHNMU2g0blVESDg1UTRVTDEzQXA3M1gxQjR1Vjk0NzNHeDhhQkZxVWlfRHBHOTJSamhnS01NNHgxN21RMlBhWHVZa2Iwc3dsUWNKd2hHaThqSFFiRndUNTBpMFFJRktqQUliN3pmMFNr?oc=5
+- 2026-06-19 | MarketWatch | Chip stocks are setting records, but this hidden chart pattern says momentum favors the bears - MarketWatch
+  https://news.google.com/rss/articles/CBMi0AFBVV95cUxQS1lOeFJVenljTUVIVlZTYUVXM0dEaTJkYXpZb29kNUt3Zjhhbzd3VG9oYjJPcW5lNG9ySnh3aWhYeUs0MHRUSHpfd2s4OXlOQUtDR3Vsd0hhTFFpSldzNlJlSzFmUFBOZzdiYTR3SmNEUzFTcHZISUFidGU3SVRSVUh4REQ3SFQ5NVlyLXBqWEpQRE0xYUlHZ2Z1azFyX2RlR1JQVElkdDNpVmdaMFdkeF96RUh1eXpXRFJTc081dHFpdjFkRU0xeERNdWRtc0V4?oc=5
+
+Cybersecurity: score=100.0 hits=12 sources=9
 - 2026-06-19 | StockStory | Q1 Earnings Roundup: SentinelOne (NYSE:S) And The Rest Of The Cybersecurity Segment - StockStory
   https://news.google.com/rss/articles/CBMizgFBVV95cUxPQXFlWjdSMEV3bEZSWnc5NGh1RVI2eE1sMWpsTFNiY3p3NE0yQjZqaGxycUVCMzBjZjNWLUN0VzZqRmFGRmpmXzhuTVJQZlpFX2xzeVlIbUEwOEJyMmpNNmNIYm9Ia0pPelhJTmRHLXdjbFFQaFBRMzNVOHFEbTJLSy1aSHRXa1ExcDNDUEFfOXZWX3BLNElBU0ZkenVWeGhtWUh3Yl9BTUh3aVIxbmF4TmNsdGo3XzlSbDdrbGV6aHJoT1VfajFtOVM2VGlidw?oc=5
 - 2026-06-18 | thestreet.com | Accenture’s $4.18B cybersecurity bets raises Wall Street questions - thestreet.com
   https://news.google.com/rss/articles/CBMipAFBVV95cUxPdGhYWFpvM3E2aUlUdGFLSkxkcm1TUllkRzdjWXVJanRTN3lJRWp4Z2dYb1ZFWFY3bktYQW5SUEs3OWpSbWw4ejhLUk5rWXlnd0VjSmQ4NVV3bnc2a0Q1b3ZYeWFiTTNsYkxVMFVnVHQ4QWVFeERKaDRPMGd3ZEFFQ0lFM0VQenp5RkZ0S1pVZTBaSGtpVFBxemhLY1RCYjl0Z0draA?oc=5
 
-Semiconductors / AI infrastructure: score=0.0 hits=0 sources=0
-
 Industrials / Automation: score=100.0 hits=12 sources=10
+- 2026-06-19 | Yahoo Finance | Lockheed Martin vs. RTX: Which Defense Stock Is a Better Buy in 2026? - Yahoo Finance
+  https://news.google.com/rss/articles/CBMimwFBVV95cUxQWTUwcmtnU3RESXZkSEkycjEtbWx2RTJpTWZhSndEQTFFb0lEZjZSUDBUUjU3YXFNRjU4WjgxbHhwM3lFbzBHcWlBSG13U1ptTlRoamhEVEp0YS1mNlp0TjVVeEMwWlhSR0NkcFMya0dDTkpjbklGSk9wbE80dTJlb3FmNFhSNXpqUHpSdXVuZXRremxNeU81MWo1QQ?oc=5
 - 2026-06-15 | Barron's | Defense Stocks Are in a Bear Market. How a Peace Deal Can Send Them Higher. - Barron's
   https://news.google.com/rss/articles/CBMihgFBVV95cUxQZFZMQmJEZVZvMTZ5WFI2bUthc2RGYTVIVTk3RllCMWJnQTlCaV9fVkRyZjJOTF9fVm8xaENXZ094alIxQzRMMlVka2dna0VUSl9nVm5JcDlrTGgtaU9uTHVOLXh5TFNybFY3U0xlczNVbF8xZ2lNNjliaGhzZnRjUndsN2J2UQ?oc=5
-- 2026-06-16 | CNBC | South Korean defense stocks surge on prospects for post-Iran-war sales boosts - CNBC
-  https://news.google.com/rss/articles/CBMipAFBVV95cUxPc0Y4dUdzY0FGaUVwR1BycldJckdvZ29QdTFHQTNqbDhCYkZucTVQWnF0ZloxWnpjcTZJb1F1c0M4QXlOZlpYR3A1dlU5c1dnck9XcHBSVmp2WUZKSmxJV3lua2hRZjhJQndTSHpodzBpcS1rOWZxREgwRjVhZFptSEFrdURKOXQzWEttZ0toNG1qWDhuNVBYVTZiSXE1MnRJN2hWWdIBqgFBVV95cUxPUW84Z2ltOFRoOGhfZ2w3MWZnUEotSXpnWHE4d0R3MkROQXB1dmlqS09IU2xhaFhfWDRsX1RHS2dsb09oRW5VRkFnclV0Sl9VQW1UVXlldnVpOWFkai1fN0hSVF9hSm42ZkgyeHYzYndJSXdJNW5rdEtIbmdOZUNjOUwxdmh2NF9Lalp5V3BaYktKTF9EbXlSNEJsOGxmbGZZU0NKR01hbXpkdw?oc=5
 
 METHOD
 Score action = momentum 21D/63D/126D + force relative vs QQQ + volume + tendance SMA50/SMA200 + proximite high 20D.
