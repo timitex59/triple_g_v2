@@ -851,26 +851,47 @@ def sar_streak_full(r: dict) -> bool:
     return counts.get(d, 0) == 3
 
 
-def early_turn_match(r: dict, direction: int) -> bool:
-    """Tendance forte M+W avec un DEBUT de retournement Daily.
-    BULL (direction=1):
-      Monthly: prix > plus-haut du streak (pos==1) ET streak vert >= 1
-      Weekly : prix > plus-haut OU dans la plage (pos in {1,0}) ET streak vert >= 1
-      Daily  : prix > plus-haut (pos==1) ET streak vert == 0 (Renko D pas encore vert)
-    BEAR (direction=-1): inverse (pos==-1 / dans la plage, streak rouge)."""
+TURN_TIERS = {"anticipe": "🌱 anticipe", "amorce": "⏳ amorce", "confirme": "✅ confirmé"}
+TURN_ORDER = {"anticipe": 0, "amorce": 1, "confirme": 2}
+
+
+def turn_tier(r: dict, direction: int) -> str | None:
+    """Niveau de retournement dans le sens `direction` (BULL=1 / BEAR=-1), ou None.
+
+    Base: tendance forte M+W = prix au-dessus OU dans la plage du streak
+    (pos in {sens, 0}) ET streak plein (>= 1) sur Monthly ET Weekly.
+    Puis classement selon le Daily, avec confirmation SAR H1:
+      🌱 anticipe : prix replie (<= plage, pos in {0,-sens}) + SAR H1 vient de
+                    flipper dans le sens -> on prend le creux qui tourne (le + tot).
+      ⏳ amorce   : prix > plus-haut (pos==sens), Renko D pas encore aligne
+                    (streak D == 0), SAR H1 aligne -> cassure naissante.
+      ✅ confirme : prix > plus-haut, 1re brique Renko D dans le sens (streak D == 1).
+    """
     pos = (r.get("streak_position") or {}).get("pos") or {}
     states = r.get("states") or {}
     if any(tf not in pos or states.get(tf) is None for tf in ("M", "W", "D")):
-        return False
+        return None
     up = 1 if direction > 0 else -1
 
-    def streak(tf: str) -> int:
+    def strk(tf: str) -> int:
         s = states[tf]
         return s.green_streak if direction > 0 else s.red_streak
 
-    return (pos["M"] == up and streak("M") >= 1
-            and pos["W"] in (up, 0) and streak("W") >= 1
-            and pos["D"] == up and streak("D") == 0)
+    # Tendance forte M + W (au-dessus ou dans la plage, streak plein).
+    if not (pos["M"] in (up, 0) and strk("M") >= 1
+            and pos["W"] in (up, 0) and strk("W") >= 1):
+        return None
+
+    h1 = r.get("h1_fib") or {}
+    sar_dir, sar_flip = h1.get("sar_dir"), h1.get("sar_flipped")
+    gd = strk("D")
+    if pos["D"] == up and gd == 1:
+        return "confirme"
+    if pos["D"] == up and gd == 0 and sar_dir == up:
+        return "amorce"
+    if pos["D"] in (0, -up) and gd == 0 and sar_flip and sar_dir == up:
+        return "anticipe"
+    return None
 
 
 def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None) -> str | None:
@@ -883,20 +904,22 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
     # au-dela des 3 streaks D/W/M (🟢3 / 🔴3) ET SAR H1 aligne avec le biais.
     ordered = [r for r in ordered if sar_streak_full(r)]
 
-    # Section "DEBUT DE RETOURNEMENT": tendance forte M+W + Daily qui amorce le
-    # retournement (verifie sur TOUTES les paires, hors celles deja en confluence).
+    # Section "RETOURNEMENTS" (anticipe / amorce / confirme): tendance forte M+W
+    # + Daily qui tourne, avec confirmation SAR H1. Verifiee sur TOUTES les
+    # paires (hors celles deja affichees en confluence).
     shown = {r["pair"] for r in ordered}
-    early: list[tuple[int, dict]] = []
+    turns: list[tuple[int, str, str]] = []   # (direction, tier, pair)
     for r in (all_rows if all_rows is not None else rows):
         if r["pair"] in shown:
             continue
-        if early_turn_match(r, 1):
-            early.append((1, r))
-        elif early_turn_match(r, -1):
-            early.append((-1, r))
+        for d in (1, -1):
+            tier = turn_tier(r, d)
+            if tier:
+                turns.append((d, tier, r["pair"]))
+                break
 
-    # Aucun signal (ni confluence ni debut de retournement) -> aucun message.
-    if not ordered and not early:
+    # Aucun signal (ni confluence ni retournement) -> aucun message.
+    if not ordered and not turns:
         return None
     lines = ["📊 RENKO FIBO", ""]
     for row in ordered:
@@ -915,13 +938,13 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
         streak_txt = f" {streak_tag}" if streak_tag else ""
         lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){streak_txt}{flame}")
 
-    if early:
+    if turns:
         if ordered:
             lines.append("")
-        lines.append("⏳ DÉBUT DE RETOURNEMENT")
-        for direction, r in sorted(early, key=lambda x: (-x[0], x[1]["pair"])):
-            icon = "🟢" if direction == 1 else "🔴"
-            lines.append(f"{icon} {r['pair']}")
+        lines.append("🔄 RETOURNEMENTS")
+        for d, tier, pair in sorted(turns, key=lambda x: (TURN_ORDER[x[1]], -x[0], x[2])):
+            icon = "🟢" if d == 1 else "🔴"
+            lines.append(f"{icon} {pair} · {TURN_TIERS[tier]}")
 
     # Message epure: liste RENKO FIBO (+ debut de retournement) + horodatage.
     lines.append("")
