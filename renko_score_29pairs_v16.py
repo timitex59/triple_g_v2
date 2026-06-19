@@ -36,6 +36,7 @@ from ichimoku_v4 import PAIRS_29, fetch_tv_ohlc, send_telegram_message
 PARIS_TZ = ZoneInfo("Europe/Paris")
 SCORE_THRESHOLD = 60.0
 CHG_THRESHOLD = 0.1
+CONFIRMED_MIN_STREAKS = {"M": 1, "W": 1, "D": 2}
 
 # Suivi historique de l'intensite de tendance (dispersion des devises majeures).
 # Sert a juger le jour en RELATIF (percentile sur une fenetre glissante) plutot
@@ -200,6 +201,28 @@ def f_effective_bias(px_state: int, green_streak: int, red_streak: int) -> int:
     if green_streak == 0 and red_streak > 0:
         return -1
     return 0
+
+
+def streak_in_direction(state: TFState, direction: int) -> int:
+    return state.green_streak if direction > 0 else state.red_streak
+
+
+def strict_confirmed_alignment(states: dict[str, TFState], direction: int) -> bool:
+    """True only when CONFIRMED is backed by real Renko streaks.
+
+    Monthly may be inside or broken in the signal direction, but Weekly and
+    Daily must have actually broken in that direction. Daily requires 2 bricks
+    to avoid 1-brick whipsaws.
+    """
+    if direction not in (1, -1):
+        return False
+    for tf, min_streak in CONFIRMED_MIN_STREAKS.items():
+        state = states.get(tf)
+        if state is None or streak_in_direction(state, direction) < min_streak:
+            return False
+    if states["M"].px_state not in (0, direction):
+        return False
+    return states["W"].px_state == direction and states["D"].px_state == direction
 
 
 def streaks_from_bricks(bricks: list[tuple[float, float, int]], max_bars: int) -> tuple[int, int]:
@@ -467,9 +490,11 @@ def compute_pair_score(pair: str, length: int, candles: int, max_streak: int) ->
     # SCORE state: positive final score = BULL, negative = BEAR, 0 = MIXED.
     score_state = 1 if weighted_pct > 0 else (-1 if weighted_pct < 0 else 0)
 
-    # CONFIRMED: signal aligned + final score crosses SCORE_THRESHOLD.
-    confirmed_bull = signal_state == 1 and weighted_pct >= SCORE_THRESHOLD
-    confirmed_bear = signal_state == -1 and weighted_pct <= -SCORE_THRESHOLD
+    # CONFIRMED: signal aligned + final score crosses SCORE_THRESHOLD + real
+    # M/W/D Renko streaks in the signal direction.
+    strict_confirmed = strict_confirmed_alignment(states, signal_state)
+    confirmed_bull = signal_state == 1 and strict_confirmed and weighted_pct >= SCORE_THRESHOLD
+    confirmed_bear = signal_state == -1 and strict_confirmed and weighted_pct <= -SCORE_THRESHOLD
     confirmed = 1 if confirmed_bull else (-1 if confirmed_bear else 0)
 
     h1_fib = compute_h1_month_fib(pair)
@@ -489,6 +514,7 @@ def compute_pair_score(pair: str, length: int, candles: int, max_streak: int) ->
         "weighted_pct": weighted_pct,
         "rounded_pct": rounded_pct,
         "score_state": score_state,
+        "strict_confirmed": strict_confirmed,
         "confirmed": confirmed,
         "h1_fib": h1_fib,
         "streak_position": streak_position,
@@ -570,8 +596,8 @@ def print_table(rows: list[dict]) -> None:
 
 
 def filter_strong_signals(rows: list[dict]) -> list[dict]:
-    """Keeps only CONFIRMED pairs (confirmed == ±1), mirroring Pine V16's
-    confirmedBull / confirmedBear: signal aligned + score >= threshold + CHG%D >= threshold."""
+    """Keeps only strict CONFIRMED pairs:
+    signal aligned + score threshold + CHG%D threshold + M/W/D Renko streaks."""
     return [row for row in rows if row["confirmed"] != 0]
 
 
@@ -612,7 +638,7 @@ def tf_streak(r: dict, tf: str, direction: int) -> int:
 def top_daily_ok(r: dict, direction: int, min_abs: float = 0.15) -> bool:
     """Qualification qui renforce RENKO FIBO: mouvement du jour dans le sens
     `direction` et > min_abs, ET streaks Renko MENSUEL (M), HEBDO (W) ET
-    JOURNALIER (D) pleins (>= 1) et alignes avec ce sens (biais + D/W/M alignes)."""
+    JOURNALIER (D) pleins et alignes avec ce sens. Daily exige 2 briques."""
     chg = r.get("daily_chg")
     if chg is None:
         return False
@@ -620,9 +646,9 @@ def top_daily_ok(r: dict, direction: int, min_abs: float = 0.15) -> bool:
         return False
     if direction < 0 and chg >= -min_abs:
         return False
-    return (tf_streak(r, "M", direction) >= 1
-            and tf_streak(r, "W", direction) >= 1
-            and tf_streak(r, "D", direction) >= 1)
+    return (tf_streak(r, "M", direction) >= CONFIRMED_MIN_STREAKS["M"]
+            and tf_streak(r, "W", direction) >= CONFIRMED_MIN_STREAKS["W"]
+            and tf_streak(r, "D", direction) >= CONFIRMED_MIN_STREAKS["D"])
 
 
 def _load_strength_history() -> dict:
