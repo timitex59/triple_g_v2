@@ -11,8 +11,8 @@ Analyse de cyclicite et de proportionnalite des grandes jambes d'un actif
      pente log et angle (convention reproductible: 1 decade/an = 45 deg).
   2. RATIOS successifs (gains/gains, drawdowns/drawdowns, durees, intervalles
      sommet-a-sommet) + proximite des ratios aux niveaux de Fibonacci.
-  3. PROJECTION naive du prochain creux et du prochain sommet (duree + ampleur
-     extrapolees de la decroissance observee), avec prix/date estimes.
+  3. PROJECTION par regression log-lineaire (duree + ampleur) avec bandes
+     basse/centrale/haute autour de la tendance observee.
 
 ⚠️ Echantillon de quelques cycles seulement -> tendance observee, PAS une loi.
 Aucune valeur predictive garantie. Outil d'analyse, pas de conseil financier.
@@ -171,74 +171,113 @@ def successive_ratios(values: list[float]) -> list[float]:
 # --------------------------------------------------------------------------- #
 # Projection
 # --------------------------------------------------------------------------- #
-def geo_mean(vals: list[float]) -> float:
-    vals = [v for v in vals if v > 0]
-    if not vals:
-        return 1.0
-    return math.exp(sum(math.log(v) for v in vals) / len(vals))
+def loglin_forecast(values: list[float]) -> tuple[float, float, float]:
+    """Regression log-lineaire de `values` sur l'index de cycle (0,1,2,...) et
+    prevision de l'observation SUIVANTE. Renvoie (central, bas, haut) ou la
+    bande = +/- 1 erreur-type de PREDICTION (residus). Le log capte la nature
+    multiplicative (decroissance/croissance %)."""
+    pos = [v for v in values if v > 0]
+    if len(pos) < 2:
+        v = pos[-1] if pos else 0.0
+        return v, v, v
+    ys = [math.log(v) for v in pos]
+    n = len(ys)
+    xs = list(range(n))
+    xbar = sum(xs) / n
+    ybar = sum(ys) / n
+    sxx = sum((x - xbar) ** 2 for x in xs) or 1e-9
+    b1 = sum((xs[i] - xbar) * (ys[i] - ybar) for i in range(n)) / sxx
+    b0 = ybar - b1 * xbar
+    x_new = n                                   # prochain cycle
+    yhat = b0 + b1 * x_new
+    sse = sum((ys[i] - (b0 + b1 * xs[i])) ** 2 for i in range(n))
+    if n >= 3:
+        s = math.sqrt(sse / (n - 2))
+        se = s * math.sqrt(1 + 1 / n + (x_new - xbar) ** 2 / sxx)
+    else:                                       # 2 points: pas de residu -> proxy
+        se = abs(ys[1] - ys[0]) * 0.5
+    return math.exp(yhat), math.exp(yhat - se), math.exp(yhat + se)
+
+
+def _band(bas, central, haut) -> dict:
+    return {"bas": bas, "central": central, "haut": haut}
+
+
+def clamp(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
 
 
 def project(pivots: list[Pivot], legs: list[Leg]) -> dict:
-    ups = [l for l in legs if l.kind == "up"]
-    downs = [l for l in legs if l.kind == "down"]
+    # On ecarte la 1re jambe (amorce partielle bornee par --start, pas un vrai pivot).
+    stat_legs = legs[1:] if len(legs) > 1 else legs
+    ups = [l for l in stat_legs if l.kind == "up"]
+    downs = [l for l in stat_legs if l.kind == "down"]
     peaks = [p for p in pivots if p.kind == "H"]
     if len(downs) < 2 or len(ups) < 2 or not pivots:
-        return {"note": "Pas assez de cycles pour projeter."}
-
-    # Ratios moyens de decroissance (geometriques) sur les magnitudes.
-    drop_ratio = geo_mean(successive_ratios([abs(d.pct) for d in downs]))
-    gain_ratio = geo_mean(successive_ratios([abs(u.pct) for u in ups]))
-    bear_months = round(sum(d.months for d in downs[-2:]) / 2)
-    bull_months = round(sum(u.months for u in ups[-2:]) / 2)
+        return {"note": "Pas assez de cycles complets (baisse --threshold ou allonge l'historique)."}
 
     last = pivots[-1]
+    last_date = datetime.fromisoformat(last.date)
     out: dict = {
-        "etat_actuel": f"dernier pivot = {last.kind} {last.price:.2f} ({last.date[:10]})",
-        "decroissance_drawdown_par_cycle": round(drop_ratio, 3),
-        "decroissance_gain_par_cycle": round(gain_ratio, 3),
+        "etat_actuel": f"dernier pivot = {last.kind} {last.price:.0f} ({last.date[:7]})",
+        "modele": "regression log-lineaire par cycle, bande ~1 erreur-type",
     }
 
-    last_date = datetime.fromisoformat(last.date)
+    dp, dlo, dhi = loglin_forecast([abs(d.pct) for d in downs])       # drawdown %
+    dp, dlo, dhi = tuple(clamp(x, 0.0, 99.0) for x in (dp, dlo, dhi))
+    gp, glo, ghi = loglin_forecast([abs(u.pct) for u in ups])         # gain %
+    bp, blo, bhi = loglin_forecast([float(d.months) for d in downs])  # duree bear
+    up_, ulo, uhi = loglin_forecast([float(u.months) for u in ups])   # duree bull
+
+    def date_off(d0, m):
+        return (d0 + pd.DateOffset(months=int(round(m)))).strftime("%Y-%m")
 
     if last.kind == "H":
-        proj_drop = downs[-1].pct * drop_ratio          # ex: -75% * 0.97
-        trough_price = last.price * (1 + proj_drop / 100.0)
-        trough_date = last_date + pd.DateOffset(months=bear_months)
         out["prochain_creux"] = {
-            "drawdown_estime_%": round(proj_drop, 1),
-            "duree_estimee_mois": bear_months,
-            "prix_estime": round(trough_price, 2),
-            "date_estimee": trough_date.strftime("%Y-%m"),
+            "drawdown_%": _band(round(-dhi, 1), round(-dp, 1), round(-dlo, 1)),
+            "prix": _band(round(last.price * (1 - dhi / 100)),       # drop profond -> prix bas
+                          round(last.price * (1 - dp / 100)),
+                          round(last.price * (1 - dlo / 100))),
+            "duree_mois": _band(round(blo), round(bp), round(bhi)),
+            "date": _band(date_off(last_date, blo), date_off(last_date, bp), date_off(last_date, bhi)),
         }
-        next_gain = ups[-1].pct * gain_ratio
-        peak_price = trough_price * (1 + next_gain / 100.0)
-        peak_date = trough_date + pd.DateOffset(months=bull_months)
+        tp = last.price * (1 - dp / 100)                              # creux central
+        peak_m = round(bp) + round(up_)
         out["sommet_suivant"] = {
-            "gain_estime_%": round(next_gain, 1),
-            "prix_estime": round(peak_price, 2),
-            "date_estimee": peak_date.strftime("%Y-%m"),
+            "gain_%": _band(round(glo), round(gp), round(ghi)),
+            "prix": _band(round(tp * (1 + glo / 100)), round(tp * (1 + gp / 100)), round(tp * (1 + ghi / 100))),
+            "date_centrale": date_off(last_date, peak_m),
+            "vs_sommet_actuel": f"{(tp * (1 + gp / 100) / last.price - 1) * 100:+.0f}%",
         }
     else:
-        next_gain = ups[-1].pct * gain_ratio
-        peak_price = last.price * (1 + next_gain / 100.0)
-        peak_date = last_date + pd.DateOffset(months=bull_months)
         out["prochain_sommet"] = {
-            "gain_estime_%": round(next_gain, 1),
-            "duree_estimee_mois": bull_months,
-            "prix_estime": round(peak_price, 2),
-            "date_estimee": peak_date.strftime("%Y-%m"),
+            "gain_%": _band(round(glo), round(gp), round(ghi)),
+            "prix": _band(round(last.price * (1 + glo / 100)),
+                          round(last.price * (1 + gp / 100)),
+                          round(last.price * (1 + ghi / 100))),
+            "duree_mois": _band(round(ulo), round(up_), round(uhi)),
+            "date": _band(date_off(last_date, ulo), date_off(last_date, up_), date_off(last_date, uhi)),
         }
 
-    if len(peaks) >= 2:
+    if len(peaks) >= 3:
         intervals = [peaks[i + 1].idx - peaks[i].idx for i in range(len(peaks) - 1)]
-        out["intervalles_sommet_a_sommet_mois"] = intervals
-        out["intervalle_sommet_moyen_mois"] = round(sum(intervals) / len(intervals), 1)
+        pp, plo, phi = loglin_forecast([float(x) for x in intervals])
+        out["intervalle_sommet_a_sommet_mois"] = {
+            "observes": intervals,
+            "prochain": _band(round(plo), round(pp), round(phi)),
+        }
     return out
 
 
 # --------------------------------------------------------------------------- #
 # Rapport
 # --------------------------------------------------------------------------- #
+def format_projection_value(value) -> str:
+    if isinstance(value, dict) and set(value.keys()) == {"bas", "central", "haut"}:
+        return f"{value['bas']} / {value['central']} / {value['haut']}"
+    return str(value)
+
+
 def build_report(symbol, interval, pivots, legs, proj) -> str:
     lines = [f"ANALYSE DE CYCLE — {symbol} ({interval}) — {len(pivots)} pivots, {len(legs)} jambes", ""]
 
@@ -268,12 +307,12 @@ def build_report(symbol, interval, pivots, legs, proj) -> str:
         if durr:
             lines.append("Durees baissieres : " + " · ".join(f"{r:.2f}" for r in durr))
 
-    lines += ["", "PROJECTION (extrapolation naive — faible echantillon)"]
+    lines += ["", "PROJECTION (regression log-lineaire + bandes bas/central/haut)"]
     for k, v in proj.items():
         if isinstance(v, dict):
             lines.append(f"• {k}:")
             for kk, vv in v.items():
-                lines.append(f"    {kk}: {vv}")
+                lines.append(f"    {kk}: {format_projection_value(vv)}")
         else:
             lines.append(f"• {k}: {v}")
 
