@@ -225,6 +225,16 @@ def strict_confirmed_alignment(states: dict[str, TFState], direction: int) -> bo
     return states["W"].px_state == direction and states["D"].px_state == direction
 
 
+def score_passes_threshold(weighted_pct: float | None, direction: int) -> bool:
+    if weighted_pct is None:
+        return False
+    if direction > 0:
+        return weighted_pct >= SCORE_THRESHOLD
+    if direction < 0:
+        return weighted_pct <= -SCORE_THRESHOLD
+    return False
+
+
 def streaks_from_bricks(bricks: list[tuple[float, float, int]], max_bars: int) -> tuple[int, int]:
     """Counts the trailing run of consecutive same-direction bricks, capped at
     max_bars — mirrors f_green_streak_live() / f_red_streak_live() applied to
@@ -493,8 +503,8 @@ def compute_pair_score(pair: str, length: int, candles: int, max_streak: int) ->
     # CONFIRMED: signal aligned + final score crosses SCORE_THRESHOLD + real
     # M/W/D Renko streaks in the signal direction.
     strict_confirmed = strict_confirmed_alignment(states, signal_state)
-    confirmed_bull = signal_state == 1 and strict_confirmed and weighted_pct >= SCORE_THRESHOLD
-    confirmed_bear = signal_state == -1 and strict_confirmed and weighted_pct <= -SCORE_THRESHOLD
+    confirmed_bull = signal_state == 1 and strict_confirmed and score_passes_threshold(weighted_pct, 1)
+    confirmed_bear = signal_state == -1 and strict_confirmed and score_passes_threshold(weighted_pct, -1)
     confirmed = 1 if confirmed_bull else (-1 if confirmed_bear else 0)
 
     h1_fib = compute_h1_month_fib(pair)
@@ -891,8 +901,8 @@ def turn_tier(r: dict, direction: int) -> str | None:
                     flipper dans le sens -> on prend le creux qui tourne (le + tot).
       ⏳ amorce   : prix > plus-haut (pos==sens), Renko D pas encore aligne
                     (streak D == 0), SAR H1 aligne -> cassure naissante.
-      ✅ confirme : prix > plus-haut, >= 2 briques Renko D dans le sens (suivi
-                    confirme; 1 seule brique est trop fragile -> whipsaw).
+      ✅ confirme : conditions strictes CONFIRMED + score >= seuil, avec >= 2
+                    briques Renko D dans le sens.
     """
     pos = (r.get("streak_position") or {}).get("pos") or {}
     states = r.get("states") or {}
@@ -912,8 +922,10 @@ def turn_tier(r: dict, direction: int) -> str | None:
     h1 = r.get("h1_fib") or {}
     sar_dir, sar_flip = h1.get("sar_dir"), h1.get("sar_flipped")
     gd = strk("D")
-    if pos["D"] == up and gd >= 2:
-        return "confirme"
+    if pos["D"] == up and gd >= CONFIRMED_MIN_STREAKS["D"]:
+        if strict_confirmed_alignment(states, direction) and score_passes_threshold(r.get("weighted_pct"), direction):
+            return "confirme"
+        return None
     if pos["D"] == up and gd == 0 and sar_dir == up:
         return "amorce"
     if pos["D"] in (0, -up) and gd == 0 and sar_flip and sar_dir == up:
