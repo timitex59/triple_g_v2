@@ -851,6 +851,28 @@ def sar_streak_full(r: dict) -> bool:
     return counts.get(d, 0) == 3
 
 
+def early_turn_match(r: dict, direction: int) -> bool:
+    """Tendance forte M+W avec un DEBUT de retournement Daily.
+    BULL (direction=1):
+      Monthly: prix > plus-haut du streak (pos==1) ET streak vert >= 1
+      Weekly : prix > plus-haut OU dans la plage (pos in {1,0}) ET streak vert >= 1
+      Daily  : prix > plus-haut (pos==1) ET streak vert == 0 (Renko D pas encore vert)
+    BEAR (direction=-1): inverse (pos==-1 / dans la plage, streak rouge)."""
+    pos = (r.get("streak_position") or {}).get("pos") or {}
+    states = r.get("states") or {}
+    if any(tf not in pos or states.get(tf) is None for tf in ("M", "W", "D")):
+        return False
+    up = 1 if direction > 0 else -1
+
+    def streak(tf: str) -> int:
+        s = states[tf]
+        return s.green_streak if direction > 0 else s.red_streak
+
+    return (pos["M"] == up and streak("M") >= 1
+            and pos["W"] in (up, 0) and streak("W") >= 1
+            and pos["D"] == up and streak("D") == 0)
+
+
 def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None) -> str | None:
     # Group BULL together and BEAR together (strongest signal_state first),
     # and within each group rank by conviction — strongest |score| first —
@@ -860,8 +882,21 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
     # RENKO FIBO ne retient QUE le profil de confluence maximale: prix H1
     # au-dela des 3 streaks D/W/M (🟢3 / 🔴3) ET SAR H1 aligne avec le biais.
     ordered = [r for r in ordered if sar_streak_full(r)]
-    # Si RENKO FIBO est vide (aucune confluence), on n'envoie aucun message.
-    if not ordered:
+
+    # Section "DEBUT DE RETOURNEMENT": tendance forte M+W + Daily qui amorce le
+    # retournement (verifie sur TOUTES les paires, hors celles deja en confluence).
+    shown = {r["pair"] for r in ordered}
+    early: list[tuple[int, dict]] = []
+    for r in (all_rows if all_rows is not None else rows):
+        if r["pair"] in shown:
+            continue
+        if early_turn_match(r, 1):
+            early.append((1, r))
+        elif early_turn_match(r, -1):
+            early.append((-1, r))
+
+    # Aucun signal (ni confluence ni debut de retournement) -> aucun message.
+    if not ordered and not early:
         return None
     lines = ["📊 RENKO FIBO", ""]
     for row in ordered:
@@ -880,8 +915,15 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
         streak_txt = f" {streak_tag}" if streak_tag else ""
         lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){streak_txt}{flame}")
 
-    # Message epure: uniquement la liste RENKO FIBO + l'horodatage
-    # (bloc breadth/intensite/regime retire a la demande).
+    if early:
+        if ordered:
+            lines.append("")
+        lines.append("⏳ DÉBUT DE RETOURNEMENT")
+        for direction, r in sorted(early, key=lambda x: (-x[0], x[1]["pair"])):
+            icon = "🟢" if direction == 1 else "🔴"
+            lines.append(f"{icon} {r['pair']}")
+
+    # Message epure: liste RENKO FIBO (+ debut de retournement) + horodatage.
     lines.append("")
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}")
     return "\n".join(lines)
