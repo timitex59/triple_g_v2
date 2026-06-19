@@ -338,12 +338,29 @@ def regular_global_message() -> str:
             f"⏰ {_stamp()}")
 
 
-def cycles_recap_message(in_cycle: list[tuple[str, int]]) -> str:
-    """Recap des DCA en cours: chaque actif EN CYCLE + son nombre de paliers."""
-    body = "\n".join(f"{ticker} ({n})" for ticker, n in in_cycle)
-    return ("💼 ETF DCA — En cours\n\n"
-            "📌 DCA en cours :\n" + body +
-            f"\n\n{DISCLAIMER}\n⏰ {_stamp()}")
+def build_dca_message(new_dca: list, grouped: list, back_normal: list,
+                      in_cycle: list[tuple[str, int]]) -> str | None:
+    """UN SEUL message epure: evenements du jour (Nouveau DCA / Achat groupe /
+    Retour normale) + recap des cycles en cours. None si aucun evenement."""
+    sections: list[str] = []
+    if new_dca:
+        sections.append("Nouveau DCA :\n" + "\n".join(
+            f"{t} ({n})/{px:.2f}{ccy}" for t, n, px, ccy in new_dca))
+    if grouped:
+        sections.append("🟩 Achat groupé :\n" + "\n".join(
+            f"{t} ({c})/{px:.2f}{ccy}" for t, c, px, ccy in grouped))
+    if back_normal:
+        sections.append("🟢 Retour normale :\n" + "\n".join(
+            f"{t} ({r['n_dca']} DCA"
+            + (f" · {r['dca']['gain_pct']:+.1f}%" if r.get("dca") else "") + ")"
+            for t, r in back_normal))
+    if not sections:
+        return None
+    msg = "💼 ETF DCA\n\n" + "\n\n".join(sections)
+    if in_cycle:
+        msg += "\n\n— — —\n📌 DCA en cours :\n" + " · ".join(
+            f"{t} ({n})" for t, n in in_cycle)
+    return msg + f"\n\n{DISCLAIMER}\n⏰ {_stamp()}"
 
 
 # --------------------------------------------------------------------------- #
@@ -404,6 +421,9 @@ def main() -> int:
     last_dates: list[date] = []
     regular_today = False
     in_cycle_assets: list[tuple[str, int]] = []
+    new_dca: list[tuple] = []        # (ticker, palier, prix, devise)
+    grouped: list[tuple] = []        # (ticker, nb_groupes, prix, devise)
+    back_normal: list[tuple] = []    # (ticker, results)
     for symbol in args.assets:
         sym = symbol if ":" in symbol else f"{DEFAULT_EXCHANGE}:{symbol}"
         ticker = sym.split(":")[-1]
@@ -420,11 +440,18 @@ def main() -> int:
             print(backtest_report(ticker, cycles))
             print()
         else:
-            msgs = live_alerts(ticker, last)
             tag = "EN CYCLE" if last.get("in_cycle") else "normal"
             print(f"{ticker}: {last.get('date')} close {last.get('close', float('nan')):.2f} "
-                  f"[{tag}, DCA{last.get('dca_index', 0)}] — {len(msgs)} alerte(s)")
-            all_alerts.extend(msgs)
+                  f"[{tag}, DCA{last.get('dca_index', 0)}]")
+            ccy = "$" if sym.split(":")[0] == "NASDAQ" else "€"
+            px = float(last.get("close") or 0.0)
+            if last.get("dca_signal_index"):
+                new_dca.append((ticker, last["dca_signal_index"], px, ccy))
+            if last.get("grouped_signal"):
+                grouped.append((ticker, last.get("grouped_count"),
+                                float(last.get("grouped_price") or px), ccy))
+            if last.get("back_to_normal") and last.get("results"):
+                back_normal.append((ticker, last["results"]))
             if last.get("in_cycle"):
                 in_cycle_assets.append((ticker, int(last.get("dca_index", 0))))
             if last.get("regular_signal"):
@@ -435,14 +462,14 @@ def main() -> int:
     if args.backtest:
         return 0
 
-    # Achat regulier: UN SEUL message global (le jour venu), en tete des alertes.
+    # Achat regulier: message global engageant (le jour venu), separe.
     if regular_today:
-        all_alerts.insert(0, regular_global_message())
+        all_alerts.append(regular_global_message())
 
-    # Recap des DCA en cours, ajoute SEULEMENT si un envoi a deja lieu (pas de
-    # message les jours sans alerte). Liste chaque actif EN CYCLE + son palier.
-    if all_alerts and in_cycle_assets:
-        all_alerts.append(cycles_recap_message(in_cycle_assets))
+    # UN SEUL message DCA consolide (evenements du jour + recap des cycles).
+    dca_msg = build_dca_message(new_dca, grouped, back_normal, in_cycle_assets)
+    if dca_msg:
+        all_alerts.append(dca_msg)
 
     for m in all_alerts:
         print("\n----- ALERTE -----\n" + m)
