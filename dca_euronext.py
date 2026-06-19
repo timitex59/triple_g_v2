@@ -338,6 +338,14 @@ def regular_global_message() -> str:
             f"⏰ {_stamp()}")
 
 
+def cycles_recap_message(in_cycle: list[tuple[str, int]]) -> str:
+    """Recap des DCA en cours: chaque actif EN CYCLE + son nombre de paliers."""
+    body = "\n".join(f"{ticker} ({n})" for ticker, n in in_cycle)
+    return ("💼 ETF DCA — En cours\n\n"
+            "📌 DCA en cours :\n" + body +
+            f"\n\n{DISCLAIMER}\n⏰ {_stamp()}")
+
+
 # --------------------------------------------------------------------------- #
 # Mode BACKTEST: perf des 3 strategies sur l'historique                        #
 # --------------------------------------------------------------------------- #
@@ -395,6 +403,7 @@ def main() -> int:
     all_alerts: list[str] = []
     last_dates: list[date] = []
     regular_today = False
+    in_cycle_assets: list[tuple[str, int]] = []
     for symbol in args.assets:
         sym = symbol if ":" in symbol else f"{DEFAULT_EXCHANGE}:{symbol}"
         ticker = sym.split(":")[-1]
@@ -416,6 +425,8 @@ def main() -> int:
             print(f"{ticker}: {last.get('date')} close {last.get('close', float('nan')):.2f} "
                   f"[{tag}, DCA{last.get('dca_index', 0)}] — {len(msgs)} alerte(s)")
             all_alerts.extend(msgs)
+            if last.get("in_cycle"):
+                in_cycle_assets.append((ticker, int(last.get("dca_index", 0))))
             if last.get("regular_signal"):
                 regular_today = True
             if last.get("date"):
@@ -427,6 +438,11 @@ def main() -> int:
     # Achat regulier: UN SEUL message global (le jour venu), en tete des alertes.
     if regular_today:
         all_alerts.insert(0, regular_global_message())
+
+    # Recap des DCA en cours, ajoute SEULEMENT si un envoi a deja lieu (pas de
+    # message les jours sans alerte). Liste chaque actif EN CYCLE + son palier.
+    if all_alerts and in_cycle_assets:
+        all_alerts.append(cycles_recap_message(in_cycle_assets))
 
     for m in all_alerts:
         print("\n----- ALERTE -----\n" + m)
