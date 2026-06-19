@@ -853,18 +853,18 @@ def build_telegram_summary(
     coverage: str,
     events: dict[str, Any] | None = None,
 ) -> str:
+    confirmed = [item for item in ranking if item.get("validated")]
     lines = ["BINANCE + CMC TOP100", f"Exchange: {exchange_id} | {coverage}"]
     if theme_scores:
         lines.append("Groups: " + ", ".join(score.theme for score in theme_scores[:2]))
 
     lines.append("")
-    lines.append("TOP CRYPTO (vs BTC)")
-    if ranking:
-        for i, item in enumerate(ranking[:TRACK_TOP_N], 1):
-            tag = "" if item["validated"] else " attente"
-            lines.append(f"{i}. {item['exchange_symbol']} ({format_pct(item['rel'])}){tag}")
+    lines.append("CONFIRMES RENKO (vs BTC)")
+    if confirmed:
+        for i, item in enumerate(confirmed[:TRACK_TOP_N], 1):
+            lines.append(f"{i}. {item['exchange_symbol']} ({format_pct(item['rel'])})")
     else:
-        lines.append("---")
+        lines.append("Aucun confirme")
 
     tl = tracker_lines(events or {})
     if tl:
@@ -1079,7 +1079,8 @@ def main() -> int:
     already_sent_today = _load_tracker().get("updated") == today_paris
 
     ranking = unified_ranking(metrics, renko)
-    events = update_tracker(ranking) if args.telegram else {}
+    confirmed_ranking = [item for item in ranking if item.get("validated")]
+    events = update_tracker(confirmed_ranking) if args.telegram and confirmed_ranking else {}
     report = build_report(
         theme_scores=theme_scores,
         metrics=metrics,
@@ -1124,16 +1125,19 @@ def main() -> int:
     coverage = f"{len(metrics)}/{args.cmc_limit} tradable"
     text = report if args.telegram_full else build_telegram_summary(
         theme_scores=theme_scores,
-        ranking=ranking,
+        ranking=confirmed_ranking,
         exchange_id=exchange_id,
         coverage=coverage,
         events=events,
     )
     print("\nTELEGRAM SUMMARY:\n" + text)
-    if args.telegram and not already_sent_today:
+    should_send = args.telegram and (args.telegram_full or bool(confirmed_ranking))
+    if should_send and not already_sent_today:
         send_telegram(text)
-    elif args.telegram and already_sent_today:
+    elif should_send and already_sent_today:
         print(f"Already sent today ({today_paris}) - 1x/day, no resend.")
+    elif args.telegram and not confirmed_ranking:
+        print("No Renko-confirmed crypto - Telegram skipped.")
 
     return 0
 
