@@ -880,13 +880,8 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
         streak_txt = f" {streak_tag}" if streak_tag else ""
         lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){streak_txt}{flame}")
 
-    # Section CHG%D journalier, sur l'ensemble des paires (pas seulement les
-    # signaux confirmes RENKO FIBO).
-    daily_lines = daily_chg_section(all_rows if all_rows is not None else rows)
-    if daily_lines:
-        lines.append("")
-        lines.extend(daily_lines)
-
+    # Message epure: uniquement la liste RENKO FIBO + l'horodatage
+    # (bloc breadth/intensite/regime retire a la demande).
     lines.append("")
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}")
     return "\n".join(lines)
