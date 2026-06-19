@@ -865,7 +865,8 @@ def turn_tier(r: dict, direction: int) -> str | None:
                     flipper dans le sens -> on prend le creux qui tourne (le + tot).
       ⏳ amorce   : prix > plus-haut (pos==sens), Renko D pas encore aligne
                     (streak D == 0), SAR H1 aligne -> cassure naissante.
-      ✅ confirme : prix > plus-haut, 1re brique Renko D dans le sens (streak D == 1).
+      ✅ confirme : prix > plus-haut, >= 2 briques Renko D dans le sens (suivi
+                    confirme; 1 seule brique est trop fragile -> whipsaw).
     """
     pos = (r.get("streak_position") or {}).get("pos") or {}
     states = r.get("states") or {}
@@ -885,7 +886,7 @@ def turn_tier(r: dict, direction: int) -> str | None:
     h1 = r.get("h1_fib") or {}
     sar_dir, sar_flip = h1.get("sar_dir"), h1.get("sar_flipped")
     gd = strk("D")
-    if pos["D"] == up and gd == 1:
+    if pos["D"] == up and gd >= 2:
         return "confirme"
     if pos["D"] == up and gd == 0 and sar_dir == up:
         return "amorce"
