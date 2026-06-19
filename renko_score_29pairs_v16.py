@@ -889,6 +889,7 @@ def sar_streak_full(r: dict) -> bool:
 
 TURN_TIERS = {"anticipe": "🌱 anticipe", "amorce": "⏳ amorce", "confirme": "✅ confirmé"}
 TURN_ORDER = {"anticipe": 0, "amorce": 1, "confirme": 2}
+TELEGRAM_TURN_TIERS = {"confirme"}
 
 
 def turn_tier(r: dict, direction: int) -> str | None:
@@ -943,9 +944,8 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
     # au-dela des 3 streaks D/W/M (🟢3 / 🔴3) ET SAR H1 aligne avec le biais.
     ordered = [r for r in ordered if sar_streak_full(r)]
 
-    # Section "RETOURNEMENTS" (anticipe / amorce / confirme): tendance forte M+W
-    # + Daily qui tourne, avec confirmation SAR H1. Verifiee sur TOUTES les
-    # paires (hors celles deja affichees en confluence).
+    # Section "RETOURNEMENTS": Telegram ne doit envoyer que les confirmes.
+    # Les niveaux anticipe/amorce restent calculables, mais silencieux.
     shown = {r["pair"] for r in ordered}
     turns: list[tuple[int, str, str]] = []   # (direction, tier, pair)
     for r in (all_rows if all_rows is not None else rows):
@@ -953,7 +953,7 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
             continue
         for d in (1, -1):
             tier = turn_tier(r, d)
-            if tier:
+            if tier in TELEGRAM_TURN_TIERS:
                 turns.append((d, tier, r["pair"]))
                 break
 
