@@ -53,6 +53,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          COINMARKETCAP_API_KEY: ${{ secrets.COINMARKETCAP_API_KEY }}
           REVERSAL_TZ: Europe/Paris
           ENABLE_TELEGRAM_BREAK_LINE: "false"
           ENABLE_TELEGRAM_ICHIMOKU: "false"
@@ -66,6 +67,7 @@ jobs:
           ENABLE_TELEGRAM_ETF_V3: "true"
           ENABLE_TELEGRAM_NASDAQ_PIPELINE: "true"
           ENABLE_TELEGRAM_MIDDLE_PIPELINE: "true"
+          ENABLE_TELEGRAM_BINANCE_CMC_TOP100_PIPELINE: "true"
           ENABLE_TELEGRAM_SAR_MTF_FOREX: "false"
           ENABLE_TELEGRAM_RENKO_FOREX_V1: "false"
           ENABLE_TELEGRAM_RENKO_FOREX_V2: "false"
@@ -110,6 +112,13 @@ jobs:
             run_with_telegram "$ENABLE_TELEGRAM_MIDDLE_PIPELINE" middle_pipeline.py
           else
             echo "Skip middle_pipeline.py outside 19:00-21:00 Europe/Paris"
+          fi
+          # Crypto rotation: CoinMarketCap Top 100 intersecte avec Binance spot,
+          # puis scoring force relative vs BTC et validation Renko 3M/M/W.
+          if [ "$HOUR_MIN_PARIS" -ge 1900 ] && [ "$HOUR_MIN_PARIS" -lt 2100 ]; then
+            run_with_telegram "$ENABLE_TELEGRAM_BINANCE_CMC_TOP100_PIPELINE" binance_cmc_top100_pipeline.py --exchange auto
+          else
+            echo "Skip binance_cmc_top100_pipeline.py outside 19:00-21:00 Europe/Paris"
           fi
           if [ "$HOUR_MIN_PARIS" -ge 1800 ] && [ "$HOUR_MIN_PARIS" -lt 2100 ]; then
             run_with_telegram "$ENABLE_TELEGRAM_ETF_V3" renko_etf_strategy_V3.py
