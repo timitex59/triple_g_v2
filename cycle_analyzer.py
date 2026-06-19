@@ -21,6 +21,7 @@ Usage:
     python cycle_analyzer.py
     python cycle_analyzer.py --symbol INDEX:BTCUSD --interval M --threshold 0.4
     python cycle_analyzer.py --symbol NASDAQ:AAPL --interval W --threshold 0.3
+    python cycle_analyzer.py --csv "INDEX_BTCUSD, 1M_d64fb.csv" --pivot-mode ohlc
     python cycle_analyzer.py --json cycle_btc.json
 """
 
@@ -75,6 +76,30 @@ def fetch_prices(symbol: str, interval: str, candles: int) -> pd.DataFrame:
     return df
 
 
+def load_csv_prices(path: str) -> pd.DataFrame:
+    """Load local OHLC CSV. Supports TradingView-style `time,open,high,low,close`."""
+    df = pd.read_csv(path)
+    df.columns = [str(c).strip().lower() for c in df.columns]
+    if "time" in df.columns:
+        time_col = df["time"]
+        if pd.api.types.is_numeric_dtype(time_col):
+            idx = pd.to_datetime(time_col, unit="s", utc=True)
+        else:
+            idx = pd.to_datetime(time_col, utc=True)
+    elif "date" in df.columns:
+        idx = pd.to_datetime(df["date"], utc=True)
+    elif "datetime" in df.columns:
+        idx = pd.to_datetime(df["datetime"], utc=True)
+    else:
+        idx = pd.to_datetime(df.iloc[:, 0], utc=True)
+    df.index = pd.DatetimeIndex(idx).tz_localize(None)
+    needed = {"open", "high", "low", "close"}
+    missing = sorted(needed - set(df.columns))
+    if missing:
+        raise RuntimeError(f"CSV OHLC incomplet, colonnes manquantes: {', '.join(missing)}")
+    return df[["open", "high", "low", "close"]].astype(float).dropna()
+
+
 # --------------------------------------------------------------------------- #
 # Detection des pivots majeurs (ZigZag par seuil de retournement %)
 # --------------------------------------------------------------------------- #
@@ -117,6 +142,56 @@ def zigzag(prices: list[float], dates: list[str], pct: float) -> list[Pivot]:
                 pivots.append(Pivot(ext_i, dates[ext_i], ext_p, "L"))
                 direction, ext_i, ext_p = 1, i, p
     pivots.append(Pivot(ext_i, dates[ext_i], ext_p, "H" if direction == 1 else "L"))
+    return pivots
+
+
+def zigzag_ohlc(highs: list[float], lows: list[float], dates: list[str], pct: float) -> list[Pivot]:
+    """ZigZag on OHLC extremes: H pivots use highs, L pivots use lows."""
+    if len(highs) < 3 or len(lows) != len(highs):
+        return []
+
+    direction = 0
+    high_i, high_p = 0, highs[0]
+    low_i, low_p = 0, lows[0]
+    pivots: list[Pivot] = []
+
+    for i in range(1, len(highs)):
+        h = highs[i]
+        l = lows[i]
+        if direction == 0:
+            if h > high_p:
+                high_i, high_p = i, h
+            if l < low_p:
+                low_i, low_p = i, l
+            if h >= low_p * (1 + pct):
+                pivots.append(Pivot(low_i, dates[low_i], low_p, "L"))
+                direction = 1
+                high_i, high_p = i, h
+            elif l <= high_p * (1 - pct):
+                pivots.append(Pivot(high_i, dates[high_i], high_p, "H"))
+                direction = -1
+                low_i, low_p = i, l
+            continue
+
+        if direction == 1:
+            if h >= high_p:
+                high_i, high_p = i, h
+            elif l <= high_p * (1 - pct):
+                pivots.append(Pivot(high_i, dates[high_i], high_p, "H"))
+                direction = -1
+                low_i, low_p = i, l
+        else:
+            if l <= low_p:
+                low_i, low_p = i, l
+            elif h >= low_p * (1 + pct):
+                pivots.append(Pivot(low_i, dates[low_i], low_p, "L"))
+                direction = 1
+                high_i, high_p = i, h
+
+    if direction == 1:
+        pivots.append(Pivot(high_i, dates[high_i], high_p, "H"))
+    elif direction == -1:
+        pivots.append(Pivot(low_i, dates[low_i], low_p, "L"))
     return pivots
 
 
@@ -207,6 +282,10 @@ def clamp(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
 
 
+def pct_change(a: float, b: float) -> float:
+    return (b / a - 1.0) * 100.0 if a else 0.0
+
+
 def project(pivots: list[Pivot], legs: list[Leg]) -> dict:
     # On ecarte la 1re jambe (amorce partielle bornee par --start, pas un vrai pivot).
     stat_legs = legs[1:] if len(legs) > 1 else legs
@@ -228,11 +307,45 @@ def project(pivots: list[Pivot], legs: list[Leg]) -> dict:
     gp, glo, ghi = loglin_forecast([abs(u.pct) for u in ups])         # gain %
     bp, blo, bhi = loglin_forecast([float(d.months) for d in downs])  # duree bear
     up_, ulo, uhi = loglin_forecast([float(u.months) for u in ups])   # duree bull
+    peak_mults = [peaks[i + 1].price / peaks[i].price
+                  for i in range(len(peaks) - 1) if peaks[i].price > 0]
+    peak_model = loglin_forecast(peak_mults) if len(peak_mults) >= 2 else None
+    peak_intervals = [peaks[i + 1].idx - peaks[i].idx for i in range(len(peaks) - 1)]
+    peak_interval_model = loglin_forecast([float(x) for x in peak_intervals]) if len(peak_intervals) >= 2 else None
+    last_peak = peaks[-1] if peaks else last
+    last_peak_date = datetime.fromisoformat(last_peak.date)
 
     def date_off(d0, m):
         return (d0 + pd.DateOffset(months=int(round(m)))).strftime("%Y-%m")
 
+    def add_peak_to_peak_projection(target: dict, trough_price: float) -> None:
+        if peak_model is None:
+            return
+        mp, mlo, mhi = peak_model
+        p_lo = last_peak.price * mlo
+        p_mid = last_peak.price * mp
+        p_hi = last_peak.price * mhi
+        target["multiple_sommet_a_sommet"] = _band(round(mlo, 2), round(mp, 2), round(mhi, 2))
+        target["prix_sommet_a_sommet"] = _band(round(p_lo), round(p_mid), round(p_hi))
+        target["gain_sommet_a_sommet_%"] = _band(round(pct_change(last_peak.price, p_lo)),
+                                                 round(pct_change(last_peak.price, p_mid)),
+                                                 round(pct_change(last_peak.price, p_hi)))
+        target["gain_requis_new_ath_depuis_creux_%"] = round(pct_change(trough_price, last_peak.price))
+        target["gain_central_sommet_a_sommet_depuis_creux_%"] = round(pct_change(trough_price, p_mid))
+        if peak_interval_model is not None:
+            ip, ilo, ihi = peak_interval_model
+            target["date_sommet_a_sommet"] = _band(date_off(last_peak_date, ilo),
+                                                   date_off(last_peak_date, ip),
+                                                   date_off(last_peak_date, ihi))
+        if p_mid < last_peak.price:
+            target["diagnostic_sommet"] = (
+                "lower high central: la regression sommet-a-sommet passe sous le dernier sommet"
+            )
+        else:
+            target["diagnostic_sommet"] = "new ATH central: la regression sommet-a-sommet reste au-dessus"
+
     if last.kind == "H":
+        trough_central = last.price * (1 - dp / 100)
         out["prochain_creux"] = {
             "drawdown_%": _band(round(-dhi, 1), round(-dp, 1), round(-dlo, 1)),
             "prix": _band(round(last.price * (1 - dhi / 100)),       # drop profond -> prix bas
@@ -241,30 +354,42 @@ def project(pivots: list[Pivot], legs: list[Leg]) -> dict:
             "duree_mois": _band(round(blo), round(bp), round(bhi)),
             "date": _band(date_off(last_date, blo), date_off(last_date, bp), date_off(last_date, bhi)),
         }
-        tp = last.price * (1 - dp / 100)                              # creux central
         peak_m = round(bp) + round(up_)
+        trough_gain_price = trough_central * (1 + gp / 100)
         out["sommet_suivant"] = {
-            "gain_%": _band(round(glo), round(gp), round(ghi)),
-            "prix": _band(round(tp * (1 + glo / 100)), round(tp * (1 + gp / 100)), round(tp * (1 + ghi / 100))),
-            "date_centrale": date_off(last_date, peak_m),
-            "vs_sommet_actuel": f"{(tp * (1 + gp / 100) / last.price - 1) * 100:+.0f}%",
+            "gain_depuis_creux_%": _band(round(glo), round(gp), round(ghi)),
+            "prix_depuis_creux": _band(round(trough_central * (1 + glo / 100)),
+                                       round(trough_gain_price),
+                                       round(trough_central * (1 + ghi / 100))),
+            "date_depuis_creux": date_off(last_date, peak_m),
+            "vs_dernier_sommet_depuis_creux": f"{pct_change(last_peak.price, trough_gain_price):+.0f}%",
         }
+        add_peak_to_peak_projection(out["sommet_suivant"], trough_central)
     else:
+        trough_central = last.price
+        trough_gain_price = last.price * (1 + gp / 100)
         out["prochain_sommet"] = {
-            "gain_%": _band(round(glo), round(gp), round(ghi)),
-            "prix": _band(round(last.price * (1 + glo / 100)),
-                          round(last.price * (1 + gp / 100)),
-                          round(last.price * (1 + ghi / 100))),
+            "gain_depuis_creux_%": _band(round(glo), round(gp), round(ghi)),
+            "prix_depuis_creux": _band(round(last.price * (1 + glo / 100)),
+                                       round(trough_gain_price),
+                                       round(last.price * (1 + ghi / 100))),
             "duree_mois": _band(round(ulo), round(up_), round(uhi)),
             "date": _band(date_off(last_date, ulo), date_off(last_date, up_), date_off(last_date, uhi)),
+            "vs_dernier_sommet_depuis_creux": f"{pct_change(last_peak.price, trough_gain_price):+.0f}%",
         }
+        add_peak_to_peak_projection(out["prochain_sommet"], trough_central)
 
-    if len(peaks) >= 3:
-        intervals = [peaks[i + 1].idx - peaks[i].idx for i in range(len(peaks) - 1)]
-        pp, plo, phi = loglin_forecast([float(x) for x in intervals])
+    if peak_interval_model is not None:
+        pp, plo, phi = peak_interval_model
         out["intervalle_sommet_a_sommet_mois"] = {
-            "observes": intervals,
+            "observes": peak_intervals,
             "prochain": _band(round(plo), round(pp), round(phi)),
+        }
+    if peak_model is not None:
+        mp, mlo, mhi = peak_model
+        out["multiples_sommet_a_sommet"] = {
+            "observes": [round(x, 2) for x in peak_mults],
+            "prochain": _band(round(mlo, 2), round(mp, 2), round(mhi, 2)),
         }
     return out
 
@@ -331,32 +456,52 @@ def main() -> int:
     p.add_argument("--threshold", type=float, default=0.5,
                    help="Seuil de retournement ZigZag (0.5 = 50%). Monte-le pour ne garder que les grands cycles.")
     p.add_argument("--start", default=None, help="Date de debut YYYY-MM-DD (ignore le bruit ancien).")
+    p.add_argument("--csv", default=None, help="CSV OHLC local a utiliser au lieu du fetch TradingView/yfinance.")
+    p.add_argument("--price-column", default="close", choices=["open", "high", "low", "close"],
+                   help="Colonne OHLC utilisee en mode pivot=single.")
+    p.add_argument("--pivot-mode", default="single", choices=["single", "ohlc"],
+                   help="single=une colonne; ohlc=sommets sur high et creux sur low.")
     p.add_argument("--json", default=None)
     args = p.parse_args()
 
-    print(f"Telechargement {args.symbol} ({args.interval})...")
-    df = fetch_prices(args.symbol, args.interval, args.candles)
+    if args.csv:
+        print(f"Chargement CSV {args.csv}...")
+        df = load_csv_prices(args.csv)
+        source = args.csv
+    else:
+        print(f"Telechargement {args.symbol} ({args.interval})...")
+        df = fetch_prices(args.symbol, args.interval, args.candles)
+        source = args.symbol
     if args.start:
         df = df[df.index >= pd.Timestamp(args.start)]
-    prices = [float(x) for x in df["close"].tolist()]
     dates = [pd.Timestamp(d).isoformat() for d in df.index]
-    print(f"{len(prices)} barres ({dates[0][:7]} -> {dates[-1][:7]}).")
+    if args.pivot_mode == "ohlc":
+        pivots = zigzag_ohlc([float(x) for x in df["high"].tolist()],
+                             [float(x) for x in df["low"].tolist()],
+                             dates, args.threshold)
+        mode_label = "ohlc high/low"
+    else:
+        prices = [float(x) for x in df[args.price_column].tolist()]
+        pivots = zigzag(prices, dates, args.threshold)
+        mode_label = args.price_column
+    print(f"{len(df)} barres ({dates[0][:7]} -> {dates[-1][:7]}), mode={mode_label}.")
 
-    pivots = zigzag(prices, dates, args.threshold)
     if len(pivots) < 3:
         print("Pas assez de pivots — baisse --threshold.", file=sys.stderr)
         return 0
     legs = measure_legs(pivots)
     proj = project(pivots, legs)
 
-    report = build_report(args.symbol, args.interval, pivots, legs, proj)
+    report = build_report(source, f"{args.interval}, {mode_label}", pivots, legs, proj)
     print()
     print(report)
 
     if args.json:
         payload = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "symbol": args.symbol, "interval": args.interval, "threshold": args.threshold,
+            "symbol": args.symbol, "source": source, "interval": args.interval,
+            "threshold": args.threshold, "price_column": args.price_column,
+            "pivot_mode": args.pivot_mode,
             "pivots": [asdict(p) for p in pivots],
             "legs": [asdict(l) for l in legs],
             "projection": proj,
