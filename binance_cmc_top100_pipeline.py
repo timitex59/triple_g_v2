@@ -31,6 +31,7 @@ import numpy as np
 import pandas as pd
 import pytz
 import requests
+import yfinance as yf
 from dotenv import load_dotenv
 from tabulate import tabulate
 
@@ -180,6 +181,7 @@ class CryptoMetrics:
     perf_126d: float | None
     perf_ytd: float | None
     rel_63d_vs_btc: float | None
+    rel_63d_vs_external: float | None
     rsi14: float | None
     vol_21d: float | None
     volume_ratio: float | None
@@ -253,6 +255,53 @@ def fetch_cmc_top(limit: int) -> tuple[list[CmcAsset], str]:
             volume_24h=safe_float(quote.get("volume_24h")),
         ))
     return rows, ("CoinMarketCap Pro API" if api_key else "CoinMarketCap trial API")
+
+
+def normalize_yahoo_symbol(symbol: str) -> str:
+    """Accept LQQ:PA from user input and convert it to Yahoo's LQQ.PA form."""
+    raw = (symbol or "").strip()
+    if ":" in raw and "/" not in raw:
+        left, right = raw.split(":", 1)
+        if left and right and len(right) <= 3:
+            return f"{left}.{right}"
+    return raw
+
+
+def extract_yahoo_close(data: pd.DataFrame, symbol: str) -> pd.Series:
+    if data is None or data.empty:
+        return pd.Series(dtype=float)
+    if isinstance(data.columns, pd.MultiIndex):
+        for level in range(data.columns.nlevels):
+            values = set(str(v) for v in data.columns.get_level_values(level))
+            if symbol in values:
+                sub = data.xs(symbol, axis=1, level=level)
+                if "Close" in sub:
+                    return pd.to_numeric(sub["Close"], errors="coerce").dropna()
+        if "Close" in set(str(v) for v in data.columns.get_level_values(0)):
+            close = data["Close"]
+            if isinstance(close, pd.DataFrame):
+                close = close[symbol] if symbol in close.columns else close.iloc[:, 0]
+            return pd.to_numeric(close, errors="coerce").dropna()
+        return pd.Series(dtype=float)
+    if "Close" not in data:
+        return pd.Series(dtype=float)
+    return pd.to_numeric(data["Close"], errors="coerce").dropna()
+
+
+def fetch_external_benchmark_close(symbol: str, period: str) -> tuple[pd.Series, str]:
+    yahoo_symbol = normalize_yahoo_symbol(symbol)
+    if not yahoo_symbol:
+        return pd.Series(dtype=float), ""
+    data = yf.download(
+        yahoo_symbol,
+        period=period,
+        interval="1d",
+        auto_adjust=True,
+        progress=False,
+        threads=False,
+    )
+    close = extract_yahoo_close(data, yahoo_symbol)
+    return close, yahoo_symbol
 
 
 def load_exchange(exchange_id: str) -> tuple[Any, str, list[str]]:
@@ -398,10 +447,13 @@ def build_crypto_metrics(
     components: pd.DataFrame,
     histories: dict[str, pd.DataFrame],
     benchmark_close: pd.Series,
+    external_benchmark_close: pd.Series | None = None,
 ) -> list[CryptoMetrics]:
     raw_rows: list[dict[str, Any]] = []
     year_start = datetime(datetime.now(timezone.utc).year, 1, 1, tzinfo=timezone.utc)
     bench_63d = pct_change(benchmark_close, 63)
+    external_close = external_benchmark_close if external_benchmark_close is not None else pd.Series(dtype=float)
+    external_63d = pct_change(external_close, 63)
 
     for row in components.itertuples(index=False):
         hist = histories.get(row.exchange_symbol)
@@ -419,6 +471,7 @@ def build_crypto_metrics(
         perf_126d = pct_change(close, 126)
         perf_ytd = pct_change_from_date(close, year_start)
         rel_63d = None if perf_63d is None or bench_63d is None else perf_63d - bench_63d
+        rel_external = None if perf_63d is None or external_63d is None else perf_63d - external_63d
         sma50 = close.rolling(50).mean().iloc[-1]
         sma200 = close.rolling(200).mean().iloc[-1] if len(close) >= 200 else np.nan
         high20 = close.rolling(20).max().iloc[-1]
@@ -444,6 +497,7 @@ def build_crypto_metrics(
             "perf_126d": perf_126d,
             "perf_ytd": perf_ytd,
             "rel_63d_vs_btc": rel_63d,
+            "rel_63d_vs_external": rel_external,
             "rsi14": rsi(close),
             "vol_21d": annualized_vol(close),
             "volume_ratio": vol_ratio,
@@ -669,7 +723,7 @@ def table_theme_scores(scores: list[CryptoThemeScore], limit: int) -> str:
     ], tablefmt="github")
 
 
-def table_assets(metrics: list[CryptoMetrics], limit: int) -> str:
+def table_assets(metrics: list[CryptoMetrics], limit: int, external_label: str = "External") -> str:
     rows = []
     for asset in metrics[:limit]:
         rows.append([
@@ -681,11 +735,13 @@ def table_assets(metrics: list[CryptoMetrics], limit: int) -> str:
             format_pct(asset.perf_21d),
             format_pct(asset.perf_63d),
             format_pct(asset.rel_63d_vs_btc),
+            format_pct(asset.rel_63d_vs_external),
             f"{asset.rsi14:.1f}" if asset.rsi14 else "---",
             "Y" if asset.above_sma50 else "N",
         ])
     return tabulate(rows, headers=[
-        "CMC", "Pair", "Name", "Group", "Score", "21D", "63D", "Rel63", "RSI", ">SMA50",
+        "CMC", "Pair", "Name", "Group", "Score", "21D", "63D", "Rel63 BTC",
+        f"Rel63 {external_label}", "RSI", ">SMA50",
     ], tablefmt="github")
 
 
@@ -732,6 +788,7 @@ def unified_ranking(metrics: list[CryptoMetrics], renko: dict[str, CryptoRenkoCo
             "ticker": asset.ticker,
             "exchange_symbol": asset.exchange_symbol,
             "rel": asset.rel_63d_vs_btc,
+            "rel_external": asset.rel_63d_vs_external,
             "score": asset.score,
             "validated": True,
         })
@@ -746,6 +803,7 @@ def unified_ranking(metrics: list[CryptoMetrics], renko: dict[str, CryptoRenkoCo
             "ticker": asset.ticker,
             "exchange_symbol": asset.exchange_symbol,
             "rel": asset.rel_63d_vs_btc,
+            "rel_external": asset.rel_63d_vs_external,
             "score": asset.score,
             "validated": False,
         })
@@ -851,6 +909,7 @@ def build_telegram_summary(
     ranking: list[dict[str, Any]],
     exchange_id: str,
     coverage: str,
+    external_label: str,
     events: dict[str, Any] | None = None,
 ) -> str:
     confirmed = [item for item in ranking if item.get("validated")]
@@ -859,10 +918,13 @@ def build_telegram_summary(
         lines.append("Groups: " + ", ".join(score.theme for score in theme_scores[:2]))
 
     lines.append("")
-    lines.append("CONFIRMES RENKO (vs BTC)")
+    lines.append(f"CONFIRMES RENKO (vs BTC/{external_label})")
     if confirmed:
         for i, item in enumerate(confirmed[:TRACK_TOP_N], 1):
-            lines.append(f"{i}. {item['exchange_symbol']} ({format_pct(item['rel'])})")
+            lines.append(
+                f"{i}. {item['exchange_symbol']} "
+                f"(BTC {format_pct(item['rel'])} | {external_label} {format_pct(item.get('rel_external'))})"
+            )
     else:
         lines.append("Aucun confirme")
 
@@ -887,6 +949,8 @@ def build_report(
     exchange_id: str,
     quote: str,
     benchmark: str,
+    external_benchmark: str,
+    external_benchmark_perf_63d: float | None,
     args: argparse.Namespace,
     events: dict[str, Any],
 ) -> str:
@@ -898,13 +962,14 @@ def build_report(
         f"Generated: {now}",
         f"CMC source: {cmc_source}",
         f"Exchange: {exchange_id} | Quote: {quote} | Benchmark: {benchmark}",
+        f"External benchmark: {external_benchmark or 'disabled'} | 63D: {format_pct(external_benchmark_perf_63d)}",
         f"Universe: {coverage} | excluded={len(excluded)} | unavailable={len(unavailable)}",
         "",
         "DOMINANT CRYPTO GROUPS",
         table_theme_scores(theme_scores, args.top_groups),
         "",
         "TOP CRYPTO BY SCORE",
-        table_assets(metrics, args.top_assets),
+        table_assets(metrics, args.top_assets, external_benchmark or "External"),
     ]
 
     if events:
@@ -968,6 +1033,7 @@ def build_report(
         "Universe = CoinMarketCap Top 100, intersected with active Binance spot pairs in the selected quote.",
         "Stablecoins and the benchmark base are excluded from momentum ranking by default.",
         "Score = momentum 21D/63D/126D + relative strength vs BTC + volume ratio + SMA50/SMA200 + 20D high proximity.",
+        f"Rel63 external = asset 63D performance minus {external_benchmark or 'external benchmark'} 63D performance; it is not part of the score.",
         "Final validation = local ATR Renko alignment 3M/M/W bullish with weekly ROC14/ROC21 positive.",
         "CMC rank is used as the market-cap overlay/universe filter, not as a buy signal.",
     ]
@@ -979,6 +1045,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--exchange", default="auto", help="ccxt exchange id: auto, binance, binanceus...")
     parser.add_argument("--quote", default="USDT")
     parser.add_argument("--benchmark", default="BTC/USDT")
+    parser.add_argument("--external-benchmark", default="LQQ:PA", help="Yahoo benchmark for external relative analysis")
+    parser.add_argument("--external-period", default="9mo", help="Yahoo period used for the external benchmark")
     parser.add_argument("--cmc-limit", type=int, default=100)
     parser.add_argument("--max-assets", type=int, default=0, help="Limit tradable universe after CMC/Binance intersection")
     parser.add_argument("--timeframe", default="1d")
@@ -1056,11 +1124,24 @@ def main() -> int:
         print(f"ERROR: benchmark history unavailable: {args.benchmark}", file=sys.stderr)
         return 0
 
+    external_close = pd.Series(dtype=float)
+    external_symbol = normalize_yahoo_symbol(args.external_benchmark)
+    if external_symbol:
+        print(f"Downloading external benchmark ({external_symbol})...")
+        try:
+            external_close, external_symbol = fetch_external_benchmark_close(args.external_benchmark, args.external_period)
+            if external_close.empty:
+                print(f"  external benchmark unavailable: {args.external_benchmark}", file=sys.stderr)
+        except Exception as exc:  # noqa: BLE001
+            print(f"  external benchmark failed: {type(exc).__name__}: {str(exc)[:140]}", file=sys.stderr)
+            external_close = pd.Series(dtype=float)
+
     print("Computing crypto metrics...")
-    metrics = build_crypto_metrics(components, histories, benchmark_close)
+    metrics = build_crypto_metrics(components, histories, benchmark_close, external_close)
     if not metrics:
         print("ERROR: insufficient histories for metrics.", file=sys.stderr)
         return 0
+    external_perf_63d = pct_change(external_close, 63) if not external_close.empty else None
 
     theme_scores = build_theme_scores(metrics)
     renko: dict[str, CryptoRenkoConfirmation] = {}
@@ -1091,6 +1172,8 @@ def main() -> int:
         exchange_id=exchange_id,
         quote=args.quote,
         benchmark=args.benchmark,
+        external_benchmark=external_symbol,
+        external_benchmark_perf_63d=external_perf_63d,
         args=args,
         events=events,
     )
@@ -1105,6 +1188,11 @@ def main() -> int:
         "exchange": exchange_id,
         "quote": args.quote,
         "benchmark": args.benchmark,
+        "external_benchmark": {
+            "input": args.external_benchmark,
+            "yahoo_symbol": external_symbol,
+            "perf_63d": round(external_perf_63d, 2) if external_perf_63d is not None else None,
+        },
         "coverage": {
             "cmc_limit": args.cmc_limit,
             "tradable": len(metrics),
@@ -1128,6 +1216,7 @@ def main() -> int:
         ranking=confirmed_ranking,
         exchange_id=exchange_id,
         coverage=coverage,
+        external_label=external_symbol or "External",
         events=events,
     )
     print("\nTELEGRAM SUMMARY:\n" + text)
