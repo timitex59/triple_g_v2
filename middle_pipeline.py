@@ -65,16 +65,6 @@ from nasdaq_sector_pipeline import (
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SP400_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_400_companies"
 BENCHMARK = "IWR"  # iShares Russell Mid-Cap ETF — reference mid-cap
-
-# ETF mid-cap (styles/facteurs) classes COMME les actions: force relative vs IWR
-# + validation Renko. Tous sur NYSE Arca -> TradingView "AMEX:".
-MIDCAP_ETFS = {
-    "IJH": "S&P 400 (blend)",
-    "IWP": "Mid-Cap Growth",
-    "IWS": "Mid-Cap Value",
-    "XMMO": "Mid-Cap Momentum",
-    "XMHQ": "Mid-Cap Quality",
-}
 REPORT_JSON = os.path.join(SCRIPT_DIR, "middle_pipeline_report.json")
 REPORT_TXT = os.path.join(SCRIPT_DIR, "middle_pipeline_report.txt")
 TRACKER_PATH = os.path.join(SCRIPT_DIR, "middle_pipeline_tracker.json")
@@ -652,25 +642,6 @@ def main() -> int:
         renko = run_renko_filter(candidates, [], atr_length=args.renko_length,
                                  max_workers=args.renko_workers, debug=args.renko_debug)
 
-    # ETF mid-cap (styles/facteurs) classes COMME les actions: rel vs IWR + Renko.
-    etf_ranking: list[dict] = []
-    etf_metrics: list[AssetMetrics] = []
-    print("Scoring ETF mid-cap (styles/facteurs)...")
-    etf_tickers = list(MIDCAP_ETFS)
-    etf_hist = download_history(etf_tickers, period=args.period)
-    if etf_hist:
-        etf_components = pd.DataFrame([{"ticker": t, "name": MIDCAP_ETFS[t]} for t in etf_tickers])
-        etf_profiles = {t: {"sector": "ETF", "industry": MIDCAP_ETFS[t],
-                            "shortName": MIDCAP_ETFS[t], "market_cap": ""} for t in etf_tickers}
-        etf_metrics = build_asset_metrics(etf_components, etf_profiles, etf_hist, bench_close)
-        for t in etf_tickers:
-            TICKER_EXCHANGE[t] = "AMEX"          # NYSE Arca -> TradingView AMEX:
-        etf_renko = {}
-        if not args.no_renko and etf_metrics:
-            etf_renko = run_renko_filter(etf_metrics, [], atr_length=args.renko_length,
-                                         max_workers=args.renko_workers, debug=args.renko_debug)
-        etf_ranking = unified_ranking(etf_metrics, etf_renko)
-
     # Anti-doublon journalier: le tracker note sa date de maj (updated). Si elle
     # vaut deja aujourd'hui AVANT cette maj, c'est un run ulterieur du jour ->
     # on n'enverra pas de nouveau Telegram (1x/jour). Etat persiste par le CI.
@@ -692,8 +663,6 @@ def main() -> int:
         "themes": [asdict(s) for s in theme_scores],
         "stocks": [asdict(m) for m in sorted(stock_metrics, key=lambda x: x.score, reverse=True)],
         "renko": {k: asdict(v) for k, v in renko.items()},
-        "etf_ranking": etf_ranking,
-        "etfs": [asdict(m) for m in etf_metrics],
         "news": news,
     }
     with open(args.json, "w", encoding="utf-8") as f:

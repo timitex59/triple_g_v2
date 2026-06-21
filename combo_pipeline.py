@@ -111,12 +111,6 @@ def mid_top_stocks(rep: dict, n: int = 3) -> list[tuple[str, float]]:
     return [(e["ticker"], e["rel"]) for e in ranking[:n]]
 
 
-def mid_top_etfs(rep: dict, n: int = 3) -> list[tuple[str, float]]:
-    """ETF mid-cap (styles/facteurs) deja classes par middle_pipeline (meme
-    methode que les actions: rel vs IWR + Renko)."""
-    return [(e["ticker"], e["rel"]) for e in rep.get("etf_ranking", [])[:n]]
-
-
 def build_message(nas: dict, midr: dict) -> str | None:
     lines: list[str] = []
 
@@ -138,13 +132,6 @@ def build_message(nas: dict, midr: dict) -> str | None:
             lines.append("🔥 " + ", ".join(themes))
         lines.append("📈 TOP STOCKS (vs IWR)")
         lines += [f"{i}. {t} ({format_pct(rel)})" for i, (t, rel) in enumerate(ms, 1)]
-
-    me = mid_top_etfs(midr) if midr else []
-    if me:
-        if lines:
-            lines.append("")
-        lines.append("📊 TOP 3 ETF MID-CAP (vs IWR)")
-        lines += [f"{i}. {t} ({format_pct(rel)})" for i, (t, rel) in enumerate(me, 1)]
 
     uc = nasdaq_ucits(nas) if nas else []
     if uc:
