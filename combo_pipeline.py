@@ -75,9 +75,25 @@ def _renko(rep: dict) -> dict:
     return {k: RenkoConfirmation(**v) for k, v in rep.get("renko", {}).items()}
 
 
+# Noms de secteurs abreges pour la ligne 🔥.
+SECTOR_ABBR = {
+    "Semiconductors / AI infrastructure": "Semis",
+    "Cybersecurity": "Cyber",
+    "Cloud / Data software": "Cloud",
+    "AI platforms / Mega-cap tech": "IA",
+    "Consumer internet / E-commerce": "Internet",
+    "Healthcare / Biotech": "Santé",
+    "Industrials / Automation": "Indus",
+    "Utilities / Power": "Énergie",
+    # Sous-themes mid-cap (deja courts; on abrege les plus longs).
+    "Distributors": "Distrib",
+    "IT / Internet": "IT/Net",
+}
+
+
 def _top_themes(rep: dict, n: int = 2) -> list[str]:
     th = sorted(rep.get("themes", []), key=lambda s: s.get("final_score", 0), reverse=True)
-    return [str(t["theme"]).split(" / ")[0] for t in th[:n]]
+    return [SECTOR_ABBR.get(t["theme"], str(t["theme"]).split(" / ")[0]) for t in th[:n]]
 
 
 def nasdaq_top_stocks(rep: dict, n: int = 3) -> list[tuple[str, float]]:
