@@ -1,55 +1,55 @@
 {
-  "updated": "2026-06-19",
-  "prev_update": "2026-06-18",
+  "updated": "2026-06-21",
+  "prev_update": "2026-06-19",
   "tickers": {
     "TTMI": {
-      "streak": 3,
-      "days": 3,
+      "streak": 4,
+      "days": 4,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-19",
+      "last_seen": "2026-06-21",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 102.06,
+      "last_rel": 111.44,
       "active": true
     },
     "AMKR": {
-      "streak": 3,
-      "days": 3,
+      "streak": 4,
+      "days": 4,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-19",
+      "last_seen": "2026-06-21",
       "last_rank": 2,
       "peak_rank": 2,
-      "last_rel": 73.99,
+      "last_rel": 76.66,
       "active": true
     },
     "SNX": {
-      "streak": 3,
-      "days": 3,
+      "streak": 4,
+      "days": 4,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-19",
-      "last_rank": 3,
+      "last_seen": "2026-06-21",
+      "last_rank": 4,
       "peak_rank": 3,
-      "last_rel": 75.24,
+      "last_rel": 72.12,
       "active": true
     },
     "ALGM": {
-      "streak": 3,
-      "days": 3,
+      "streak": 4,
+      "days": 4,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-19",
-      "last_rank": 4,
+      "last_seen": "2026-06-21",
+      "last_rank": 3,
       "peak_rank": 3,
-      "last_rel": 60.64,
+      "last_rel": 79.37,
       "active": true
     },
     "MKSI": {
-      "streak": 3,
-      "days": 3,
+      "streak": 4,
+      "days": 4,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-19",
+      "last_seen": "2026-06-21",
       "last_rank": 5,
       "peak_rank": 5,
-      "last_rel": 48.58,
+      "last_rel": 60.2,
       "active": true
     }
   },
@@ -57,92 +57,71 @@
     "persistent": [
       [
         "TTMI",
-        3
+        4
       ],
       [
         "AMKR",
-        3
-      ],
-      [
-        "SNX",
-        3
+        4
       ],
       [
         "ALGM",
-        3
+        4
+      ],
+      [
+        "SNX",
+        4
       ],
       [
         "MKSI",
-        3
+        4
       ]
     ],
     "new": [],
     "weakening": [
       {
-        "ticker": "TTMI",
-        "rank": 1,
-        "prev_rank": 1,
-        "rel": 102.06,
-        "prev_rel": 110.77
-      },
-      {
-        "ticker": "AMKR",
-        "rank": 2,
-        "prev_rank": 2,
-        "rel": 73.99,
-        "prev_rel": 75.51
-      },
-      {
-        "ticker": "ALGM",
+        "ticker": "SNX",
         "rank": 4,
         "prev_rank": 3,
-        "rel": 60.64,
-        "prev_rel": 77.24
-      },
-      {
-        "ticker": "MKSI",
-        "rank": 5,
-        "prev_rank": 5,
-        "rel": 48.58,
-        "prev_rel": 56.32
+        "rel": 72.12,
+        "prev_rel": 75.24
       }
     ],
     "dropped": [],
     "durable": [
       [
         "TTMI",
-        3,
-        102.06,
-        306.2
-      ],
-      [
-        "SNX",
-        3,
-        75.24,
-        225.7
-      ],
-      [
-        "AMKR",
-        3,
-        73.99,
-        222.0
+        4,
+        111.44,
+        445.8
       ],
       [
         "ALGM",
-        3,
-        60.64,
-        181.9
+        4,
+        79.37,
+        317.5
+      ],
+      [
+        "AMKR",
+        4,
+        76.66,
+        306.6
+      ],
+      [
+        "SNX",
+        4,
+        72.12,
+        288.5
       ],
       [
         "MKSI",
-        3,
-        48.58,
-        145.7
+        4,
+        60.2,
+        240.8
       ]
     ],
     "switch": null
   },
   "leader_raw": "Distributors",
-  "leader_raw_days": 3,
+  "leader_raw_days": 4,
   "leader_confirmed": "Distributors"
 }
