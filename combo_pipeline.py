@@ -141,7 +141,7 @@ def build_message(nas: dict, midr: dict) -> str | None:
 
     ns = nasdaq_top_stocks(nas) if nas else []
     if ns:
-        lines.append("📈 TOP 3 STOCK")
+        lines.append("📈 LARGE CAP")
         themes = _top_themes(nas)
         if themes:
             lines.append("🔥 " + ", ".join(themes))
@@ -151,11 +151,11 @@ def build_message(nas: dict, midr: dict) -> str | None:
     if ms:
         if lines:
             lines.append("")
-        lines.append("🇺🇸 MID-CAP TECH")
+        lines.append("📈 MID-CAP TECH")
         themes = _top_themes(midr)
         if themes:
             lines.append("🔥 " + ", ".join(themes))
-        lines.append("📈 TOP STOCKS (vs IWR)")
+        lines.append("")
         lines += [f"{i}. {t} ({format_pct(rel)})" for i, (t, rel) in enumerate(ms, 1)]
 
     uc = nasdaq_ucits(nas) if nas else []
