@@ -27,7 +27,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytz
 
@@ -53,9 +53,18 @@ def _load(path: str) -> dict:
 
 
 def _fresh(report: dict, today: str) -> bool:
-    """Le rapport est-il du jour ? (generated_at en UTC; en soiree Paris la date
-    UTC == date Paris)."""
-    return report.get("generated_at", "")[:10] == today
+    """Le rapport est-il du jour ? Compare en DATE PARIS (generated_at est en UTC;
+    une simple troncature [:10] casse autour de minuit Paris)."""
+    gen = report.get("generated_at", "")
+    if not gen:
+        return False
+    try:
+        dt = datetime.fromisoformat(gen)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(PARIS).strftime("%Y-%m-%d") == today
+    except Exception:
+        return gen[:10] == today
 
 
 def _stocks(rep: dict) -> list[AssetMetrics]:
