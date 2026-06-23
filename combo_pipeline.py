@@ -15,6 +15,10 @@ les messages separes. Envoi une seule fois par jour (anti-doublon).
 Les deux pipelines tournent donc avec --no-telegram (calcul + rapports + sidecar
 UCITS pour ETF_V3 inchanges); seul combo envoie le message fusionne.
 
+Produit aussi combo_top_assets.json: union ordonnee et sans doublon des trois
+TOP 3. Un script ulterieur peut lire directement la cle "tickers"; la cle
+"assets" conserve les sections, rangs, benchmarks et identifiants UCITS.
+
 Usage:
     python combo_pipeline.py                # construit + envoie (si >=20h non requis)
     python combo_pipeline.py --no-telegram  # affichage seul
@@ -41,6 +45,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 NAS_JSON = nsp.REPORT_JSON
 MID_JSON = mid.REPORT_JSON
 SEND_STATE = os.path.join(SCRIPT_DIR, "combo_pipeline_send.json")
+TOP_ASSETS_JSON = os.path.join(SCRIPT_DIR, "combo_top_assets.json")
 PARIS = pytz.timezone("Europe/Paris")
 
 
@@ -136,10 +141,122 @@ def mid_top_stocks(rep: dict, n: int = 3) -> list[tuple[str, float]]:
     return [(e["ticker"], e["rel"]) for e in ranking[:n]]
 
 
-def build_message(nas: dict, midr: dict) -> str | None:
-    lines: list[str] = []
+def collect_top_assets(nas: dict, midr: dict) -> dict[str, list[tuple[str, float]]]:
+    """Retourne exactement les trois classements utilises dans le message."""
+    return {
+        "large_cap": nasdaq_top_stocks(nas) if nas else [],
+        "mid_cap_tech": mid_top_stocks(midr) if midr else [],
+        "etf_ucits": nasdaq_ucits(nas) if nas else [],
+    }
 
-    ns = nasdaq_top_stocks(nas) if nas else []
+
+SECTION_META = {
+    "large_cap": {"label": "LARGE CAP", "asset_type": "stock", "benchmark": "QQQ"},
+    "mid_cap_tech": {"label": "MID-CAP TECH", "asset_type": "stock", "benchmark": "IWR"},
+    "etf_ucits": {"label": "ETF UCITS", "asset_type": "etf", "benchmark": "QQQ"},
+}
+
+
+def _ucits_identifiers(ticker: str) -> dict[str, str]:
+    for alternatives in nsp.EUROPE_ETF_ALTERNATIVES.values():
+        for item in alternatives:
+            if str(item.get("ticker", "")).upper() == ticker.upper():
+                return {
+                    key: str(item[key])
+                    for key in ("yahoo", "tv", "isin")
+                    if item.get(key)
+                }
+    return {}
+
+
+def build_top_assets_payload(
+    selections: dict[str, list[tuple[str, float]]],
+    nas: dict,
+    midr: dict,
+) -> dict:
+    """Construit une liste plate, ordonnee et dedupliquee par ticker."""
+    assets_by_ticker: dict[str, dict] = {}
+    ordered_tickers: list[str] = []
+    sections: dict[str, list[dict]] = {}
+
+    for section, rows in selections.items():
+        meta = SECTION_META[section]
+        section_rows: list[dict] = []
+        for rank, (raw_ticker, rel) in enumerate(rows, 1):
+            ticker = str(raw_ticker).strip().upper()
+            if not ticker:
+                continue
+            appearance = {
+                "section": section,
+                "label": meta["label"],
+                "asset_type": meta["asset_type"],
+                "rank": rank,
+                "relative_strength_63d_pct": round(float(rel), 4),
+                "benchmark": meta["benchmark"],
+            }
+            section_rows.append({"ticker": ticker, **appearance})
+
+            if ticker not in assets_by_ticker:
+                asset = {
+                    "ticker": ticker,
+                    "asset_types": [],
+                    "sections": [],
+                    "appearances": [],
+                }
+                assets_by_ticker[ticker] = asset
+                ordered_tickers.append(ticker)
+            asset = assets_by_ticker[ticker]
+            if meta["asset_type"] not in asset["asset_types"]:
+                asset["asset_types"].append(meta["asset_type"])
+            if section == "etf_ucits":
+                asset.update(_ucits_identifiers(ticker))
+            if section not in asset["sections"]:
+                asset["sections"].append(section)
+            asset["appearances"].append(appearance)
+        sections[section] = section_rows
+
+    now_utc = datetime.now(timezone.utc)
+    return {
+        "generated_at": now_utc.isoformat(),
+        "paris_date": now_utc.astimezone(PARIS).strftime("%Y-%m-%d"),
+        "source": "combo_pipeline.py",
+        "complete": all(len(selections.get(section, [])) == 3 for section in SECTION_META),
+        "count": len(ordered_tickers),
+        "tickers": ordered_tickers,
+        "assets": [assets_by_ticker[ticker] for ticker in ordered_tickers],
+        "sections": sections,
+        "source_reports": {
+            "nasdaq_generated_at": nas.get("generated_at"),
+            "mid_cap_generated_at": midr.get("generated_at"),
+        },
+    }
+
+
+def save_top_assets(path: str, payload: dict) -> None:
+    """Ecriture atomique pour qu'un lecteur ne voie jamais un JSON partiel."""
+    tmp_path = f"{path}.{os.getpid()}.tmp"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+            f.write("\n")
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
+
+def build_message(
+    nas: dict,
+    midr: dict,
+    selections: dict[str, list[tuple[str, float]]] | None = None,
+) -> str | None:
+    lines: list[str] = []
+    selections = selections or collect_top_assets(nas, midr)
+
+    ns = selections["large_cap"]
     if ns:
         lines.append("📈 LARGE CAP")
         themes = _top_themes(nas)
@@ -147,7 +264,7 @@ def build_message(nas: dict, midr: dict) -> str | None:
             lines.append("🔥 " + ", ".join(themes))
         lines += [f"{i}. {t} ({format_pct(rel)})" for i, (t, rel) in enumerate(ns, 1)]
 
-    ms = mid_top_stocks(midr) if midr else []
+    ms = selections["mid_cap_tech"]
     if ms:
         if lines:
             lines.append("")
@@ -158,7 +275,7 @@ def build_message(nas: dict, midr: dict) -> str | None:
         lines.append("")
         lines += [f"{i}. {t} ({format_pct(rel)})" for i, (t, rel) in enumerate(ms, 1)]
 
-    uc = nasdaq_ucits(nas) if nas else []
+    uc = selections["etf_ucits"]
     if uc:
         if lines:
             lines.append("")
@@ -178,6 +295,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Message Telegram fusionne Nasdaq + Mid-cap tech.")
     ap.add_argument("--no-telegram", action="store_true", help="Affichage seul, pas d'envoi.")
     ap.add_argument("--force", action="store_true", help="Ignore l'anti-doublon journalier.")
+    ap.add_argument(
+        "--top-assets-json",
+        default=TOP_ASSETS_JSON,
+        help="Fichier JSON de l'union dedupliquee des trois TOP 3.",
+    )
     args = ap.parse_args()
 
     today = datetime.now(PARIS).strftime("%Y-%m-%d")
@@ -190,11 +312,23 @@ def main() -> int:
         print("Rapport Mid-cap absent ou perime — section ignoree.")
         midr = {}
 
-    message = build_message(nas, midr)
+    selections = collect_top_assets(nas, midr)
+    message = build_message(nas, midr, selections)
     if message is None:
         print("Aucune donnee fraiche — aucun message.")
         return 0
     print("\n" + message + "\n")
+
+    top_assets = build_top_assets_payload(selections, nas, midr)
+    try:
+        save_top_assets(args.top_assets_json, top_assets)
+        completeness = "complete" if top_assets["complete"] else "partielle"
+        print(
+            f"Liste TOP sauvegardee: {args.top_assets_json} "
+            f"({top_assets['count']} tickers uniques, {completeness})."
+        )
+    except Exception as exc:
+        print(f"Impossible de sauvegarder la liste TOP: {exc}")
 
     already = _load(SEND_STATE).get("last_sent_date") == today
     if args.no_telegram:
