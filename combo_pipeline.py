@@ -15,9 +15,10 @@ les messages separes. Envoi une seule fois par jour (anti-doublon).
 Les deux pipelines tournent donc avec --no-telegram (calcul + rapports + sidecar
 UCITS pour ETF_V3 inchanges); seul combo envoie le message fusionne.
 
-Produit aussi combo_top_assets.json: union ordonnee et sans doublon des trois
-TOP 3. Un script ulterieur peut lire directement la cle "tickers"; la cle
-"assets" conserve les sections, rangs, benchmarks et identifiants UCITS.
+Produit aussi combo_top_assets.json: registre cumulatif, ordonne et sans
+doublon des trois TOP 3. La cle "tickers" contient tout l'univers historique;
+"current" contient la selection du jour et "history" conserve un instantane
+par date pour comparer ensuite frequence, rangs et force relative.
 
 Usage:
     python combo_pipeline.py                # construit + envoie (si >=20h non requis)
@@ -232,6 +233,189 @@ def build_top_assets_payload(
     }
 
 
+def _merge_same_day(previous: dict, latest: dict) -> dict:
+    """Fusionne deux executions du meme jour sans perdre une section valide."""
+    if not previous:
+        return latest
+
+    merged_sections: dict[str, list[dict]] = {}
+    for section in SECTION_META:
+        new_rows = latest.get("sections", {}).get(section, [])
+        old_rows = previous.get("sections", {}).get(section, [])
+        merged_sections[section] = new_rows or old_rows
+
+    selections = {
+        section: [
+            (
+                str(row.get("ticker", "")),
+                float(row.get("relative_strength_63d_pct", 0.0)),
+            )
+            for row in rows
+            if row.get("ticker")
+        ]
+        for section, rows in merged_sections.items()
+    }
+    source_reports = dict(previous.get("source_reports", {}))
+    source_reports.update({
+        key: value
+        for key, value in latest.get("source_reports", {}).items()
+        if value
+    })
+    merged = build_top_assets_payload(
+        selections,
+        {"generated_at": source_reports.get("nasdaq_generated_at")},
+        {"generated_at": source_reports.get("mid_cap_generated_at")},
+    )
+    merged["generated_at"] = latest.get("generated_at", merged["generated_at"])
+    merged["paris_date"] = latest.get("paris_date", merged["paris_date"])
+    return merged
+
+
+def _daily_snapshots(existing: dict) -> list[dict]:
+    """Lit le format cumulatif v2 ou migre l'ancien export journalier v1."""
+    history = existing.get("history")
+    if isinstance(history, list):
+        return [item for item in history if isinstance(item, dict) and item.get("paris_date")]
+    if existing.get("paris_date") and isinstance(existing.get("tickers"), list):
+        return [{
+            key: existing.get(key)
+            for key in (
+                "generated_at", "paris_date", "source", "complete", "count",
+                "tickers", "assets", "sections", "source_reports",
+            )
+        }]
+    return []
+
+
+def _section_stats(appearances: list[dict]) -> dict[str, dict]:
+    stats: dict[str, dict] = {}
+    by_section: dict[str, list[dict]] = {}
+    for appearance in appearances:
+        by_section.setdefault(appearance["section"], []).append(appearance)
+    for section, rows in by_section.items():
+        ranks = [int(row["rank"]) for row in rows]
+        latest = max(rows, key=lambda row: row["date"])
+        stats[section] = {
+            "days_selected": len({row["date"] for row in rows}),
+            "best_rank": min(ranks),
+            "average_rank": round(sum(ranks) / len(ranks), 4),
+            "last_rank": int(latest["rank"]),
+            "last_relative_strength_63d_pct": latest["relative_strength_63d_pct"],
+        }
+    return stats
+
+
+def merge_top_assets_history(existing: dict, daily: dict) -> dict:
+    """Ajoute/met a jour la journee puis reconstruit l'univers cumulatif."""
+    snapshots_by_date = {
+        item["paris_date"]: item
+        for item in _daily_snapshots(existing)
+    }
+    date = daily["paris_date"]
+    snapshots_by_date[date] = _merge_same_day(snapshots_by_date.get(date, {}), daily)
+    history = [snapshots_by_date[key] for key in sorted(snapshots_by_date)]
+
+    assets_by_ticker: dict[str, dict] = {}
+    ordered_tickers: list[str] = []
+    for snapshot in history:
+        snapshot_date = snapshot["paris_date"]
+        for daily_asset in snapshot.get("assets", []):
+            ticker = str(daily_asset.get("ticker", "")).strip().upper()
+            if not ticker:
+                continue
+            if ticker not in assets_by_ticker:
+                assets_by_ticker[ticker] = {
+                    "ticker": ticker,
+                    "asset_types": [],
+                    "sections": [],
+                    "first_seen_date": snapshot_date,
+                    "last_seen_date": snapshot_date,
+                    "selection_dates": [],
+                    "appearances": [],
+                }
+                ordered_tickers.append(ticker)
+            asset = assets_by_ticker[ticker]
+            asset["last_seen_date"] = snapshot_date
+            if snapshot_date not in asset["selection_dates"]:
+                asset["selection_dates"].append(snapshot_date)
+            for asset_type in daily_asset.get("asset_types", []):
+                if asset_type not in asset["asset_types"]:
+                    asset["asset_types"].append(asset_type)
+            for section in daily_asset.get("sections", []):
+                if section not in asset["sections"]:
+                    asset["sections"].append(section)
+            for key in ("yahoo", "tv", "isin"):
+                if daily_asset.get(key):
+                    asset[key] = daily_asset[key]
+            for appearance in daily_asset.get("appearances", []):
+                asset["appearances"].append({"date": snapshot_date, **appearance})
+
+    # L'univers global est monotone: une correction ou seconde execution du
+    # meme jour peut remplacer l'instantane quotidien, mais ne retire jamais
+    # un ticker deja observe du registre cumulatif.
+    previous_assets = {
+        str(asset.get("ticker", "")).upper(): asset
+        for asset in existing.get("assets", [])
+        if isinstance(asset, dict) and asset.get("ticker")
+    }
+    previous_order = [
+        str(ticker).upper()
+        for ticker in existing.get("tickers", [])
+        if str(ticker).strip()
+    ]
+    for ticker in previous_order:
+        if ticker in assets_by_ticker or ticker not in previous_assets:
+            continue
+        old = previous_assets[ticker]
+        assets_by_ticker[ticker] = {
+            "ticker": ticker,
+            "asset_types": list(old.get("asset_types", [])),
+            "sections": list(old.get("sections", [])),
+            "first_seen_date": old.get("first_seen_date"),
+            "last_seen_date": old.get("last_seen_date"),
+            "selection_dates": list(old.get("selection_dates", [])),
+            "appearances": list(old.get("appearances", [])),
+            **{
+                key: old[key]
+                for key in ("yahoo", "tv", "isin")
+                if old.get(key)
+            },
+        }
+
+    ordered_tickers = list(dict.fromkeys(
+        [ticker for ticker in previous_order if ticker in assets_by_ticker]
+        + ordered_tickers
+    ))
+
+    cumulative_assets: list[dict] = []
+    for ticker in ordered_tickers:
+        asset = assets_by_ticker[ticker]
+        appearances = asset["appearances"]
+        ranks = [int(item["rank"]) for item in appearances]
+        asset["days_selected"] = len(asset["selection_dates"])
+        asset["total_appearances"] = len(appearances)
+        asset["best_rank"] = min(ranks) if ranks else None
+        asset["average_rank"] = round(sum(ranks) / len(ranks), 4) if ranks else None
+        asset["section_stats"] = _section_stats(appearances)
+        cumulative_assets.append(asset)
+
+    current = snapshots_by_date[date]
+    return {
+        "schema_version": 2,
+        "generated_at": daily["generated_at"],
+        "paris_date": date,
+        "source": "combo_pipeline.py",
+        "history_days": len(history),
+        "first_history_date": history[0]["paris_date"],
+        "last_history_date": history[-1]["paris_date"],
+        "count": len(ordered_tickers),
+        "tickers": ordered_tickers,
+        "assets": cumulative_assets,
+        "current": current,
+        "history": history,
+    }
+
+
 def save_top_assets(path: str, payload: dict) -> None:
     """Ecriture atomique pour qu'un lecteur ne voie jamais un JSON partiel."""
     tmp_path = f"{path}.{os.getpid()}.tmp"
@@ -298,7 +482,7 @@ def main() -> int:
     ap.add_argument(
         "--top-assets-json",
         default=TOP_ASSETS_JSON,
-        help="Fichier JSON de l'union dedupliquee des trois TOP 3.",
+        help="Registre JSON cumulatif et deduplique des trois TOP 3.",
     )
     args = ap.parse_args()
 
@@ -319,13 +503,20 @@ def main() -> int:
         return 0
     print("\n" + message + "\n")
 
-    top_assets = build_top_assets_payload(selections, nas, midr)
+    daily_top_assets = build_top_assets_payload(selections, nas, midr)
     try:
+        top_assets = merge_top_assets_history(
+            _load(args.top_assets_json),
+            daily_top_assets,
+        )
         save_top_assets(args.top_assets_json, top_assets)
-        completeness = "complete" if top_assets["complete"] else "partielle"
+        completeness = "complete" if top_assets["current"]["complete"] else "partielle"
+        day_label = "jour" if top_assets["history_days"] == 1 else "jours"
         print(
-            f"Liste TOP sauvegardee: {args.top_assets_json} "
-            f"({top_assets['count']} tickers uniques, {completeness})."
+            f"Historique TOP sauvegarde: {args.top_assets_json} "
+            f"({top_assets['count']} tickers cumules, "
+            f"{top_assets['history_days']} {day_label}, "
+            f"selection du jour {completeness})."
         )
     except Exception as exc:
         print(f"Impossible de sauvegarder la liste TOP: {exc}")
