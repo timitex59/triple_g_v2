@@ -1,15 +1,15 @@
 {
-  "updated": "2026-06-23",
-  "prev_update": "2026-06-22",
+  "updated": "2026-06-24",
+  "prev_update": "2026-06-23",
   "tickers": {
     "TTMI": {
-      "streak": 6,
-      "days": 6,
+      "streak": 7,
+      "days": 7,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-23",
-      "last_rank": 5,
+      "last_seen": "2026-06-24",
+      "last_rank": 4,
       "peak_rank": 1,
-      "last_rel": 96.95,
+      "last_rel": 81.31,
       "active": true
     },
     "AMKR": {
@@ -24,13 +24,13 @@
       "dropped_on": "2026-06-23"
     },
     "SNX": {
-      "streak": 6,
-      "days": 6,
+      "streak": 7,
+      "days": 7,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-23",
+      "last_seen": "2026-06-24",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 76.68,
+      "last_rel": 67.74,
       "active": true
     },
     "ALGM": {
@@ -41,7 +41,8 @@
       "last_rank": 2,
       "peak_rank": 2,
       "last_rel": 66.51,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-06-24"
     },
     "MKSI": {
       "streak": 5,
@@ -62,16 +63,37 @@
       "last_rank": 3,
       "peak_rank": 3,
       "last_rel": 41.34,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-06-24"
     },
     "SMTC": {
+      "streak": 2,
+      "days": 2,
+      "first_seen": "2026-06-23",
+      "last_seen": "2026-06-24",
+      "last_rank": 2,
+      "peak_rank": 2,
+      "last_rel": 89.79,
+      "active": true
+    },
+    "SITM": {
       "streak": 1,
       "days": 1,
-      "first_seen": "2026-06-23",
-      "last_seen": "2026-06-23",
-      "last_rank": 4,
-      "peak_rank": 4,
-      "last_rel": 102.23,
+      "first_seen": "2026-06-24",
+      "last_seen": "2026-06-24",
+      "last_rank": 3,
+      "peak_rank": 3,
+      "last_rel": 84.91,
+      "active": true
+    },
+    "SANM": {
+      "streak": 1,
+      "days": 1,
+      "first_seen": "2026-06-24",
+      "last_seen": "2026-06-24",
+      "last_rank": 5,
+      "peak_rank": 5,
+      "last_rel": 74.77,
       "active": true
     }
   },
@@ -79,84 +101,91 @@
     "persistent": [
       [
         "SNX",
-        6
-      ],
-      [
-        "ALGM",
-        6
+        7
       ],
       [
         "TTMI",
-        6
-      ],
-      [
-        "AVT",
-        1
+        7
       ],
       [
         "SMTC",
+        2
+      ],
+      [
+        "SITM",
+        1
+      ],
+      [
+        "SANM",
         1
       ]
     ],
     "new": [
-      "AVT",
-      "SMTC"
+      "SITM",
+      "SANM"
     ],
     "weakening": [
       {
-        "ticker": "ALGM",
+        "ticker": "SNX",
+        "rank": 1,
+        "prev_rank": 1,
+        "rel": 67.74,
+        "prev_rel": 76.68
+      },
+      {
+        "ticker": "SMTC",
         "rank": 2,
-        "prev_rank": 3,
-        "rel": 66.51,
-        "prev_rel": 87.63
+        "prev_rank": 4,
+        "rel": 89.79,
+        "prev_rel": 102.23
       },
       {
         "ticker": "TTMI",
-        "rank": 5,
-        "prev_rank": 1,
-        "rel": 96.95,
-        "prev_rel": 127.72
+        "rank": 4,
+        "prev_rank": 5,
+        "rel": 81.31,
+        "prev_rel": 96.95
       }
     ],
     "dropped": [
-      "AMKR",
-      "MKSI"
+      "AVT",
+      "ALGM"
     ],
     "durable": [
       [
         "TTMI",
-        6,
-        96.95,
-        581.7
+        7,
+        81.31,
+        569.2
       ],
       [
         "SNX",
-        6,
-        76.68,
-        460.1
-      ],
-      [
-        "ALGM",
-        6,
-        66.51,
-        399.1
+        7,
+        67.74,
+        474.2
       ],
       [
         "SMTC",
-        1,
-        102.23,
-        102.2
+        2,
+        89.79,
+        179.6
       ],
       [
-        "AVT",
+        "SITM",
         1,
-        41.34,
-        41.3
+        84.91,
+        84.9
+      ],
+      [
+        "SANM",
+        1,
+        74.77,
+        74.8
       ]
     ],
     "switch": null
   },
   "leader_raw": "Distributors",
-  "leader_raw_days": 1,
+  "leader_raw_days": 2,
   "leader_confirmed": "Distributors"
 }
