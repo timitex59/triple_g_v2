@@ -1,6 +1,6 @@
 {
-  "updated": "2026-06-24",
-  "prev_update": "2026-06-23",
+  "updated": "2026-06-25",
+  "prev_update": "2026-06-24",
   "tickers": {
     "TTMI": {
       "streak": 7,
@@ -10,7 +10,8 @@
       "last_rank": 4,
       "peak_rank": 1,
       "last_rel": 81.37,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-06-25"
     },
     "AMKR": {
       "streak": 5,
@@ -24,47 +25,44 @@
       "dropped_on": "2026-06-23"
     },
     "SNX": {
-      "streak": 7,
-      "days": 7,
+      "streak": 8,
+      "days": 8,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-24",
-      "last_rank": 1,
+      "last_seen": "2026-06-25",
+      "last_rank": 2,
       "peak_rank": 1,
-      "last_rel": 67.72,
+      "last_rel": 59.58,
       "active": true
     },
     "ALGM": {
-      "streak": 6,
-      "days": 6,
+      "streak": 1,
+      "days": 7,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-23",
-      "last_rank": 2,
-      "peak_rank": 2,
-      "last_rel": 66.51,
-      "active": false,
-      "dropped_on": "2026-06-24"
+      "last_seen": "2026-06-25",
+      "last_rank": 1,
+      "peak_rank": 1,
+      "last_rel": 72.03,
+      "active": true
     },
     "MKSI": {
-      "streak": 5,
-      "days": 5,
+      "streak": 1,
+      "days": 6,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-22",
-      "last_rank": 4,
-      "peak_rank": 4,
-      "last_rel": 69.18,
-      "active": false,
-      "dropped_on": "2026-06-23"
+      "last_seen": "2026-06-25",
+      "last_rank": 3,
+      "peak_rank": 3,
+      "last_rel": 55.29,
+      "active": true
     },
     "AVT": {
       "streak": 1,
-      "days": 1,
+      "days": 2,
       "first_seen": "2026-06-23",
-      "last_seen": "2026-06-23",
-      "last_rank": 3,
+      "last_seen": "2026-06-25",
+      "last_rank": 4,
       "peak_rank": 3,
-      "last_rel": 41.34,
-      "active": false,
-      "dropped_on": "2026-06-24"
+      "last_rel": 34.59,
+      "active": true
     },
     "SMTC": {
       "streak": 2,
@@ -74,7 +72,8 @@
       "last_rank": 2,
       "peak_rank": 2,
       "last_rel": 89.97,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-06-25"
     },
     "SITM": {
       "streak": 1,
@@ -84,7 +83,8 @@
       "last_rank": 3,
       "peak_rank": 3,
       "last_rel": 84.6,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-06-25"
     },
     "SANM": {
       "streak": 1,
@@ -94,6 +94,17 @@
       "last_rank": 5,
       "peak_rank": 5,
       "last_rel": 74.74,
+      "active": false,
+      "dropped_on": "2026-06-25"
+    },
+    "LFUS": {
+      "streak": 1,
+      "days": 1,
+      "first_seen": "2026-06-25",
+      "last_seen": "2026-06-25",
+      "last_rank": 5,
+      "peak_rank": 5,
+      "last_rel": 24.71,
       "active": true
     }
   },
@@ -101,91 +112,81 @@
     "persistent": [
       [
         "SNX",
-        7
+        8
       ],
       [
-        "TTMI",
-        7
-      ],
-      [
-        "SMTC",
-        2
-      ],
-      [
-        "SITM",
+        "ALGM",
         1
       ],
       [
-        "SANM",
+        "MKSI",
+        1
+      ],
+      [
+        "AVT",
+        1
+      ],
+      [
+        "LFUS",
         1
       ]
     ],
     "new": [
-      "SITM",
-      "SANM"
+      "ALGM",
+      "MKSI",
+      "AVT",
+      "LFUS"
     ],
     "weakening": [
       {
         "ticker": "SNX",
-        "rank": 1,
-        "prev_rank": 1,
-        "rel": 67.72,
-        "prev_rel": 76.68
-      },
-      {
-        "ticker": "SMTC",
         "rank": 2,
-        "prev_rank": 4,
-        "rel": 89.97,
-        "prev_rel": 102.23
-      },
-      {
-        "ticker": "TTMI",
-        "rank": 4,
-        "prev_rank": 5,
-        "rel": 81.37,
-        "prev_rel": 96.95
+        "prev_rank": 1,
+        "rel": 59.58,
+        "prev_rel": 67.72
       }
     ],
     "dropped": [
-      "ALGM",
-      "AVT"
+      "SMTC",
+      "SITM",
+      "SANM",
+      "TTMI"
     ],
     "durable": [
       [
-        "TTMI",
-        7,
-        81.37,
-        569.6
-      ],
-      [
         "SNX",
-        7,
-        67.72,
-        474.0
+        8,
+        59.58,
+        476.6
       ],
       [
-        "SMTC",
-        2,
-        89.97,
-        179.9
-      ],
-      [
-        "SITM",
+        "ALGM",
         1,
-        84.6,
-        84.6
+        72.03,
+        72.0
       ],
       [
-        "SANM",
+        "MKSI",
         1,
-        74.74,
-        74.7
+        55.29,
+        55.3
+      ],
+      [
+        "AVT",
+        1,
+        34.59,
+        34.6
+      ],
+      [
+        "LFUS",
+        1,
+        24.71,
+        24.7
       ]
     ],
     "switch": null
   },
   "leader_raw": "Distributors",
-  "leader_raw_days": 2,
+  "leader_raw_days": 3,
   "leader_confirmed": "Distributors"
 }
