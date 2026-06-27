@@ -159,21 +159,28 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(message.count("GBPJPY"), 1)
         self.assertNotIn("SIGNAL VIVIER", message)
 
-    def test_entry_requires_strict_opposition(self):
+    def test_entry_accepts_opposition_or_aligned_weekly_with_daily_inside(self):
         rows = [
             row("BULL01", 1, 0, -1),
             row("BEAR01", -1, 0, 1),
             row("LOWBULL", 1, -1, 0),
             row("LOWBEAR", -1, 1, 0),
+            row("READYBULL", 1, 1, 0),
+            row("READYBEAR", -1, -1, 0),
             row("INSIDE", 0, -1, -1),
             row("NOOPPO", 1, 0, 1),
         ]
 
         state, signals = update_vivier(rows, {}, NOW)
 
-        self.assertEqual(set(state["pairs"]), {"BULL01", "BEAR01"})
+        self.assertEqual(
+            set(state["pairs"]),
+            {"BULL01", "BEAR01", "READYBULL", "READYBEAR"},
+        )
         self.assertEqual(state["pairs"]["BULL01"]["direction"], 1)
         self.assertEqual(state["pairs"]["BEAR01"]["direction"], -1)
+        self.assertEqual(state["pairs"]["READYBULL"]["direction"], 1)
+        self.assertEqual(state["pairs"]["READYBEAR"]["direction"], -1)
         self.assertEqual(signals, [])
 
     def test_tracked_pair_survives_inside_transition(self):

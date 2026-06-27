@@ -793,23 +793,25 @@ def _base_score_from_px(px: dict) -> float:
 def vivier_entry_direction(row: dict) -> int:
     """Direction of a new VIVIER entry, or 0.
 
-    Monthly must be strictly outside its Renko brick. At least one lower
-    timeframe must be strictly opposite; an Inside state never qualifies as
-    the opposition that creates an entry. BULL entries must be in the lower
-    half of the monthly H1 Fibonacci range, BEAR entries in the upper half.
+    Monthly must be strictly outside its Renko brick. Entry is allowed after
+    either a strict W/D opposition, or when Weekly is already aligned with
+    Monthly while Daily is Inside. BULL entries must be in the lower half of
+    the monthly H1 Fibonacci range, BEAR entries in the upper half.
     """
     px = _vivier_px(row)
     if px is None or px["M"] not in (-1, 1):
         return 0
     direction = px["M"]
     has_strict_opposition = px["W"] == -direction or px["D"] == -direction
+    has_aligned_weekly_inside_daily = px["W"] == direction and px["D"] == 0
+    entry_profile_ok = has_strict_opposition or has_aligned_weekly_inside_daily
     score_ok = abs(_base_score_from_px(px)) >= VIVIER_MIN_ABS_BASE_SCORE
     fib_pct = (row.get("h1_fib") or {}).get("pct_of_range")
     fib_ok = isinstance(fib_pct, (int, float)) and (
         (direction == 1 and fib_pct <= VIVIER_FIB_MIDPOINT_PCT)
         or (direction == -1 and fib_pct >= VIVIER_FIB_MIDPOINT_PCT)
     )
-    return direction if has_strict_opposition and score_ok and fib_ok else 0
+    return direction if entry_profile_ok and score_ok and fib_ok else 0
 
 
 def vivier_full_alignment(row: dict, direction: int) -> bool:
@@ -916,11 +918,11 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                    now: datetime | None = None) -> tuple[dict, list[dict]]:
     """Advance the persistent VIVIER state and return one-shot alignments.
 
-    Entry is strict opposition to Monthly. Once tracked, a pair remains in the
-    pool while W/D pass through Inside. It leaves when M is no longer in its
-    original strict direction, or emits a one-shot signal when M/W/D become
-    strictly aligned in that direction. Missing market rows are kept unchanged
-    so a temporary data error cannot erase the watchlist.
+    Entry accepts strict opposition to Monthly, plus an aligned M/W with Daily
+    Inside. Once tracked, a pair remains in the pool while W/D pass through
+    Inside. It leaves when M is no longer in its original strict direction, or
+    emits a one-shot signal when M/W/D become strictly aligned in that
+    direction. Missing rows are kept so a data error cannot erase the pool.
     """
     now = now or datetime.now(PARIS_TZ)
     stamp = now.astimezone(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
