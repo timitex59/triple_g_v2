@@ -26,12 +26,15 @@ PARIS = ZoneInfo("Europe/Paris")
 NOW = datetime(2026, 6, 27, 12, 0, tzinfo=PARIS)
 
 
-def row(pair, monthly, weekly, daily, weighted_pct=0.0, fib_pct=None, sar_event=None):
+def row(pair, monthly, weekly, daily, weighted_pct=0.0, fib_pct=None,
+        sar_event=None, closed_extreme=None):
     if fib_pct is None:
         fib_pct = 40.0 if monthly == 1 else 60.0
     h1_fib = {"pct_of_range": fib_pct}
     if sar_event is not None:
         h1_fib["sar_cross_event"] = sar_event
+    if closed_extreme is not None:
+        h1_fib["closed_extreme"] = closed_extreme
     return {
         "pair": pair,
         "px": {"M": monthly, "W": weekly, "D": daily},
@@ -46,6 +49,16 @@ def event(direction, sar_value, fib50, time_utc):
         "sar_value": sar_value,
         "fib50": fib50,
         "time_utc": time_utc,
+    }
+
+
+def extreme(time_utc, high, low, fib1_before, fib0_before):
+    return {
+        "time_utc": time_utc,
+        "high": high,
+        "low": low,
+        "fib1_before": fib1_before,
+        "fib0_before": fib0_before,
     }
 
 
@@ -288,6 +301,65 @@ class VivierStateTests(unittest.TestCase):
         self.assertNotIn("sar_record_value", state["pairs"]["BULL"])
         self.assertFalse(state["pairs"]["BEAR"]["sar_flame"])
         self.assertNotIn("sar_record_value", state["pairs"]["BEAR"])
+
+    def test_bull_fib1_touch_resets_record_and_rearms_first_flame(self):
+        first = event(1, 0.4590, 0.4620, "2026-06-27T10:00:00+00:00")
+        state, _ = update_vivier(
+            [row("GBPJPY", 1, 0, -1, sar_event=first)], {}, NOW
+        )
+        touch = extreme(
+            "2026-06-27T11:00:00+00:00", high=1.01, low=0.95,
+            fib1_before=1.00, fib0_before=0.90,
+        )
+        reset_state, _ = update_vivier(
+            [row("GBPJPY", 1, 0, -1, closed_extreme=touch)], state, NOW
+        )
+        entry = reset_state["pairs"]["GBPJPY"]
+        self.assertNotIn("sar_record_value", entry)
+        self.assertEqual(entry["sar_last_fib_reset_reason"], "FIB1_TOUCH")
+
+        # Higher than the old minimum, but first record of the rearmed cycle.
+        next_event = event(1, 0.4600, 0.4620, "2026-06-27T12:00:00+00:00")
+        rearmed, _ = update_vivier(
+            [row("GBPJPY", 1, 0, -1, sar_event=next_event)], reset_state, NOW
+        )
+        self.assertTrue(rearmed["pairs"]["GBPJPY"]["sar_flame"])
+        self.assertEqual(rearmed["pairs"]["GBPJPY"]["sar_record_value"], 0.4600)
+
+    def test_bear_fib0_touch_resets_record_and_rearms_first_flame(self):
+        first = event(-1, 0.4660, 0.4620, "2026-06-27T10:00:00+00:00")
+        state, _ = update_vivier(
+            [row("NZDCHF", -1, 0, 1, sar_event=first)], {}, NOW
+        )
+        touch = extreme(
+            "2026-06-27T11:00:00+00:00", high=0.47, low=0.44,
+            fib1_before=0.48, fib0_before=0.45,
+        )
+        reset_state, _ = update_vivier(
+            [row("NZDCHF", -1, 0, 1, sar_event=None, closed_extreme=touch)], state, NOW
+        )
+        entry = reset_state["pairs"]["NZDCHF"]
+        self.assertNotIn("sar_record_value", entry)
+        self.assertEqual(entry["sar_last_fib_reset_reason"], "FIB0_TOUCH")
+
+        # Lower than the old maximum, but first record of the rearmed cycle.
+        next_event = event(-1, 0.4650, 0.4620, "2026-06-27T12:00:00+00:00")
+        rearmed, _ = update_vivier(
+            [row("NZDCHF", -1, 0, 1, sar_event=next_event)], reset_state, NOW
+        )
+        self.assertTrue(rearmed["pairs"]["NZDCHF"]["sar_flame"])
+        self.assertEqual(rearmed["pairs"]["NZDCHF"]["sar_record_value"], 0.4650)
+
+    def test_fib_extreme_touch_without_record_does_not_create_reset(self):
+        touch = extreme(
+            "2026-06-27T11:00:00+00:00", high=1.01, low=0.95,
+            fib1_before=1.00, fib0_before=0.90,
+        )
+        state, _ = update_vivier(
+            [row("GBPJPY", 1, 0, -1, closed_extreme=touch)], {}, NOW
+        )
+
+        self.assertNotIn("sar_last_fib_reset_time_utc", state["pairs"]["GBPJPY"])
 
 
 if __name__ == "__main__":

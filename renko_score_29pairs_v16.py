@@ -483,6 +483,21 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
     closed_df = closed_h1_source(df)
     closed_sar_state = parabolic_sar(closed_df)
     cross_event = sar_cross_event(closed_df, closed_sar_state)
+    closed_extreme = None
+    if not closed_df.empty:
+        closed_ts = pd.Timestamp(closed_df.index[-1])
+        closed_month_start = closed_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        before_closed = closed_df[
+            (closed_df.index >= closed_month_start) & (closed_df.index < closed_ts)
+        ]
+        if not before_closed.empty:
+            closed_extreme = {
+                "time_utc": closed_ts.isoformat(),
+                "high": float(closed_df["high"].iloc[-1]),
+                "low": float(closed_df["low"].iloc[-1]),
+                "fib1_before": float(before_closed["high"].max()),
+                "fib0_before": float(before_closed["low"].min()),
+            }
     if cross_event is not None:
         event_ts = pd.Timestamp(closed_df.index[-1])
         event_month_start = event_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -503,6 +518,7 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
         "sar_value": sar_values[-1] if sar_values else None,
         "sar_prev_value": sar_values[-2] if sar_values and len(sar_values) >= 2 else None,
         "sar_cross_event": cross_event,
+        "closed_extreme": closed_extreme,
     }
 
 
@@ -840,6 +856,33 @@ def apply_vivier_sar_record(entry: dict, row: dict, direction: int) -> None:
     entry["sar_flame"] = True
 
 
+def apply_vivier_fib_extreme_reset(entry: dict, row: dict, direction: int) -> bool:
+    """Clear a SAR record after BULL touches prior Fibo 1 or BEAR prior Fibo 0."""
+    if entry.get("sar_record_value") is None:
+        return False
+    extreme = (row.get("h1_fib") or {}).get("closed_extreme") or {}
+    bar_time = extreme.get("time_utc")
+    if not bar_time or bar_time == entry.get("sar_last_fib_reset_time_utc"):
+        return False
+    if direction == 1:
+        high, fib1 = extreme.get("high"), extreme.get("fib1_before")
+        touched = (isinstance(high, (int, float)) and isinstance(fib1, (int, float))
+                   and high >= fib1)
+        reason = "FIB1_TOUCH"
+    else:
+        low, fib0 = extreme.get("low"), extreme.get("fib0_before")
+        touched = (isinstance(low, (int, float)) and isinstance(fib0, (int, float))
+                   and low <= fib0)
+        reason = "FIB0_TOUCH"
+    if not touched:
+        return False
+    entry.pop("sar_record_value", None)
+    entry.pop("sar_record_time_utc", None)
+    entry["sar_last_fib_reset_time_utc"] = bar_time
+    entry["sar_last_fib_reset_reason"] = reason
+    return True
+
+
 def update_vivier(rows: list[dict], previous_state: dict | None = None,
                    now: datetime | None = None) -> tuple[dict, list[dict]]:
     """Advance the persistent VIVIER state and return one-shot alignments.
@@ -894,7 +937,11 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 existing["weighted_pct"] = row.get("weighted_pct")
                 existing["fib_position"] = fib_directional_label(row.get("h1_fib"), direction)
                 existing["fib_pct_of_range"] = (row.get("h1_fib") or {}).get("pct_of_range")
-                apply_vivier_sar_record(existing, row, direction)
+                reset_now = apply_vivier_fib_extreme_reset(existing, row, direction)
+                event_time = ((row.get("h1_fib") or {}).get("sar_cross_event") or {}).get("time_utc")
+                reset_time = existing.get("sar_last_fib_reset_time_utc")
+                if not reset_now or event_time != reset_time:
+                    apply_vivier_sar_record(existing, row, direction)
                 continue
 
             # Monthly became Inside or reversed: invalidate the old pool.
