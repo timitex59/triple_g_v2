@@ -1347,14 +1347,22 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
     # and within each group rank by conviction — strongest |score| first —
     # instead of a flat descending sort that buries the strongest BEAR
     # (-100%) at the bottom, after the weaker BULL signals.
-    ordered = sorted(rows, key=lambda r: (-r["signal_state"], -abs(r["weighted_pct"])))
+    all_ordered = sorted(rows, key=lambda r: (-r["signal_state"], -abs(r["weighted_pct"])))
     # RENKO FIBO ne retient QUE le profil de confluence maximale: prix H1
     # au-dela des 3 streaks D/W/M (🟢3 / 🔴3) ET SAR H1 aligne avec le biais.
-    ordered = [r for r in ordered if sar_streak_full(r)]
+    all_ordered = [r for r in all_ordered if sar_streak_full(r)]
+    all_ordered_pairs = {r["pair"] for r in all_ordered}
+    vivier_signals = vivier_signals or []
+    transitions = [s for s in vivier_signals if s["pair"] in all_ordered_pairs]
+    transition_pairs = {s["pair"] for s in transitions}
+    vivier_signals = [s for s in vivier_signals if s["pair"] not in transition_pairs]
+    # A direct VIVIER -> RENKO FIBO transition is rendered only in its dedicated
+    # section, never duplicated in the regular RENKO FIBO or SIGNAL VIVIER list.
+    ordered = [r for r in all_ordered if r["pair"] not in transition_pairs]
 
     # Section "RETOURNEMENTS": Telegram ne doit envoyer que les confirmes.
     # Les niveaux anticipe/amorce restent calculables, mais silencieux.
-    shown = {r["pair"] for r in ordered}
+    shown = all_ordered_pairs
     turns: list[tuple[int, str, str]] = []   # (direction, tier, pair)
     for r in (all_rows if all_rows is not None else rows):
         if r["pair"] in shown:
@@ -1366,10 +1374,10 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
                 break
 
     bull_vivier, bear_vivier = vivier_groups(vivier_state or {})
-    vivier_signals = vivier_signals or []
 
     # Aucun signal, retournement ou suivi VIVIER -> aucun message.
-    if not ordered and not turns and not bull_vivier and not bear_vivier and not vivier_signals:
+    if (not ordered and not transitions and not turns and not bull_vivier
+            and not bear_vivier and not vivier_signals):
         return None
     lines = ["📊 RENKO FIBO", ""]
     for row in ordered:
@@ -1388,15 +1396,29 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         streak_txt = f" {streak_tag}" if streak_tag else ""
         lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){streak_txt}{flame}")
 
+    has_content = bool(ordered)
+    if transitions:
+        if has_content:
+            lines.append("")
+        lines.append("🚀 VIVIER → RENKO FIBO")
+        for signal in transitions:
+            direction = signal["direction"]
+            icon = "🟢" if direction == 1 else "🔴"
+            score = signal.get("weighted_pct")
+            score_txt = f"{score:+.0f}%" if isinstance(score, (int, float)) else "?"
+            fib = signal.get("fib_position", "Fibo ?").removeprefix("Fibo ")
+            lines.append(f"{icon} {signal['pair']} ({score_txt} | {fib})")
+        has_content = True
+
     if turns:
-        if ordered:
+        if has_content:
             lines.append("")
         lines.append("🔄 RETOURNEMENTS")
         for d, tier, pair in sorted(turns, key=lambda x: (TURN_ORDER[x[1]], -x[0], x[2])):
             icon = "🟢" if d == 1 else "🔴"
             lines.append(f"{icon} {pair} · {TURN_TIERS[tier]}")
+        has_content = True
 
-    has_content = bool(ordered or turns)
     if vivier_signals:
         if has_content:
             lines.append("")

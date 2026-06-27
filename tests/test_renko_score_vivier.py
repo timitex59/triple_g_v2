@@ -128,6 +128,31 @@ class VivierStateTests(unittest.TestCase):
 
         self.assertIn("🟢 GBPJPY (+83% | <0.382) 🔥", message)
 
+    def test_direct_vivier_to_renko_fibo_transition_is_shown_once(self):
+        renko_row = {
+            "pair": "GBPJPY",
+            "signal_state": 1,
+            "weighted_pct": 80.0,
+            "h1_fib": {"position": "ABOVE", "sar_dir": 1, "sar_flipped": False},
+            "streak_position": {"counts": {1: 3, -1: 0, 0: 0}},
+            "streak_tag": "🟢3",
+        }
+        signal = {
+            "pair": "GBPJPY",
+            "direction": 1,
+            "weighted_pct": 80.0,
+            "fib_position": "Fibo <0.786",
+        }
+
+        message = build_telegram_message(
+            [renko_row], [], vivier_state={"pairs": {}}, vivier_signals=[signal]
+        )
+
+        self.assertIn("🚀 VIVIER → RENKO FIBO", message)
+        self.assertIn("🟢 GBPJPY (+80% | <0.786)", message)
+        self.assertEqual(message.count("GBPJPY"), 1)
+        self.assertNotIn("SIGNAL VIVIER", message)
+
     def test_entry_requires_strict_opposition(self):
         rows = [
             row("BULL01", 1, 0, -1),
