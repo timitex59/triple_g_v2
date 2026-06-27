@@ -31,12 +31,17 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from ichimoku_v4 import PAIRS_29, fetch_tv_ohlc, send_telegram_message
+from renko_forex_V2 import fetch_tv_renko_ohlc as fetch_tv_native_renko_ohlc
 
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
 SCORE_THRESHOLD = 60.0
 CHG_THRESHOLD = 0.1
 CONFIRMED_MIN_STREAKS = {"M": 1, "W": 1, "D": 2}
+VIVIER_STATE_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "renko_score_29pairs_vivier_state.json",
+)
 
 # Suivi historique de l'intensite de tendance (dispersion des devises majeures).
 # Sert a juger le jour en RELATIF (percentile sur une fenetre glissante) plutot
@@ -96,6 +101,8 @@ def parse_args():
     parser.add_argument("--length", type=int, default=14, help="ATR length.")
     parser.add_argument("--candles", type=int, default=300, help="Number of candles fetched per symbol and timeframe.")
     parser.add_argument("--max-streak", type=int, default=50, help="Cap on the consecutive green/red brick streak count.")
+    parser.add_argument("--no-telegram", action="store_true", help="Print the analysis without sending it to Telegram.")
+    parser.add_argument("--vivier-state", default=VIVIER_STATE_PATH, help="Path to the persistent VIVIER state file.")
     return parser.parse_args()
 
 
@@ -432,13 +439,25 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
 
 
 def compute_tf_state(pair: str, interval: str, length: int, candles: int, max_streak: int, live_price: float) -> TFState | None:
-    df = fetch_tv_ohlc(f"OANDA:{pair}", interval, candles)
-    if df is None or df.empty:
+    # Use TradingView's native ATR Renko series. Rebuilding Renko locally from
+    # standard OHLC candles produces different ATR box sizes (especially on M)
+    # and can classify an actual TradingView "Inside" state as Above/Below.
+    native_bricks = fetch_tv_native_renko_ohlc(
+        f"OANDA:{pair}",
+        interval,
+        atr_length=length,
+        n_bricks=max(candles, max_streak + 1),
+    )
+    if not native_bricks:
         return None
 
-    # Le dernier candle D/W/M est le candle en cours dans les runs live.
-    # Les streaks Renko doivent rester bases sur des briques cloturees.
-    bricks = build_renko_bricks(closed_renko_source(df), length)
+    bricks: list[tuple[float, float, int]] = []
+    for brick in native_bricks:
+        renko_open = float(brick["open"])
+        renko_close = float(brick["close"])
+        direction = 1 if renko_close > renko_open else (-1 if renko_close < renko_open else 0)
+        if direction:
+            bricks.append((renko_open, renko_close, direction))
     if not bricks:
         return None
 
@@ -609,6 +628,185 @@ def filter_strong_signals(rows: list[dict]) -> list[dict]:
     """Keeps only strict CONFIRMED pairs:
     signal aligned + score threshold + CHG%D threshold + M/W/D Renko streaks."""
     return [row for row in rows if row["confirmed"] != 0]
+
+
+def _vivier_px(row: dict) -> dict[str, int] | None:
+    """Return the strict price/Renko states used by VIVIER (never the bias)."""
+    px = row.get("px") or {}
+    if any(px.get(tf) not in (-1, 0, 1) for tf in ("M", "W", "D")):
+        return None
+    return {tf: int(px[tf]) for tf in ("M", "W", "D")}
+
+
+def vivier_entry_direction(row: dict) -> int:
+    """Direction of a new VIVIER entry, or 0.
+
+    Monthly must be strictly outside its Renko brick. At least one lower
+    timeframe must be strictly opposite; an Inside state never qualifies as
+    the opposition that creates an entry.
+    """
+    px = _vivier_px(row)
+    if px is None or px["M"] not in (-1, 1):
+        return 0
+    direction = px["M"]
+    return direction if px["W"] == -direction or px["D"] == -direction else 0
+
+
+def vivier_full_alignment(row: dict, direction: int) -> bool:
+    """True only for strict M/W/D price-Renko alignment (raw score +/-100%)."""
+    px = _vivier_px(row)
+    return bool(px is not None and direction in (-1, 1)
+                and all(px[tf] == direction for tf in ("M", "W", "D")))
+
+
+def load_vivier_state(path: str = VIVIER_STATE_PATH) -> dict:
+    try:
+        with open(path, encoding="utf-8") as handle:
+            payload = json.load(handle)
+    except FileNotFoundError:
+        return {"version": 1, "pairs": {}}
+    except Exception as exc:
+        print(f"VIVIER: impossible de lire l'etat ({exc}); demarrage avec un etat vide.")
+        return {"version": 1, "pairs": {}}
+
+    pairs = payload.get("pairs") if isinstance(payload, dict) else None
+    if not isinstance(pairs, dict):
+        return {"version": 1, "pairs": {}}
+    valid_pairs = {
+        str(pair): dict(entry)
+        for pair, entry in pairs.items()
+        if isinstance(entry, dict) and entry.get("direction") in (-1, 1)
+    }
+    return {"version": 1, "pairs": valid_pairs}
+
+
+def save_vivier_state(state: dict, path: str = VIVIER_STATE_PATH) -> None:
+    directory = os.path.dirname(os.path.abspath(path))
+    os.makedirs(directory, exist_ok=True)
+    tmp_path = f"{path}.tmp.{os.getpid()}"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as handle:
+            json.dump(state, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def update_vivier(rows: list[dict], previous_state: dict | None = None,
+                   now: datetime | None = None) -> tuple[dict, list[dict]]:
+    """Advance the persistent VIVIER state and return one-shot alignments.
+
+    Entry is strict opposition to Monthly. Once tracked, a pair remains in the
+    pool while W/D pass through Inside. It leaves when M is no longer in its
+    original strict direction, or emits a one-shot signal when M/W/D become
+    strictly aligned in that direction. Missing market rows are kept unchanged
+    so a temporary data error cannot erase the watchlist.
+    """
+    now = now or datetime.now(PARIS_TZ)
+    stamp = now.astimezone(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
+    old_pairs = (previous_state or {}).get("pairs") or {}
+    tracked = {
+        str(pair): dict(entry)
+        for pair, entry in old_pairs.items()
+        if isinstance(entry, dict) and entry.get("direction") in (-1, 1)
+    }
+    signals: list[dict] = []
+
+    for row in rows:
+        pair = str(row.get("pair") or "")
+        px = _vivier_px(row)
+        if not pair or px is None:
+            continue
+
+        existing = tracked.get(pair)
+        if existing is not None:
+            direction = int(existing["direction"])
+            if vivier_full_alignment(row, direction):
+                signals.append({
+                    "pair": pair,
+                    "direction": direction,
+                    "px": px,
+                    "entered_at_paris": existing.get("entered_at_paris"),
+                    "signaled_at_paris": stamp,
+                    "base_pct": row.get("base_pct"),
+                    "weighted_pct": row.get("weighted_pct"),
+                })
+                del tracked[pair]
+                continue
+            if px["M"] == direction:
+                existing["last_seen_at_paris"] = stamp
+                existing["last_px"] = px
+                existing["base_pct"] = row.get("base_pct")
+                existing["weighted_pct"] = row.get("weighted_pct")
+                continue
+
+            # Monthly became Inside or reversed: invalidate the old pool.
+            del tracked[pair]
+
+        direction = vivier_entry_direction(row)
+        if direction:
+            tracked[pair] = {
+                "direction": direction,
+                "entered_at_paris": stamp,
+                "last_seen_at_paris": stamp,
+                "entry_px": px,
+                "last_px": px,
+                "base_pct": row.get("base_pct"),
+                "weighted_pct": row.get("weighted_pct"),
+            }
+
+    return {
+        "version": 1,
+        "updated_at_paris": stamp,
+        "pairs": dict(sorted(tracked.items())),
+    }, sorted(signals, key=lambda item: (-item["direction"], item["pair"]))
+
+
+def _px_compact(px: dict | None) -> str:
+    symbols = {1: "+", 0: "0", -1: "-"}
+    px = px or {}
+    return " ".join(f"{tf}{symbols.get(px.get(tf), '?')}" for tf in ("M", "W", "D"))
+
+
+def vivier_base_score(entry: dict) -> float:
+    """Raw M/W/D Renko score used to rank progress toward +/-100%."""
+    px = entry.get("last_px") or {}
+    if any(px.get(tf) not in (-1, 0, 1) for tf in ("M", "W", "D")):
+        return 0.0
+    weighted_score = sum(float(px[tf]) * WEIGHTS[tf] for tf in ("M", "W", "D"))
+    return weighted_score / sum(WEIGHTS.values()) * 100.0
+
+
+def vivier_groups(state: dict) -> tuple[list[tuple[str, dict]], list[tuple[str, dict]]]:
+    pairs = state.get("pairs") or {}
+    rank = lambda item: (-abs(vivier_base_score(item[1])), item[0])
+    bull = sorted(
+        ((pair, entry) for pair, entry in pairs.items() if entry.get("direction") == 1),
+        key=rank,
+    )
+    bear = sorted(
+        ((pair, entry) for pair, entry in pairs.items() if entry.get("direction") == -1),
+        key=rank,
+    )
+    return bull, bear
+
+
+def print_vivier_report(state: dict, signals: list[dict]) -> None:
+    bull, bear = vivier_groups(state)
+    print("\nVIVIER RENKO")
+    print(f"BULL ({len(bull)}): " + (", ".join(pair for pair, _ in bull) or "--"))
+    for pair, entry in bull:
+        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {_px_compact(entry.get('last_px'))}")
+    print(f"BEAR ({len(bear)}): " + (", ".join(pair for pair, _ in bear) or "--"))
+    for pair, entry in bear:
+        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {_px_compact(entry.get('last_px'))}")
+    if signals:
+        print("SIGNAUX VIVIER:")
+        for signal in signals:
+            label = "BULL" if signal["direction"] == 1 else "BEAR"
+            print(f"  {signal['pair']:<8} {label} {_px_compact(signal.get('px'))}")
 
 
 MAJORS = {"AUD", "CAD", "CHF", "EUR", "GBP", "JPY", "NZD", "USD"}
@@ -934,7 +1132,9 @@ def turn_tier(r: dict, direction: int) -> str | None:
     return None
 
 
-def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None) -> str | None:
+def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
+                           vivier_state: dict | None = None,
+                           vivier_signals: list[dict] | None = None) -> str | None:
     # Group BULL together and BEAR together (strongest signal_state first),
     # and within each group rank by conviction — strongest |score| first —
     # instead of a flat descending sort that buries the strongest BEAR
@@ -957,8 +1157,11 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
                 turns.append((d, tier, r["pair"]))
                 break
 
-    # Aucun signal (ni confluence ni retournement) -> aucun message.
-    if not ordered and not turns:
+    bull_vivier, bear_vivier = vivier_groups(vivier_state or {})
+    vivier_signals = vivier_signals or []
+
+    # Aucun signal, retournement ou suivi VIVIER -> aucun message.
+    if not ordered and not turns and not bull_vivier and not bear_vivier and not vivier_signals:
         return None
     lines = ["📊 RENKO FIBO", ""]
     for row in ordered:
@@ -985,7 +1188,35 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None)
             icon = "🟢" if d == 1 else "🔴"
             lines.append(f"{icon} {pair} · {TURN_TIERS[tier]}")
 
-    # Message epure: liste RENKO FIBO (+ debut de retournement) + horodatage.
+    has_content = bool(ordered or turns)
+    if vivier_signals:
+        if has_content:
+            lines.append("")
+        lines.append("🚨 SIGNAL VIVIER")
+        for signal in vivier_signals:
+            direction = signal["direction"]
+            icon = "🟢" if direction == 1 else "🔴"
+            score = signal.get("weighted_pct")
+            score_txt = f" · {score:+.0f}%" if isinstance(score, (int, float)) else ""
+            lines.append(f"{icon} {signal['pair']} · M/W/D alignés{score_txt}")
+        has_content = True
+
+    for direction, title, entries in (
+        (1, "🌱 VIVIER BULL", bull_vivier),
+        (-1, "🌱 VIVIER BEAR", bear_vivier),
+    ):
+        if not entries:
+            continue
+        if has_content:
+            lines.append("")
+        lines.append(title)
+        icon = "🟢" if direction == 1 else "🔴"
+        for pair, entry in entries:
+            score = vivier_base_score(entry)
+            lines.append(f"{icon} {pair} ({score:+.0f}% · {_px_compact(entry.get('last_px'))})")
+        has_content = True
+
+    # Message: RENKO FIBO, retournements, suivi VIVIER et horodatage.
     lines.append("")
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}")
     return "\n".join(lines)
@@ -1010,14 +1241,27 @@ def main() -> int:
 
     print_table(rows)
 
+    previous_vivier = load_vivier_state(args.vivier_state)
+    vivier_state, vivier_signals = update_vivier(rows, previous_vivier)
+    save_vivier_state(vivier_state, args.vivier_state)
+    print_vivier_report(vivier_state, vivier_signals)
+
     strong_rows = filter_strong_signals(rows)
-    message = build_telegram_message(strong_rows, rows)
+    message = build_telegram_message(
+        strong_rows,
+        rows,
+        vivier_state=vivier_state,
+        vivier_signals=vivier_signals,
+    )
     if message is None:
         print("\nRENKO FIBO vide — aucun message Telegram envoyé.")
         return 0
     print("")
     print(message)
-    send_telegram_message(message)
+    if args.no_telegram:
+        print("Telegram: envoi désactivé (--no-telegram).")
+    else:
+        send_telegram_message(message)
     return 0
 
 
