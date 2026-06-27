@@ -38,6 +38,7 @@ PARIS_TZ = ZoneInfo("Europe/Paris")
 SCORE_THRESHOLD = 60.0
 CHG_THRESHOLD = 0.1
 CONFIRMED_MIN_STREAKS = {"M": 1, "W": 1, "D": 2}
+VIVIER_MIN_ABS_BASE_SCORE = 33.0
 VIVIER_STATE_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "renko_score_29pairs_vivier_state.json",
@@ -638,6 +639,11 @@ def _vivier_px(row: dict) -> dict[str, int] | None:
     return {tf: int(px[tf]) for tf in ("M", "W", "D")}
 
 
+def _base_score_from_px(px: dict) -> float:
+    weighted_score = sum(float(px[tf]) * WEIGHTS[tf] for tf in ("M", "W", "D"))
+    return weighted_score / sum(WEIGHTS.values()) * 100.0
+
+
 def vivier_entry_direction(row: dict) -> int:
     """Direction of a new VIVIER entry, or 0.
 
@@ -649,7 +655,9 @@ def vivier_entry_direction(row: dict) -> int:
     if px is None or px["M"] not in (-1, 1):
         return 0
     direction = px["M"]
-    return direction if px["W"] == -direction or px["D"] == -direction else 0
+    has_strict_opposition = px["W"] == -direction or px["D"] == -direction
+    score_ok = abs(_base_score_from_px(px)) >= VIVIER_MIN_ABS_BASE_SCORE
+    return direction if has_strict_opposition and score_ok else 0
 
 
 def vivier_full_alignment(row: dict, direction: int) -> bool:
@@ -736,6 +744,9 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 del tracked[pair]
                 continue
             if px["M"] == direction:
+                if abs(_base_score_from_px(px)) < VIVIER_MIN_ABS_BASE_SCORE:
+                    del tracked[pair]
+                    continue
                 existing["last_seen_at_paris"] = stamp
                 existing["last_px"] = px
                 existing["base_pct"] = row.get("base_pct")
@@ -775,8 +786,7 @@ def vivier_base_score(entry: dict) -> float:
     px = entry.get("last_px") or {}
     if any(px.get(tf) not in (-1, 0, 1) for tf in ("M", "W", "D")):
         return 0.0
-    weighted_score = sum(float(px[tf]) * WEIGHTS[tf] for tf in ("M", "W", "D"))
-    return weighted_score / sum(WEIGHTS.values()) * 100.0
+    return _base_score_from_px(px)
 
 
 def vivier_groups(state: dict) -> tuple[list[tuple[str, dict]], list[tuple[str, dict]]]:
