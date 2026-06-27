@@ -12,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from renko_score_29pairs_v16 import (
     build_telegram_message,
     fib_ceiling_label,
+    fib_directional_label,
     update_vivier,
     vivier_groups,
 )
@@ -21,11 +22,14 @@ PARIS = ZoneInfo("Europe/Paris")
 NOW = datetime(2026, 6, 27, 12, 0, tzinfo=PARIS)
 
 
-def row(pair, monthly, weekly, daily, weighted_pct=0.0):
+def row(pair, monthly, weekly, daily, weighted_pct=0.0, fib_pct=None):
+    if fib_pct is None:
+        fib_pct = 40.0 if monthly == 1 else 60.0
     return {
         "pair": pair,
         "px": {"M": monthly, "W": weekly, "D": daily},
         "weighted_pct": weighted_pct,
+        "h1_fib": {"pct_of_range": fib_pct},
     }
 
 
@@ -34,6 +38,11 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(fib_ceiling_label({"pct_of_range": 34.0}), "Fibo <0.382")
         self.assertEqual(fib_ceiling_label({"pct_of_range": 15.0}), "Fibo <0.236")
         self.assertEqual(fib_ceiling_label({"pct_of_range": 110.0}), "Fibo >1")
+
+    def test_fibonacci_level_follows_vivier_direction(self):
+        fib = {"pct_of_range": 60.0}
+        self.assertEqual(fib_directional_label(fib, 1), "Fibo <0.618")
+        self.assertEqual(fib_directional_label(fib, -1), "Fibo >0.500")
 
     def test_telegram_vivier_line_is_compact(self):
         state = {
@@ -139,6 +148,30 @@ class VivierStateTests(unittest.TestCase):
         next_state, signals = update_vivier([row("EURGBP", 1, -1, -1)], state, NOW)
 
         self.assertNotIn("EURGBP", next_state["pairs"])
+        self.assertEqual(signals, [])
+
+    def test_entry_requires_directional_fibonacci_half(self):
+        rows = [
+            row("BULL_OK", 1, 0, -1, fib_pct=50.0),
+            row("BULL_BAD", 1, 0, -1, fib_pct=50.1),
+            row("BEAR_OK", -1, 0, 1, fib_pct=50.0),
+            row("BEAR_BAD", -1, 0, 1, fib_pct=49.9),
+        ]
+
+        state, _ = update_vivier(rows, {}, NOW)
+
+        self.assertEqual(set(state["pairs"]), {"BULL_OK", "BEAR_OK"})
+
+    def test_tracked_pair_is_not_removed_after_crossing_fibonacci_midpoint(self):
+        state, _ = update_vivier(
+            [row("GBPJPY", 1, 0, -1, fib_pct=40.0)], {}, NOW
+        )
+
+        next_state, signals = update_vivier(
+            [row("GBPJPY", 1, 1, 0, fib_pct=70.0)], state, NOW
+        )
+
+        self.assertIn("GBPJPY", next_state["pairs"])
         self.assertEqual(signals, [])
 
 

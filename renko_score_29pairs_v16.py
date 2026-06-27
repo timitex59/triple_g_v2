@@ -39,6 +39,7 @@ SCORE_THRESHOLD = 60.0
 CHG_THRESHOLD = 0.1
 CONFIRMED_MIN_STREAKS = {"M": 1, "W": 1, "D": 2}
 VIVIER_MIN_ABS_BASE_SCORE = 33.0
+VIVIER_FIB_MIDPOINT_PCT = 50.0
 VIVIER_STATE_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "renko_score_29pairs_vivier_state.json",
@@ -464,6 +465,24 @@ def fib_ceiling_label(h1_fib: dict | None) -> str:
     return "Fibo >1"
 
 
+def fib_directional_label(h1_fib: dict | None, direction: int) -> str:
+    """Relevant Fibonacci boundary: ceiling for BULL, floor for BEAR."""
+    if direction >= 0:
+        return fib_ceiling_label(h1_fib)
+    if not h1_fib:
+        return "Fibo ?"
+    pct = h1_fib.get("pct_of_range")
+    if not isinstance(pct, (int, float)):
+        return "Fibo ?"
+    ratio = float(pct) / 100.0
+    if ratio > 1.0:
+        return "Fibo >1"
+    for level, text in reversed(FIB_LEVELS[:-1]):
+        if ratio > level:
+            return f"Fibo >{text}"
+    return "Fibo <0"
+
+
 def compute_tf_state(pair: str, interval: str, length: int, candles: int, max_streak: int, live_price: float) -> TFState | None:
     # Use TradingView's native ATR Renko series. Rebuilding Renko locally from
     # standard OHLC candles produces different ATR box sizes (especially on M)
@@ -674,7 +693,8 @@ def vivier_entry_direction(row: dict) -> int:
 
     Monthly must be strictly outside its Renko brick. At least one lower
     timeframe must be strictly opposite; an Inside state never qualifies as
-    the opposition that creates an entry.
+    the opposition that creates an entry. BULL entries must be in the lower
+    half of the monthly H1 Fibonacci range, BEAR entries in the upper half.
     """
     px = _vivier_px(row)
     if px is None or px["M"] not in (-1, 1):
@@ -682,7 +702,12 @@ def vivier_entry_direction(row: dict) -> int:
     direction = px["M"]
     has_strict_opposition = px["W"] == -direction or px["D"] == -direction
     score_ok = abs(_base_score_from_px(px)) >= VIVIER_MIN_ABS_BASE_SCORE
-    return direction if has_strict_opposition and score_ok else 0
+    fib_pct = (row.get("h1_fib") or {}).get("pct_of_range")
+    fib_ok = isinstance(fib_pct, (int, float)) and (
+        (direction == 1 and fib_pct <= VIVIER_FIB_MIDPOINT_PCT)
+        or (direction == -1 and fib_pct >= VIVIER_FIB_MIDPOINT_PCT)
+    )
+    return direction if has_strict_opposition and score_ok and fib_ok else 0
 
 
 def vivier_full_alignment(row: dict, direction: int) -> bool:
@@ -765,7 +790,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                     "signaled_at_paris": stamp,
                     "base_pct": row.get("base_pct"),
                     "weighted_pct": row.get("weighted_pct"),
-                    "fib_position": fib_ceiling_label(row.get("h1_fib")),
+                    "fib_position": fib_directional_label(row.get("h1_fib"), direction),
                 })
                 del tracked[pair]
                 continue
@@ -777,7 +802,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 existing["last_px"] = px
                 existing["base_pct"] = row.get("base_pct")
                 existing["weighted_pct"] = row.get("weighted_pct")
-                existing["fib_position"] = fib_ceiling_label(row.get("h1_fib"))
+                existing["fib_position"] = fib_directional_label(row.get("h1_fib"), direction)
                 existing["fib_pct_of_range"] = (row.get("h1_fib") or {}).get("pct_of_range")
                 continue
 
@@ -794,7 +819,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 "last_px": px,
                 "base_pct": row.get("base_pct"),
                 "weighted_pct": row.get("weighted_pct"),
-                "fib_position": fib_ceiling_label(row.get("h1_fib")),
+                "fib_position": fib_directional_label(row.get("h1_fib"), direction),
                 "fib_pct_of_range": (row.get("h1_fib") or {}).get("pct_of_range"),
             }
 
