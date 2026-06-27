@@ -4,6 +4,8 @@ from pathlib import Path
 import sys
 from zoneinfo import ZoneInfo
 
+import pandas as pd
+
 # Allow direct execution: python tests/test_renko_score_vivier.py
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -11,8 +13,10 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from renko_score_29pairs_v16 import (
     build_telegram_message,
+    closed_h1_source,
     fib_ceiling_label,
     fib_directional_label,
+    sar_cross_event,
     update_vivier,
     vivier_groups,
 )
@@ -22,18 +26,53 @@ PARIS = ZoneInfo("Europe/Paris")
 NOW = datetime(2026, 6, 27, 12, 0, tzinfo=PARIS)
 
 
-def row(pair, monthly, weekly, daily, weighted_pct=0.0, fib_pct=None):
+def row(pair, monthly, weekly, daily, weighted_pct=0.0, fib_pct=None, sar_event=None):
     if fib_pct is None:
         fib_pct = 40.0 if monthly == 1 else 60.0
+    h1_fib = {"pct_of_range": fib_pct}
+    if sar_event is not None:
+        h1_fib["sar_cross_event"] = sar_event
     return {
         "pair": pair,
         "px": {"M": monthly, "W": weekly, "D": daily},
         "weighted_pct": weighted_pct,
-        "h1_fib": {"pct_of_range": fib_pct},
+        "h1_fib": h1_fib,
+    }
+
+
+def event(direction, sar_value, fib50, time_utc):
+    return {
+        "direction": direction,
+        "sar_value": sar_value,
+        "fib50": fib50,
+        "time_utc": time_utc,
     }
 
 
 class VivierStateTests(unittest.TestCase):
+    def test_closed_h1_source_excludes_only_open_hour(self):
+        index = pd.to_datetime(["2026-06-27T09:00:00Z", "2026-06-27T10:00:00Z"])
+        df = pd.DataFrame({"close": [1.0, 2.0]}, index=index)
+
+        open_hour = closed_h1_source(df, pd.Timestamp("2026-06-27T10:30:00Z"))
+        closed_hour = closed_h1_source(df, pd.Timestamp("2026-06-27T11:00:00Z"))
+
+        self.assertEqual(len(open_hour), 1)
+        self.assertEqual(len(closed_hour), 2)
+
+    def test_standard_sar_cross_uses_closed_prices(self):
+        index = pd.to_datetime(["2026-06-27T09:00:00Z", "2026-06-27T10:00:00Z"])
+        bull_df = pd.DataFrame({"close": [10.0, 12.0]}, index=index)
+        bear_df = pd.DataFrame({"close": [12.0, 10.0]}, index=index)
+
+        bull = sar_cross_event(bull_df, {"trend": [-1, 1], "sar": [11.0, 9.0]})
+        bear = sar_cross_event(bear_df, {"trend": [1, -1], "sar": [11.0, 13.0]})
+
+        self.assertEqual(bull["direction"], 1)
+        self.assertEqual(bull["sar_value"], 9.0)
+        self.assertEqual(bear["direction"], -1)
+        self.assertEqual(bear["sar_value"], 13.0)
+
     def test_fibonacci_ceiling_uses_next_level_above_price(self):
         self.assertEqual(fib_ceiling_label({"pct_of_range": 34.0}), "Fibo <0.382")
         self.assertEqual(fib_ceiling_label({"pct_of_range": 15.0}), "Fibo <0.236")
@@ -59,6 +98,22 @@ class VivierStateTests(unittest.TestCase):
 
         self.assertIn("🟢 GBPJPY (+83% | <0.382)", message)
         self.assertNotIn("M+ W+ D0", message)
+
+    def test_telegram_adds_flame_only_for_current_record_event(self):
+        state = {
+            "pairs": {
+                "GBPJPY": {
+                    "direction": 1,
+                    "last_px": {"M": 1, "W": 1, "D": 0},
+                    "fib_position": "Fibo <0.382",
+                    "sar_flame": True,
+                }
+            }
+        }
+
+        message = build_telegram_message([], [], vivier_state=state)
+
+        self.assertIn("🟢 GBPJPY (+83% | <0.382) 🔥", message)
 
     def test_entry_requires_strict_opposition(self):
         rows = [
@@ -173,6 +228,66 @@ class VivierStateTests(unittest.TestCase):
 
         self.assertIn("GBPJPY", next_state["pairs"])
         self.assertEqual(signals, [])
+
+    def test_bull_sar_flame_requires_new_record_low_below_fib50(self):
+        first = event(1, 0.4590, 0.4620, "2026-06-27T10:00:00+00:00")
+        state, _ = update_vivier(
+            [row("GBPJPY", 1, 0, -1, sar_event=first)], {}, NOW
+        )
+        entry = state["pairs"]["GBPJPY"]
+        self.assertTrue(entry["sar_flame"])
+        self.assertEqual(entry["sar_record_value"], 0.4590)
+
+        same_state, _ = update_vivier(
+            [row("GBPJPY", 1, 0, -1, sar_event=first)], state, NOW
+        )
+        self.assertFalse(same_state["pairs"]["GBPJPY"]["sar_flame"])
+
+        higher = event(1, 0.4600, 0.4620, "2026-06-27T11:00:00+00:00")
+        higher_state, _ = update_vivier(
+            [row("GBPJPY", 1, 0, -1, sar_event=higher)], same_state, NOW
+        )
+        self.assertFalse(higher_state["pairs"]["GBPJPY"]["sar_flame"])
+
+        lower = event(1, 0.4580, 0.4620, "2026-06-27T12:00:00+00:00")
+        lower_state, _ = update_vivier(
+            [row("GBPJPY", 1, 0, -1, sar_event=lower)], higher_state, NOW
+        )
+        self.assertTrue(lower_state["pairs"]["GBPJPY"]["sar_flame"])
+        self.assertEqual(lower_state["pairs"]["GBPJPY"]["sar_record_value"], 0.4580)
+
+    def test_bear_sar_flame_requires_new_record_high_above_fib50(self):
+        first = event(-1, 0.4660, 0.4620, "2026-06-27T10:00:00+00:00")
+        state, _ = update_vivier(
+            [row("NZDCHF", -1, 0, 1, sar_event=first)], {}, NOW
+        )
+        self.assertTrue(state["pairs"]["NZDCHF"]["sar_flame"])
+
+        lower = event(-1, 0.4650, 0.4620, "2026-06-27T11:00:00+00:00")
+        lower_state, _ = update_vivier(
+            [row("NZDCHF", -1, 0, 1, sar_event=lower)], state, NOW
+        )
+        self.assertFalse(lower_state["pairs"]["NZDCHF"]["sar_flame"])
+
+        higher = event(-1, 0.4670, 0.4620, "2026-06-27T12:00:00+00:00")
+        higher_state, _ = update_vivier(
+            [row("NZDCHF", -1, 0, 1, sar_event=higher)], lower_state, NOW
+        )
+        self.assertTrue(higher_state["pairs"]["NZDCHF"]["sar_flame"])
+        self.assertEqual(higher_state["pairs"]["NZDCHF"]["sar_record_value"], 0.4670)
+
+    def test_sar_event_on_wrong_fibonacci_half_does_not_start_record(self):
+        bull_above = event(1, 0.4630, 0.4620, "2026-06-27T10:00:00+00:00")
+        bear_below = event(-1, 0.4610, 0.4620, "2026-06-27T10:00:00+00:00")
+        state, _ = update_vivier([
+            row("BULL", 1, 0, -1, sar_event=bull_above),
+            row("BEAR", -1, 0, 1, sar_event=bear_below),
+        ], {}, NOW)
+
+        self.assertFalse(state["pairs"]["BULL"]["sar_flame"])
+        self.assertNotIn("sar_record_value", state["pairs"]["BULL"])
+        self.assertFalse(state["pairs"]["BEAR"]["sar_flame"])
+        self.assertNotIn("sar_record_value", state["pairs"]["BEAR"])
 
 
 if __name__ == "__main__":

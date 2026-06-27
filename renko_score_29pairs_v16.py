@@ -403,6 +403,49 @@ def sar_flip_event(df: pd.DataFrame, sar_state: dict | None) -> tuple[bool, int]
     return bool(bull or bear), cur_dir
 
 
+def closed_h1_source(df: pd.DataFrame, now: pd.Timestamp | None = None) -> pd.DataFrame:
+    """Exclude the last H1 candle only while its one-hour window is open."""
+    if df.empty:
+        return df
+    now = now if now is not None else pd.Timestamp.now(tz="UTC")
+    now = pd.Timestamp(now)
+    if now.tzinfo is None:
+        now = now.tz_localize("UTC")
+    else:
+        now = now.tz_convert("UTC")
+    last_start = pd.Timestamp(df.index[-1])
+    if last_start.tzinfo is None:
+        last_start = last_start.tz_localize("UTC")
+    else:
+        last_start = last_start.tz_convert("UTC")
+    return df.iloc[:-1] if now < last_start + pd.Timedelta(hours=1) else df
+
+
+def sar_cross_event(df: pd.DataFrame, sar_state: dict | None) -> dict | None:
+    """Standard close/SAR crossover or crossunder on the last two closed H1 bars."""
+    if not sar_state or len(df) < 2:
+        return None
+    trend = sar_state.get("trend") or []
+    sar_values = sar_state.get("sar") or []
+    if len(trend) < 2 or len(sar_values) < 2:
+        return None
+
+    prev_close = float(df["close"].iloc[-2])
+    cur_close = float(df["close"].iloc[-1])
+    prev_sar = float(sar_values[-2])
+    cur_sar = float(sar_values[-1])
+    bull = trend[-2] == -1 and trend[-1] == 1 and prev_close <= prev_sar and cur_close > cur_sar
+    bear = trend[-2] == 1 and trend[-1] == -1 and prev_close >= prev_sar and cur_close < cur_sar
+    if not bull and not bear:
+        return None
+    event_time = pd.Timestamp(df.index[-1])
+    return {
+        "direction": 1 if bull else -1,
+        "sar_value": cur_sar,
+        "time_utc": event_time.isoformat(),
+    }
+
+
 def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
     """Same Fibo as the V15 Pine "Monthly Reset" panel, but built from H1
     bars: range = high/low accumulated since the start of the current
@@ -435,6 +478,19 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
     sar_flipped, sar_dir = sar_flip_event(df, sar_state)
     sar_values = sar_state.get("sar") if sar_state else None
 
+    # VIVIER SAR records use only completed H1 bars and the standard
+    # close/SAR crossover definition, independently from the live SAR fields.
+    closed_df = closed_h1_source(df)
+    closed_sar_state = parabolic_sar(closed_df)
+    cross_event = sar_cross_event(closed_df, closed_sar_state)
+    if cross_event is not None:
+        event_ts = pd.Timestamp(closed_df.index[-1])
+        event_month_start = event_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        event_month_df = closed_df[closed_df.index >= event_month_start]
+        event_high = float(event_month_df["high"].max())
+        event_low = float(event_month_df["low"].min())
+        cross_event["fib50"] = event_low + (event_high - event_low) * 0.5
+
     return {
         "fib50": fib50,
         "position": position,
@@ -446,6 +502,7 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
         "sar_flipped": sar_flipped,
         "sar_value": sar_values[-1] if sar_values else None,
         "sar_prev_value": sar_values[-2] if sar_values and len(sar_values) >= 2 else None,
+        "sar_cross_event": cross_event,
     }
 
 
@@ -752,6 +809,37 @@ def save_vivier_state(state: dict, path: str = VIVIER_STATE_PATH) -> None:
             os.remove(tmp_path)
 
 
+def apply_vivier_sar_record(entry: dict, row: dict, direction: int) -> None:
+    """Set a one-run flame when a valid H1 SAR event makes a new record."""
+    entry["sar_flame"] = False
+    event = (row.get("h1_fib") or {}).get("sar_cross_event") or {}
+    if event.get("direction") != direction:
+        return
+    event_time = event.get("time_utc")
+    if not event_time or event_time == entry.get("sar_last_processed_time_utc"):
+        return
+    entry["sar_last_processed_time_utc"] = event_time
+
+    sar_value = event.get("sar_value")
+    fib50 = event.get("fib50")
+    if not isinstance(sar_value, (int, float)) or not isinstance(fib50, (int, float)):
+        return
+    # BEAR: crossunder SAR above Fibo 0.500 and new running maximum.
+    # BULL: crossover SAR below Fibo 0.500 and new running minimum.
+    fib_ok = sar_value > fib50 if direction == -1 else sar_value < fib50
+    if not fib_ok:
+        return
+    previous = entry.get("sar_record_value")
+    is_record = previous is None or (
+        sar_value > previous if direction == -1 else sar_value < previous
+    )
+    if not is_record:
+        return
+    entry["sar_record_value"] = float(sar_value)
+    entry["sar_record_time_utc"] = event_time
+    entry["sar_flame"] = True
+
+
 def update_vivier(rows: list[dict], previous_state: dict | None = None,
                    now: datetime | None = None) -> tuple[dict, list[dict]]:
     """Advance the persistent VIVIER state and return one-shot alignments.
@@ -770,6 +858,8 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
         for pair, entry in old_pairs.items()
         if isinstance(entry, dict) and entry.get("direction") in (-1, 1)
     }
+    for entry in tracked.values():
+        entry["sar_flame"] = False
     signals: list[dict] = []
 
     for row in rows:
@@ -804,6 +894,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 existing["weighted_pct"] = row.get("weighted_pct")
                 existing["fib_position"] = fib_directional_label(row.get("h1_fib"), direction)
                 existing["fib_pct_of_range"] = (row.get("h1_fib") or {}).get("pct_of_range")
+                apply_vivier_sar_record(existing, row, direction)
                 continue
 
             # Monthly became Inside or reversed: invalidate the old pool.
@@ -822,6 +913,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 "fib_position": fib_directional_label(row.get("h1_fib"), direction),
                 "fib_pct_of_range": (row.get("h1_fib") or {}).get("pct_of_range"),
             }
+            apply_vivier_sar_record(tracked[pair], row, direction)
 
     return {
         "version": 1,
@@ -864,11 +956,13 @@ def print_vivier_report(state: dict, signals: list[dict]) -> None:
     print(f"BULL ({len(bull)}): " + (", ".join(pair for pair, _ in bull) or "--"))
     for pair, entry in bull:
         fib = entry.get("fib_position", "Fibo ?")
-        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {fib:<12}  {_px_compact(entry.get('last_px'))}")
+        flame = " 🔥" if entry.get("sar_flame") else ""
+        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {fib:<12}  {_px_compact(entry.get('last_px'))}{flame}")
     print(f"BEAR ({len(bear)}): " + (", ".join(pair for pair, _ in bear) or "--"))
     for pair, entry in bear:
         fib = entry.get("fib_position", "Fibo ?")
-        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {fib:<12}  {_px_compact(entry.get('last_px'))}")
+        flame = " 🔥" if entry.get("sar_flame") else ""
+        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {fib:<12}  {_px_compact(entry.get('last_px'))}{flame}")
     if signals:
         print("SIGNAUX VIVIER:")
         for signal in signals:
@@ -1281,7 +1375,8 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         for pair, entry in entries:
             score = vivier_base_score(entry)
             fib = entry.get("fib_position", "Fibo ?").removeprefix("Fibo ")
-            lines.append(f"{icon} {pair} ({score:+.0f}% | {fib})")
+            flame = " 🔥" if entry.get("sar_flame") else ""
+            lines.append(f"{icon} {pair} ({score:+.0f}% | {fib}){flame}")
         has_content = True
 
     # Message: RENKO FIBO, retournements, suivi VIVIER et horodatage.
