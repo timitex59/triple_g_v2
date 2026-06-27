@@ -20,6 +20,7 @@ the logic of renko_forex_V16.pine:
 
 import argparse
 import bisect
+import hashlib
 import json
 import os
 import statistics
@@ -91,6 +92,13 @@ FIB_LEVELS = (
     (0.786, "0.786"),
     (1.0, "1"),
 )
+VIVIER_EVENTS_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "renko_vivier_events.jsonl"
+)
+VIVIER_PERFORMANCE_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "renko_vivier_performance.json"
+)
+VIVIER_PERFORMANCE_HOURS = (1, 4, 12, 24, 72)
 
 
 @dataclass
@@ -114,6 +122,8 @@ def parse_args():
     parser.add_argument("--max-streak", type=int, default=50, help="Cap on the consecutive green/red brick streak count.")
     parser.add_argument("--no-telegram", action="store_true", help="Print the analysis without sending it to Telegram.")
     parser.add_argument("--vivier-state", default=VIVIER_STATE_PATH, help="Path to the persistent VIVIER state file.")
+    parser.add_argument("--vivier-events", default=VIVIER_EVENTS_PATH, help="Append-only VIVIER event journal.")
+    parser.add_argument("--vivier-performance", default=VIVIER_PERFORMANCE_PATH, help="VIVIER performance tracker.")
     return parser.parse_args()
 
 
@@ -438,11 +448,13 @@ def sar_cross_event(df: pd.DataFrame, sar_state: dict | None) -> dict | None:
     bear = trend[-2] == 1 and trend[-1] == -1 and prev_close >= prev_sar and cur_close < cur_sar
     if not bull and not bear:
         return None
-    event_time = pd.Timestamp(df.index[-1])
+    bar_time = pd.Timestamp(df.index[-1])
+    event_time = bar_time + pd.Timedelta(hours=1)
     return {
         "direction": 1 if bull else -1,
         "sar_value": cur_sar,
         "time_utc": event_time.isoformat(),
+        "bar_time_utc": bar_time.isoformat(),
     }
 
 
@@ -492,7 +504,8 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
         ]
         if not before_closed.empty:
             closed_extreme = {
-                "time_utc": closed_ts.isoformat(),
+                "time_utc": (closed_ts + pd.Timedelta(hours=1)).isoformat(),
+                "bar_time_utc": closed_ts.isoformat(),
                 "high": float(closed_df["high"].iloc[-1]),
                 "low": float(closed_df["low"].iloc[-1]),
                 "fib1_before": float(before_closed["high"].max()),
@@ -505,6 +518,18 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
         event_high = float(event_month_df["high"].max())
         event_low = float(event_month_df["low"].min())
         cross_event["fib50"] = event_low + (event_high - event_low) * 0.5
+
+    closed_bars = [
+        {
+            "time_utc": (pd.Timestamp(ts) + pd.Timedelta(hours=1)).isoformat(),
+            "high": float(bar["high"]),
+            "low": float(bar["low"]),
+            "close": float(bar["close"]),
+        }
+        for ts, bar in closed_df.iterrows()
+    ]
+    closed_time = closed_bars[-1]["time_utc"] if closed_bars else None
+    closed_price = closed_bars[-1]["close"] if closed_bars else None
 
     return {
         "fib50": fib50,
@@ -519,6 +544,9 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
         "sar_prev_value": sar_values[-2] if sar_values and len(sar_values) >= 2 else None,
         "sar_cross_event": cross_event,
         "closed_extreme": closed_extreme,
+        "h1_closed_time_utc": closed_time,
+        "h1_closed_price": closed_price,
+        "_closed_h1_bars": closed_bars,
     }
 
 
@@ -1017,6 +1045,264 @@ def print_vivier_report(state: dict, signals: list[dict]) -> None:
             print(f"  {signal['pair']:<8} {label} {_px_compact(signal.get('px'))}")
 
 
+def _event_price_at(row: dict | None, time_utc: str | None) -> float | None:
+    if row is None:
+        return None
+    h1 = row.get("h1_fib") or {}
+    if time_utc:
+        for bar in h1.get("_closed_h1_bars") or []:
+            if bar.get("time_utc") == time_utc:
+                return float(bar["close"])
+    value = h1.get("h1_closed_price", row.get("h1_price", row.get("live_price")))
+    return float(value) if isinstance(value, (int, float)) else None
+
+
+def _build_vivier_event(event_type: str, pair: str, direction: int,
+                         row: dict | None, time_utc: str | None = None,
+                         **extra) -> dict:
+    h1 = (row or {}).get("h1_fib") or {}
+    time_utc = time_utc or h1.get("h1_closed_time_utc")
+    if not time_utc:
+        time_utc = datetime.now(ZoneInfo("UTC")).isoformat()
+    ts = pd.Timestamp(time_utc)
+    if ts.tzinfo is None:
+        ts = ts.tz_localize("UTC")
+    else:
+        ts = ts.tz_convert("UTC")
+    canonical_time = ts.isoformat()
+    identity = f"{event_type}|{pair}|{direction}|{canonical_time}"
+    payload = {
+        "event_id": hashlib.sha256(identity.encode("utf-8")).hexdigest()[:20],
+        "event_type": event_type,
+        "pair": pair,
+        "direction": direction,
+        "time_utc": canonical_time,
+        "time_paris": ts.tz_convert(PARIS_TZ).isoformat(),
+        "price": _event_price_at(row, canonical_time),
+        "base_pct": (row or {}).get("base_pct"),
+        "final_pct": (row or {}).get("weighted_pct"),
+        "fib_position": fib_directional_label(h1, direction),
+        "fib_pct_of_range": h1.get("pct_of_range"),
+        "px": (row or {}).get("px"),
+    }
+    payload.update(extra)
+    return payload
+
+
+def collect_vivier_run_events(previous_state: dict, current_state: dict,
+                               vivier_signals: list[dict], strong_rows: list[dict],
+                               all_rows: list[dict]) -> list[dict]:
+    """Build one-shot lifecycle events by comparing the previous/current pools."""
+    previous = (previous_state or {}).get("pairs") or {}
+    current = (current_state or {}).get("pairs") or {}
+    rows_by_pair = {row["pair"]: row for row in all_rows}
+    signal_pairs = {signal["pair"] for signal in vivier_signals}
+    renko_fibo_pairs = {
+        row["pair"] for row in strong_rows if sar_streak_full(row)
+    }
+    events: list[dict] = []
+
+    # Invalid exits first, including a same-run direction switch.
+    for pair, old in sorted(previous.items()):
+        new = current.get(pair)
+        direction_changed = new is not None and new.get("direction") != old.get("direction")
+        if (new is None and pair not in signal_pairs) or direction_changed:
+            events.append(_build_vivier_event(
+                "VIVIER_EXIT_INVALID", pair, int(old["direction"]), rows_by_pair.get(pair),
+                reason="DIRECTION_CHANGE" if direction_changed else "MONTHLY_OR_SCORE_INVALID",
+            ))
+
+    for pair, entry in sorted(current.items()):
+        old = previous.get(pair)
+        if old is None or old.get("direction") != entry.get("direction"):
+            events.append(_build_vivier_event(
+                "VIVIER_ENTRY", pair, int(entry["direction"]), rows_by_pair.get(pair),
+                entered_at_paris=entry.get("entered_at_paris"),
+            ))
+        if entry.get("sar_flame"):
+            events.append(_build_vivier_event(
+                "SAR_FLAME", pair, int(entry["direction"]), rows_by_pair.get(pair),
+                time_utc=entry.get("sar_record_time_utc"),
+                sar_value=entry.get("sar_record_value"),
+            ))
+        reset_time = entry.get("sar_last_fib_reset_time_utc")
+        if reset_time and reset_time != (old or {}).get("sar_last_fib_reset_time_utc"):
+            events.append(_build_vivier_event(
+                "SAR_RECORD_RESET", pair, int(entry["direction"]), rows_by_pair.get(pair),
+                time_utc=reset_time, reason=entry.get("sar_last_fib_reset_reason"),
+            ))
+
+    for signal in vivier_signals:
+        pair = signal["pair"]
+        event_type = ("VIVIER_TO_RENKO_FIBO" if pair in renko_fibo_pairs
+                      else "SIGNAL_VIVIER")
+        events.append(_build_vivier_event(
+            event_type, pair, int(signal["direction"]), rows_by_pair.get(pair),
+            entered_at_paris=signal.get("entered_at_paris"),
+        ))
+
+    return sorted(events, key=lambda event: (event["time_utc"], event["pair"], event["event_type"]))
+
+
+def append_vivier_event_journal(events: list[dict], path: str = VIVIER_EVENTS_PATH) -> int:
+    """Append unseen event IDs and return the number of newly written records."""
+    if not events:
+        return 0
+    existing_ids: set[str] = set()
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line in handle:
+                try:
+                    existing_ids.add(json.loads(line)["event_id"])
+                except (json.JSONDecodeError, KeyError, TypeError):
+                    continue
+    except FileNotFoundError:
+        pass
+    directory = os.path.dirname(os.path.abspath(path))
+    os.makedirs(directory, exist_ok=True)
+    unseen = []
+    for event in events:
+        if event["event_id"] in existing_ids:
+            continue
+        unseen.append(event)
+        existing_ids.add(event["event_id"])
+    if unseen:
+        with open(path, "a", encoding="utf-8") as handle:
+            for event in unseen:
+                handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
+    return len(unseen)
+
+
+def load_vivier_performance(path: str = VIVIER_PERFORMANCE_PATH) -> dict:
+    try:
+        with open(path, encoding="utf-8") as handle:
+            payload = json.load(handle)
+        return payload if isinstance(payload, dict) else {"version": 1, "events": []}
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {"version": 1, "events": []}
+
+
+def _performance_bucket(events: list[dict]) -> dict:
+    horizons = {}
+    for hours in VIVIER_PERFORMANCE_HOURS:
+        key = f"{hours}h"
+        values = [
+            float(event["horizons"][key]["directional_pct"])
+            for event in events
+            if key in (event.get("horizons") or {})
+        ]
+        horizons[key] = {
+            "samples": len(values),
+            "wins": sum(value > 0 for value in values),
+            "win_rate_pct": (sum(value > 0 for value in values) / len(values) * 100.0
+                             if values else None),
+            "avg_directional_pct": statistics.fmean(values) if values else None,
+        }
+    mfe_values = [float(event["mfe_72h_pct"]) for event in events if "mfe_72h_pct" in event]
+    mae_values = [float(event["mae_72h_pct"]) for event in events if "mae_72h_pct" in event]
+    return {
+        "count": len(events),
+        "complete": sum(bool(event.get("complete")) for event in events),
+        "horizons": horizons,
+        "avg_mfe_72h_pct": statistics.fmean(mfe_values) if mfe_values else None,
+        "avg_mae_72h_pct": statistics.fmean(mae_values) if mae_values else None,
+    }
+
+
+def _performance_summary(events: list[dict]) -> dict:
+    event_types = sorted({event["event_type"] for event in events})
+    overall = _performance_bucket(events)
+    return {
+        "total": overall["count"],
+        "complete": overall["complete"],
+        "overall": overall,
+        "by_type": {
+            event_type: _performance_bucket([
+                event for event in events if event["event_type"] == event_type
+            ])
+            for event_type in event_types
+        },
+    }
+
+
+def update_vivier_performance(previous: dict, new_events: list[dict],
+                               all_rows: list[dict], now: datetime | None = None) -> dict:
+    """Register events and fill H1 horizons plus 72H MFE/MAE from real OHLC."""
+    tracked = {
+        event["event_id"]: dict(event)
+        for event in (previous or {}).get("events", [])
+        if isinstance(event, dict) and event.get("event_id")
+    }
+    for event in new_events:
+        if event.get("price") is not None:
+            tracked.setdefault(event["event_id"], {**event, "horizons": {}})
+
+    bars_by_pair = {
+        row["pair"]: (row.get("h1_fib") or {}).get("_closed_h1_bars") or []
+        for row in all_rows
+    }
+    for event in tracked.values():
+        price = event.get("price")
+        bars = bars_by_pair.get(event.get("pair")) or []
+        if not isinstance(price, (int, float)) or price == 0 or not bars:
+            continue
+        start = pd.Timestamp(event["time_utc"])
+        if start.tzinfo is None:
+            start = start.tz_localize("UTC")
+        direction = int(event["direction"])
+        parsed = [(pd.Timestamp(bar["time_utc"]), bar) for bar in bars]
+        horizons = event.setdefault("horizons", {})
+        for hours in VIVIER_PERFORMANCE_HOURS:
+            key = f"{hours}h"
+            if key in horizons:
+                continue
+            target = start + pd.Timedelta(hours=hours)
+            candidate = next(((ts, bar) for ts, bar in parsed if ts >= target), None)
+            if candidate is None:
+                continue
+            ts, bar = candidate
+            raw_pct = (float(bar["close"]) - price) / price * 100.0
+            horizons[key] = {
+                "time_utc": ts.isoformat(),
+                "price": float(bar["close"]),
+                "raw_pct": raw_pct,
+                "directional_pct": raw_pct * direction,
+            }
+
+        end = start + pd.Timedelta(hours=max(VIVIER_PERFORMANCE_HOURS))
+        window = [bar for ts, bar in parsed if start < ts <= end]
+        if window:
+            if direction == 1:
+                mfe = (max(float(bar["high"]) for bar in window) - price) / price * 100.0
+                mae = (min(float(bar["low"]) for bar in window) - price) / price * 100.0
+            else:
+                mfe = (price - min(float(bar["low"]) for bar in window)) / price * 100.0
+                mae = (price - max(float(bar["high"]) for bar in window)) / price * 100.0
+            event["mfe_72h_pct"] = mfe
+            event["mae_72h_pct"] = mae
+            event["last_evaluated_time_utc"] = parsed[-1][0].isoformat()
+        event["complete"] = all(f"{hours}h" in horizons for hours in VIVIER_PERFORMANCE_HOURS)
+
+    events = sorted(tracked.values(), key=lambda event: (event["time_utc"], event["event_id"]))
+    stamp = (now or datetime.now(ZoneInfo("UTC"))).isoformat()
+    return {"version": 1, "updated_at_utc": stamp, "summary": _performance_summary(events),
+            "events": events}
+
+
+def save_vivier_performance(payload: dict, path: str = VIVIER_PERFORMANCE_PATH) -> None:
+    directory = os.path.dirname(os.path.abspath(path))
+    os.makedirs(directory, exist_ok=True)
+    tmp_path = f"{path}.tmp.{os.getpid()}"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False, indent=2, sort_keys=True)
+            handle.write("\n")
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
 MAJORS = {"AUD", "CAD", "CHF", "EUR", "GBP", "JPY", "NZD", "USD"}
 
 
@@ -1475,10 +1761,31 @@ def main() -> int:
 
     previous_vivier = load_vivier_state(args.vivier_state)
     vivier_state, vivier_signals = update_vivier(rows, previous_vivier)
+    strong_rows = filter_strong_signals(rows)
+    run_events = collect_vivier_run_events(
+        previous_vivier,
+        vivier_state,
+        vivier_signals,
+        strong_rows,
+        rows,
+    )
+    new_event_count = append_vivier_event_journal(run_events, args.vivier_events)
+    performance = update_vivier_performance(
+        load_vivier_performance(args.vivier_performance),
+        run_events,
+        rows,
+    )
+    save_vivier_performance(performance, args.vivier_performance)
     save_vivier_state(vivier_state, args.vivier_state)
     print_vivier_report(vivier_state, vivier_signals)
+    tracker_summary = performance["summary"]
+    print(
+        "VIVIER TRACKER: "
+        f"{new_event_count} événement(s) ajouté(s), "
+        f"{tracker_summary['total']} suivi(s), "
+        f"{tracker_summary['complete']} complet(s) à 72h"
+    )
 
-    strong_rows = filter_strong_signals(rows)
     message = build_telegram_message(
         strong_rows,
         rows,

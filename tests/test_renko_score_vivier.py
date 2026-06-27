@@ -1,3 +1,5 @@
+import json
+import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
@@ -12,12 +14,15 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from renko_score_29pairs_v16 import (
+    append_vivier_event_journal,
     build_telegram_message,
     closed_h1_source,
+    collect_vivier_run_events,
     fib_ceiling_label,
     fib_directional_label,
     sar_cross_event,
     update_vivier,
+    update_vivier_performance,
     vivier_groups,
 )
 
@@ -83,6 +88,7 @@ class VivierStateTests(unittest.TestCase):
 
         self.assertEqual(bull["direction"], 1)
         self.assertEqual(bull["sar_value"], 9.0)
+        self.assertEqual(bull["time_utc"], "2026-06-27T11:00:00+00:00")
         self.assertEqual(bear["direction"], -1)
         self.assertEqual(bear["sar_value"], 13.0)
 
@@ -385,6 +391,91 @@ class VivierStateTests(unittest.TestCase):
         )
 
         self.assertNotIn("sar_last_fib_reset_time_utc", state["pairs"]["GBPJPY"])
+
+    def test_event_journal_deduplicates_event_ids(self):
+        tracked_event = {
+            "event_id": "event-1",
+            "event_type": "VIVIER_ENTRY",
+            "pair": "GBPJPY",
+            "direction": 1,
+            "time_utc": "2026-06-27T10:00:00+00:00",
+            "price": 100.0,
+        }
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            path = Path(tmp_dir) / "events.jsonl"
+
+            first = append_vivier_event_journal([tracked_event], str(path))
+            second = append_vivier_event_journal([tracked_event], str(path))
+            lines = path.read_text(encoding="utf-8").splitlines()
+
+        self.assertEqual(first, 1)
+        self.assertEqual(second, 0)
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(json.loads(lines[0])["event_id"], "event-1")
+
+    def test_direct_vivier_transition_creates_single_tracker_event(self):
+        market_row = {
+            "pair": "GBPJPY",
+            "signal_state": 1,
+            "base_pct": 100.0,
+            "weighted_pct": 80.0,
+            "px": {"M": 1, "W": 1, "D": 1},
+            "h1_fib": {
+                "pct_of_range": 70.0,
+                "sar_dir": 1,
+                "h1_closed_time_utc": "2026-06-27T11:00:00+00:00",
+                "h1_closed_price": 213.5,
+                "_closed_h1_bars": [{
+                    "time_utc": "2026-06-27T11:00:00+00:00",
+                    "high": 213.7,
+                    "low": 213.3,
+                    "close": 213.5,
+                }],
+            },
+            "streak_position": {"counts": {1: 3, -1: 0, 0: 0}},
+        }
+        previous = {"pairs": {"GBPJPY": {"direction": 1}}}
+        signal = {"pair": "GBPJPY", "direction": 1, "weighted_pct": 80.0}
+
+        events = collect_vivier_run_events(
+            previous, {"pairs": {}}, [signal], [market_row], [market_row]
+        )
+
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["event_type"], "VIVIER_TO_RENKO_FIBO")
+        self.assertEqual(events[0]["price"], 213.5)
+
+    def test_performance_tracker_fills_horizons_and_excursions(self):
+        tracked_event = {
+            "event_id": "bull-entry-1",
+            "event_type": "VIVIER_ENTRY",
+            "pair": "GBPJPY",
+            "direction": 1,
+            "time_utc": "2026-06-27T10:00:00+00:00",
+            "price": 100.0,
+        }
+        bars = [
+            {"time_utc": "2026-06-27T11:00:00+00:00", "high": 103.0, "low": 99.0, "close": 102.0},
+            {"time_utc": "2026-06-27T14:00:00+00:00", "high": 105.0, "low": 95.0, "close": 104.0},
+            {"time_utc": "2026-06-27T22:00:00+00:00", "high": 106.0, "low": 98.0, "close": 101.0},
+            {"time_utc": "2026-06-28T10:00:00+00:00", "high": 108.0, "low": 97.0, "close": 107.0},
+            {"time_utc": "2026-06-30T10:00:00+00:00", "high": 112.0, "low": 96.0, "close": 110.0},
+        ]
+        market_rows = [{"pair": "GBPJPY", "h1_fib": {"_closed_h1_bars": bars}}]
+
+        result = update_vivier_performance({}, [tracked_event], market_rows, NOW)
+        performance = result["events"][0]
+
+        self.assertEqual(performance["horizons"]["1h"]["directional_pct"], 2.0)
+        self.assertEqual(performance["horizons"]["72h"]["directional_pct"], 10.0)
+        self.assertEqual(performance["mfe_72h_pct"], 12.0)
+        self.assertEqual(performance["mae_72h_pct"], -5.0)
+        self.assertTrue(performance["complete"])
+        self.assertEqual(result["summary"]["complete"], 1)
+        horizon = result["summary"]["overall"]["horizons"]["72h"]
+        self.assertEqual(horizon["samples"], 1)
+        self.assertEqual(horizon["win_rate_pct"], 100.0)
+        self.assertEqual(horizon["avg_directional_pct"], 10.0)
 
 
 if __name__ == "__main__":
