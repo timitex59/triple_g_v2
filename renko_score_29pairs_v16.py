@@ -98,6 +98,7 @@ VIVIER_EVENTS_PATH = os.path.join(
 VIVIER_PERFORMANCE_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "renko_vivier_performance.json"
 )
+VIVIER_PERFORMANCE_VERSION = 2
 VIVIER_PERFORMANCE_HOURS = (1, 4, 12, 24, 72)
 
 
@@ -1177,9 +1178,11 @@ def load_vivier_performance(path: str = VIVIER_PERFORMANCE_PATH) -> dict:
     try:
         with open(path, encoding="utf-8") as handle:
             payload = json.load(handle)
-        return payload if isinstance(payload, dict) else {"version": 1, "events": []}
+        return payload if isinstance(payload, dict) else {
+            "version": VIVIER_PERFORMANCE_VERSION, "events": []
+        }
     except (FileNotFoundError, json.JSONDecodeError, OSError):
-        return {"version": 1, "events": []}
+        return {"version": VIVIER_PERFORMANCE_VERSION, "events": []}
 
 
 def _performance_bucket(events: list[dict]) -> dict:
@@ -1227,7 +1230,7 @@ def _performance_summary(events: list[dict]) -> dict:
 
 def update_vivier_performance(previous: dict, new_events: list[dict],
                                all_rows: list[dict], now: datetime | None = None) -> dict:
-    """Register events and fill H1 horizons plus 72H MFE/MAE from real OHLC."""
+    """Evaluate events after N subsequently closed H1 bars, excluding market gaps."""
     tracked = {
         event["event_id"]: dict(event)
         for event in (previous or {}).get("events", [])
@@ -1250,17 +1253,26 @@ def update_vivier_performance(previous: dict, new_events: list[dict],
         if start.tzinfo is None:
             start = start.tz_localize("UTC")
         direction = int(event["direction"])
-        parsed = [(pd.Timestamp(bar["time_utc"]), bar) for bar in bars]
+        parsed = sorted(
+            [(pd.Timestamp(bar["time_utc"]), bar) for bar in bars],
+            key=lambda item: item[0],
+        )
+        future_bars = [(ts, bar) for ts, bar in parsed if ts > start]
+        if event.get("horizon_basis") != "closed_h1_bars":
+            # Version 1 used elapsed calendar time and collapsed weekend gaps.
+            event["horizons"] = {}
+            event.pop("mfe_72h_pct", None)
+            event.pop("mae_72h_pct", None)
+            event.pop("last_evaluated_time_utc", None)
+            event["horizon_basis"] = "closed_h1_bars"
         horizons = event.setdefault("horizons", {})
         for hours in VIVIER_PERFORMANCE_HOURS:
             key = f"{hours}h"
             if key in horizons:
                 continue
-            target = start + pd.Timedelta(hours=hours)
-            candidate = next(((ts, bar) for ts, bar in parsed if ts >= target), None)
-            if candidate is None:
+            if len(future_bars) < hours:
                 continue
-            ts, bar = candidate
+            ts, bar = future_bars[hours - 1]
             raw_pct = (float(bar["close"]) - price) / price * 100.0
             horizons[key] = {
                 "time_utc": ts.isoformat(),
@@ -1269,8 +1281,7 @@ def update_vivier_performance(previous: dict, new_events: list[dict],
                 "directional_pct": raw_pct * direction,
             }
 
-        end = start + pd.Timedelta(hours=max(VIVIER_PERFORMANCE_HOURS))
-        window = [bar for ts, bar in parsed if start < ts <= end]
+        window = [bar for _, bar in future_bars[:max(VIVIER_PERFORMANCE_HOURS)]]
         if window:
             if direction == 1:
                 mfe = (max(float(bar["high"]) for bar in window) - price) / price * 100.0
@@ -1280,12 +1291,13 @@ def update_vivier_performance(previous: dict, new_events: list[dict],
                 mae = (price - max(float(bar["high"]) for bar in window)) / price * 100.0
             event["mfe_72h_pct"] = mfe
             event["mae_72h_pct"] = mae
-            event["last_evaluated_time_utc"] = parsed[-1][0].isoformat()
+            event["last_evaluated_time_utc"] = future_bars[-1][0].isoformat()
         event["complete"] = all(f"{hours}h" in horizons for hours in VIVIER_PERFORMANCE_HOURS)
 
     events = sorted(tracked.values(), key=lambda event: (event["time_utc"], event["event_id"]))
     stamp = (now or datetime.now(ZoneInfo("UTC"))).isoformat()
-    return {"version": 1, "updated_at_utc": stamp, "summary": _performance_summary(events),
+    return {"version": VIVIER_PERFORMANCE_VERSION,
+            "updated_at_utc": stamp, "summary": _performance_summary(events),
             "events": events}
 
 

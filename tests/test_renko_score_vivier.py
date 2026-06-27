@@ -454,13 +454,19 @@ class VivierStateTests(unittest.TestCase):
             "time_utc": "2026-06-27T10:00:00+00:00",
             "price": 100.0,
         }
-        bars = [
-            {"time_utc": "2026-06-27T11:00:00+00:00", "high": 103.0, "low": 99.0, "close": 102.0},
-            {"time_utc": "2026-06-27T14:00:00+00:00", "high": 105.0, "low": 95.0, "close": 104.0},
-            {"time_utc": "2026-06-27T22:00:00+00:00", "high": 106.0, "low": 98.0, "close": 101.0},
-            {"time_utc": "2026-06-28T10:00:00+00:00", "high": 108.0, "low": 97.0, "close": 107.0},
-            {"time_utc": "2026-06-30T10:00:00+00:00", "high": 112.0, "low": 96.0, "close": 110.0},
-        ]
+        # The first future candle is separated by a weekend gap. Horizons
+        # must count traded H1 candles, not elapsed calendar hours.
+        first_bar = pd.Timestamp("2026-06-28T22:00:00Z")
+        closes = {1: 102.0, 4: 104.0, 12: 101.0, 24: 107.0, 72: 110.0}
+        bars = []
+        for ordinal in range(1, 73):
+            close = closes.get(ordinal, 100.0)
+            bars.append({
+                "time_utc": (first_bar + pd.Timedelta(hours=ordinal - 1)).isoformat(),
+                "high": 112.0 if ordinal == 72 else max(100.0, close),
+                "low": 95.0 if ordinal == 4 else min(100.0, close),
+                "close": close,
+            })
         market_rows = [{"pair": "GBPJPY", "h1_fib": {"_closed_h1_bars": bars}}]
 
         result = update_vivier_performance({}, [tracked_event], market_rows, NOW)
@@ -468,14 +474,56 @@ class VivierStateTests(unittest.TestCase):
 
         self.assertEqual(performance["horizons"]["1h"]["directional_pct"], 2.0)
         self.assertEqual(performance["horizons"]["72h"]["directional_pct"], 10.0)
+        self.assertEqual(
+            performance["horizons"]["1h"]["time_utc"],
+            "2026-06-28T22:00:00+00:00",
+        )
+        self.assertEqual(
+            performance["horizons"]["4h"]["time_utc"],
+            "2026-06-29T01:00:00+00:00",
+        )
         self.assertEqual(performance["mfe_72h_pct"], 12.0)
         self.assertEqual(performance["mae_72h_pct"], -5.0)
+        self.assertEqual(performance["horizon_basis"], "closed_h1_bars")
         self.assertTrue(performance["complete"])
+        self.assertEqual(result["version"], 2)
         self.assertEqual(result["summary"]["complete"], 1)
         horizon = result["summary"]["overall"]["horizons"]["72h"]
         self.assertEqual(horizon["samples"], 1)
         self.assertEqual(horizon["win_rate_pct"], 100.0)
         self.assertEqual(horizon["avg_directional_pct"], 10.0)
+
+    def test_performance_tracker_replaces_calendar_time_horizons(self):
+        old_event = {
+            "event_id": "legacy-entry-1",
+            "event_type": "VIVIER_ENTRY",
+            "pair": "AUDCAD",
+            "direction": 1,
+            "time_utc": "2026-06-26T21:00:00+00:00",
+            "price": 100.0,
+            "horizons": {
+                "1h": {"directional_pct": 99.0},
+                "4h": {"directional_pct": 99.0},
+            },
+        }
+        bars = [{
+            "time_utc": "2026-06-28T22:00:00+00:00",
+            "high": 103.0,
+            "low": 99.0,
+            "close": 102.0,
+        }]
+
+        result = update_vivier_performance(
+            {"version": 1, "events": [old_event]},
+            [],
+            [{"pair": "AUDCAD", "h1_fib": {"_closed_h1_bars": bars}}],
+            NOW,
+        )
+        migrated = result["events"][0]
+
+        self.assertEqual(migrated["horizons"]["1h"]["directional_pct"], 2.0)
+        self.assertNotIn("4h", migrated["horizons"])
+        self.assertEqual(migrated["horizon_basis"], "closed_h1_bars")
 
 
 if __name__ == "__main__":
