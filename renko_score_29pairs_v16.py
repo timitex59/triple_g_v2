@@ -81,6 +81,15 @@ REGIME_WINDOW = 30         # jours recents pour estimer le regime courant
 
 TIMEFRAME_LABELS = {"M": "Monthly", "W": "Weekly", "D": "Daily"}
 WEIGHTS = {"M": 3.0, "W": 2.0, "D": 1.0}
+FIB_LEVELS = (
+    (0.0, "0"),
+    (0.236, "0.236"),
+    (0.382, "0.382"),
+    (0.500, "0.500"),
+    (0.618, "0.618"),
+    (0.786, "0.786"),
+    (1.0, "1"),
+)
 
 
 @dataclass
@@ -439,6 +448,22 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
     }
 
 
+def fib_ceiling_label(h1_fib: dict | None) -> str:
+    """Fibonacci level immediately above the current H1 price."""
+    if not h1_fib:
+        return "Fibo ?"
+    pct = h1_fib.get("pct_of_range")
+    if not isinstance(pct, (int, float)):
+        return "Fibo ?"
+    ratio = float(pct) / 100.0
+    if ratio < 0.0:
+        return "Fibo <0"
+    for level, text in FIB_LEVELS[1:]:
+        if ratio < level:
+            return f"Fibo <{text}"
+    return "Fibo >1"
+
+
 def compute_tf_state(pair: str, interval: str, length: int, candles: int, max_streak: int, live_price: float) -> TFState | None:
     # Use TradingView's native ATR Renko series. Rebuilding Renko locally from
     # standard OHLC candles produces different ATR box sizes (especially on M)
@@ -740,6 +765,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                     "signaled_at_paris": stamp,
                     "base_pct": row.get("base_pct"),
                     "weighted_pct": row.get("weighted_pct"),
+                    "fib_position": fib_ceiling_label(row.get("h1_fib")),
                 })
                 del tracked[pair]
                 continue
@@ -751,6 +777,8 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 existing["last_px"] = px
                 existing["base_pct"] = row.get("base_pct")
                 existing["weighted_pct"] = row.get("weighted_pct")
+                existing["fib_position"] = fib_ceiling_label(row.get("h1_fib"))
+                existing["fib_pct_of_range"] = (row.get("h1_fib") or {}).get("pct_of_range")
                 continue
 
             # Monthly became Inside or reversed: invalidate the old pool.
@@ -766,6 +794,8 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 "last_px": px,
                 "base_pct": row.get("base_pct"),
                 "weighted_pct": row.get("weighted_pct"),
+                "fib_position": fib_ceiling_label(row.get("h1_fib")),
+                "fib_pct_of_range": (row.get("h1_fib") or {}).get("pct_of_range"),
             }
 
     return {
@@ -808,10 +838,12 @@ def print_vivier_report(state: dict, signals: list[dict]) -> None:
     print("\nVIVIER RENKO")
     print(f"BULL ({len(bull)}): " + (", ".join(pair for pair, _ in bull) or "--"))
     for pair, entry in bull:
-        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {_px_compact(entry.get('last_px'))}")
+        fib = entry.get("fib_position", "Fibo ?")
+        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {fib:<12}  {_px_compact(entry.get('last_px'))}")
     print(f"BEAR ({len(bear)}): " + (", ".join(pair for pair, _ in bear) or "--"))
     for pair, entry in bear:
-        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {_px_compact(entry.get('last_px'))}")
+        fib = entry.get("fib_position", "Fibo ?")
+        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {fib:<12}  {_px_compact(entry.get('last_px'))}")
     if signals:
         print("SIGNAUX VIVIER:")
         for signal in signals:
@@ -1223,7 +1255,8 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         icon = "🟢" if direction == 1 else "🔴"
         for pair, entry in entries:
             score = vivier_base_score(entry)
-            lines.append(f"{icon} {pair} ({score:+.0f}% · {_px_compact(entry.get('last_px'))})")
+            fib = entry.get("fib_position", "Fibo ?").removeprefix("Fibo ")
+            lines.append(f"{icon} {pair} ({score:+.0f}% | {fib})")
         has_content = True
 
     # Message: RENKO FIBO, retournements, suivi VIVIER et horodatage.

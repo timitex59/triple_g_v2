@@ -9,7 +9,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from renko_score_29pairs_v16 import update_vivier, vivier_groups
+from renko_score_29pairs_v16 import (
+    build_telegram_message,
+    fib_ceiling_label,
+    update_vivier,
+    vivier_groups,
+)
 
 
 PARIS = ZoneInfo("Europe/Paris")
@@ -25,6 +30,27 @@ def row(pair, monthly, weekly, daily, weighted_pct=0.0):
 
 
 class VivierStateTests(unittest.TestCase):
+    def test_fibonacci_ceiling_uses_next_level_above_price(self):
+        self.assertEqual(fib_ceiling_label({"pct_of_range": 34.0}), "Fibo <0.382")
+        self.assertEqual(fib_ceiling_label({"pct_of_range": 15.0}), "Fibo <0.236")
+        self.assertEqual(fib_ceiling_label({"pct_of_range": 110.0}), "Fibo >1")
+
+    def test_telegram_vivier_line_is_compact(self):
+        state = {
+            "pairs": {
+                "GBPJPY": {
+                    "direction": 1,
+                    "last_px": {"M": 1, "W": 1, "D": 0},
+                    "fib_position": "Fibo <0.382",
+                }
+            }
+        }
+
+        message = build_telegram_message([], [], vivier_state=state)
+
+        self.assertIn("🟢 GBPJPY (+83% | <0.382)", message)
+        self.assertNotIn("M+ W+ D0", message)
+
     def test_entry_requires_strict_opposition(self):
         rows = [
             row("BULL01", 1, 0, -1),
