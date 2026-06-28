@@ -1,0 +1,615 @@
+//@version=6
+indicator("renko_forex_V17_VIVIER", shorttitle="RF_V17_VIVIER", overlay=true, dynamic_requests=true, max_labels_count=500, max_lines_count=100)
+
+// This indicator mirrors the single-pair VIVIER state machine implemented in
+// renko_score_29pairs_v16.py. Use it on a standard OANDA 1H candlestick chart.
+
+groupRenko = "Renko"
+groupVivier = "VIVIER"
+groupSar = "Parabolic SAR / Flames"
+groupFib = "Fibonacci (Monthly Reset)"
+groupDisplay = "Display"
+groupColors = "Colors"
+
+atrLength = input.int(14, "ATR Length", minval=1, group=groupRenko)
+maxStreakBars = input.int(50, "Max Streak Bricks", minval=5, maxval=200, group=groupRenko)
+priceMode = input.string("H1 Close (Python)", "Price Compared To Renko", options=["H1 Close (Python)", "Daily Live Close"], group=groupRenko)
+
+weightMonthly = input.float(3.0, "Monthly Weight", minval=0.0, group=groupVivier)
+weightWeekly = input.float(2.0, "Weekly Weight", minval=0.0, group=groupVivier)
+weightDaily = input.float(1.0, "Daily Weight", minval=0.0, group=groupVivier)
+vivierMinScore = input.float(33.0, "Minimum Absolute Base Score (%)", minval=0.0, maxval=100.0, step=1.0, group=groupVivier)
+fibMidpointPct = input.float(50.0, "Entry Fibonacci Midpoint (%)", minval=0.0, maxval=100.0, step=1.0, group=groupVivier)
+scoreThreshold = input.float(60.0, "RENKO FIBO Final Score (%)", minval=0.0, maxval=100.0, step=5.0, group=groupVivier)
+
+showSar = input.bool(true, "Show Parabolic SAR", group=groupSar)
+showAllSarCrosses = input.bool(false, "Show All H1 SAR Crosses", group=groupSar)
+sarStart = input.float(0.1, "Start", minval=0.0, group=groupSar)
+sarIncrement = input.float(0.1, "Increment", minval=0.0, group=groupSar)
+sarMaximum = input.float(0.2, "Maximum", minval=0.0, group=groupSar)
+
+showFib = input.bool(true, "Show Fibonacci Levels", group=groupFib)
+fibExtendBars = input.int(60, "Extend Bars", minval=10, maxval=500, group=groupFib)
+showFibLabels = input.bool(true, "Show Fibonacci Labels", group=groupFib)
+showFib236 = input.bool(true, "Show 0.236", group=groupFib)
+showFib382 = input.bool(true, "Show 0.382", group=groupFib)
+showFib500 = input.bool(true, "Show 0.500", group=groupFib)
+showFib618 = input.bool(true, "Show 0.618", group=groupFib)
+showFib786 = input.bool(true, "Show 0.786", group=groupFib)
+showFibExtremes = input.bool(true, "Show 0 and 1", group=groupFib)
+showCarriedObjective = input.bool(true, "Show Carried Objective", group=groupFib)
+
+showEventLabels = input.bool(true, "Show VIVIER Event Labels", group=groupDisplay)
+showAllProcessTouches = input.bool(true, "Show Every Fibo 1/0 Touch During VIVIER", group=groupDisplay)
+showVivierBackground = input.bool(true, "Color Background While In VIVIER", group=groupDisplay)
+tablePosition = input.string("Bottom Right", "Table Position", options=["Top Right", "Top Left", "Bottom Right", "Bottom Left"], group=groupDisplay)
+
+bullColor = input.color(color.new(color.green, 0), "Bull", group=groupColors)
+bearColor = input.color(color.new(color.red, 0), "Bear", group=groupColors)
+neutralColor = input.color(color.new(color.gray, 55), "Neutral", group=groupColors)
+headerColor = input.color(color.new(color.rgb(42, 46, 57), 0), "Header", group=groupColors)
+fibColor = input.color(color.new(color.black, 0), "Fibonacci", group=groupColors)
+fibLowColor = input.color(color.new(color.green, 0), "Fibo 0", group=groupColors)
+fibHighColor = input.color(color.new(color.red, 0), "Fibo 1", group=groupColors)
+carriedObjectiveColor = input.color(color.new(color.blue, 0), "Carried Objective", group=groupColors)
+sarColor = input.color(color.new(color.black, 0), "SAR", group=groupColors)
+
+f_table_position(_position) =>
+    _position == "Top Left" ? position.top_left : _position == "Bottom Right" ? position.bottom_right : _position == "Bottom Left" ? position.bottom_left : position.top_right
+
+f_dir_text(_direction) =>
+    _direction == 1 ? "BULL" : _direction == -1 ? "BEAR" : "MIXED"
+
+f_dir_color(_direction) =>
+    _direction == 1 ? bullColor : _direction == -1 ? bearColor : neutralColor
+
+f_px_symbol(_state) =>
+    _state == 1 ? "+" : _state == -1 ? "-" : "0"
+
+f_px_text(_m, _w, _d) =>
+    "M" + f_px_symbol(_m) + " / W" + f_px_symbol(_w) + " / D" + f_px_symbol(_d)
+
+f_month_key(_year, _month) =>
+    str.tostring(_year) + "-" + (_month < 10 ? "0" : "") + str.tostring(_month)
+
+f_px_state(_renkoOpen, _renkoClose, _price) =>
+    float _high = math.max(_renkoOpen, _renkoClose)
+    float _low = math.min(_renkoOpen, _renkoClose)
+    _price > _high ? 1 : _price < _low ? -1 : 0
+
+f_green_streak(_maxBars) =>
+    int _count = 0
+    for i = 0 to _maxBars - 1
+        if close[i] > open[i]
+            _count += 1
+        else
+            break
+    _count
+
+f_red_streak(_maxBars) =>
+    int _count = 0
+    for i = 0 to _maxBars - 1
+        if close[i] < open[i]
+            _count += 1
+        else
+            break
+    _count
+
+f_streak_low(_maxBars) =>
+    int _direction = close > open ? 1 : close < open ? -1 : 0
+    float _value = na
+    if _direction != 0
+        for i = 0 to _maxBars - 1
+            int _brickDirection = close[i] > open[i] ? 1 : close[i] < open[i] ? -1 : 0
+            if _brickDirection != _direction
+                break
+            float _brickLow = math.min(open[i], close[i])
+            _value := na(_value) ? _brickLow : math.min(_value, _brickLow)
+    _value
+
+f_streak_high(_maxBars) =>
+    int _direction = close > open ? 1 : close < open ? -1 : 0
+    float _value = na
+    if _direction != 0
+        for i = 0 to _maxBars - 1
+            int _brickDirection = close[i] > open[i] ? 1 : close[i] < open[i] ? -1 : 0
+            if _brickDirection != _direction
+                break
+            float _brickHigh = math.max(open[i], close[i])
+            _value := na(_value) ? _brickHigh : math.max(_value, _brickHigh)
+    _value
+
+f_effective_bias(_pxState, _greenStreak, _redStreak) =>
+    _pxState == 1 ? 1 : _pxState == -1 ? -1 : _greenStreak > 0 and _redStreak == 0 ? 1 : _greenStreak == 0 and _redStreak > 0 ? -1 : 0
+
+f_chg_coeff(_chgPct, _direction) =>
+    float _coefficient = 0.0
+    if not na(_chgPct)
+        bool _rightDirection = (_direction == 1 and _chgPct > 0.0) or (_direction == -1 and _chgPct < 0.0)
+        if _rightDirection
+            float _absolute = math.abs(_chgPct)
+            _coefficient := _absolute <= 0.1 ? 0.0 : _absolute <= 0.15 ? 0.5 : _absolute <= 0.2 ? 0.6 : _absolute <= 0.3 ? 0.8 : _absolute <= 0.4 ? 0.9 : _absolute <= 0.5 ? 0.95 : 1.0
+    _coefficient
+
+f_fib_directional_text(_ratio, _direction) =>
+    string _text = "?"
+    if not na(_ratio)
+        if _direction == 1
+            _text := _ratio < 0.0 ? "<0" : _ratio < 0.236 ? "<0.236" : _ratio < 0.382 ? "<0.382" : _ratio < 0.500 ? "<0.500" : _ratio < 0.618 ? "<0.618" : _ratio < 0.786 ? "<0.786" : _ratio < 1.0 ? "<1" : ">1"
+        else if _direction == -1
+            _text := _ratio > 1.0 ? ">1" : _ratio > 0.786 ? ">0.786" : _ratio > 0.618 ? ">0.618" : _ratio > 0.500 ? ">0.500" : _ratio > 0.382 ? ">0.382" : _ratio > 0.236 ? ">0.236" : _ratio > 0.0 ? ">0" : "<0"
+    _text
+
+f_entry_direction(_m, _w, _d, _score, _fibPct) =>
+    int _direction = _m
+    bool _monthlyValid = _direction == 1 or _direction == -1
+    bool _strictOpposition = _monthlyValid and (_w == -_direction or _d == -_direction)
+    bool _alignedWeeklyInsideDaily = _monthlyValid and _w == _direction and _d == 0
+    bool _profileValid = _strictOpposition or _alignedWeeklyInsideDaily
+    bool _scoreValid = not na(_score) and math.abs(_score) >= vivierMinScore
+    bool _fibValid = not na(_fibPct) and ((_direction == 1 and _fibPct <= fibMidpointPct) or (_direction == -1 and _fibPct >= fibMidpointPct))
+    _monthlyValid and _profileValid and _scoreValid and _fibValid ? _direction : 0
+
+f_new_sar_record(_direction, _crossDirection, _sar, _fib500, _record) =>
+    bool _crossValid = _crossDirection == _direction
+    bool _fibValid = _direction == 1 ? _sar < _fib500 : _sar > _fib500
+    bool _recordValid = na(_record) or (_direction == 1 ? _sar < _record : _sar > _record)
+    _crossValid and not na(_sar) and not na(_fib500) and _fibValid and _recordValid
+
+f_update_fib(_line, _label, _enabled, _active, _startTime, _endTime, _price, _ratioText, _lineColor) =>
+    if _enabled and showFib and _active and not na(_startTime) and not na(_price)
+        line.set_xy1(_line, _startTime, _price)
+        line.set_xy2(_line, _endTime, _price)
+        line.set_color(_line, _lineColor)
+        label.set_xy(_label, _endTime, _price)
+        label.set_text(_label, showFibLabels ? _ratioText + "  " + str.tostring(_price, format.mintick) : "")
+        label.set_textcolor(_label, fibColor)
+    else
+        line.set_color(_line, color.new(_lineColor, 100))
+        label.set_text(_label, "")
+
+f_finish_carried_line(_line, _label, _endTime, _suffix, _color) =>
+    if not na(_line)
+        line.set_x2(_line, _endTime)
+        line.set_extend(_line, extend.none)
+        line.set_color(_line, _color)
+    if not na(_label)
+        label.set_text(_label, "OBJECTIF REPORTE " + _suffix)
+        label.set_textcolor(_label, _color)
+
+// Standard OHLC is requested explicitly so calculations do not inherit a
+// non-standard chart's synthetic candles.
+baseTicker = ticker.new(syminfo.prefix, syminfo.ticker)
+[h1Open, h1High, h1Low, h1Close, h1Time, sarValue] = request.security(baseTicker, "60", [open, high, low, close, time, ta.sar(sarStart, sarIncrement, sarMaximum)], barmerge.gaps_off, barmerge.lookahead_off)
+[dailyLiveClose, previousDailyClose] = request.security(baseTicker, "D", [close, close[1]], barmerge.gaps_off, barmerge.lookahead_off)
+dailyChgPct = request.security(baseTicker, "D", close[1] != 0.0 ? (close - close[1]) / close[1] * 100.0 : float(na), barmerge.gaps_off, barmerge.lookahead_off)
+
+renkoTicker = ticker.renko(baseTicker, "ATR", atrLength)
+[renkoOpenM, renkoCloseM, greenM, redM, streakLowM, streakHighM] = request.security(renkoTicker, "M", [open, close, f_green_streak(maxStreakBars), f_red_streak(maxStreakBars), f_streak_low(maxStreakBars), f_streak_high(maxStreakBars)], barmerge.gaps_off, barmerge.lookahead_off)
+[renkoOpenW, renkoCloseW, greenW, redW, streakLowW, streakHighW] = request.security(renkoTicker, "W", [open, close, f_green_streak(maxStreakBars), f_red_streak(maxStreakBars), f_streak_low(maxStreakBars), f_streak_high(maxStreakBars)], barmerge.gaps_off, barmerge.lookahead_off)
+[renkoOpenD, renkoCloseD, greenD, redD, streakLowD, streakHighD] = request.security(renkoTicker, "D", [open, close, f_green_streak(maxStreakBars), f_red_streak(maxStreakBars), f_streak_low(maxStreakBars), f_streak_high(maxStreakBars)], barmerge.gaps_off, barmerge.lookahead_off)
+
+referencePrice = priceMode == "Daily Live Close" ? dailyLiveClose : h1Close
+dataReady = not na(referencePrice) and not na(renkoOpenM) and not na(renkoCloseM) and not na(renkoOpenW) and not na(renkoCloseW) and not na(renkoOpenD) and not na(renkoCloseD)
+
+pxM = dataReady ? f_px_state(renkoOpenM, renkoCloseM, referencePrice) : 0
+pxW = dataReady ? f_px_state(renkoOpenW, renkoCloseW, referencePrice) : 0
+pxD = dataReady ? f_px_state(renkoOpenD, renkoCloseD, referencePrice) : 0
+
+biasM = dataReady ? f_effective_bias(pxM, greenM, redM) : 0
+biasW = dataReady ? f_effective_bias(pxW, greenW, redW) : 0
+biasD = dataReady ? f_effective_bias(pxD, greenD, redD) : 0
+signalState = biasM == 1 and biasW == 1 and biasD == 1 ? 1 : biasM == -1 and biasW == -1 and biasD == -1 ? -1 : 0
+
+maxScore = weightMonthly + weightWeekly + weightDaily
+baseScorePct = dataReady and maxScore != 0.0 ? (pxM * weightMonthly + pxW * weightWeekly + pxD * weightDaily) / maxScore * 100.0 : na
+coefficientDirection = signalState != 0 ? signalState : not na(baseScorePct) and baseScorePct >= 0.0 ? 1 : -1
+chgCoefficient = f_chg_coeff(dailyChgPct, coefficientDirection)
+finalScorePct = na(baseScorePct) ? na : baseScorePct * chgCoefficient
+
+strictBull = greenM >= 1 and greenW >= 1 and greenD >= 2 and pxM >= 0 and pxW == 1 and pxD == 1
+strictBear = redM >= 1 and redW >= 1 and redD >= 2 and pxM <= 0 and pxW == -1 and pxD == -1
+confirmedBull = signalState == 1 and strictBull and not na(finalScorePct) and finalScorePct >= scoreThreshold
+confirmedBear = signalState == -1 and strictBear and not na(finalScorePct) and finalScorePct <= -scoreThreshold
+confirmedState = confirmedBull ? 1 : confirmedBear ? -1 : 0
+
+// Monthly-reset Fibonacci, calculated from standard H1 candles. Python uses
+// the UTC calendar month, not the broker's Forex monthly-session boundary.
+utcMonth = month(h1Time, "UTC+0")
+utcYear = year(h1Time, "UTC+0")
+currentMonthKey = f_month_key(utcYear, utcMonth)
+newMonth = na(h1Time[1]) or utcMonth != month(h1Time[1], "UTC+0") or utcYear != year(h1Time[1], "UTC+0")
+var float fibMonthHigh = na
+var float fibMonthLow = na
+var int fibMonthStartTime = na
+float fibHighBefore = newMonth ? na : fibMonthHigh
+float fibLowBefore = newMonth ? na : fibMonthLow
+if newMonth or na(fibMonthHigh)
+    fibMonthHigh := h1High
+    fibMonthLow := h1Low
+    fibMonthStartTime := h1Time
+else
+    fibMonthHigh := math.max(fibMonthHigh, h1High)
+    fibMonthLow := math.min(fibMonthLow, h1Low)
+
+fibRange = fibMonthHigh - fibMonthLow
+fibActive = not na(fibRange) and fibRange > 0.0
+fib0 = fibMonthLow
+fib1 = fibMonthHigh
+fib236 = fib0 + fibRange * 0.236
+fib382 = fib0 + fibRange * 0.382
+fib500 = fib0 + fibRange * 0.500
+fib618 = fib0 + fibRange * 0.618
+fib786 = fib0 + fibRange * 0.786
+fibRatio = fibActive ? (h1Close - fib0) / fibRange : na
+fibPct = fibRatio * 100.0
+fibEndTime = h1Time + 60 * 60 * 1000 * fibExtendBars
+
+sarDirection = h1Close > sarValue ? 1 : h1Close < sarValue ? -1 : 0
+sarCrossBull = ta.crossover(h1Close, sarValue)
+sarCrossBear = ta.crossunder(h1Close, sarValue)
+sarCrossDirection = sarCrossBull ? 1 : sarCrossBear ? -1 : 0
+
+h1BeyondBull = h1Close > streakHighM and h1Close > streakHighW and h1Close > streakHighD
+h1BeyondBear = h1Close < streakLowM and h1Close < streakLowW and h1Close < streakLowD
+renkoFiboBull = confirmedState == 1 and h1BeyondBull and sarDirection == 1
+renkoFiboBear = confirmedState == -1 and h1BeyondBear and sarDirection == -1
+
+timeframeOk = timeframe.in_seconds(timeframe.period) == 3600
+processBar = timeframeOk and barstate.isconfirmed and dataReady and fibActive
+
+// Persistent single-pair VIVIER state.
+var int vivierDirection = 0
+var float sarRecord = na
+var int flameCount = 0
+var int fib1TouchCount = 0
+var int fib0TouchCount = 0
+var string lastEvent = "AUCUN"
+var float fibObjective = na
+var int fibObjectiveDirection = 0
+var string fibObjectiveOriginMonth = ""
+var bool fibObjectiveCarried = false
+var bool postAlignmentObjective = false
+var line carriedObjectiveLine = na
+var label carriedObjectiveLabel = na
+
+bool entryEvent = false
+int entryEventDirection = 0
+bool invalidExitEvent = false
+int invalidExitDirection = 0
+bool alignmentEvent = false
+int alignmentEventDirection = 0
+bool renkoFiboTransitionEvent = false
+bool flameEvent = false
+int flameEventDirection = 0
+bool initialFlameEvent = false
+bool fibTouchEvent = false
+int fibTouchDirection = 0
+float fibTouchLevel = na
+bool fibResetEvent = false
+bool objectiveCarryEvent = false
+float objectiveCarryLevel = na
+int objectiveCarryDirection = 0
+bool objectiveTouchEvent = false
+bool objectiveTouchWasCarried = false
+float objectiveTouchLevel = na
+int objectiveTouchDirection = 0
+bool postObjectiveCreatedEvent = false
+bool postObjectiveReachedEvent = false
+bool postObjectiveCanceledEvent = false
+bool postObjectiveReattachedEvent = false
+int postObjectiveEventDirection = 0
+float postObjectiveEventLevel = na
+
+if processBar
+    if vivierDirection != 0
+        int activeDirection = vivierDirection
+        bool fullAlignment = pxM == activeDirection and pxW == activeDirection and pxD == activeDirection
+        if fullAlignment
+            alignmentEvent := true
+            alignmentEventDirection := activeDirection
+            renkoFiboTransitionEvent := activeDirection == 1 ? renkoFiboBull : renkoFiboBear
+            lastEvent := renkoFiboTransitionEvent ? "VIVIER -> RENKO FIBO " + f_dir_text(activeDirection) : "ALIGNEMENT " + f_dir_text(activeDirection)
+            if not na(fibObjective)
+                postAlignmentObjective := true
+                fibObjectiveCarried := true
+                postObjectiveCreatedEvent := true
+                postObjectiveEventDirection := activeDirection
+                postObjectiveEventLevel := fibObjective
+                if showCarriedObjective
+                    if na(carriedObjectiveLine)
+                        carriedObjectiveLine := line.new(h1Time, fibObjective, h1Time + 60 * 60 * 1000, fibObjective, xloc=xloc.bar_time, extend=extend.right, color=carriedObjectiveColor, style=line.style_dashed, width=2)
+                        carriedObjectiveLabel := label.new(h1Time, fibObjective, "OBJECTIF POST-ALIGNEMENT\n" + f_dir_text(activeDirection) + " " + str.tostring(fibObjective, format.mintick) + "\nOrigine " + fibObjectiveOriginMonth, xloc=xloc.bar_time, yloc=yloc.price, style=label.style_label_left, color=color.new(color.white, 100), textcolor=carriedObjectiveColor, size=size.small)
+                    else if not na(carriedObjectiveLabel)
+                        label.set_text(carriedObjectiveLabel, "OBJECTIF POST-ALIGNEMENT\n" + f_dir_text(activeDirection) + " " + str.tostring(fibObjective, format.mintick) + "\nOrigine " + fibObjectiveOriginMonth)
+            vivierDirection := 0
+            sarRecord := na
+        else if pxM == activeDirection and math.abs(baseScorePct) >= vivierMinScore
+            if newMonth and not na(fibObjective) and not fibObjectiveCarried
+                fibObjectiveCarried := true
+                objectiveCarryEvent := true
+                objectiveCarryLevel := fibObjective
+                objectiveCarryDirection := activeDirection
+                lastEvent := "OBJECTIF " + (activeDirection == 1 ? "FIB 1" : "FIB 0") + " REPORTE"
+                if showCarriedObjective
+                    carriedObjectiveLine := line.new(h1Time, fibObjective, h1Time + 60 * 60 * 1000, fibObjective, xloc=xloc.bar_time, extend=extend.right, color=carriedObjectiveColor, style=line.style_dashed, width=2)
+                    carriedObjectiveLabel := label.new(h1Time, fibObjective, "OBJECTIF REPORTE\n" + f_dir_text(activeDirection) + " " + str.tostring(fibObjective, format.mintick) + "\nOrigine " + fibObjectiveOriginMonth, xloc=xloc.bar_time, yloc=yloc.price, style=label.style_label_left, color=color.new(color.white, 100), textcolor=carriedObjectiveColor, size=size.small)
+
+            bool touchedCurrentExtreme = activeDirection == 1 ? not na(fibHighBefore) and h1High >= fibHighBefore : not na(fibLowBefore) and h1Low <= fibLowBefore
+            bool touchedObjective = activeDirection == 1 ? not na(fibObjective) and h1High >= fibObjective : not na(fibObjective) and h1Low <= fibObjective
+            if touchedCurrentExtreme
+                fibTouchEvent := true
+                fibTouchDirection := activeDirection
+                fibTouchLevel := activeDirection == 1 ? fibHighBefore : fibLowBefore
+                if activeDirection == 1
+                    fib1TouchCount += 1
+                else
+                    fib0TouchCount += 1
+                lastEvent := activeDirection == 1 ? "FIB 1 TOUCH" : "FIB 0 TOUCH"
+
+            if touchedObjective
+                objectiveTouchEvent := true
+                objectiveTouchWasCarried := fibObjectiveCarried
+                objectiveTouchLevel := fibObjective
+                objectiveTouchDirection := activeDirection
+                if not na(sarRecord)
+                    fibResetEvent := true
+                    sarRecord := na
+                lastEvent := (objectiveTouchWasCarried ? "OBJECTIF REPORTE TOUCHE" : "OBJECTIF TOUCHE") + (fibResetEvent ? " - FLAMME REARMEE" : "")
+                f_finish_carried_line(carriedObjectiveLine, carriedObjectiveLabel, h1Time, "ATTEINT", carriedObjectiveColor)
+                carriedObjectiveLine := na
+                carriedObjectiveLabel := na
+                fibObjective := na
+                fibObjectiveDirection := 0
+                fibObjectiveCarried := false
+                postAlignmentObjective := false
+
+            if not touchedObjective and f_new_sar_record(activeDirection, sarCrossDirection, sarValue, fib500, sarRecord)
+                initialFlameEvent := na(sarRecord)
+                sarRecord := sarValue
+                flameCount += 1
+                flameEvent := true
+                flameEventDirection := activeDirection
+                if na(fibObjective)
+                    fibObjective := activeDirection == 1 ? fib1 : fib0
+                    fibObjectiveDirection := activeDirection
+                    fibObjectiveOriginMonth := currentMonthKey
+                    fibObjectiveCarried := false
+                lastEvent := (initialFlameEvent ? "FLAMME INITIALE " : "FLAMME RECORD ") + f_dir_text(activeDirection)
+        else
+            invalidExitEvent := true
+            invalidExitDirection := activeDirection
+            lastEvent := pxM != activeDirection ? "SORTIE: MONTHLY INVALIDE" : "SORTIE: SCORE < " + str.tostring(vivierMinScore, "#") + "%"
+            f_finish_carried_line(carriedObjectiveLine, carriedObjectiveLabel, h1Time, "ANNULE", neutralColor)
+            carriedObjectiveLine := na
+            carriedObjectiveLabel := na
+            vivierDirection := 0
+            sarRecord := na
+            fibObjective := na
+            fibObjectiveDirection := 0
+            fibObjectiveCarried := false
+            postAlignmentObjective := false
+
+    if vivierDirection == 0 and postAlignmentObjective and not na(fibObjective)
+        bool postMonthlyValid = pxM == fibObjectiveDirection
+        bool postTargetTouched = fibObjectiveDirection == 1 ? h1High >= fibObjective : h1Low <= fibObjective
+        if not postMonthlyValid
+            postObjectiveCanceledEvent := true
+            postObjectiveEventDirection := fibObjectiveDirection
+            postObjectiveEventLevel := fibObjective
+            lastEvent := "OBJECTIF POST-ALIGNEMENT ANNULE"
+            f_finish_carried_line(carriedObjectiveLine, carriedObjectiveLabel, h1Time, "ANNULE", neutralColor)
+            carriedObjectiveLine := na
+            carriedObjectiveLabel := na
+            fibObjective := na
+            fibObjectiveDirection := 0
+            fibObjectiveCarried := false
+            postAlignmentObjective := false
+        else if postTargetTouched
+            postObjectiveReachedEvent := true
+            postObjectiveEventDirection := fibObjectiveDirection
+            postObjectiveEventLevel := fibObjective
+            lastEvent := "OBJECTIF POST-SIGNAL ATTEINT"
+            f_finish_carried_line(carriedObjectiveLine, carriedObjectiveLabel, h1Time, "ATTEINT", carriedObjectiveColor)
+            carriedObjectiveLine := na
+            carriedObjectiveLabel := na
+            fibObjective := na
+            fibObjectiveDirection := 0
+            fibObjectiveCarried := false
+            postAlignmentObjective := false
+
+    // Python can switch directly to the opposite pool after invalidating the
+    // previous direction, but never re-enters on the alignment event itself.
+    if vivierDirection == 0 and not alignmentEvent
+        int candidateDirection = f_entry_direction(pxM, pxW, pxD, baseScorePct, fibPct)
+        if candidateDirection != 0
+            bool reusePostObjective = postAlignmentObjective and fibObjectiveDirection == candidateDirection and not na(fibObjective)
+            vivierDirection := candidateDirection
+            entryEvent := true
+            entryEventDirection := candidateDirection
+            sarRecord := na
+            flameCount := 0
+            fib1TouchCount := 0
+            fib0TouchCount := 0
+            if reusePostObjective
+                postAlignmentObjective := false
+                postObjectiveReattachedEvent := true
+                postObjectiveEventDirection := candidateDirection
+                postObjectiveEventLevel := fibObjective
+                fibObjectiveCarried := true
+                if not na(carriedObjectiveLabel)
+                    label.set_text(carriedObjectiveLabel, "OBJECTIF REATTACHE AU VIVIER\n" + f_dir_text(candidateDirection) + " " + str.tostring(fibObjective, format.mintick) + "\nOrigine " + fibObjectiveOriginMonth)
+                lastEvent := "REENTREE + OBJECTIF REATTACHE " + f_dir_text(candidateDirection)
+            else
+                fibObjective := candidateDirection == 1 ? fib1 : fib0
+                fibObjectiveDirection := candidateDirection
+                fibObjectiveOriginMonth := currentMonthKey
+                fibObjectiveCarried := false
+                postAlignmentObjective := false
+                carriedObjectiveLine := na
+                carriedObjectiveLabel := na
+                lastEvent := "ENTREE VIVIER " + f_dir_text(candidateDirection)
+            if f_new_sar_record(candidateDirection, sarCrossDirection, sarValue, fib500, sarRecord)
+                initialFlameEvent := true
+                sarRecord := sarValue
+                flameCount += 1
+                flameEvent := true
+                flameEventDirection := candidateDirection
+                lastEvent := "ENTREE + FLAMME " + f_dir_text(candidateDirection)
+
+candidateDirectionNow = f_entry_direction(pxM, pxW, pxD, baseScorePct, fibPct)
+displayDirection = vivierDirection != 0 ? vivierDirection : postAlignmentObjective ? fibObjectiveDirection : pxM
+fibDirectionalText = f_fib_directional_text(fibRatio, displayDirection)
+sameFibAndObjectiveTouch = fibTouchEvent and objectiveTouchEvent and math.abs(fibTouchLevel - objectiveTouchLevel) <= syminfo.mintick
+
+plot(showSar ? sarValue : na, "H1 SAR", style=plot.style_line, color=sarColor, linewidth=2)
+plotshape(showAllSarCrosses and sarCrossBull and barstate.isconfirmed, "SAR Crossover", shape.triangleup, location.belowbar, color=color.new(bullColor, 45), size=size.tiny, text="SAR+")
+plotshape(showAllSarCrosses and sarCrossBear and barstate.isconfirmed, "SAR Crossunder", shape.triangledown, location.abovebar, color=color.new(bearColor, 45), size=size.tiny, text="SAR-")
+bgcolor(showVivierBackground ? vivierDirection == 1 ? color.new(bullColor, 92) : vivierDirection == -1 ? color.new(bearColor, 92) : postAlignmentObjective ? color.new(carriedObjectiveColor, 94) : na : na, title="VIVIER Background")
+
+if showEventLabels and entryEvent
+    float entryY = entryEventDirection == 1 ? h1Low : h1High
+    string reattachedText = postObjectiveReattachedEvent ? "\nOBJECTIF POST-SIGNAL REATTACHE" : ""
+    label.new(bar_index, entryY, "VIVIER " + f_dir_text(entryEventDirection) + "\n" + f_px_text(pxM, pxW, pxD) + " | " + f_fib_directional_text(fibRatio, entryEventDirection) + reattachedText, yloc=yloc.price, style=entryEventDirection == 1 ? label.style_label_up : label.style_label_down, color=f_dir_color(entryEventDirection), textcolor=color.white, size=size.small)
+
+if showEventLabels and flameEvent
+    string flameName = initialFlameEvent ? "FLAMME INITIALE " : "FLAMME RECORD "
+    label.new(bar_index, sarValue, flameName + f_dir_text(flameEventDirection) + "\nSAR " + str.tostring(sarValue, format.mintick), yloc=yloc.price, style=flameEventDirection == 1 ? label.style_label_up : label.style_label_down, color=color.new(color.orange, 0), textcolor=color.white, size=size.small)
+
+if showEventLabels and showAllProcessTouches and fibTouchEvent and not sameFibAndObjectiveTouch
+    string touchName = fibTouchDirection == 1 ? "FIB 1 TOUCH" : "FIB 0 TOUCH"
+    label.new(bar_index, fibTouchLevel, touchName + "\n" + str.tostring(fibTouchLevel, format.mintick), yloc=yloc.price, style=fibTouchDirection == 1 ? label.style_label_down : label.style_label_up, color=color.new(color.yellow, 0), textcolor=color.black, size=size.tiny)
+
+if showEventLabels and objectiveTouchEvent
+    string objectiveName = objectiveTouchWasCarried ? "OBJECTIF REPORTE ATTEINT" : "OBJECTIF ATTEINT"
+    string objectiveResetText = fibResetEvent ? "\nREARMEMENT FLAMME" : ""
+    label.new(bar_index, objectiveTouchLevel, objectiveName + objectiveResetText + "\n" + str.tostring(objectiveTouchLevel, format.mintick), yloc=yloc.price, style=objectiveTouchDirection == -1 ? label.style_label_up : label.style_label_down, color=objectiveTouchWasCarried ? carriedObjectiveColor : color.orange, textcolor=color.white, size=size.small)
+
+if showEventLabels and postObjectiveReachedEvent
+    label.new(bar_index, postObjectiveEventLevel, "OBJECTIF POST-SIGNAL ATTEINT\n" + f_dir_text(postObjectiveEventDirection) + " " + str.tostring(postObjectiveEventLevel, format.mintick), yloc=yloc.price, style=postObjectiveEventDirection == -1 ? label.style_label_up : label.style_label_down, color=carriedObjectiveColor, textcolor=color.white, size=size.normal)
+
+if showEventLabels and postObjectiveCanceledEvent
+    label.new(bar_index, h1Close, "OBJECTIF POST-SIGNAL ANNULE\nMONTHLY INVALIDE", yloc=yloc.price, style=label.style_label_left, color=neutralColor, textcolor=color.white, size=size.small)
+
+if showEventLabels and alignmentEvent
+    string alignmentText = renkoFiboTransitionEvent ? "VIVIER -> RENKO FIBO" : "ALIGNEMENT COMPLET"
+    string postTrackingText = postObjectiveReachedEvent ? "\nOBJECTIF ATTEINT" : postObjectiveCreatedEvent ? "\nOBJECTIF CONSERVE" : ""
+    label.new(bar_index, h1Close, alignmentText + "\n" + f_dir_text(alignmentEventDirection) + postTrackingText, yloc=yloc.price, style=alignmentEventDirection == 1 ? label.style_label_up : label.style_label_down, color=renkoFiboTransitionEvent ? color.new(color.blue, 0) : f_dir_color(alignmentEventDirection), textcolor=color.white, size=size.normal)
+
+if showEventLabels and invalidExitEvent
+    label.new(bar_index, h1Close, "SORTIE VIVIER " + f_dir_text(invalidExitDirection) + "\nINVALIDE", yloc=yloc.price, style=label.style_label_left, color=neutralColor, textcolor=color.white, size=size.tiny)
+
+var line fibLine0 = line.new(na, na, na, na, xloc=xloc.bar_time, color=fibLowColor, style=line.style_dotted, width=2)
+var line fibLine236 = line.new(na, na, na, na, xloc=xloc.bar_time, color=fibColor, style=line.style_dotted, width=2)
+var line fibLine382 = line.new(na, na, na, na, xloc=xloc.bar_time, color=fibColor, style=line.style_dotted, width=2)
+var line fibLine500 = line.new(na, na, na, na, xloc=xloc.bar_time, color=fibColor, style=line.style_dotted, width=2)
+var line fibLine618 = line.new(na, na, na, na, xloc=xloc.bar_time, color=fibColor, style=line.style_dotted, width=2)
+var line fibLine786 = line.new(na, na, na, na, xloc=xloc.bar_time, color=fibColor, style=line.style_dotted, width=2)
+var line fibLine1 = line.new(na, na, na, na, xloc=xloc.bar_time, color=fibHighColor, style=line.style_dotted, width=2)
+var label fibLabel0 = label.new(na, na, "", xloc=xloc.bar_time, style=label.style_label_left, color=color.new(color.white, 100), size=size.small)
+var label fibLabel236 = label.new(na, na, "", xloc=xloc.bar_time, style=label.style_label_left, color=color.new(color.white, 100), size=size.small)
+var label fibLabel382 = label.new(na, na, "", xloc=xloc.bar_time, style=label.style_label_left, color=color.new(color.white, 100), size=size.small)
+var label fibLabel500 = label.new(na, na, "", xloc=xloc.bar_time, style=label.style_label_left, color=color.new(color.white, 100), size=size.small)
+var label fibLabel618 = label.new(na, na, "", xloc=xloc.bar_time, style=label.style_label_left, color=color.new(color.white, 100), size=size.small)
+var label fibLabel786 = label.new(na, na, "", xloc=xloc.bar_time, style=label.style_label_left, color=color.new(color.white, 100), size=size.small)
+var label fibLabel1 = label.new(na, na, "", xloc=xloc.bar_time, style=label.style_label_left, color=color.new(color.white, 100), size=size.small)
+
+if barstate.islast
+    f_update_fib(fibLine0, fibLabel0, showFibExtremes, fibActive, fibMonthStartTime, fibEndTime, fib0, "0", fibLowColor)
+    f_update_fib(fibLine236, fibLabel236, showFib236, fibActive, fibMonthStartTime, fibEndTime, fib236, "0.236", fibColor)
+    f_update_fib(fibLine382, fibLabel382, showFib382, fibActive, fibMonthStartTime, fibEndTime, fib382, "0.382", fibColor)
+    f_update_fib(fibLine500, fibLabel500, showFib500, fibActive, fibMonthStartTime, fibEndTime, fib500, "0.500", fibColor)
+    f_update_fib(fibLine618, fibLabel618, showFib618, fibActive, fibMonthStartTime, fibEndTime, fib618, "0.618", fibColor)
+    f_update_fib(fibLine786, fibLabel786, showFib786, fibActive, fibMonthStartTime, fibEndTime, fib786, "0.786", fibColor)
+    f_update_fib(fibLine1, fibLabel1, showFibExtremes, fibActive, fibMonthStartTime, fibEndTime, fib1, "1", fibHighColor)
+
+var table vivierTable = table.new(f_table_position(tablePosition), 4, 8, border_width=1, frame_color=color.white, border_color=color.gray)
+if barstate.isfirst
+    table.merge_cells(vivierTable, 1, 6, 3, 6)
+if barstate.islast
+    string statusText = vivierDirection != 0 ? "VIVIER " + f_dir_text(vivierDirection) : postAlignmentObjective ? "SUIVI POST-ALIGNEMENT " + f_dir_text(fibObjectiveDirection) : "HORS VIVIER"
+    color statusColor = vivierDirection != 0 ? f_dir_color(vivierDirection) : postAlignmentObjective ? carriedObjectiveColor : neutralColor
+    string candidateText = candidateDirectionNow == 0 ? "NON" : "OUI " + f_dir_text(candidateDirectionNow)
+    color candidateColor = candidateDirectionNow == 0 ? neutralColor : f_dir_color(candidateDirectionNow)
+    string scoreText = na(baseScorePct) ? "?" : (baseScorePct >= 0.0 ? "+" : "") + str.tostring(baseScorePct, "#.0") + "%"
+    string fibText = na(fibPct) ? "?" : str.tostring(fibPct, "#.0") + "% | " + fibDirectionalText
+    string recordText = na(sarRecord) ? "AUCUN" : str.tostring(sarRecord, format.mintick)
+    string objectiveText = na(fibObjective) ? "AUCUN" : (postAlignmentObjective ? "POST-SIGNAL " : fibObjectiveCarried ? "REPORTE " : "ACTIF ") + str.tostring(fibObjective, format.mintick)
+    color objectiveColor = na(fibObjective) ? neutralColor : fibObjectiveCarried ? carriedObjectiveColor : color.orange
+    string confluenceText = renkoFiboBull ? "RENKO FIBO BULL" : renkoFiboBear ? "RENKO FIBO BEAR" : "NON"
+    color confluenceColor = renkoFiboBull ? bullColor : renkoFiboBear ? bearColor : neutralColor
+
+    table.cell(vivierTable, 0, 0, "STATUT", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 0, statusText, bgcolor=statusColor, text_color=color.white)
+    table.cell(vivierTable, 2, 0, "M/W/D", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 3, 0, f_px_text(pxM, pxW, pxD), bgcolor=neutralColor, text_color=color.white)
+
+    table.cell(vivierTable, 0, 1, "ENTREE", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 1, candidateText, bgcolor=candidateColor, text_color=color.white)
+    table.cell(vivierTable, 2, 1, "SCORE", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 3, 1, scoreText, bgcolor=f_dir_color(baseScorePct > 0 ? 1 : baseScorePct < 0 ? -1 : 0), text_color=color.white)
+
+    table.cell(vivierTable, 0, 2, "FIBO", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 2, fibText, bgcolor=neutralColor, text_color=color.white)
+    table.cell(vivierTable, 2, 2, "SAR", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 3, 2, f_dir_text(sarDirection), bgcolor=f_dir_color(sarDirection), text_color=color.white)
+
+    table.cell(vivierTable, 0, 3, "RECORD", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 3, recordText, bgcolor=na(sarRecord) ? neutralColor : color.orange, text_color=color.white)
+    table.cell(vivierTable, 2, 3, "FLAMMES", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 3, 3, str.tostring(flameCount), bgcolor=neutralColor, text_color=color.white)
+
+    table.cell(vivierTable, 0, 4, "OBJECTIF", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 4, objectiveText, bgcolor=objectiveColor, text_color=color.white)
+    table.cell(vivierTable, 2, 4, "ORIGINE", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 3, 4, na(fibObjective) or fibObjectiveOriginMonth == "" ? "-" : fibObjectiveOriginMonth, bgcolor=neutralColor, text_color=color.white)
+
+    table.cell(vivierTable, 0, 5, "TOUCHES", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 5, "F1 " + str.tostring(fib1TouchCount) + " | F0 " + str.tostring(fib0TouchCount), bgcolor=neutralColor, text_color=color.white)
+    table.cell(vivierTable, 2, 5, "CONFLUENCE", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 3, 5, confluenceText, bgcolor=confluenceColor, text_color=color.white)
+
+    table.cell(vivierTable, 0, 6, "EVENEMENT", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 6, lastEvent, bgcolor=neutralColor, text_color=color.white)
+
+    table.cell(vivierTable, 0, 7, "CHART", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 7, timeframeOk ? "1H OK" : "UTILISER LE 1H", bgcolor=timeframeOk ? color.new(bullColor, 35) : bearColor, text_color=color.white)
+    table.cell(vivierTable, 2, 7, "CLOTURE", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 3, 7, barstate.isconfirmed ? "CONFIRMEE" : "EN COURS", bgcolor=barstate.isconfirmed ? color.new(bullColor, 35) : neutralColor, text_color=color.white)
+
+alertcondition(entryEvent, "VIVIER Entry", "{{ticker}} entered the VIVIER.")
+alertcondition(flameEvent, "VIVIER SAR Flame", "{{ticker}} printed a new VIVIER SAR record flame.")
+alertcondition(objectiveCarryEvent, "VIVIER Objective Carried", "{{ticker}} carried its untouched Fibonacci objective into a new UTC month.")
+alertcondition(objectiveTouchEvent, "VIVIER Objective Reached", "{{ticker}} reached its active or carried Fibonacci objective.")
+alertcondition(postObjectiveCreatedEvent, "Post-Alignment Objective Started", "{{ticker}} kept its untouched objective after full alignment.")
+alertcondition(postObjectiveReachedEvent, "Post-Alignment Objective Reached", "{{ticker}} reached its post-alignment objective.")
+alertcondition(postObjectiveCanceledEvent, "Post-Alignment Objective Canceled", "{{ticker}} invalidated its post-alignment objective.")
+alertcondition(postObjectiveReattachedEvent, "Post-Alignment Objective Reattached", "{{ticker}} reattached its post-alignment objective to a new VIVIER cycle.")
+alertcondition(fibResetEvent, "VIVIER Fibonacci Rearm", "{{ticker}} touched directional Fibo 1/0 and rearmed the first flame.")
+alertcondition(alignmentEvent, "VIVIER Alignment", "{{ticker}} left the VIVIER through full M/W/D alignment.")
+alertcondition(renkoFiboTransitionEvent, "VIVIER to RENKO FIBO", "{{ticker}} moved directly from VIVIER to RENKO FIBO.")
+alertcondition(invalidExitEvent, "VIVIER Invalid Exit", "{{ticker}} left the VIVIER after invalidation.")
+
+if processBar
+    if entryEvent
+        alert(syminfo.ticker + " ENTREE VIVIER " + f_dir_text(entryEventDirection) + " | " + f_fib_directional_text(fibRatio, entryEventDirection), alert.freq_once_per_bar_close)
+    if flameEvent
+        alert(syminfo.ticker + " FLAMME " + f_dir_text(flameEventDirection) + " | SAR " + str.tostring(sarValue, format.mintick), alert.freq_once_per_bar_close)
+    if objectiveCarryEvent
+        alert(syminfo.ticker + " OBJECTIF " + (objectiveCarryDirection == -1 ? "FIB 0" : "FIB 1") + " REPORTE | " + str.tostring(objectiveCarryLevel, format.mintick), alert.freq_once_per_bar_close)
+    if objectiveTouchEvent
+        alert(syminfo.ticker + " OBJECTIF " + (objectiveTouchWasCarried ? "REPORTE " : "") + "ATTEINT | " + str.tostring(objectiveTouchLevel, format.mintick) + (fibResetEvent ? " | REARMEMENT FLAMME" : ""), alert.freq_once_per_bar_close)
+    if postObjectiveCreatedEvent
+        alert(syminfo.ticker + " OBJECTIF CONSERVE APRES ALIGNEMENT | " + str.tostring(postObjectiveEventLevel, format.mintick), alert.freq_once_per_bar_close)
+    if postObjectiveReachedEvent
+        alert(syminfo.ticker + " OBJECTIF POST-SIGNAL ATTEINT | " + str.tostring(postObjectiveEventLevel, format.mintick), alert.freq_once_per_bar_close)
+    if postObjectiveCanceledEvent
+        alert(syminfo.ticker + " OBJECTIF POST-SIGNAL ANNULE | MONTHLY INVALIDE", alert.freq_once_per_bar_close)
+    if postObjectiveReattachedEvent
+        alert(syminfo.ticker + " OBJECTIF POST-SIGNAL REATTACHE AU VIVIER", alert.freq_once_per_bar_close)
+    if fibResetEvent
+        alert(syminfo.ticker + (objectiveTouchDirection == 1 ? " FIB 1 TOUCH" : " FIB 0 TOUCH") + " | REARMEMENT FLAMME", alert.freq_once_per_bar_close)
+    if alignmentEvent
+        alert(syminfo.ticker + (renkoFiboTransitionEvent ? " VIVIER -> RENKO FIBO " : " ALIGNEMENT ") + f_dir_text(alignmentEventDirection), alert.freq_once_per_bar_close)
+    if invalidExitEvent
+        alert(syminfo.ticker + " SORTIE VIVIER INVALIDE", alert.freq_once_per_bar_close)

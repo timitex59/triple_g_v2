@@ -41,6 +41,7 @@ CHG_THRESHOLD = 0.1
 CONFIRMED_MIN_STREAKS = {"M": 1, "W": 1, "D": 2}
 VIVIER_MIN_ABS_BASE_SCORE = 33.0
 VIVIER_FIB_MIDPOINT_PCT = 50.0
+VIVIER_STATE_VERSION = 2
 VIVIER_STATE_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
     "renko_score_29pairs_vivier_state.json",
@@ -476,6 +477,7 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
 
     month_high = float(month_df["high"].max())
     month_low = float(month_df["low"].min())
+    month_utc = month_start.strftime("%Y-%m")
     fib_range = month_high - month_low
     if fib_range <= 0:
         return None
@@ -503,15 +505,16 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
         before_closed = closed_df[
             (closed_df.index >= closed_month_start) & (closed_df.index < closed_ts)
         ]
+        closed_extreme = {
+            "time_utc": (closed_ts + pd.Timedelta(hours=1)).isoformat(),
+            "bar_time_utc": closed_ts.isoformat(),
+            "month_utc": closed_month_start.strftime("%Y-%m"),
+            "high": float(closed_df["high"].iloc[-1]),
+            "low": float(closed_df["low"].iloc[-1]),
+        }
         if not before_closed.empty:
-            closed_extreme = {
-                "time_utc": (closed_ts + pd.Timedelta(hours=1)).isoformat(),
-                "bar_time_utc": closed_ts.isoformat(),
-                "high": float(closed_df["high"].iloc[-1]),
-                "low": float(closed_df["low"].iloc[-1]),
-                "fib1_before": float(before_closed["high"].max()),
-                "fib0_before": float(before_closed["low"].min()),
-            }
+            closed_extreme["fib1_before"] = float(before_closed["high"].max())
+            closed_extreme["fib0_before"] = float(before_closed["low"].min())
     if cross_event is not None:
         event_ts = pd.Timestamp(closed_df.index[-1])
         event_month_start = event_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -531,6 +534,10 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
     ]
     closed_time = closed_bars[-1]["time_utc"] if closed_bars else None
     closed_price = closed_bars[-1]["close"] if closed_bars else None
+    closed_month_utc = (
+        pd.Timestamp(closed_df.index[-1]).strftime("%Y-%m")
+        if not closed_df.empty else None
+    )
 
     return {
         "fib50": fib50,
@@ -538,6 +545,7 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
         "live_price": live_price,
         "month_high": month_high,
         "month_low": month_low,
+        "month_utc": month_utc,
         "pct_of_range": (live_price - month_low) / fib_range * 100.0,
         "sar_dir": sar_dir,
         "sar_flipped": sar_flipped,
@@ -547,6 +555,7 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
         "closed_extreme": closed_extreme,
         "h1_closed_time_utc": closed_time,
         "h1_closed_price": closed_price,
+        "h1_closed_month_utc": closed_month_utc,
         "_closed_h1_bars": closed_bars,
     }
 
@@ -826,20 +835,32 @@ def load_vivier_state(path: str = VIVIER_STATE_PATH) -> dict:
         with open(path, encoding="utf-8") as handle:
             payload = json.load(handle)
     except FileNotFoundError:
-        return {"version": 1, "pairs": {}}
+        return {"version": VIVIER_STATE_VERSION, "pairs": {},
+                "pending_objectives": {}}
     except Exception as exc:
         print(f"VIVIER: impossible de lire l'etat ({exc}); demarrage avec un etat vide.")
-        return {"version": 1, "pairs": {}}
+        return {"version": VIVIER_STATE_VERSION, "pairs": {},
+                "pending_objectives": {}}
 
     pairs = payload.get("pairs") if isinstance(payload, dict) else None
     if not isinstance(pairs, dict):
-        return {"version": 1, "pairs": {}}
+        return {"version": VIVIER_STATE_VERSION, "pairs": {},
+                "pending_objectives": {}}
     valid_pairs = {
         str(pair): dict(entry)
         for pair, entry in pairs.items()
         if isinstance(entry, dict) and entry.get("direction") in (-1, 1)
     }
-    return {"version": 1, "pairs": valid_pairs}
+    pending = payload.get("pending_objectives")
+    valid_pending = {
+        str(pair): dict(entry)
+        for pair, entry in (pending.items() if isinstance(pending, dict) else [])
+        if (isinstance(entry, dict)
+            and entry.get("direction") in (-1, 1)
+            and isinstance(entry.get("value"), (int, float)))
+    }
+    return {"version": VIVIER_STATE_VERSION, "pairs": valid_pairs,
+            "pending_objectives": valid_pending}
 
 
 def save_vivier_state(state: dict, path: str = VIVIER_STATE_PATH) -> None:
@@ -854,6 +875,105 @@ def save_vivier_state(state: dict, path: str = VIVIER_STATE_PATH) -> None:
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
+
+
+def _set_vivier_fib_objective(entry: dict, row: dict, direction: int) -> bool:
+    """Start one fixed directional Fibonacci objective for the active cycle."""
+    h1 = row.get("h1_fib") or {}
+    value = h1.get("month_high" if direction == 1 else "month_low")
+    month_utc = h1.get("month_utc")
+    entry["fib_context_month_utc"] = month_utc
+    entry["fib_objective_active"] = isinstance(value, (int, float))
+    entry["fib_objective_carried"] = False
+    for key in (
+        "fib_objective_carried_at_time_utc",
+        "fib_objective_carried_from_month_utc",
+        "fib_objective_carried_since_month_utc",
+    ):
+        entry.pop(key, None)
+    if not entry["fib_objective_active"]:
+        entry.pop("fib_objective_value", None)
+        entry.pop("fib_objective_origin_month_utc", None)
+        return False
+    entry["fib_objective_value"] = float(value)
+    entry["fib_objective_origin_month_utc"] = month_utc
+    entry["fib_objective_started_time_utc"] = h1.get("h1_closed_time_utc")
+    return True
+
+
+def update_vivier_fib_objective_month(entry: dict, row: dict,
+                                       direction: int) -> None:
+    """Carry one untouched objective across UTC month resets."""
+    h1 = row.get("h1_fib") or {}
+    current_month = h1.get("h1_closed_month_utc") or h1.get("month_utc")
+    if "fib_objective_active" not in entry:
+        _set_vivier_fib_objective(entry, row, direction)
+        return
+    previous_month = entry.get("fib_context_month_utc")
+    if not current_month:
+        return
+    if not previous_month:
+        entry["fib_context_month_utc"] = current_month
+        return
+    if current_month == previous_month:
+        return
+    if (entry.get("fib_objective_active")
+            and isinstance(entry.get("fib_objective_value"), (int, float))
+            and not entry.get("fib_objective_carried")):
+        entry["fib_objective_carried"] = True
+        entry["fib_objective_carried_from_month_utc"] = (
+            entry.get("fib_objective_origin_month_utc") or previous_month
+        )
+        entry["fib_objective_carried_since_month_utc"] = current_month
+        entry["fib_objective_carried_at_time_utc"] = h1.get("h1_closed_time_utc")
+    entry["fib_context_month_utc"] = current_month
+
+
+def _pending_objective_from_entry(entry: dict, row: dict,
+                                  direction: int) -> dict | None:
+    """Detach an untouched active objective after full M/W/D alignment."""
+    value = entry.get("fib_objective_value")
+    if not entry.get("fib_objective_active") or not isinstance(value, (int, float)):
+        return None
+    h1 = row.get("h1_fib") or {}
+    return {
+        "direction": direction,
+        "value": float(value),
+        "origin_month_utc": entry.get("fib_objective_origin_month_utc"),
+        "started_time_utc": entry.get("fib_objective_started_time_utc"),
+        "post_alignment_time_utc": h1.get("h1_closed_time_utc"),
+        "post_alignment_month_utc": h1.get("month_utc"),
+        "was_carried_before_alignment": bool(entry.get("fib_objective_carried")),
+        "source_entered_at_paris": entry.get("entered_at_paris"),
+    }
+
+
+def _pending_objective_touched(pending: dict, row: dict) -> tuple[bool, str | None]:
+    extreme = (row.get("h1_fib") or {}).get("closed_extreme") or {}
+    value = pending.get("value")
+    direction = pending.get("direction")
+    if not isinstance(value, (int, float)) or direction not in (-1, 1):
+        return False, None
+    price = extreme.get("high" if direction == 1 else "low")
+    touched = isinstance(price, (int, float)) and (
+        price >= value if direction == 1 else price <= value
+    )
+    return touched, extreme.get("time_utc") if touched else None
+
+
+def _attach_pending_objective(entry: dict, pending: dict, row: dict) -> None:
+    """Reuse the same post-alignment target on a same-direction re-entry."""
+    h1 = row.get("h1_fib") or {}
+    entry["fib_objective_active"] = True
+    entry["fib_objective_value"] = float(pending["value"])
+    entry["fib_objective_origin_month_utc"] = pending.get("origin_month_utc")
+    entry["fib_objective_started_time_utc"] = pending.get("started_time_utc")
+    entry["fib_objective_carried"] = True
+    entry["fib_context_month_utc"] = h1.get("month_utc")
+    entry["fib_objective_reattached_from_post_alignment"] = True
+    entry["fib_objective_post_alignment_time_utc"] = pending.get(
+        "post_alignment_time_utc"
+    )
 
 
 def apply_vivier_sar_record(entry: dict, row: dict, direction: int) -> None:
@@ -885,32 +1005,51 @@ def apply_vivier_sar_record(entry: dict, row: dict, direction: int) -> None:
     entry["sar_record_value"] = float(sar_value)
     entry["sar_record_time_utc"] = event_time
     entry["sar_flame"] = True
+    if not entry.get("fib_objective_active"):
+        _set_vivier_fib_objective(entry, row, direction)
 
 
 def apply_vivier_fib_extreme_reset(entry: dict, row: dict, direction: int) -> bool:
-    """Clear a SAR record after BULL touches prior Fibo 1 or BEAR prior Fibo 0."""
-    if entry.get("sar_record_value") is None:
+    """Complete the fixed objective and rearm SAR, including after month reset."""
+    if not entry.get("fib_objective_active"):
         return False
     extreme = (row.get("h1_fib") or {}).get("closed_extreme") or {}
     bar_time = extreme.get("time_utc")
-    if not bar_time or bar_time == entry.get("sar_last_fib_reset_time_utc"):
+    if not bar_time or bar_time == entry.get("fib_last_objective_touch_time_utc"):
+        return False
+    objective = entry.get("fib_objective_value")
+    if not isinstance(objective, (int, float)):
         return False
     if direction == 1:
-        high, fib1 = extreme.get("high"), extreme.get("fib1_before")
-        touched = (isinstance(high, (int, float)) and isinstance(fib1, (int, float))
-                   and high >= fib1)
+        high = extreme.get("high")
+        touched = isinstance(high, (int, float)) and high >= objective
         reason = "FIB1_TOUCH"
     else:
-        low, fib0 = extreme.get("low"), extreme.get("fib0_before")
-        touched = (isinstance(low, (int, float)) and isinstance(fib0, (int, float))
-                   and low <= fib0)
+        low = extreme.get("low")
+        touched = isinstance(low, (int, float)) and low <= objective
         reason = "FIB0_TOUCH"
     if not touched:
         return False
-    entry.pop("sar_record_value", None)
-    entry.pop("sar_record_time_utc", None)
-    entry["sar_last_fib_reset_time_utc"] = bar_time
-    entry["sar_last_fib_reset_reason"] = reason
+    was_carried = bool(entry.get("fib_objective_carried"))
+    origin_month = entry.get("fib_objective_origin_month_utc")
+    entry["fib_last_objective_touch_time_utc"] = bar_time
+    entry["fib_last_objective_touch_value"] = float(objective)
+    entry["fib_last_objective_touch_reason"] = reason
+    entry["fib_last_objective_touch_was_carried"] = was_carried
+    entry["fib_last_objective_origin_month_utc"] = origin_month
+    entry["fib_objective_active"] = False
+    entry["fib_objective_carried"] = False
+    entry.pop("fib_objective_value", None)
+    entry.pop("fib_objective_origin_month_utc", None)
+    cross_event = (row.get("h1_fib") or {}).get("sar_cross_event") or {}
+    if cross_event.get("time_utc") == bar_time:
+        entry["sar_last_processed_time_utc"] = bar_time
+    had_sar_record = entry.get("sar_record_value") is not None
+    if had_sar_record:
+        entry.pop("sar_record_value", None)
+        entry.pop("sar_record_time_utc", None)
+        entry["sar_last_fib_reset_time_utc"] = bar_time
+        entry["sar_last_fib_reset_reason"] = reason
     return True
 
 
@@ -922,7 +1061,9 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
     Inside. Once tracked, a pair remains in the pool while W/D pass through
     Inside. It leaves when M is no longer in its original strict direction, or
     emits a one-shot signal when M/W/D become strictly aligned in that
-    direction. Missing rows are kept so a data error cannot erase the pool.
+    direction. One untouched Fibo 1/0 objective is carried across UTC month
+    resets until reached. Missing rows are kept so a data error cannot erase
+    the pool.
     """
     now = now or datetime.now(PARIS_TZ)
     stamp = now.astimezone(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
@@ -934,6 +1075,14 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
     }
     for entry in tracked.values():
         entry["sar_flame"] = False
+    old_pending = (previous_state or {}).get("pending_objectives") or {}
+    pending_objectives = {
+        str(pair): dict(entry)
+        for pair, entry in old_pending.items()
+        if (isinstance(entry, dict) and entry.get("direction") in (-1, 1)
+            and isinstance(entry.get("value"), (int, float)))
+    }
+    objective_events: list[dict] = []
     signals: list[dict] = []
 
     for row in rows:
@@ -946,6 +1095,28 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
         if existing is not None:
             direction = int(existing["direction"])
             if vivier_full_alignment(row, direction):
+                pending = _pending_objective_from_entry(existing, row, direction)
+                if pending is not None:
+                    pending_objectives[pair] = pending
+                    objective_events.append({
+                        "event_type": "POST_ALIGNMENT_OBJECTIVE_CREATED",
+                        "pair": pair,
+                        "direction": direction,
+                        "time_utc": pending.get("post_alignment_time_utc"),
+                        "objective_value": pending["value"],
+                        "origin_month_utc": pending.get("origin_month_utc"),
+                    })
+                    reached, reached_time = _pending_objective_touched(pending, row)
+                    if reached:
+                        objective_events.append({
+                            "event_type": "POST_ALIGNMENT_OBJECTIVE_REACHED",
+                            "pair": pair,
+                            "direction": direction,
+                            "time_utc": reached_time,
+                            "objective_value": pending["value"],
+                            "origin_month_utc": pending.get("origin_month_utc"),
+                        })
+                        del pending_objectives[pair]
                 signals.append({
                     "pair": pair,
                     "direction": direction,
@@ -968,15 +1139,45 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 existing["weighted_pct"] = row.get("weighted_pct")
                 existing["fib_position"] = fib_directional_label(row.get("h1_fib"), direction)
                 existing["fib_pct_of_range"] = (row.get("h1_fib") or {}).get("pct_of_range")
-                reset_now = apply_vivier_fib_extreme_reset(existing, row, direction)
-                event_time = ((row.get("h1_fib") or {}).get("sar_cross_event") or {}).get("time_utc")
-                reset_time = existing.get("sar_last_fib_reset_time_utc")
-                if not reset_now or event_time != reset_time:
+                update_vivier_fib_objective_month(existing, row, direction)
+                objective_touched_now = apply_vivier_fib_extreme_reset(
+                    existing, row, direction
+                )
+                if not objective_touched_now:
                     apply_vivier_sar_record(existing, row, direction)
                 continue
 
             # Monthly became Inside or reversed: invalidate the old pool.
             del tracked[pair]
+
+        pending = pending_objectives.get(pair)
+        if pending is not None:
+            pending_direction = int(pending["direction"])
+            event_time = (row.get("h1_fib") or {}).get("h1_closed_time_utc")
+            if px["M"] != pending_direction:
+                objective_events.append({
+                    "event_type": "POST_ALIGNMENT_OBJECTIVE_CANCELED",
+                    "pair": pair,
+                    "direction": pending_direction,
+                    "time_utc": event_time,
+                    "objective_value": pending["value"],
+                    "reason": "MONTHLY_INVALID",
+                })
+                del pending_objectives[pair]
+                pending = None
+            else:
+                touched, touch_time = _pending_objective_touched(pending, row)
+                if touched:
+                    objective_events.append({
+                        "event_type": "POST_ALIGNMENT_OBJECTIVE_REACHED",
+                        "pair": pair,
+                        "direction": pending_direction,
+                        "time_utc": touch_time,
+                        "objective_value": pending["value"],
+                        "origin_month_utc": pending.get("origin_month_utc"),
+                    })
+                    del pending_objectives[pair]
+                    pending = None
 
         direction = vivier_entry_direction(row)
         if direction:
@@ -991,12 +1192,28 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 "fib_position": fib_directional_label(row.get("h1_fib"), direction),
                 "fib_pct_of_range": (row.get("h1_fib") or {}).get("pct_of_range"),
             }
+            reusable = pending_objectives.get(pair)
+            if reusable is not None and reusable.get("direction") == direction:
+                _attach_pending_objective(tracked[pair], reusable, row)
+                objective_events.append({
+                    "event_type": "POST_ALIGNMENT_OBJECTIVE_REATTACHED",
+                    "pair": pair,
+                    "direction": direction,
+                    "time_utc": (row.get("h1_fib") or {}).get("h1_closed_time_utc"),
+                    "objective_value": reusable["value"],
+                    "origin_month_utc": reusable.get("origin_month_utc"),
+                })
+                del pending_objectives[pair]
+            else:
+                _set_vivier_fib_objective(tracked[pair], row, direction)
             apply_vivier_sar_record(tracked[pair], row, direction)
 
     return {
-        "version": 1,
+        "version": VIVIER_STATE_VERSION,
         "updated_at_paris": stamp,
         "pairs": dict(sorted(tracked.items())),
+        "pending_objectives": dict(sorted(pending_objectives.items())),
+        "objective_events": objective_events,
     }, sorted(signals, key=lambda item: (-item["direction"], item["pair"]))
 
 
@@ -1041,6 +1258,12 @@ def print_vivier_report(state: dict, signals: list[dict]) -> None:
         fib = entry.get("fib_position", "Fibo ?")
         flame = " 🔥" if entry.get("sar_flame") else ""
         print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {fib:<12}  {_px_compact(entry.get('last_px'))}{flame}")
+    pending = state.get("pending_objectives") or {}
+    if pending:
+        print(f"OBJECTIFS POST-ALIGNEMENT ({len(pending)}):")
+        for pair, objective in sorted(pending.items()):
+            label = "BULL F1" if objective.get("direction") == 1 else "BEAR F0"
+            print(f"  {pair:<8} {label:<8} {objective.get('value')}")
     if signals:
         print("SIGNAUX VIVIER:")
         for signal in signals:
@@ -1128,12 +1351,49 @@ def collect_vivier_run_events(previous_state: dict, current_state: dict,
                 time_utc=entry.get("sar_record_time_utc"),
                 sar_value=entry.get("sar_record_value"),
             ))
+        carried_time = entry.get("fib_objective_carried_at_time_utc")
+        if carried_time and carried_time != (old or {}).get("fib_objective_carried_at_time_utc"):
+            carried_value = entry.get("fib_objective_value")
+            if not isinstance(carried_value, (int, float)):
+                carried_value = entry.get("fib_last_objective_touch_value")
+            events.append(_build_vivier_event(
+                "FIB_OBJECTIVE_CARRIED", pair, int(entry["direction"]),
+                rows_by_pair.get(pair), time_utc=carried_time,
+                objective_value=carried_value,
+                origin_month_utc=entry.get("fib_objective_carried_from_month_utc"),
+                current_month_utc=entry.get("fib_objective_carried_since_month_utc"),
+            ))
+        touch_time = entry.get("fib_last_objective_touch_time_utc")
+        if touch_time and touch_time != (old or {}).get("fib_last_objective_touch_time_utc"):
+            events.append(_build_vivier_event(
+                "FIB_OBJECTIVE_TOUCH", pair, int(entry["direction"]),
+                rows_by_pair.get(pair), time_utc=touch_time,
+                objective_value=entry.get("fib_last_objective_touch_value"),
+                objective_was_carried=entry.get("fib_last_objective_touch_was_carried"),
+                origin_month_utc=entry.get("fib_last_objective_origin_month_utc"),
+                reason=entry.get("fib_last_objective_touch_reason"),
+            ))
         reset_time = entry.get("sar_last_fib_reset_time_utc")
         if reset_time and reset_time != (old or {}).get("sar_last_fib_reset_time_utc"):
             events.append(_build_vivier_event(
                 "SAR_RECORD_RESET", pair, int(entry["direction"]), rows_by_pair.get(pair),
                 time_utc=reset_time, reason=entry.get("sar_last_fib_reset_reason"),
             ))
+
+    for objective_event in current_state.get("objective_events") or []:
+        pair = objective_event.get("pair")
+        direction = objective_event.get("direction")
+        event_type = objective_event.get("event_type")
+        if not pair or direction not in (-1, 1) or not event_type:
+            continue
+        extra = {
+            key: value for key, value in objective_event.items()
+            if key not in {"event_type", "pair", "direction", "time_utc"}
+        }
+        events.append(_build_vivier_event(
+            event_type, pair, int(direction), rows_by_pair.get(pair),
+            time_utc=objective_event.get("time_utc"), **extra,
+        ))
 
     for signal in vivier_signals:
         pair = signal["pair"]

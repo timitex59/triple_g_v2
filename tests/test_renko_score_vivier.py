@@ -32,10 +32,18 @@ NOW = datetime(2026, 6, 27, 12, 0, tzinfo=PARIS)
 
 
 def row(pair, monthly, weekly, daily, weighted_pct=0.0, fib_pct=None,
-        sar_event=None, closed_extreme=None):
+        sar_event=None, closed_extreme=None, month_high=1.0, month_low=0.45,
+        month_utc="2026-06", closed_time="2026-06-27T10:00:00+00:00"):
     if fib_pct is None:
         fib_pct = 40.0 if monthly == 1 else 60.0
-    h1_fib = {"pct_of_range": fib_pct}
+    h1_fib = {
+        "pct_of_range": fib_pct,
+        "month_high": month_high,
+        "month_low": month_low,
+        "month_utc": month_utc,
+        "h1_closed_month_utc": month_utc,
+        "h1_closed_time_utc": closed_time,
+    }
     if sar_event is not None:
         h1_fib["sar_cross_event"] = sar_event
     if closed_extreme is not None:
@@ -57,9 +65,10 @@ def event(direction, sar_value, fib50, time_utc):
     }
 
 
-def extreme(time_utc, high, low, fib1_before, fib0_before):
+def extreme(time_utc, high, low, fib1_before, fib0_before, month_utc="2026-06"):
     return {
         "time_utc": time_utc,
+        "month_utc": month_utc,
         "high": high,
         "low": low,
         "fib1_before": fib1_before,
@@ -349,17 +358,30 @@ class VivierStateTests(unittest.TestCase):
             "2026-06-27T11:00:00+00:00", high=1.01, low=0.95,
             fib1_before=1.00, fib0_before=0.90,
         )
+        same_bar_cross = event(1, 0.4585, 0.75, "2026-06-27T11:00:00+00:00")
         reset_state, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, closed_extreme=touch)], state, NOW
+            [row("GBPJPY", 1, 0, -1, sar_event=same_bar_cross,
+                 closed_extreme=touch)], state, NOW
         )
         entry = reset_state["pairs"]["GBPJPY"]
         self.assertNotIn("sar_record_value", entry)
         self.assertEqual(entry["sar_last_fib_reset_reason"], "FIB1_TOUCH")
+        self.assertEqual(
+            entry["sar_last_processed_time_utc"],
+            "2026-06-27T11:00:00+00:00",
+        )
+
+        repeated, _ = update_vivier(
+            [row("GBPJPY", 1, 0, -1, sar_event=same_bar_cross,
+                 closed_extreme=touch)], reset_state, NOW
+        )
+        self.assertFalse(repeated["pairs"]["GBPJPY"]["sar_flame"])
+        self.assertNotIn("sar_record_value", repeated["pairs"]["GBPJPY"])
 
         # Higher than the old minimum, but first record of the rearmed cycle.
         next_event = event(1, 0.4600, 0.4620, "2026-06-27T12:00:00+00:00")
         rearmed, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, sar_event=next_event)], reset_state, NOW
+            [row("GBPJPY", 1, 0, -1, sar_event=next_event)], repeated, NOW
         )
         self.assertTrue(rearmed["pairs"]["GBPJPY"]["sar_flame"])
         self.assertEqual(rearmed["pairs"]["GBPJPY"]["sar_record_value"], 0.4600)
@@ -398,6 +420,196 @@ class VivierStateTests(unittest.TestCase):
         )
 
         self.assertNotIn("sar_last_fib_reset_time_utc", state["pairs"]["GBPJPY"])
+
+    def test_unreached_objective_is_carried_across_months(self):
+        initial_rows = [
+            row("BULL", 1, 0, -1, month_high=1.0, month_low=0.5),
+            row("BEAR", -1, 0, 1, month_high=1.0, month_low=0.5),
+        ]
+        state, _ = update_vivier(initial_rows, {}, NOW)
+
+        july_rows = [
+            row("BULL", 1, 0, -1, month_high=0.9, month_low=0.7,
+                month_utc="2026-07", closed_time="2026-07-01T01:00:00+00:00"),
+            row("BEAR", -1, 0, 1, month_high=1.1, month_low=0.6,
+                month_utc="2026-07", closed_time="2026-07-01T01:00:00+00:00"),
+        ]
+        carried, _ = update_vivier(july_rows, state, NOW)
+
+        bull = carried["pairs"]["BULL"]
+        bear = carried["pairs"]["BEAR"]
+        self.assertEqual(bull["fib_objective_value"], 1.0)
+        self.assertEqual(bear["fib_objective_value"], 0.5)
+        self.assertTrue(bull["fib_objective_carried"])
+        self.assertTrue(bear["fib_objective_carried"])
+        self.assertEqual(bull["fib_objective_origin_month_utc"], "2026-06")
+
+        august, _ = update_vivier([
+            row("BULL", 1, 0, -1, month_high=0.95, month_low=0.8,
+                month_utc="2026-08", closed_time="2026-08-03T01:00:00+00:00"),
+            row("BEAR", -1, 0, 1, month_high=1.2, month_low=0.55,
+                month_utc="2026-08", closed_time="2026-08-03T01:00:00+00:00"),
+        ], carried, NOW)
+        self.assertEqual(august["pairs"]["BULL"]["fib_objective_value"], 1.0)
+        self.assertEqual(august["pairs"]["BEAR"]["fib_objective_value"], 0.5)
+        self.assertEqual(
+            august["pairs"]["BULL"]["fib_objective_carried_since_month_utc"],
+            "2026-07",
+        )
+
+    def test_carried_objective_touch_rearms_and_next_flame_sets_new_target(self):
+        first = event(1, 0.4590, 0.75, "2026-06-27T10:00:00+00:00")
+        state, _ = update_vivier([
+            row("GBPJPY", 1, 0, -1, sar_event=first,
+                month_high=1.0, month_low=0.5),
+        ], {}, NOW)
+        july_row = row(
+            "GBPJPY", 1, 0, -1, month_high=0.9, month_low=0.7,
+            month_utc="2026-07", closed_time="2026-07-01T01:00:00+00:00",
+        )
+        carried, _ = update_vivier([july_row], state, NOW)
+        self.assertEqual(carried["pairs"]["GBPJPY"]["fib_objective_value"], 1.0)
+
+        touch = extreme(
+            "2026-07-02T11:00:00+00:00", high=1.01, low=0.80,
+            fib1_before=0.99, fib0_before=0.70, month_utc="2026-07",
+        )
+        touch_row = row(
+            "GBPJPY", 1, 0, -1, closed_extreme=touch,
+            month_high=1.01, month_low=0.7, month_utc="2026-07",
+            closed_time="2026-07-02T11:00:00+00:00",
+        )
+        touched, _ = update_vivier([touch_row], carried, NOW)
+        entry = touched["pairs"]["GBPJPY"]
+        self.assertFalse(entry["fib_objective_active"])
+        self.assertNotIn("fib_objective_value", entry)
+        self.assertTrue(entry["fib_last_objective_touch_was_carried"])
+        self.assertEqual(entry["fib_last_objective_touch_value"], 1.0)
+        self.assertNotIn("sar_record_value", entry)
+        self.assertEqual(entry["sar_last_fib_reset_reason"], "FIB1_TOUCH")
+
+        next_event = event(1, 0.4600, 0.85, "2026-07-02T12:00:00+00:00")
+        rearmed, _ = update_vivier([
+            row("GBPJPY", 1, 0, -1, sar_event=next_event,
+                month_high=1.02, month_low=0.7, month_utc="2026-07",
+                closed_time="2026-07-02T12:00:00+00:00"),
+        ], touched, NOW)
+        rearmed_entry = rearmed["pairs"]["GBPJPY"]
+        self.assertTrue(rearmed_entry["sar_flame"])
+        self.assertTrue(rearmed_entry["fib_objective_active"])
+        self.assertFalse(rearmed_entry["fib_objective_carried"])
+        self.assertEqual(rearmed_entry["fib_objective_value"], 1.02)
+
+        carry_events = collect_vivier_run_events(
+            state, carried, [], [], [july_row]
+        )
+        self.assertIn("FIB_OBJECTIVE_CARRIED", {
+            item["event_type"] for item in carry_events
+        })
+        touch_events = collect_vivier_run_events(
+            carried, touched, [], [], [touch_row]
+        )
+        self.assertEqual(
+            {item["event_type"] for item in touch_events},
+            {"FIB_OBJECTIVE_TOUCH", "SAR_RECORD_RESET"},
+        )
+
+    def test_alignment_moves_unreached_objective_to_post_signal_tracking(self):
+        state, _ = update_vivier([
+            row("GBPJPY", 1, 0, -1, month_high=1.0, month_low=0.5),
+        ], {}, NOW)
+        aligned_row = row(
+            "GBPJPY", 1, 1, 1, weighted_pct=80.0,
+            month_high=1.0, month_low=0.5,
+        )
+
+        aligned, signals = update_vivier([aligned_row], state, NOW)
+
+        self.assertNotIn("GBPJPY", aligned["pairs"])
+        self.assertEqual(len(signals), 1)
+        pending = aligned["pending_objectives"]["GBPJPY"]
+        self.assertEqual(pending["direction"], 1)
+        self.assertEqual(pending["value"], 1.0)
+        self.assertEqual(
+            aligned["objective_events"][0]["event_type"],
+            "POST_ALIGNMENT_OBJECTIVE_CREATED",
+        )
+
+        events = collect_vivier_run_events(
+            state, aligned, signals, [], [aligned_row]
+        )
+        self.assertEqual(
+            {item["event_type"] for item in events},
+            {"POST_ALIGNMENT_OBJECTIVE_CREATED", "SIGNAL_VIVIER"},
+        )
+
+    def test_post_alignment_objective_is_reached_outside_vivier(self):
+        state, _ = update_vivier([
+            row("GBPJPY", 1, 0, -1, month_high=1.0, month_low=0.5),
+        ], {}, NOW)
+        aligned, _ = update_vivier([
+            row("GBPJPY", 1, 1, 1, month_high=1.0, month_low=0.5),
+        ], state, NOW)
+        target_touch = extreme(
+            "2026-06-27T13:00:00+00:00", high=1.01, low=0.8,
+            fib1_before=1.0, fib0_before=0.5,
+        )
+        outside_row = row(
+            "GBPJPY", 1, 0, 0, closed_extreme=target_touch,
+            month_high=1.01, month_low=0.5,
+            closed_time="2026-06-27T13:00:00+00:00",
+        )
+
+        reached, signals = update_vivier([outside_row], aligned, NOW)
+
+        self.assertEqual(signals, [])
+        self.assertNotIn("GBPJPY", reached["pairs"])
+        self.assertNotIn("GBPJPY", reached["pending_objectives"])
+        self.assertEqual(
+            reached["objective_events"][0]["event_type"],
+            "POST_ALIGNMENT_OBJECTIVE_REACHED",
+        )
+
+    def test_same_direction_reentry_reattaches_post_alignment_objective(self):
+        state, _ = update_vivier([
+            row("GBPJPY", 1, 0, -1, month_high=1.0, month_low=0.5),
+        ], {}, NOW)
+        aligned, _ = update_vivier([
+            row("GBPJPY", 1, 1, 1, month_high=1.0, month_low=0.5),
+        ], state, NOW)
+
+        reentered, signals = update_vivier([
+            row("GBPJPY", 1, 1, 0, month_high=0.9, month_low=0.6),
+        ], aligned, NOW)
+
+        self.assertEqual(signals, [])
+        self.assertNotIn("GBPJPY", reentered["pending_objectives"])
+        entry = reentered["pairs"]["GBPJPY"]
+        self.assertEqual(entry["fib_objective_value"], 1.0)
+        self.assertTrue(entry["fib_objective_reattached_from_post_alignment"])
+        self.assertEqual(
+            reentered["objective_events"][0]["event_type"],
+            "POST_ALIGNMENT_OBJECTIVE_REATTACHED",
+        )
+
+    def test_opposite_monthly_cancels_post_objective_before_new_entry(self):
+        state, _ = update_vivier([
+            row("GBPJPY", 1, 0, -1, month_high=1.0, month_low=0.5),
+        ], {}, NOW)
+        aligned, _ = update_vivier([
+            row("GBPJPY", 1, 1, 1, month_high=1.0, month_low=0.5),
+        ], state, NOW)
+
+        reversed_state, _ = update_vivier([
+            row("GBPJPY", -1, -1, 0, month_high=1.1, month_low=0.6),
+        ], aligned, NOW)
+
+        self.assertNotIn("GBPJPY", reversed_state["pending_objectives"])
+        self.assertEqual(reversed_state["pairs"]["GBPJPY"]["direction"], -1)
+        self.assertEqual(
+            reversed_state["objective_events"][0]["event_type"],
+            "POST_ALIGNMENT_OBJECTIVE_CANCELED",
+        )
 
     def test_event_journal_deduplicates_event_ids(self):
         tracked_event = {
