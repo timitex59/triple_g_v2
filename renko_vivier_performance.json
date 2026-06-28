@@ -11,7 +11,17 @@
       "fib_position": "Fibo >0.500",
       "final_pct": -0.0,
       "horizon_basis": "closed_h1_bars",
-      "horizons": {},
+      "horizons": {
+        "1h": {
+          "directional_pct": -0.07888094236433556,
+          "price": 0.57093,
+          "raw_pct": 0.07888094236433556,
+          "time_utc": "2026-06-28T22:00:00+00:00"
+        }
+      },
+      "last_evaluated_time_utc": "2026-06-28T23:00:00+00:00",
+      "mae_72h_pct": -0.11218622914036845,
+      "mfe_72h_pct": -0.03505819660636271,
       "pair": "CADCHF",
       "price": 0.57048,
       "px": {
@@ -33,7 +43,17 @@
       "fib_position": "Fibo <0.382",
       "final_pct": 0.0,
       "horizon_basis": "closed_h1_bars",
-      "horizons": {},
+      "horizons": {
+        "1h": {
+          "directional_pct": 0.022806007754043497,
+          "price": 184.204,
+          "raw_pct": 0.022806007754043497,
+          "time_utc": "2026-06-28T22:00:00+00:00"
+        }
+      },
+      "last_evaluated_time_utc": "2026-06-28T23:00:00+00:00",
+      "mae_72h_pct": -0.02497800849251869,
+      "mfe_72h_pct": 0.08633702935458552,
       "pair": "EURJPY",
       "price": 184.162,
       "px": {
@@ -55,7 +75,17 @@
       "fib_position": "Fibo <0.236",
       "final_pct": 0.0,
       "horizon_basis": "closed_h1_bars",
-      "horizons": {},
+      "horizons": {
+        "1h": {
+          "directional_pct": -0.09706257982120116,
+          "price": 0.9778,
+          "raw_pct": -0.09706257982120116,
+          "time_utc": "2026-06-28T22:00:00+00:00"
+        }
+      },
+      "last_evaluated_time_utc": "2026-06-28T23:00:00+00:00",
+      "mae_72h_pct": -0.14303959131544897,
+      "mfe_72h_pct": 0.0,
       "pair": "AUDCAD",
       "price": 0.97875,
       "px": {
@@ -77,7 +107,17 @@
       "fib_position": "Fibo <0.382",
       "final_pct": 0.0,
       "horizon_basis": "closed_h1_bars",
-      "horizons": {},
+      "horizons": {
+        "1h": {
+          "directional_pct": 0.07869663384516341,
+          "price": 213.646,
+          "raw_pct": 0.07869663384516341,
+          "time_utc": "2026-06-28T22:00:00+00:00"
+        }
+      },
+      "last_evaluated_time_utc": "2026-06-28T23:00:00+00:00",
+      "mae_72h_pct": -0.034663993479427516,
+      "mfe_72h_pct": 0.1236661388995501,
       "pair": "GBPJPY",
       "price": 213.478,
       "px": {
@@ -99,7 +139,17 @@
       "fib_position": "Fibo <0.236",
       "final_pct": 0.0,
       "horizon_basis": "closed_h1_bars",
-      "horizons": {},
+      "horizons": {
+        "1h": {
+          "directional_pct": -0.03945268367913933,
+          "price": 111.482,
+          "raw_pct": -0.03945268367913933,
+          "time_utc": "2026-06-28T22:00:00+00:00"
+        }
+      },
+      "last_evaluated_time_utc": "2026-06-28T23:00:00+00:00",
+      "mae_72h_pct": -0.09145849398345646,
+      "mfe_72h_pct": 0.050212506500723945,
       "pair": "AUDJPY",
       "price": 111.526,
       "px": {
@@ -114,8 +164,8 @@
   "summary": {
     "by_type": {
       "VIVIER_ENTRY": {
-        "avg_mae_72h_pct": null,
-        "avg_mfe_72h_pct": null,
+        "avg_mae_72h_pct": -0.08126526328224401,
+        "avg_mfe_72h_pct": 0.04503149562969937,
         "complete": 0,
         "count": 5,
         "horizons": {
@@ -126,10 +176,10 @@
             "wins": 0
           },
           "1h": {
-            "avg_directional_pct": null,
-            "samples": 0,
-            "win_rate_pct": null,
-            "wins": 0
+            "avg_directional_pct": -0.022778712853093828,
+            "samples": 5,
+            "win_rate_pct": 40.0,
+            "wins": 2
           },
           "24h": {
             "avg_directional_pct": null,
@@ -154,8 +204,8 @@
     },
     "complete": 0,
     "overall": {
-      "avg_mae_72h_pct": null,
-      "avg_mfe_72h_pct": null,
+      "avg_mae_72h_pct": -0.08126526328224401,
+      "avg_mfe_72h_pct": 0.04503149562969937,
       "complete": 0,
       "count": 5,
       "horizons": {
@@ -166,10 +216,10 @@
           "wins": 0
         },
         "1h": {
-          "avg_directional_pct": null,
-          "samples": 0,
-          "win_rate_pct": null,
-          "wins": 0
+          "avg_directional_pct": -0.022778712853093828,
+          "samples": 5,
+          "win_rate_pct": 40.0,
+          "wins": 2
         },
         "24h": {
           "avg_directional_pct": null,
@@ -193,6 +243,6 @@
     },
     "total": 5
   },
-  "updated_at_utc": "2026-06-28T13:06:37.662692+00:00",
+  "updated_at_utc": "2026-06-28T23:41:05.293349+00:00",
   "version": 2
 }
