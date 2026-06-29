@@ -283,7 +283,7 @@ class VivierStateTests(unittest.TestCase):
         self.assertIn("SUIVI SIGNAL", message)
         self.assertIn("GBPJPY (+0.50% depuis signal | F1 215.614)", message)
 
-    def test_telegram_shows_fibo_currency_strength(self):
+    def test_telegram_shows_compact_theoretical_pairs_without_strength_blocks(self):
         state = {
             "pairs": {
                 "GBPJPY": {
@@ -303,18 +303,15 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], all_rows, vivier_state=state)
 
-        self.assertIn("FORCE FIBO 0.5", message)
-        self.assertIn("Forte: GBP +3.00", message)
-        self.assertIn("Faible: JPY -2.00", message)
-        self.assertIn("Top: GBP +3.00, AUD +2.00", message)
-        self.assertIn("Bas: CAD -2.00, JPY -2.00", message)
-        self.assertNotIn("Top: GBP +3.00, AUD +2.00, EUR", message)
-        self.assertIn("FORCE FIBO+SAR", message)
-        self.assertIn("Top: AUD +2.00, GBP +1.50", message)
-        self.assertIn("Bas: JPY -2.00, CAD -1.25", message)
+        self.assertNotIn("FORCE FIBO 0.5", message)
+        self.assertNotIn("FORCE FIBO+SAR", message)
         self.assertIn("PAIRES FORT/FAIBLE", message)
-        self.assertIn("🟢 AUDJPY · AUD>JPY", message)
-        self.assertIn("🟢 GBPCAD · GBP>CAD", message)
+        self.assertIn("🟢 AUDJPY", message)
+        self.assertIn("🟢 GBPCAD", message)
+        self.assertNotIn("AUD>JPY", message)
+        self.assertNotIn("GBP>CAD", message)
+        self.assertLess(message.index("VIVIER BULL"), message.index("PROCHE ALIGNEMENT"))
+        self.assertLess(message.index("PROCHE ALIGNEMENT"), message.index("PAIRES FORT/FAIBLE"))
 
     def test_telegram_body_hash_ignores_timestamp_only(self):
         first = "📊 RENKO FIBO\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 08:16 Paris"

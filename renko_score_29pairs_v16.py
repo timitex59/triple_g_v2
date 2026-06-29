@@ -1910,7 +1910,7 @@ def fibo_theoretical_pairs_lines(rows: list[dict] | None) -> list[str]:
     lines = ["🧭 PAIRES FORT/FAIBLE"]
     for idea in ideas:
         icon = "🟢" if idea["direction"] == 1 else "🔴"
-        lines.append(f"{icon} {idea['pair']} · {idea['strong']}>{idea['weak']}")
+        lines.append(f"{icon} {idea['pair']}")
     return lines
 
 
@@ -2280,25 +2280,8 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
     lines = ["📊 RENKO FIBO", ""]
     has_content = False
     strength_rows = all_rows if all_rows is not None else rows
-    fibo_strength = fibo_currency_strength_lines(strength_rows)
-    if fibo_strength:
-        lines.extend(fibo_strength)
-        has_content = True
-    fibo_sar_strength = fibo_currency_strict_strength_lines(strength_rows)
-    if fibo_sar_strength:
-        if has_content:
-            lines.append("")
-        lines.extend(fibo_sar_strength)
-        has_content = True
     theoretical_pairs = fibo_theoretical_pairs_lines(strength_rows)
-    if theoretical_pairs:
-        if has_content:
-            lines.append("")
-        lines.extend(theoretical_pairs)
-        has_content = True
 
-    if ordered and has_content:
-        lines.append("")
     for row in ordered:
         icon = "🟢" if row["signal_state"] == 1 else "🔴"
         h1_fib = row["h1_fib"]
@@ -2361,6 +2344,19 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
             lines.append(f"{icon} {item['pair']} ({pct_txt} | {objective})")
         has_content = True
 
+    for direction, title, entries in (
+        (1, "🌱 VIVIER BULL", bull_vivier),
+        (-1, "🌱 VIVIER BEAR", bear_vivier),
+    ):
+        if not entries:
+            continue
+        if has_content:
+            lines.append("")
+        lines.append(title)
+        for pair, entry in entries:
+            lines.append(_format_vivier_entry_line(pair, entry))
+        has_content = True
+
     if near_entries:
         if has_content:
             lines.append("")
@@ -2373,17 +2369,10 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
             lines.append(f"{icon} {pair} · {missing} · {score:+.0f}%")
         has_content = True
 
-    for direction, title, entries in (
-        (1, "🌱 VIVIER BULL", bull_vivier),
-        (-1, "🌱 VIVIER BEAR", bear_vivier),
-    ):
-        if not entries:
-            continue
+    if theoretical_pairs:
         if has_content:
             lines.append("")
-        lines.append(title)
-        for pair, entry in entries:
-            lines.append(_format_vivier_entry_line(pair, entry))
+        lines.extend(theoretical_pairs)
         has_content = True
 
     # Message: RENKO FIBO, retournements, suivi VIVIER et horodatage.
