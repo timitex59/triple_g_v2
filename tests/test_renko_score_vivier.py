@@ -242,13 +242,18 @@ class VivierStateTests(unittest.TestCase):
             {"pair": "GBPCAD", "h1_fib": {"pct_of_range": 90.0}},
             {"pair": "EURGBP", "h1_fib": {"pct_of_range": 20.0}},
             {"pair": "AUDCAD", "h1_fib": {"pct_of_range": 55.0}},
+            {"pair": "AUDJPY", "h1_fib": {"pct_of_range": 90.0}},
+            {"pair": "EURJPY", "h1_fib": {"pct_of_range": 55.0}},
         ]
 
         message = build_telegram_message([], all_rows, vivier_state=state)
 
         self.assertIn("FORCE FIBO 0.5", message)
         self.assertIn("Forte: GBP +3.00", message)
-        self.assertIn("Faible: CAD -2.00", message)
+        self.assertIn("Faible: JPY -2.00", message)
+        self.assertIn("Top: GBP +3.00, AUD +2.00", message)
+        self.assertIn("Bas: CAD -2.00, JPY -2.00", message)
+        self.assertNotIn("Top: GBP +3.00, AUD +2.00, EUR", message)
 
     def test_telegram_body_hash_ignores_timestamp_only(self):
         first = "📊 RENKO FIBO\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 08:16 Paris"
