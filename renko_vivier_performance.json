@@ -31,7 +31,7 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T15:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T16:00:00+00:00",
       "mae_72h_pct": -0.11218622914036845,
       "mfe_72h_pct": 0.3856401626700287,
       "pair": "CADCHF",
@@ -75,9 +75,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T15:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T16:00:00+00:00",
       "mae_72h_pct": -0.02497800849251869,
-      "mfe_72h_pct": 0.4430881506499726,
+      "mfe_72h_pct": 0.46263615729629554,
       "pair": "EURJPY",
       "price": 184.162,
       "px": {
@@ -119,7 +119,7 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T15:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T16:00:00+00:00",
       "mae_72h_pct": -0.22988505747126173,
       "mfe_72h_pct": 0.1522349936143031,
       "pair": "AUDCAD",
@@ -163,9 +163,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T15:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T16:00:00+00:00",
       "mae_72h_pct": -0.034663993479427516,
-      "mfe_72h_pct": 0.4829537469903116,
+      "mfe_72h_pct": 0.5358866018980903,
       "pair": "GBPJPY",
       "price": 213.478,
       "px": {
@@ -207,7 +207,7 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T15:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T16:00:00+00:00",
       "mae_72h_pct": -0.1918835069849171,
       "mfe_72h_pct": 0.1685705575381547,
       "pair": "AUDJPY",
@@ -244,7 +244,7 @@
           "time_utc": "2026-06-29T10:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T15:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T16:00:00+00:00",
       "mae_72h_pct": -0.0746398372238079,
       "mfe_72h_pct": 0.22596443871865335,
       "pair": "AUDCAD",
@@ -282,9 +282,9 @@
           "time_utc": "2026-06-29T10:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T15:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T16:00:00+00:00",
       "mae_72h_pct": -0.018983977522984176,
-      "mfe_72h_pct": 0.33194840697308325,
+      "mfe_72h_pct": 0.3514747838538538,
       "pair": "EURJPY",
       "price": 184.366,
       "px": {
@@ -320,7 +320,7 @@
           "time_utc": "2026-06-29T15:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T15:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T16:00:00+00:00",
       "mae_72h_pct": -0.28831861893590977,
       "mfe_72h_pct": 0.027757382568356317,
       "pair": "AUDJPY",
@@ -344,7 +344,17 @@
       "fib_position": "Fibo <0.786",
       "final_pct": 95.0,
       "horizon_basis": "closed_h1_bars",
-      "horizons": {},
+      "horizons": {
+        "1h": {
+          "directional_pct": 0.06807415420194085,
+          "price": 214.618,
+          "raw_pct": 0.06807415420194085,
+          "time_utc": "2026-06-29T16:00:00+00:00"
+        }
+      },
+      "last_evaluated_time_utc": "2026-06-29T16:00:00+00:00",
+      "mae_72h_pct": -0.015852885225120406,
+      "mfe_72h_pct": 0.06993919952255105,
       "objective_value": 215.614,
       "origin_month_utc": "2026-06",
       "pair": "GBPJPY",
@@ -368,7 +378,17 @@
       "fib_position": "Fibo <0.786",
       "final_pct": 95.0,
       "horizon_basis": "closed_h1_bars",
-      "horizons": {},
+      "horizons": {
+        "1h": {
+          "directional_pct": 0.06807415420194085,
+          "price": 214.618,
+          "raw_pct": 0.06807415420194085,
+          "time_utc": "2026-06-29T16:00:00+00:00"
+        }
+      },
+      "last_evaluated_time_utc": "2026-06-29T16:00:00+00:00",
+      "mae_72h_pct": -0.015852885225120406,
+      "mfe_72h_pct": 0.06993919952255105,
       "pair": "GBPJPY",
       "price": 214.472,
       "px": {
@@ -383,8 +403,8 @@
   "summary": {
     "by_type": {
       "POST_ALIGNMENT_OBJECTIVE_CREATED": {
-        "avg_mae_72h_pct": null,
-        "avg_mfe_72h_pct": null,
+        "avg_mae_72h_pct": -0.015852885225120406,
+        "avg_mfe_72h_pct": 0.06993919952255105,
         "complete": 0,
         "count": 1,
         "horizons": {
@@ -395,10 +415,10 @@
             "wins": 0
           },
           "1h": {
-            "avg_directional_pct": null,
-            "samples": 0,
-            "win_rate_pct": null,
-            "wins": 0
+            "avg_directional_pct": 0.06807415420194085,
+            "samples": 1,
+            "win_rate_pct": 100.0,
+            "wins": 1
           },
           "24h": {
             "avg_directional_pct": null,
@@ -422,7 +442,7 @@
       },
       "SAR_FLAME": {
         "avg_mae_72h_pct": -0.12731414456090062,
-        "avg_mfe_72h_pct": 0.195223409420031,
+        "avg_mfe_72h_pct": 0.20173220171362116,
         "complete": 0,
         "count": 3,
         "horizons": {
@@ -459,8 +479,8 @@
         }
       },
       "SIGNAL_VIVIER": {
-        "avg_mae_72h_pct": null,
-        "avg_mfe_72h_pct": null,
+        "avg_mae_72h_pct": -0.015852885225120406,
+        "avg_mfe_72h_pct": 0.06993919952255105,
         "complete": 0,
         "count": 1,
         "horizons": {
@@ -471,10 +491,10 @@
             "wins": 0
           },
           "1h": {
-            "avg_directional_pct": null,
-            "samples": 0,
-            "win_rate_pct": null,
-            "wins": 0
+            "avg_directional_pct": 0.06807415420194085,
+            "samples": 1,
+            "win_rate_pct": 100.0,
+            "wins": 1
           },
           "24h": {
             "avg_directional_pct": null,
@@ -498,7 +518,7 @@
       },
       "VIVIER_ENTRY": {
         "avg_mae_72h_pct": -0.11871935911369871,
-        "avg_mfe_72h_pct": 0.32649752229255413,
+        "avg_mfe_72h_pct": 0.3409936946033745,
         "complete": 0,
         "count": 5,
         "horizons": {
@@ -537,8 +557,8 @@
     },
     "complete": 0,
     "overall": {
-      "avg_mae_72h_pct": -0.12194240365639941,
-      "avg_mfe_72h_pct": 0.277269729965358,
+      "avg_mae_72h_pct": -0.10072449997014361,
+      "avg_mfe_72h_pct": 0.24500434772028382,
       "complete": 0,
       "count": 10,
       "horizons": {
@@ -549,10 +569,10 @@
           "wins": 4
         },
         "1h": {
-          "avg_directional_pct": 0.009784007789132366,
-          "samples": 8,
-          "win_rate_pct": 50.0,
-          "wins": 4
+          "avg_directional_pct": 0.021442037071694064,
+          "samples": 10,
+          "win_rate_pct": 60.0,
+          "wins": 6
         },
         "24h": {
           "avg_directional_pct": null,
@@ -576,6 +596,6 @@
     },
     "total": 10
   },
-  "updated_at_utc": "2026-06-29T15:17:02.624197+00:00",
+  "updated_at_utc": "2026-06-29T16:18:43.327160+00:00",
   "version": 2
 }
