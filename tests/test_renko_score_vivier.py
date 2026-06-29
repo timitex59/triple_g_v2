@@ -20,6 +20,7 @@ from renko_score_29pairs_v16 import (
     collect_vivier_run_events,
     fib_ceiling_label,
     fibo_currency_coefficient,
+    fibo_currency_sar_adjusted_coefficient,
     fibo_currency_strength,
     fib_directional_label,
     sar_cross_event,
@@ -125,6 +126,24 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(fibo_currency_coefficient({"pct_of_range": 90.0}), 3)
         self.assertEqual(fibo_currency_coefficient({"pct_of_range": 110.0}), 4)
 
+    def test_fibo_sar_strict_coefficient_halves_only_contradictions(self):
+        self.assertEqual(
+            fibo_currency_sar_adjusted_coefficient({"pct_of_range": 20.0, "sar_dir": 1}),
+            -1.5,
+        )
+        self.assertEqual(
+            fibo_currency_sar_adjusted_coefficient({"pct_of_range": 20.0, "sar_dir": -1}),
+            -3.0,
+        )
+        self.assertEqual(
+            fibo_currency_sar_adjusted_coefficient({"pct_of_range": 70.0, "sar_dir": -1}),
+            1.0,
+        )
+        self.assertEqual(
+            fibo_currency_sar_adjusted_coefficient({"pct_of_range": 70.0, "sar_dir": 1}),
+            2.0,
+        )
+
     def test_fibo_currency_strength_uses_base_and_quote_inverse(self):
         rows = [
             {"pair": "GBPCAD", "h1_fib": {"pct_of_range": 90.0}},
@@ -138,6 +157,19 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual([item["currency"] for item in ranked], ["GBP", "CAD"])
         self.assertEqual(scores["GBP"], 3.0)
         self.assertEqual(scores["CAD"], -2.0)
+
+    def test_fibo_currency_strength_strict_sar_halves_pair_contradictions(self):
+        rows = [
+            {"pair": "GBPCAD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": -1}},
+            {"pair": "EURGBP", "h1_fib": {"pct_of_range": 20.0, "sar_dir": 1}},
+            {"pair": "AUDCAD", "h1_fib": {"pct_of_range": 55.0, "sar_dir": 1}},
+        ]
+
+        ranked = fibo_currency_strength(rows, min_pairs=2, strict_sar=True)
+        scores = {item["currency"]: item["score"] for item in ranked}
+
+        self.assertEqual(scores["GBP"], 1.5)
+        self.assertEqual(scores["CAD"], -1.25)
 
     def test_telegram_vivier_line_is_compact(self):
         state = {
@@ -239,11 +271,11 @@ class VivierStateTests(unittest.TestCase):
             }
         }
         all_rows = [
-            {"pair": "GBPCAD", "h1_fib": {"pct_of_range": 90.0}},
-            {"pair": "EURGBP", "h1_fib": {"pct_of_range": 20.0}},
-            {"pair": "AUDCAD", "h1_fib": {"pct_of_range": 55.0}},
-            {"pair": "AUDJPY", "h1_fib": {"pct_of_range": 90.0}},
-            {"pair": "EURJPY", "h1_fib": {"pct_of_range": 55.0}},
+            {"pair": "GBPCAD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": -1}},
+            {"pair": "EURGBP", "h1_fib": {"pct_of_range": 20.0, "sar_dir": 1}},
+            {"pair": "AUDCAD", "h1_fib": {"pct_of_range": 55.0, "sar_dir": 1}},
+            {"pair": "AUDJPY", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "EURJPY", "h1_fib": {"pct_of_range": 55.0, "sar_dir": 1}},
         ]
 
         message = build_telegram_message([], all_rows, vivier_state=state)
@@ -254,6 +286,9 @@ class VivierStateTests(unittest.TestCase):
         self.assertIn("Top: GBP +3.00, AUD +2.00", message)
         self.assertIn("Bas: CAD -2.00, JPY -2.00", message)
         self.assertNotIn("Top: GBP +3.00, AUD +2.00, EUR", message)
+        self.assertIn("FORCE FIBO+SAR", message)
+        self.assertIn("Top: AUD +2.00, GBP +1.50", message)
+        self.assertIn("Bas: JPY -2.00, CAD -1.25", message)
 
     def test_telegram_body_hash_ignores_timestamp_only(self):
         first = "📊 RENKO FIBO\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 08:16 Paris"

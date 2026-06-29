@@ -103,6 +103,7 @@ VIVIER_PERFORMANCE_VERSION = 2
 VIVIER_PERFORMANCE_HOURS = (1, 4, 12, 24, 72)
 FIBO_CURRENCY_MIN_PAIRS = 2
 FIBO_CURRENCY_TOP_N = 2
+FIBO_SAR_CONTRADICTION_FACTOR = 0.5
 SAR_FLAME_LABELS = {
     "FIRST": "🔥1",
     "RECORD": "🔥R",
@@ -1758,8 +1759,22 @@ def fibo_currency_coefficient(h1_fib: dict | None) -> int | None:
     return 4
 
 
+def fibo_currency_sar_adjusted_coefficient(h1_fib: dict | None) -> float | None:
+    """Same Fibo coefficient, halved when SAR contradicts pair direction."""
+    coeff = fibo_currency_coefficient(h1_fib)
+    if coeff is None or coeff == 0:
+        return coeff
+    sar_dir = (h1_fib or {}).get("sar_dir")
+    if sar_dir not in (-1, 1):
+        return float(coeff)
+    if (coeff > 0 and sar_dir < 0) or (coeff < 0 and sar_dir > 0):
+        return float(coeff) * FIBO_SAR_CONTRADICTION_FACTOR
+    return float(coeff)
+
+
 def fibo_currency_strength(rows: list[dict],
-                           min_pairs: int = FIBO_CURRENCY_MIN_PAIRS) -> list[dict]:
+                           min_pairs: int = FIBO_CURRENCY_MIN_PAIRS,
+                           strict_sar: bool = False) -> list[dict]:
     """Classe les devises par force Fibo mensuelle H1 sur toutes les paires.
 
     Pour ABCXYZ:
@@ -1775,7 +1790,11 @@ def fibo_currency_strength(rows: list[dict],
         base, quote = pair[:3], pair[3:]
         if base not in MAJORS or quote not in MAJORS:
             continue
-        coeff = fibo_currency_coefficient(row.get("h1_fib"))
+        h1_fib = row.get("h1_fib")
+        coeff = (
+            fibo_currency_sar_adjusted_coefficient(h1_fib)
+            if strict_sar else fibo_currency_coefficient(h1_fib)
+        )
         if coeff is None or coeff == 0:
             continue
         agg.setdefault(base, []).append(float(coeff))
@@ -1797,8 +1816,7 @@ def fibo_currency_strength(rows: list[dict],
     )
 
 
-def fibo_currency_strength_lines(rows: list[dict] | None) -> list[str]:
-    ranked = fibo_currency_strength(rows or [])
+def _fibo_currency_strength_block(title: str, ranked: list[dict]) -> list[str]:
     if len(ranked) < 2:
         return []
     strongest = ranked[0]
@@ -1814,12 +1832,22 @@ def fibo_currency_strength_lines(rows: list[dict] | None) -> list[str]:
         for item in bottom_ranked
     )
     return [
-        "💱 FORCE FIBO 0.5",
+        title,
         f"💪 Forte: {strongest['currency']} {strongest['score']:+.2f}",
         f"🥶 Faible: {weakest['currency']} {weakest['score']:+.2f}",
         f"Top: {top}",
         f"Bas: {bottom}",
     ]
+
+
+def fibo_currency_strength_lines(rows: list[dict] | None) -> list[str]:
+    ranked = fibo_currency_strength(rows or [])
+    return _fibo_currency_strength_block("💱 FORCE FIBO 0.5", ranked)
+
+
+def fibo_currency_strict_strength_lines(rows: list[dict] | None) -> list[str]:
+    ranked = fibo_currency_strength(rows or [], strict_sar=True)
+    return _fibo_currency_strength_block("🎚️ FORCE FIBO+SAR", ranked)
 
 
 def currency_strength(rated: list[dict], min_pairs: int = 2) -> list[tuple[str, float]]:
@@ -2187,9 +2215,16 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         return None
     lines = ["📊 RENKO FIBO", ""]
     has_content = False
-    fibo_strength = fibo_currency_strength_lines(all_rows if all_rows is not None else rows)
+    strength_rows = all_rows if all_rows is not None else rows
+    fibo_strength = fibo_currency_strength_lines(strength_rows)
     if fibo_strength:
         lines.extend(fibo_strength)
+        has_content = True
+    fibo_sar_strength = fibo_currency_strict_strength_lines(strength_rows)
+    if fibo_sar_strength:
+        if has_content:
+            lines.append("")
+        lines.extend(fibo_sar_strength)
         has_content = True
 
     if ordered and has_content:
