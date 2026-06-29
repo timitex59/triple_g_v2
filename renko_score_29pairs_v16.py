@@ -1903,14 +1903,25 @@ def fibo_theoretical_pairs(rows: list[dict] | None,
     return sorted(ideas, key=lambda item: (-float(item["edge"]), item["pair"]))
 
 
-def fibo_theoretical_pairs_lines(rows: list[dict] | None) -> list[str]:
+def fibo_theoretical_pairs_lines(rows: list[dict] | None,
+                                 vivier_pairs: list[str] | set[str] | None = None) -> list[str]:
     ideas = fibo_theoretical_pairs(rows)
     if not ideas:
         return []
+    vivier_currencies = {
+        currency
+        for pair in (vivier_pairs or [])
+        if len(pair) == 6
+        for currency in (pair[:3], pair[3:])
+    }
     lines = ["🧭 PAIRES FORT/FAIBLE"]
     for idea in ideas:
         icon = "🟢" if idea["direction"] == 1 else "🔴"
-        lines.append(f"{icon} {idea['pair']}")
+        pair = idea["pair"]
+        shared = [currency for currency in (pair[:3], pair[3:])
+                  if currency in vivier_currencies]
+        vivier_tag = f" 🌱{'/'.join(shared)}" if shared else ""
+        lines.append(f"{icon} {pair}{vivier_tag}")
     return lines
 
 
@@ -2280,7 +2291,13 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
     lines = ["📊 RENKO FIBO", ""]
     has_content = False
     strength_rows = all_rows if all_rows is not None else rows
-    theoretical_pairs = fibo_theoretical_pairs_lines(strength_rows)
+    active_vivier_pairs = {
+        pair for pair, _entry in bull_vivier + bear_vivier
+    }
+    theoretical_pairs = fibo_theoretical_pairs_lines(
+        strength_rows,
+        vivier_pairs=active_vivier_pairs,
+    )
 
     for row in ordered:
         icon = "🟢" if row["signal_state"] == 1 else "🔴"
