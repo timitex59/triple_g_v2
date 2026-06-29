@@ -25,7 +25,7 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T05:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T06:00:00+00:00",
       "mae_72h_pct": -0.11218622914036845,
       "mfe_72h_pct": 0.010517458981901028,
       "pair": "CADCHF",
@@ -63,9 +63,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T05:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T06:00:00+00:00",
       "mae_72h_pct": -0.02497800849251869,
-      "mfe_72h_pct": 0.08633702935458552,
+      "mfe_72h_pct": 0.11294403840097218,
       "pair": "EURJPY",
       "price": 184.162,
       "px": {
@@ -101,7 +101,7 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T05:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T06:00:00+00:00",
       "mae_72h_pct": -0.22988505747126173,
       "mfe_72h_pct": 0.0,
       "pair": "AUDCAD",
@@ -139,9 +139,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T05:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T06:00:00+00:00",
       "mae_72h_pct": -0.034663993479427516,
-      "mfe_72h_pct": 0.1236661388995501,
+      "mfe_72h_pct": 0.13116105640862344,
       "pair": "GBPJPY",
       "price": 213.478,
       "px": {
@@ -177,7 +177,7 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T05:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T06:00:00+00:00",
       "mae_72h_pct": -0.1918835069849171,
       "mfe_72h_pct": 0.06635224073310086,
       "pair": "AUDJPY",
@@ -189,13 +189,95 @@
       },
       "time_paris": "2026-06-26T23:00:00+02:00",
       "time_utc": "2026-06-26T21:00:00+00:00"
+    },
+    {
+      "base_pct": 33.33333333333333,
+      "complete": false,
+      "direction": 1,
+      "event_id": "08c5f9212e64951a55f3",
+      "event_type": "SAR_FLAME",
+      "fib_pct_of_range": 17.406143344709687,
+      "fib_position": "Fibo <0.236",
+      "final_pct": 0.0,
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "pair": "AUDCAD",
+      "price": 0.97803,
+      "px": {
+        "D": -1,
+        "M": 1,
+        "W": 0
+      },
+      "sar_value": 0.9765,
+      "time_paris": "2026-06-29T08:00:00+02:00",
+      "time_utc": "2026-06-29T06:00:00+00:00"
+    },
+    {
+      "base_pct": 33.33333333333333,
+      "complete": false,
+      "direction": 1,
+      "event_id": "80fb70ae0bc220686c39",
+      "event_type": "SAR_FLAME",
+      "fib_pct_of_range": 38.432243732148805,
+      "fib_position": "Fibo <0.500",
+      "final_pct": 16.666666666666664,
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "pair": "EURJPY",
+      "price": 184.366,
+      "px": {
+        "D": -1,
+        "M": 1,
+        "W": 0
+      },
+      "sar_value": 184.148,
+      "time_paris": "2026-06-29T08:00:00+02:00",
+      "time_utc": "2026-06-29T06:00:00+00:00"
     }
   ],
   "summary": {
     "by_type": {
+      "SAR_FLAME": {
+        "avg_mae_72h_pct": null,
+        "avg_mfe_72h_pct": null,
+        "complete": 0,
+        "count": 2,
+        "horizons": {
+          "12h": {
+            "avg_directional_pct": null,
+            "samples": 0,
+            "win_rate_pct": null,
+            "wins": 0
+          },
+          "1h": {
+            "avg_directional_pct": null,
+            "samples": 0,
+            "win_rate_pct": null,
+            "wins": 0
+          },
+          "24h": {
+            "avg_directional_pct": null,
+            "samples": 0,
+            "win_rate_pct": null,
+            "wins": 0
+          },
+          "4h": {
+            "avg_directional_pct": null,
+            "samples": 0,
+            "win_rate_pct": null,
+            "wins": 0
+          },
+          "72h": {
+            "avg_directional_pct": null,
+            "samples": 0,
+            "win_rate_pct": null,
+            "wins": 0
+          }
+        }
+      },
       "VIVIER_ENTRY": {
         "avg_mae_72h_pct": -0.11871935911369871,
-        "avg_mfe_72h_pct": 0.057374573593827506,
+        "avg_mfe_72h_pct": 0.06419495890491951,
         "complete": 0,
         "count": 5,
         "horizons": {
@@ -235,9 +317,9 @@
     "complete": 0,
     "overall": {
       "avg_mae_72h_pct": -0.11871935911369871,
-      "avg_mfe_72h_pct": 0.057374573593827506,
+      "avg_mfe_72h_pct": 0.06419495890491951,
       "complete": 0,
-      "count": 5,
+      "count": 7,
       "horizons": {
         "12h": {
           "avg_directional_pct": null,
@@ -271,8 +353,8 @@
         }
       }
     },
-    "total": 5
+    "total": 7
   },
-  "updated_at_utc": "2026-06-29T05:16:53.137861+00:00",
+  "updated_at_utc": "2026-06-29T06:16:57.456941+00:00",
   "version": 2
 }
