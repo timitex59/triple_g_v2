@@ -22,6 +22,7 @@ from renko_score_29pairs_v16 import (
     fibo_currency_coefficient,
     fibo_currency_sar_adjusted_coefficient,
     fibo_currency_strength,
+    fibo_theoretical_pairs,
     fib_directional_label,
     sar_cross_event,
     telegram_body_hash,
@@ -171,6 +172,28 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(scores["GBP"], 1.5)
         self.assertEqual(scores["CAD"], -1.25)
 
+    def test_fibo_theoretical_pairs_cross_strong_against_weak(self):
+        rows = [
+            {"pair": "GBPNZD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "GBPAUD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "NZDUSD", "h1_fib": {"pct_of_range": 20.0, "sar_dir": -1}},
+            {"pair": "AUDUSD", "h1_fib": {"pct_of_range": 20.0, "sar_dir": -1}},
+        ]
+
+        ideas = fibo_theoretical_pairs(
+            rows,
+            available_pairs={"GBPNZD", "GBPAUD", "NZDUSD", "AUDUSD"},
+        )
+        by_pair = {idea["pair"]: idea for idea in ideas}
+
+        self.assertEqual(set(by_pair), {"GBPNZD", "GBPAUD", "NZDUSD", "AUDUSD"})
+        self.assertEqual(by_pair["GBPNZD"]["direction"], 1)
+        self.assertEqual(by_pair["GBPAUD"]["direction"], 1)
+        self.assertEqual(by_pair["NZDUSD"]["direction"], -1)
+        self.assertEqual(by_pair["AUDUSD"]["direction"], -1)
+        self.assertEqual(by_pair["AUDUSD"]["strong"], "USD")
+        self.assertEqual(by_pair["AUDUSD"]["weak"], "AUD")
+
     def test_telegram_vivier_line_is_compact(self):
         state = {
             "pairs": {
@@ -289,6 +312,9 @@ class VivierStateTests(unittest.TestCase):
         self.assertIn("FORCE FIBO+SAR", message)
         self.assertIn("Top: AUD +2.00, GBP +1.50", message)
         self.assertIn("Bas: JPY -2.00, CAD -1.25", message)
+        self.assertIn("PAIRES FORT/FAIBLE", message)
+        self.assertIn("🟢 AUDJPY · AUD>JPY", message)
+        self.assertIn("🟢 GBPCAD · GBP>CAD", message)
 
     def test_telegram_body_hash_ignores_timestamp_only(self):
         first = "📊 RENKO FIBO\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 08:16 Paris"

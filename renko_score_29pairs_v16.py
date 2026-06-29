@@ -1850,6 +1850,70 @@ def fibo_currency_strict_strength_lines(rows: list[dict] | None) -> list[str]:
     return _fibo_currency_strength_block("🎚️ FORCE FIBO+SAR", ranked)
 
 
+def fibo_theoretical_pairs(rows: list[dict] | None,
+                           available_pairs: list[str] | set[str] | None = None) -> list[dict]:
+    """Cross strict Top currencies against strict Bottom currencies.
+
+    If the strong/weak pair exists, it is a theoretical long. If only the
+    inverse exists, it is a theoretical short on the listed pair.
+    """
+    ranked = fibo_currency_strength(rows or [], strict_sar=True)
+    strong = [
+        item for item in ranked
+        if isinstance(item.get("score"), (int, float)) and item["score"] > 0
+    ][:FIBO_CURRENCY_TOP_N]
+    weak = sorted(
+        [
+            item for item in ranked
+            if isinstance(item.get("score"), (int, float)) and item["score"] < 0
+        ],
+        key=lambda item: float(item["score"]),
+    )[:FIBO_CURRENCY_TOP_N]
+    if not strong or not weak:
+        return []
+
+    universe = set(available_pairs or PAIRS_29)
+    ideas: list[dict] = []
+    seen: set[str] = set()
+    for strong_item in strong:
+        strong_ccy = str(strong_item["currency"])
+        for weak_item in weak:
+            weak_ccy = str(weak_item["currency"])
+            if strong_ccy == weak_ccy:
+                continue
+            direct = f"{strong_ccy}{weak_ccy}"
+            inverse = f"{weak_ccy}{strong_ccy}"
+            if direct in universe:
+                pair, direction = direct, 1
+            elif inverse in universe:
+                pair, direction = inverse, -1
+            else:
+                continue
+            if pair in seen:
+                continue
+            seen.add(pair)
+            edge = float(strong_item["score"]) - float(weak_item["score"])
+            ideas.append({
+                "pair": pair,
+                "direction": direction,
+                "strong": strong_ccy,
+                "weak": weak_ccy,
+                "edge": edge,
+            })
+    return sorted(ideas, key=lambda item: (-float(item["edge"]), item["pair"]))
+
+
+def fibo_theoretical_pairs_lines(rows: list[dict] | None) -> list[str]:
+    ideas = fibo_theoretical_pairs(rows)
+    if not ideas:
+        return []
+    lines = ["🧭 PAIRES FORT/FAIBLE"]
+    for idea in ideas:
+        icon = "🟢" if idea["direction"] == 1 else "🔴"
+        lines.append(f"{icon} {idea['pair']} · {idea['strong']}>{idea['weak']}")
+    return lines
+
+
 def currency_strength(rated: list[dict], min_pairs: int = 2) -> list[tuple[str, float]]:
     """Force par devise (currency strength meter): pour chaque devise majeure,
     moyenne du CHG%D qui lui est attribuable sur toutes les paires ou elle
@@ -2225,6 +2289,12 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         if has_content:
             lines.append("")
         lines.extend(fibo_sar_strength)
+        has_content = True
+    theoretical_pairs = fibo_theoretical_pairs_lines(strength_rows)
+    if theoretical_pairs:
+        if has_content:
+            lines.append("")
+        lines.extend(theoretical_pairs)
         has_content = True
 
     if ordered and has_content:
