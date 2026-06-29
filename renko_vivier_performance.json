@@ -31,9 +31,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T10:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T11:00:00+00:00",
       "mae_72h_pct": -0.11218622914036845,
-      "mfe_72h_pct": 0.14899733557706096,
+      "mfe_72h_pct": 0.17704389286214334,
       "pair": "CADCHF",
       "price": 0.57048,
       "px": {
@@ -75,7 +75,7 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T10:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T11:00:00+00:00",
       "mae_72h_pct": -0.02497800849251869,
       "mfe_72h_pct": 0.2791020948947022,
       "pair": "EURJPY",
@@ -119,9 +119,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T10:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T11:00:00+00:00",
       "mae_72h_pct": -0.22988505747126173,
-      "mfe_72h_pct": 0.016347381864616907,
+      "mfe_72h_pct": 0.05823754789271616,
       "pair": "AUDCAD",
       "price": 0.97875,
       "px": {
@@ -163,9 +163,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T10:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T11:00:00+00:00",
       "mae_72h_pct": -0.034663993479427516,
-      "mfe_72h_pct": 0.25482719530817355,
+      "mfe_72h_pct": 0.27824881252400435,
       "pair": "GBPJPY",
       "price": 213.478,
       "px": {
@@ -207,7 +207,7 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T10:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T11:00:00+00:00",
       "mae_72h_pct": -0.1918835069849171,
       "mfe_72h_pct": 0.1685705575381547,
       "pair": "AUDJPY",
@@ -244,9 +244,9 @@
           "time_utc": "2026-06-29T10:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T10:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T11:00:00+00:00",
       "mae_72h_pct": -0.017381879901434874,
-      "mfe_72h_pct": 0.08997679007801315,
+      "mfe_72h_pct": 0.13189779454618095,
       "pair": "AUDCAD",
       "price": 0.97803,
       "px": {
@@ -282,7 +282,7 @@
           "time_utc": "2026-06-29T10:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T10:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T11:00:00+00:00",
       "mae_72h_pct": -0.018983977522984176,
       "mfe_72h_pct": 0.16814380091772552,
       "pair": "EURJPY",
@@ -295,15 +295,37 @@
       "sar_value": 184.148,
       "time_paris": "2026-06-29T08:00:00+02:00",
       "time_utc": "2026-06-29T06:00:00+00:00"
+    },
+    {
+      "base_pct": 33.33333333333333,
+      "complete": false,
+      "direction": 1,
+      "event_id": "0c6dc7279664d81b8f26",
+      "event_type": "SAR_FLAME",
+      "fib_pct_of_range": 10.893246187363955,
+      "fib_position": "Fibo <0.236",
+      "final_pct": 16.666666666666664,
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "pair": "AUDJPY",
+      "price": 111.682,
+      "px": {
+        "D": -1,
+        "M": 1,
+        "W": 0
+      },
+      "sar_value": 111.501,
+      "time_paris": "2026-06-29T13:00:00+02:00",
+      "time_utc": "2026-06-29T11:00:00+00:00"
     }
   ],
   "summary": {
     "by_type": {
       "SAR_FLAME": {
         "avg_mae_72h_pct": -0.018182928712209525,
-        "avg_mfe_72h_pct": 0.12906029549786935,
+        "avg_mfe_72h_pct": 0.15002079773195323,
         "complete": 0,
-        "count": 2,
+        "count": 3,
         "horizons": {
           "12h": {
             "avg_directional_pct": null,
@@ -339,7 +361,7 @@
       },
       "VIVIER_ENTRY": {
         "avg_mae_72h_pct": -0.11871935911369871,
-        "avg_mfe_72h_pct": 0.17356891303654168,
+        "avg_mfe_72h_pct": 0.19224058114234416,
         "complete": 0,
         "count": 5,
         "horizons": {
@@ -379,9 +401,9 @@
     "complete": 0,
     "overall": {
       "avg_mae_72h_pct": -0.08999466471327322,
-      "avg_mfe_72h_pct": 0.16085216516834958,
+      "avg_mfe_72h_pct": 0.18017778588223246,
       "complete": 0,
-      "count": 7,
+      "count": 8,
       "horizons": {
         "12h": {
           "avg_directional_pct": 0.07310636053641381,
@@ -415,8 +437,8 @@
         }
       }
     },
-    "total": 7
+    "total": 8
   },
-  "updated_at_utc": "2026-06-29T10:17:08.370355+00:00",
+  "updated_at_utc": "2026-06-29T11:17:09.045233+00:00",
   "version": 2
 }
