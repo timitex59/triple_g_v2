@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-06-29 19:20",
+  "updated_at_paris": "2026-06-29 20:19",
   "pairs": {
     "AUDCAD": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-06-29 19:20",
+      "last_seen_at_paris": "2026-06-29 20:19",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -19,7 +19,7 @@
       "base_pct": 33.33333333333333,
       "weighted_pct": 0.0,
       "fib_position": "Fibo <0.236",
-      "fib_pct_of_range": 17.99122379327141,
+      "fib_pct_of_range": 18.430034129692835,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -29,12 +29,14 @@
       "fib_objective_started_time_utc": "2026-06-28T23:00:00+00:00",
       "sar_last_processed_time_utc": "2026-06-29T06:00:00+00:00",
       "sar_record_value": 0.9765,
-      "sar_record_time_utc": "2026-06-29T06:00:00+00:00"
+      "sar_record_time_utc": "2026-06-29T06:00:00+00:00",
+      "entry_fib_position": "Fibo <0.236",
+      "entry_fib_pct_of_range": 17.99122379327141
     },
     "AUDJPY": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-06-29 19:20",
+      "last_seen_at_paris": "2026-06-29 20:19",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -48,7 +50,7 @@
       "base_pct": 33.33333333333333,
       "weighted_pct": 0.0,
       "fib_position": "Fibo <0.236",
-      "fib_pct_of_range": 8.006535947712697,
+      "fib_pct_of_range": 9.150326797385553,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -58,12 +60,14 @@
       "fib_objective_started_time_utc": "2026-06-28T23:00:00+00:00",
       "sar_last_processed_time_utc": "2026-06-29T11:00:00+00:00",
       "sar_record_value": 111.501,
-      "sar_record_time_utc": "2026-06-29T11:00:00+00:00"
+      "sar_record_time_utc": "2026-06-29T11:00:00+00:00",
+      "entry_fib_position": "Fibo <0.236",
+      "entry_fib_pct_of_range": 8.006535947712697
     },
     "CADCHF": {
       "direction": -1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-06-29 19:20",
+      "last_seen_at_paris": "2026-06-29 20:19",
       "entry_px": {
         "M": -1,
         "W": 0,
@@ -77,19 +81,21 @@
       "base_pct": -83.33333333333334,
       "weighted_pct": -75.00000000000001,
       "fib_position": "Fibo >0.382",
-      "fib_pct_of_range": 40.76923076923069,
+      "fib_pct_of_range": 39.23076923076883,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
       "fib_objective_carried": false,
       "fib_objective_value": 0.56494,
       "fib_objective_origin_month_utc": "2026-06",
-      "fib_objective_started_time_utc": "2026-06-28T23:00:00+00:00"
+      "fib_objective_started_time_utc": "2026-06-28T23:00:00+00:00",
+      "entry_fib_position": "Fibo >0.382",
+      "entry_fib_pct_of_range": 40.76923076923069
     },
     "EURJPY": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-06-29 19:20",
+      "last_seen_at_paris": "2026-06-29 20:19",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -103,7 +109,7 @@
       "base_pct": 83.33333333333334,
       "weighted_pct": 79.16666666666667,
       "fib_position": "Fibo <0.618",
-      "fib_pct_of_range": 58.48936845445927,
+      "fib_pct_of_range": 59.94922246905756,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -113,7 +119,9 @@
       "fib_objective_started_time_utc": "2026-06-28T23:00:00+00:00",
       "sar_last_processed_time_utc": "2026-06-29T06:00:00+00:00",
       "sar_record_value": 184.148,
-      "sar_record_time_utc": "2026-06-29T06:00:00+00:00"
+      "sar_record_time_utc": "2026-06-29T06:00:00+00:00",
+      "entry_fib_position": "Fibo <0.618",
+      "entry_fib_pct_of_range": 58.48936845445927
     }
   },
   "pending_objectives": {
@@ -128,5 +136,7 @@
       "source_entered_at_paris": "2026-06-28 15:06"
     }
   },
-  "objective_events": []
+  "objective_events": [],
+  "telegram_last_body_hash": "c4f0ce1a66fb0be4b4d41f7db3aded38f732968ae6d86a37eeb0705ae576e801",
+  "telegram_last_sent_at_paris": "2026-06-29 20:19"
 }
