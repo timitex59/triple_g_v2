@@ -19,6 +19,8 @@ from renko_score_29pairs_v16 import (
     closed_h1_source,
     collect_vivier_run_events,
     fib_ceiling_label,
+    fibo_currency_coefficient,
+    fibo_currency_strength,
     fib_directional_label,
     sar_cross_event,
     telegram_body_hash,
@@ -112,6 +114,31 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(fib_directional_label(fib, 1), "Fibo <0.618")
         self.assertEqual(fib_directional_label(fib, -1), "Fibo >0.500")
 
+    def test_fibo_currency_coefficient_weights_distance_from_midpoint(self):
+        self.assertEqual(fibo_currency_coefficient({"pct_of_range": -5.0}), -4)
+        self.assertEqual(fibo_currency_coefficient({"pct_of_range": 20.0}), -3)
+        self.assertEqual(fibo_currency_coefficient({"pct_of_range": 35.0}), -2)
+        self.assertEqual(fibo_currency_coefficient({"pct_of_range": 45.0}), -1)
+        self.assertEqual(fibo_currency_coefficient({"pct_of_range": 50.0}), 0)
+        self.assertEqual(fibo_currency_coefficient({"pct_of_range": 55.0}), 1)
+        self.assertEqual(fibo_currency_coefficient({"pct_of_range": 70.0}), 2)
+        self.assertEqual(fibo_currency_coefficient({"pct_of_range": 90.0}), 3)
+        self.assertEqual(fibo_currency_coefficient({"pct_of_range": 110.0}), 4)
+
+    def test_fibo_currency_strength_uses_base_and_quote_inverse(self):
+        rows = [
+            {"pair": "GBPCAD", "h1_fib": {"pct_of_range": 90.0}},
+            {"pair": "EURGBP", "h1_fib": {"pct_of_range": 20.0}},
+            {"pair": "AUDCAD", "h1_fib": {"pct_of_range": 55.0}},
+        ]
+
+        ranked = fibo_currency_strength(rows, min_pairs=2)
+        scores = {item["currency"]: item["score"] for item in ranked}
+
+        self.assertEqual([item["currency"] for item in ranked], ["GBP", "CAD"])
+        self.assertEqual(scores["GBP"], 3.0)
+        self.assertEqual(scores["CAD"], -2.0)
+
     def test_telegram_vivier_line_is_compact(self):
         state = {
             "pairs": {
@@ -200,6 +227,28 @@ class VivierStateTests(unittest.TestCase):
 
         self.assertIn("SUIVI SIGNAL", message)
         self.assertIn("GBPJPY (+0.50% depuis signal | F1 215.614)", message)
+
+    def test_telegram_shows_fibo_currency_strength(self):
+        state = {
+            "pairs": {
+                "GBPJPY": {
+                    "direction": 1,
+                    "last_px": {"M": 1, "W": 1, "D": 0},
+                    "fib_position": "Fibo <0.500",
+                }
+            }
+        }
+        all_rows = [
+            {"pair": "GBPCAD", "h1_fib": {"pct_of_range": 90.0}},
+            {"pair": "EURGBP", "h1_fib": {"pct_of_range": 20.0}},
+            {"pair": "AUDCAD", "h1_fib": {"pct_of_range": 55.0}},
+        ]
+
+        message = build_telegram_message([], all_rows, vivier_state=state)
+
+        self.assertIn("FORCE FIBO 0.5", message)
+        self.assertIn("Forte: GBP +3.00", message)
+        self.assertIn("Faible: CAD -2.00", message)
 
     def test_telegram_body_hash_ignores_timestamp_only(self):
         first = "📊 RENKO FIBO\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 08:16 Paris"

@@ -101,6 +101,8 @@ VIVIER_PERFORMANCE_PATH = os.path.join(
 )
 VIVIER_PERFORMANCE_VERSION = 2
 VIVIER_PERFORMANCE_HOURS = (1, 4, 12, 24, 72)
+FIBO_CURRENCY_MIN_PAIRS = 2
+FIBO_CURRENCY_TOP_N = 3
 SAR_FLAME_LABELS = {
     "FIRST": "🔥1",
     "RECORD": "🔥R",
@@ -1724,6 +1726,102 @@ def save_vivier_performance(payload: dict, path: str = VIVIER_PERFORMANCE_PATH) 
 MAJORS = {"AUD", "CAD", "CHF", "EUR", "GBP", "JPY", "NZD", "USD"}
 
 
+def fibo_currency_coefficient(h1_fib: dict | None) -> int | None:
+    """Coefficient directionnel de la paire selon sa position vs Fibo 0.5.
+
+    Positive = devise de base forte / devise de cotation faible.
+    Negative = devise de base faible / devise de cotation forte.
+    Intensite par zone:
+      <0=-4, <0.236=-3, <0.382=-2, <0.5=-1,
+      >0.5=+1, >0.618=+2, >0.786=+3, >1=+4.
+    """
+    pct = (h1_fib or {}).get("pct_of_range")
+    if not isinstance(pct, (int, float)):
+        return None
+    ratio = float(pct) / 100.0
+    if ratio < 0.0:
+        return -4
+    if ratio < 0.236:
+        return -3
+    if ratio < 0.382:
+        return -2
+    if ratio < 0.5:
+        return -1
+    if ratio == 0.5:
+        return 0
+    if ratio < 0.618:
+        return 1
+    if ratio < 0.786:
+        return 2
+    if ratio <= 1.0:
+        return 3
+    return 4
+
+
+def fibo_currency_strength(rows: list[dict],
+                           min_pairs: int = FIBO_CURRENCY_MIN_PAIRS) -> list[dict]:
+    """Classe les devises par force Fibo mensuelle H1 sur toutes les paires.
+
+    Pour ABCXYZ:
+      - coefficient positif: ABC fort, XYZ faible;
+      - coefficient negatif: ABC faible, XYZ fort.
+    Le score final est la moyenne des contributions disponibles par devise.
+    """
+    agg: dict[str, list[float]] = {}
+    for row in rows:
+        pair = str(row.get("pair") or "")
+        if len(pair) != 6:
+            continue
+        base, quote = pair[:3], pair[3:]
+        if base not in MAJORS or quote not in MAJORS:
+            continue
+        coeff = fibo_currency_coefficient(row.get("h1_fib"))
+        if coeff is None or coeff == 0:
+            continue
+        agg.setdefault(base, []).append(float(coeff))
+        agg.setdefault(quote, []).append(float(-coeff))
+
+    ranked = []
+    for currency, values in agg.items():
+        if len(values) < min_pairs:
+            continue
+        ranked.append({
+            "currency": currency,
+            "score": statistics.fmean(values),
+            "samples": len(values),
+            "raw": sum(values),
+        })
+    return sorted(
+        ranked,
+        key=lambda item: (-float(item["score"]), -int(item["samples"]), item["currency"]),
+    )
+
+
+def fibo_currency_strength_lines(rows: list[dict] | None) -> list[str]:
+    ranked = fibo_currency_strength(rows or [])
+    if len(ranked) < 2:
+        return []
+    strongest = ranked[0]
+    weakest = ranked[-1]
+    top = ", ".join(
+        f"{item['currency']} {item['score']:+.2f}"
+        for item in ranked[:FIBO_CURRENCY_TOP_N]
+    )
+    bottom_ranked = sorted(ranked[-FIBO_CURRENCY_TOP_N:],
+                           key=lambda item: float(item["score"]))
+    bottom = ", ".join(
+        f"{item['currency']} {item['score']:+.2f}"
+        for item in bottom_ranked
+    )
+    return [
+        "💱 FORCE FIBO 0.5",
+        f"💪 Forte: {strongest['currency']} {strongest['score']:+.2f}",
+        f"🥶 Faible: {weakest['currency']} {weakest['score']:+.2f}",
+        f"Top: {top}",
+        f"Bas: {bottom}",
+    ]
+
+
 def currency_strength(rated: list[dict], min_pairs: int = 2) -> list[tuple[str, float]]:
     """Force par devise (currency strength meter): pour chaque devise majeure,
     moyenne du CHG%D qui lui est attribuable sur toutes les paires ou elle
@@ -2088,6 +2186,14 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
             and not post_signal_entries):
         return None
     lines = ["📊 RENKO FIBO", ""]
+    has_content = False
+    fibo_strength = fibo_currency_strength_lines(all_rows if all_rows is not None else rows)
+    if fibo_strength:
+        lines.extend(fibo_strength)
+        has_content = True
+
+    if ordered and has_content:
+        lines.append("")
     for row in ordered:
         icon = "🟢" if row["signal_state"] == 1 else "🔴"
         h1_fib = row["h1_fib"]
@@ -2103,8 +2209,7 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         streak_tag = row.get("streak_tag", "")
         streak_txt = f" {streak_tag}" if streak_tag else ""
         lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){streak_txt}{flame}")
-
-    has_content = bool(ordered)
+    has_content = has_content or bool(ordered)
     if transitions:
         if has_content:
             lines.append("")
