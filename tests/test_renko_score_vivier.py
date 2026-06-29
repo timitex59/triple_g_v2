@@ -21,6 +21,7 @@ from renko_score_29pairs_v16 import (
     fib_ceiling_label,
     fib_directional_label,
     sar_cross_event,
+    telegram_body_hash,
     update_vivier,
     update_vivier_performance,
     vivier_groups,
@@ -142,6 +143,71 @@ class VivierStateTests(unittest.TestCase):
         message = build_telegram_message([], [], vivier_state=state)
 
         self.assertIn("🟢 GBPJPY (+83% | <0.382) 🔥", message)
+
+    def test_telegram_shows_fibo_path_and_flame_kind(self):
+        state = {
+            "pairs": {
+                "EURJPY": {
+                    "direction": 1,
+                    "last_px": {"M": 1, "W": 1, "D": 0},
+                    "entry_fib_position": "Fibo <0.236",
+                    "fib_position": "Fibo <0.500",
+                    "sar_flame": True,
+                    "sar_flame_kind": "RECORD",
+                }
+            }
+        }
+
+        message = build_telegram_message([], [], vivier_state=state)
+
+        self.assertIn("EURJPY (+83% | <0.236→<0.500)", message)
+        self.assertIn("🔥R", message)
+
+    def test_telegram_shows_near_alignment_section(self):
+        state = {
+            "pairs": {
+                "GBPJPY": {
+                    "direction": 1,
+                    "last_px": {"M": 1, "W": 1, "D": 0},
+                    "fib_position": "Fibo <0.500",
+                }
+            }
+        }
+
+        message = build_telegram_message([], [], vivier_state=state)
+
+        self.assertIn("PROCHE ALIGNEMENT", message)
+        self.assertIn("GBPJPY · D restant · +83%", message)
+
+    def test_telegram_shows_post_signal_tracking(self):
+        state = {
+            "pairs": {},
+            "pending_objectives": {
+                "GBPJPY": {
+                    "direction": 1,
+                    "value": 215.614,
+                    "signal_price": 213.0,
+                }
+            },
+        }
+        current = {
+            "pair": "GBPJPY",
+            "h1_price": 214.065,
+            "h1_fib": {},
+        }
+
+        message = build_telegram_message([], [current], vivier_state=state)
+
+        self.assertIn("SUIVI SIGNAL", message)
+        self.assertIn("GBPJPY (+0.50% depuis signal | F1 215.614)", message)
+
+    def test_telegram_body_hash_ignores_timestamp_only(self):
+        first = "📊 RENKO FIBO\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 08:16 Paris"
+        second = "📊 RENKO FIBO\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 09:16 Paris"
+        changed = "📊 RENKO FIBO\n\n🟢 EURJPY\n\n⏰ 2026-06-29 09:16 Paris"
+
+        self.assertEqual(telegram_body_hash(first), telegram_body_hash(second))
+        self.assertNotEqual(telegram_body_hash(first), telegram_body_hash(changed))
 
     def test_direct_vivier_to_renko_fibo_transition_is_shown_once(self):
         renko_row = {
@@ -296,6 +362,7 @@ class VivierStateTests(unittest.TestCase):
         )
         entry = state["pairs"]["GBPJPY"]
         self.assertTrue(entry["sar_flame"])
+        self.assertEqual(entry["sar_flame_kind"], "FIRST")
         self.assertEqual(entry["sar_record_value"], 0.4590)
 
         same_state, _ = update_vivier(
@@ -314,6 +381,7 @@ class VivierStateTests(unittest.TestCase):
             [row("GBPJPY", 1, 0, -1, sar_event=lower)], higher_state, NOW
         )
         self.assertTrue(lower_state["pairs"]["GBPJPY"]["sar_flame"])
+        self.assertEqual(lower_state["pairs"]["GBPJPY"]["sar_flame_kind"], "RECORD")
         self.assertEqual(lower_state["pairs"]["GBPJPY"]["sar_record_value"], 0.4580)
 
     def test_bear_sar_flame_requires_new_record_high_above_fib50(self):
@@ -322,6 +390,7 @@ class VivierStateTests(unittest.TestCase):
             [row("NZDCHF", -1, 0, 1, sar_event=first)], {}, NOW
         )
         self.assertTrue(state["pairs"]["NZDCHF"]["sar_flame"])
+        self.assertEqual(state["pairs"]["NZDCHF"]["sar_flame_kind"], "FIRST")
 
         lower = event(-1, 0.4650, 0.4620, "2026-06-27T11:00:00+00:00")
         lower_state, _ = update_vivier(
@@ -334,6 +403,7 @@ class VivierStateTests(unittest.TestCase):
             [row("NZDCHF", -1, 0, 1, sar_event=higher)], lower_state, NOW
         )
         self.assertTrue(higher_state["pairs"]["NZDCHF"]["sar_flame"])
+        self.assertEqual(higher_state["pairs"]["NZDCHF"]["sar_flame_kind"], "RECORD")
         self.assertEqual(higher_state["pairs"]["NZDCHF"]["sar_record_value"], 0.4670)
 
     def test_sar_event_on_wrong_fibonacci_half_does_not_start_record(self):
@@ -384,6 +454,7 @@ class VivierStateTests(unittest.TestCase):
             [row("GBPJPY", 1, 0, -1, sar_event=next_event)], repeated, NOW
         )
         self.assertTrue(rearmed["pairs"]["GBPJPY"]["sar_flame"])
+        self.assertEqual(rearmed["pairs"]["GBPJPY"]["sar_flame_kind"], "RESET")
         self.assertEqual(rearmed["pairs"]["GBPJPY"]["sar_record_value"], 0.4600)
 
     def test_bear_fib0_touch_resets_record_and_rearms_first_flame(self):
@@ -408,6 +479,7 @@ class VivierStateTests(unittest.TestCase):
             [row("NZDCHF", -1, 0, 1, sar_event=next_event)], reset_state, NOW
         )
         self.assertTrue(rearmed["pairs"]["NZDCHF"]["sar_flame"])
+        self.assertEqual(rearmed["pairs"]["NZDCHF"]["sar_flame_kind"], "RESET")
         self.assertEqual(rearmed["pairs"]["NZDCHF"]["sar_record_value"], 0.4650)
 
     def test_fib_extreme_touch_without_record_does_not_create_reset(self):
@@ -496,6 +568,7 @@ class VivierStateTests(unittest.TestCase):
         ], touched, NOW)
         rearmed_entry = rearmed["pairs"]["GBPJPY"]
         self.assertTrue(rearmed_entry["sar_flame"])
+        self.assertEqual(rearmed_entry["sar_flame_kind"], "RESET")
         self.assertTrue(rearmed_entry["fib_objective_active"])
         self.assertFalse(rearmed_entry["fib_objective_carried"])
         self.assertEqual(rearmed_entry["fib_objective_value"], 1.02)

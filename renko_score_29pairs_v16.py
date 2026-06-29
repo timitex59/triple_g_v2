@@ -101,6 +101,11 @@ VIVIER_PERFORMANCE_PATH = os.path.join(
 )
 VIVIER_PERFORMANCE_VERSION = 2
 VIVIER_PERFORMANCE_HOURS = (1, 4, 12, 24, 72)
+SAR_FLAME_LABELS = {
+    "FIRST": "🔥1",
+    "RECORD": "🔥R",
+    "RESET": "🔥↻",
+}
 
 
 @dataclass
@@ -123,6 +128,7 @@ def parse_args():
     parser.add_argument("--candles", type=int, default=300, help="Number of candles fetched per symbol and timeframe.")
     parser.add_argument("--max-streak", type=int, default=50, help="Cap on the consecutive green/red brick streak count.")
     parser.add_argument("--no-telegram", action="store_true", help="Print the analysis without sending it to Telegram.")
+    parser.add_argument("--force-telegram", action="store_true", help="Send the Telegram message even if the body is unchanged.")
     parser.add_argument("--vivier-state", default=VIVIER_STATE_PATH, help="Path to the persistent VIVIER state file.")
     parser.add_argument("--vivier-events", default=VIVIER_EVENTS_PATH, help="Append-only VIVIER event journal.")
     parser.add_argument("--vivier-performance", default=VIVIER_PERFORMANCE_PATH, help="VIVIER performance tracker.")
@@ -859,8 +865,13 @@ def load_vivier_state(path: str = VIVIER_STATE_PATH) -> dict:
             and entry.get("direction") in (-1, 1)
             and isinstance(entry.get("value"), (int, float)))
     }
-    return {"version": VIVIER_STATE_VERSION, "pairs": valid_pairs,
-            "pending_objectives": valid_pending}
+    state = {"version": VIVIER_STATE_VERSION, "pairs": valid_pairs,
+             "pending_objectives": valid_pending}
+    for key in ("telegram_last_body_hash", "telegram_last_sent_at_paris"):
+        value = payload.get(key)
+        if isinstance(value, str):
+            state[key] = value
+    return state
 
 
 def save_vivier_state(state: dict, path: str = VIVIER_STATE_PATH) -> None:
@@ -936,11 +947,18 @@ def _pending_objective_from_entry(entry: dict, row: dict,
     if not entry.get("fib_objective_active") or not isinstance(value, (int, float)):
         return None
     h1 = row.get("h1_fib") or {}
+    signal_price = h1.get("h1_closed_price", row.get("h1_price", row.get("live_price")))
     return {
         "direction": direction,
         "value": float(value),
         "origin_month_utc": entry.get("fib_objective_origin_month_utc"),
         "started_time_utc": entry.get("fib_objective_started_time_utc"),
+        "signal_time_utc": h1.get("h1_closed_time_utc"),
+        "signal_price": float(signal_price) if isinstance(signal_price, (int, float)) else None,
+        "signal_base_pct": row.get("base_pct"),
+        "signal_weighted_pct": row.get("weighted_pct"),
+        "signal_fib_position": fib_directional_label(h1, direction),
+        "signal_px": row.get("px"),
         "post_alignment_time_utc": h1.get("h1_closed_time_utc"),
         "post_alignment_month_utc": h1.get("month_utc"),
         "was_carried_before_alignment": bool(entry.get("fib_objective_carried")),
@@ -979,6 +997,7 @@ def _attach_pending_objective(entry: dict, pending: dict, row: dict) -> None:
 def apply_vivier_sar_record(entry: dict, row: dict, direction: int) -> None:
     """Set a one-run flame when a valid H1 SAR event makes a new record."""
     entry["sar_flame"] = False
+    entry.pop("sar_flame_kind", None)
     event = (row.get("h1_fib") or {}).get("sar_cross_event") or {}
     if event.get("direction") != direction:
         return
@@ -1005,6 +1024,13 @@ def apply_vivier_sar_record(entry: dict, row: dict, direction: int) -> None:
     entry["sar_record_value"] = float(sar_value)
     entry["sar_record_time_utc"] = event_time
     entry["sar_flame"] = True
+    if entry.get("sar_rearmed_after_fib_reset"):
+        entry["sar_flame_kind"] = "RESET"
+        entry["sar_rearmed_after_fib_reset"] = False
+    elif previous is None:
+        entry["sar_flame_kind"] = "FIRST"
+    else:
+        entry["sar_flame_kind"] = "RECORD"
     if not entry.get("fib_objective_active"):
         _set_vivier_fib_objective(entry, row, direction)
 
@@ -1048,6 +1074,7 @@ def apply_vivier_fib_extreme_reset(entry: dict, row: dict, direction: int) -> bo
     if had_sar_record:
         entry.pop("sar_record_value", None)
         entry.pop("sar_record_time_utc", None)
+        entry["sar_rearmed_after_fib_reset"] = True
         entry["sar_last_fib_reset_time_utc"] = bar_time
         entry["sar_last_fib_reset_reason"] = reason
     return True
@@ -1075,6 +1102,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
     }
     for entry in tracked.values():
         entry["sar_flame"] = False
+        entry.pop("sar_flame_kind", None)
     old_pending = (previous_state or {}).get("pending_objectives") or {}
     pending_objectives = {
         str(pair): dict(entry)
@@ -1133,6 +1161,8 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 if abs(_base_score_from_px(px)) < VIVIER_MIN_ABS_BASE_SCORE:
                     del tracked[pair]
                     continue
+                existing.setdefault("entry_fib_position", existing.get("fib_position"))
+                existing.setdefault("entry_fib_pct_of_range", existing.get("fib_pct_of_range"))
                 existing["last_seen_at_paris"] = stamp
                 existing["last_px"] = px
                 existing["base_pct"] = row.get("base_pct")
@@ -1191,6 +1221,8 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 "weighted_pct": row.get("weighted_pct"),
                 "fib_position": fib_directional_label(row.get("h1_fib"), direction),
                 "fib_pct_of_range": (row.get("h1_fib") or {}).get("pct_of_range"),
+                "entry_fib_position": fib_directional_label(row.get("h1_fib"), direction),
+                "entry_fib_pct_of_range": (row.get("h1_fib") or {}).get("pct_of_range"),
             }
             reusable = pending_objectives.get(pair)
             if reusable is not None and reusable.get("direction") == direction:
@@ -1231,6 +1263,56 @@ def vivier_base_score(entry: dict) -> float:
     return _base_score_from_px(px)
 
 
+def _strip_fibo_prefix(value: str | None) -> str:
+    return (value or "Fibo ?").removeprefix("Fibo ")
+
+
+def vivier_fib_path(entry: dict) -> str:
+    """Entry Fibo -> current Fibo, compact for Telegram."""
+    current = _strip_fibo_prefix(entry.get("fib_position"))
+    initial = _strip_fibo_prefix(
+        entry.get("entry_fib_position") or entry.get("fib_position")
+    )
+    return f"{initial}→{current}" if initial != current else current
+
+
+def _parse_paris_minute(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%Y-%m-%d %H:%M").replace(tzinfo=PARIS_TZ)
+    except (TypeError, ValueError):
+        return None
+
+
+def vivier_age_label(entry: dict, now: datetime | None = None) -> str:
+    entered = _parse_paris_minute(entry.get("entered_at_paris"))
+    if entered is None:
+        return ""
+    ref = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
+    days = max(0, (ref.date() - entered.date()).days)
+    return f"J+{days}"
+
+
+def vivier_flame_label(entry: dict) -> str:
+    if not entry.get("sar_flame"):
+        return ""
+    return SAR_FLAME_LABELS.get(entry.get("sar_flame_kind"), "🔥")
+
+
+def _format_vivier_entry_line(pair: str, entry: dict, now: datetime | None = None) -> str:
+    direction = int(entry.get("direction", 1))
+    icon = "🟢" if direction == 1 else "🔴"
+    score = vivier_base_score(entry)
+    parts = [f"{score:+.0f}%", vivier_fib_path(entry)]
+    age = vivier_age_label(entry, now)
+    if age:
+        parts.append(age)
+    line = f"{icon} {pair} ({' | '.join(parts)})"
+    flame = vivier_flame_label(entry)
+    return f"{line} {flame}" if flame else line
+
+
 def vivier_groups(state: dict) -> tuple[list[tuple[str, dict]], list[tuple[str, dict]]]:
     pairs = state.get("pairs") or {}
     rank = lambda item: (-abs(vivier_base_score(item[1])), item[0])
@@ -1245,19 +1327,80 @@ def vivier_groups(state: dict) -> tuple[list[tuple[str, dict]], list[tuple[str, 
     return bull, bear
 
 
+def near_alignment_entries(state: dict) -> list[tuple[str, dict]]:
+    """Active VIVIER pairs where M/W already match the pool direction."""
+    pairs = state.get("pairs") or {}
+    entries = []
+    for pair, entry in pairs.items():
+        direction = entry.get("direction")
+        px = entry.get("last_px") or {}
+        if direction not in (-1, 1):
+            continue
+        if px.get("M") == direction and px.get("W") == direction and px.get("D") != direction:
+            entries.append((pair, entry))
+    return sorted(entries, key=lambda item: (-abs(vivier_base_score(item[1])), item[0]))
+
+
+def _compact_price(value: float | int | None) -> str:
+    if not isinstance(value, (int, float)):
+        return "?"
+    return f"{float(value):.5f}".rstrip("0").rstrip(".")
+
+
+def _row_current_price(row: dict | None) -> float | None:
+    if row is None:
+        return None
+    h1 = row.get("h1_fib") or {}
+    value = h1.get("h1_closed_price", row.get("h1_price", row.get("live_price")))
+    return float(value) if isinstance(value, (int, float)) else None
+
+
+def post_signal_tracking_entries(state: dict, all_rows: list[dict] | None = None) -> list[dict]:
+    """Pending post-alignment Fibo objectives, enriched with current PnL."""
+    pending = state.get("pending_objectives") or {}
+    rows_by_pair = {row.get("pair"): row for row in (all_rows or [])}
+    result: list[dict] = []
+    for pair, objective in pending.items():
+        direction = objective.get("direction")
+        if direction not in (-1, 1):
+            continue
+        row = rows_by_pair.get(pair)
+        current_price = _row_current_price(row)
+        signal_price = objective.get("signal_price")
+        directional_pct = None
+        if (isinstance(current_price, (int, float))
+                and isinstance(signal_price, (int, float))
+                and signal_price != 0):
+            directional_pct = ((current_price - signal_price) / signal_price
+                               * 100.0 * int(direction))
+        result.append({
+            "pair": pair,
+            "direction": int(direction),
+            "objective_value": objective.get("value"),
+            "objective_label": "F1" if direction == 1 else "F0",
+            "directional_pct": directional_pct,
+            "signal_weighted_pct": objective.get("signal_weighted_pct"),
+        })
+    return sorted(result, key=lambda item: (
+        -abs(item["directional_pct"]) if isinstance(item["directional_pct"], (int, float)) else 0,
+        item["pair"],
+    ))
+
+
 def print_vivier_report(state: dict, signals: list[dict]) -> None:
     bull, bear = vivier_groups(state)
     print("\nVIVIER RENKO")
     print(f"BULL ({len(bull)}): " + (", ".join(pair for pair, _ in bull) or "--"))
     for pair, entry in bull:
-        fib = entry.get("fib_position", "Fibo ?")
-        flame = " 🔥" if entry.get("sar_flame") else ""
-        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {fib:<12}  {_px_compact(entry.get('last_px'))}{flame}")
+        print(f"  {_format_vivier_entry_line(pair, entry)}  {_px_compact(entry.get('last_px'))}")
     print(f"BEAR ({len(bear)}): " + (", ".join(pair for pair, _ in bear) or "--"))
     for pair, entry in bear:
-        fib = entry.get("fib_position", "Fibo ?")
-        flame = " 🔥" if entry.get("sar_flame") else ""
-        print(f"  {pair:<8} {vivier_base_score(entry):+4.0f}%  {fib:<12}  {_px_compact(entry.get('last_px'))}{flame}")
+        print(f"  {_format_vivier_entry_line(pair, entry)}  {_px_compact(entry.get('last_px'))}")
+    near = near_alignment_entries(state)
+    if near:
+        print("PROCHE ALIGNEMENT:")
+        for pair, entry in near:
+            print(f"  {_format_vivier_entry_line(pair, entry)}  D restant")
     pending = state.get("pending_objectives") or {}
     if pending:
         print(f"OBJECTIFS POST-ALIGNEMENT ({len(pending)}):")
@@ -1350,6 +1493,7 @@ def collect_vivier_run_events(previous_state: dict, current_state: dict,
                 "SAR_FLAME", pair, int(entry["direction"]), rows_by_pair.get(pair),
                 time_utc=entry.get("sar_record_time_utc"),
                 sar_value=entry.get("sar_record_value"),
+                flame_kind=entry.get("sar_flame_kind"),
             ))
         carried_time = entry.get("fib_objective_carried_at_time_utc")
         if carried_time and carried_time != (old or {}).get("fib_objective_carried_at_time_utc"):
@@ -1933,11 +2077,15 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
                 turns.append((d, tier, r["pair"]))
                 break
 
-    bull_vivier, bear_vivier = vivier_groups(vivier_state or {})
+    vivier_state = vivier_state or {}
+    bull_vivier, bear_vivier = vivier_groups(vivier_state)
+    near_entries = near_alignment_entries(vivier_state)
+    post_signal_entries = post_signal_tracking_entries(vivier_state, all_rows)
 
     # Aucun signal, retournement ou suivi VIVIER -> aucun message.
     if (not ordered and not transitions and not turns and not bull_vivier
-            and not bear_vivier and not vivier_signals):
+            and not bear_vivier and not vivier_signals and not near_entries
+            and not post_signal_entries):
         return None
     lines = ["📊 RENKO FIBO", ""]
     for row in ordered:
@@ -1991,6 +2139,30 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
             lines.append(f"{icon} {signal['pair']} · M/W/D alignés{score_txt}")
         has_content = True
 
+    if post_signal_entries:
+        if has_content:
+            lines.append("")
+        lines.append("🎯 SUIVI SIGNAL")
+        for item in post_signal_entries:
+            icon = "🟢" if item["direction"] == 1 else "🔴"
+            objective = f"{item['objective_label']} {_compact_price(item.get('objective_value'))}"
+            pct = item.get("directional_pct")
+            pct_txt = f"{pct:+.2f}% depuis signal" if isinstance(pct, (int, float)) else "depuis signal"
+            lines.append(f"{icon} {item['pair']} ({pct_txt} | {objective})")
+        has_content = True
+
+    if near_entries:
+        if has_content:
+            lines.append("")
+        lines.append("⏳ PROCHE ALIGNEMENT")
+        for pair, entry in near_entries:
+            direction = int(entry["direction"])
+            icon = "🟢" if direction == 1 else "🔴"
+            score = vivier_base_score(entry)
+            missing = "D restant"
+            lines.append(f"{icon} {pair} · {missing} · {score:+.0f}%")
+        has_content = True
+
     for direction, title, entries in (
         (1, "🌱 VIVIER BULL", bull_vivier),
         (-1, "🌱 VIVIER BEAR", bear_vivier),
@@ -2000,18 +2172,29 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         if has_content:
             lines.append("")
         lines.append(title)
-        icon = "🟢" if direction == 1 else "🔴"
         for pair, entry in entries:
-            score = vivier_base_score(entry)
-            fib = entry.get("fib_position", "Fibo ?").removeprefix("Fibo ")
-            flame = " 🔥" if entry.get("sar_flame") else ""
-            lines.append(f"{icon} {pair} ({score:+.0f}% | {fib}){flame}")
+            lines.append(_format_vivier_entry_line(pair, entry))
         has_content = True
 
     # Message: RENKO FIBO, retournements, suivi VIVIER et horodatage.
     lines.append("")
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}")
     return "\n".join(lines)
+
+
+def telegram_body_hash(message: str) -> str:
+    """Hash the actionable Telegram body, ignoring only the run timestamp."""
+    body = "\n".join(
+        line for line in message.splitlines()
+        if not line.startswith("⏰ ")
+    ).strip()
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def carry_telegram_metadata(previous_state: dict, current_state: dict) -> None:
+    for key in ("telegram_last_body_hash", "telegram_last_sent_at_paris"):
+        if key in previous_state and key not in current_state:
+            current_state[key] = previous_state[key]
 
 
 def main() -> int:
@@ -2050,6 +2233,7 @@ def main() -> int:
         rows,
     )
     save_vivier_performance(performance, args.vivier_performance)
+    carry_telegram_metadata(previous_vivier, vivier_state)
     save_vivier_state(vivier_state, args.vivier_state)
     print_vivier_report(vivier_state, vivier_signals)
     tracker_summary = performance["summary"]
@@ -2071,10 +2255,16 @@ def main() -> int:
         return 0
     print("")
     print(message)
+    message_hash = telegram_body_hash(message)
     if args.no_telegram:
         print("Telegram: envoi désactivé (--no-telegram).")
+    elif not args.force_telegram and message_hash == previous_vivier.get("telegram_last_body_hash"):
+        print("Telegram: message inchangé, envoi ignoré.")
     else:
         send_telegram_message(message)
+        vivier_state["telegram_last_body_hash"] = message_hash
+        vivier_state["telegram_last_sent_at_paris"] = datetime.now(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
+        save_vivier_state(vivier_state, args.vivier_state)
     return 0
 
 
