@@ -25,9 +25,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T06:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T07:00:00+00:00",
       "mae_72h_pct": -0.11218622914036845,
-      "mfe_72h_pct": 0.010517458981901028,
+      "mfe_72h_pct": 0.03155237694572254,
       "pair": "CADCHF",
       "price": 0.57048,
       "px": {
@@ -63,9 +63,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T06:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T07:00:00+00:00",
       "mae_72h_pct": -0.02497800849251869,
-      "mfe_72h_pct": 0.11294403840097218,
+      "mfe_72h_pct": 0.2791020948947022,
       "pair": "EURJPY",
       "price": 184.162,
       "px": {
@@ -101,9 +101,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T06:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T07:00:00+00:00",
       "mae_72h_pct": -0.22988505747126173,
-      "mfe_72h_pct": 0.0,
+      "mfe_72h_pct": 0.007151979565774151,
       "pair": "AUDCAD",
       "price": 0.97875,
       "px": {
@@ -139,9 +139,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T06:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T07:00:00+00:00",
       "mae_72h_pct": -0.034663993479427516,
-      "mfe_72h_pct": 0.13116105640862344,
+      "mfe_72h_pct": 0.2506113042093314,
       "pair": "GBPJPY",
       "price": 213.478,
       "px": {
@@ -177,9 +177,9 @@
           "time_utc": "2026-06-29T01:00:00+00:00"
         }
       },
-      "last_evaluated_time_utc": "2026-06-29T06:00:00+00:00",
+      "last_evaluated_time_utc": "2026-06-29T07:00:00+00:00",
       "mae_72h_pct": -0.1918835069849171,
-      "mfe_72h_pct": 0.06635224073310086,
+      "mfe_72h_pct": 0.16677725373456148,
       "pair": "AUDJPY",
       "price": 111.526,
       "px": {
@@ -200,7 +200,17 @@
       "fib_position": "Fibo <0.236",
       "final_pct": 0.0,
       "horizon_basis": "closed_h1_bars",
-      "horizons": {},
+      "horizons": {
+        "1h": {
+          "directional_pct": 0.041921004468167794,
+          "price": 0.97844,
+          "raw_pct": 0.041921004468167794,
+          "time_utc": "2026-06-29T07:00:00+00:00"
+        }
+      },
+      "last_evaluated_time_utc": "2026-06-29T07:00:00+00:00",
+      "mae_72h_pct": -0.017381879901434874,
+      "mfe_72h_pct": 0.0807746183654968,
       "pair": "AUDCAD",
       "price": 0.97803,
       "px": {
@@ -222,7 +232,17 @@
       "fib_position": "Fibo <0.500",
       "final_pct": 16.666666666666664,
       "horizon_basis": "closed_h1_bars",
-      "horizons": {},
+      "horizons": {
+        "1h": {
+          "directional_pct": 0.15024462211036027,
+          "price": 184.643,
+          "raw_pct": 0.15024462211036027,
+          "time_utc": "2026-06-29T07:00:00+00:00"
+        }
+      },
+      "last_evaluated_time_utc": "2026-06-29T07:00:00+00:00",
+      "mae_72h_pct": -0.018983977522984176,
+      "mfe_72h_pct": 0.16814380091772552,
       "pair": "EURJPY",
       "price": 184.366,
       "px": {
@@ -238,8 +258,8 @@
   "summary": {
     "by_type": {
       "SAR_FLAME": {
-        "avg_mae_72h_pct": null,
-        "avg_mfe_72h_pct": null,
+        "avg_mae_72h_pct": -0.018182928712209525,
+        "avg_mfe_72h_pct": 0.12445920964161117,
         "complete": 0,
         "count": 2,
         "horizons": {
@@ -250,10 +270,10 @@
             "wins": 0
           },
           "1h": {
-            "avg_directional_pct": null,
-            "samples": 0,
-            "win_rate_pct": null,
-            "wins": 0
+            "avg_directional_pct": 0.09608281328926403,
+            "samples": 2,
+            "win_rate_pct": 100.0,
+            "wins": 2
           },
           "24h": {
             "avg_directional_pct": null,
@@ -277,7 +297,7 @@
       },
       "VIVIER_ENTRY": {
         "avg_mae_72h_pct": -0.11871935911369871,
-        "avg_mfe_72h_pct": 0.06419495890491951,
+        "avg_mfe_72h_pct": 0.14703900187001837,
         "complete": 0,
         "count": 5,
         "horizons": {
@@ -316,8 +336,8 @@
     },
     "complete": 0,
     "overall": {
-      "avg_mae_72h_pct": -0.11871935911369871,
-      "avg_mfe_72h_pct": 0.06419495890491951,
+      "avg_mae_72h_pct": -0.08999466471327322,
+      "avg_mfe_72h_pct": 0.14058763266190202,
       "complete": 0,
       "count": 7,
       "horizons": {
@@ -328,10 +348,10 @@
           "wins": 0
         },
         "1h": {
-          "avg_directional_pct": -0.022778712853093828,
-          "samples": 5,
-          "win_rate_pct": 40.0,
-          "wins": 2
+          "avg_directional_pct": 0.011181723187579847,
+          "samples": 7,
+          "win_rate_pct": 57.14285714285714,
+          "wins": 4
         },
         "24h": {
           "avg_directional_pct": null,
@@ -355,6 +375,6 @@
     },
     "total": 7
   },
-  "updated_at_utc": "2026-06-29T06:16:57.456941+00:00",
+  "updated_at_utc": "2026-06-29T07:16:54.690404+00:00",
   "version": 2
 }
