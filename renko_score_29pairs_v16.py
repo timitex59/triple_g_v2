@@ -1898,6 +1898,7 @@ def fibo_theoretical_pairs(rows: list[dict] | None,
 
     universe = set(available_pairs or PAIRS_29)
     vivier_roles = vivier_currency_roles(vivier_entries)
+    require_vivier_link = vivier_entries is not None
     ideas: list[dict] = []
     seen: set[str] = set()
     for strong_item in strong:
@@ -1905,6 +1906,11 @@ def fibo_theoretical_pairs(rows: list[dict] | None,
         for weak_item in weak:
             weak_ccy = str(weak_item["currency"])
             if strong_ccy == weak_ccy:
+                continue
+            # The Telegram shortlist is anchored to the active vivier: at
+            # least one side of the theoretical pair must already appear in it.
+            if (require_vivier_link and strong_ccy not in vivier_roles
+                    and weak_ccy not in vivier_roles):
                 continue
             # Reject a theoretical role that contradicts an unambiguous role
             # already established by the active vivier.

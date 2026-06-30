@@ -212,7 +212,7 @@ class VivierStateTests(unittest.TestCase):
             vivier_entries=vivier_entries,
         )
 
-        self.assertEqual({idea["pair"] for idea in ideas}, {"GBPNZD", "NZDUSD"})
+        self.assertEqual(ideas, [])
 
     def test_telegram_vivier_line_is_compact(self):
         state = {
