@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-06-30 16:17",
+  "updated_at_paris": "2026-06-30 16:44",
   "pairs": {
     "AUDCAD": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-06-30 16:17",
+      "last_seen_at_paris": "2026-06-30 16:44",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -19,7 +19,7 @@
       "base_pct": 33.33333333333333,
       "weighted_pct": 26.666666666666664,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 30.375426621160162,
+      "fib_pct_of_range": 33.008288639687635,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -36,7 +36,7 @@
     "AUDJPY": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-06-30 16:17",
+      "last_seen_at_paris": "2026-06-30 16:44",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -50,7 +50,7 @@
       "base_pct": 50.0,
       "weighted_pct": 50.0,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 25.27233115468433,
+      "fib_pct_of_range": 26.579520697167652,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -67,7 +67,7 @@
     "CADCHF": {
       "direction": -1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-06-30 16:17",
+      "last_seen_at_paris": "2026-06-30 16:44",
       "entry_px": {
         "M": -1,
         "W": 0,
@@ -81,7 +81,7 @@
       "base_pct": -83.33333333333334,
       "weighted_pct": -0.0,
       "fib_position": "Fibo >0.382",
-      "fib_pct_of_range": 47.91208791208826,
+      "fib_pct_of_range": 43.07692307692347,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -126,16 +126,7 @@
       "source_entered_at_paris": "2026-06-28 15:06"
     }
   },
-  "objective_events": [
-    {
-      "event_type": "POST_ALIGNMENT_OBJECTIVE_CREATED",
-      "pair": "EURJPY",
-      "direction": 1,
-      "time_utc": "2026-06-30T14:00:00+00:00",
-      "objective_value": 186.322,
-      "origin_month_utc": "2026-06"
-    }
-  ],
-  "telegram_last_body_hash": "6fb46850adf1ebbb5625d2bebd0e5eaf762c7d82d4d63f2f0915deb6a0bb2028",
-  "telegram_last_sent_at_paris": "2026-06-30 16:17"
+  "objective_events": [],
+  "telegram_last_body_hash": "56cdd7d24a025acd6b669ee29038f84876c4e90644a45fc40be765d7dcaeec8a",
+  "telegram_last_sent_at_paris": "2026-06-30 16:44"
 }
