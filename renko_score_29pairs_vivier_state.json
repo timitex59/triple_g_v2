@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-06-30 17:16",
+  "updated_at_paris": "2026-06-30 18:19",
   "pairs": {
     "AUDCAD": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-06-30 17:16",
+      "last_seen_at_paris": "2026-06-30 18:19",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -19,7 +19,7 @@
       "base_pct": 33.33333333333333,
       "weighted_pct": 29.999999999999996,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 38.17649926864941,
+      "fib_pct_of_range": 34.66601657727909,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -36,7 +36,7 @@
     "AUDJPY": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-06-30 17:16",
+      "last_seen_at_paris": "2026-06-30 18:19",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -50,7 +50,7 @@
       "base_pct": 50.0,
       "weighted_pct": 50.0,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 33.551198257080486,
+      "fib_pct_of_range": 31.699346405228702,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -67,7 +67,7 @@
     "CADCHF": {
       "direction": -1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-06-30 17:16",
+      "last_seen_at_paris": "2026-06-30 18:19",
       "entry_px": {
         "M": -1,
         "W": 0,
@@ -81,7 +81,7 @@
       "base_pct": -83.33333333333334,
       "weighted_pct": -0.0,
       "fib_position": "Fibo >0.382",
-      "fib_pct_of_range": 43.07692307692347,
+      "fib_pct_of_range": 47.25274725274694,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -116,16 +116,7 @@
       "source_entered_at_paris": "2026-06-27 18:38"
     }
   },
-  "objective_events": [
-    {
-      "event_type": "POST_ALIGNMENT_OBJECTIVE_REACHED",
-      "pair": "GBPJPY",
-      "direction": 1,
-      "time_utc": "2026-06-30T15:00:00+00:00",
-      "objective_value": 215.614,
-      "origin_month_utc": "2026-06"
-    }
-  ],
-  "telegram_last_body_hash": "1d38cf48285a62462bc3ba3eb5953849d70879d97409c5853a3d54313bb2ba0e",
-  "telegram_last_sent_at_paris": "2026-06-30 17:16"
+  "objective_events": [],
+  "telegram_last_body_hash": "a98fe87bef8fbb09614d735c494dbb235de963a6bd33686c9dd80a961d451a19",
+  "telegram_last_sent_at_paris": "2026-06-30 18:19"
 }
