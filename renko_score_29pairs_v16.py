@@ -1850,8 +1850,32 @@ def fibo_currency_strict_strength_lines(rows: list[dict] | None) -> list[str]:
     return _fibo_currency_strength_block("🎚️ FORCE FIBO+SAR", ranked)
 
 
+def vivier_currency_roles(vivier_entries: dict[str, dict] | None) -> dict[str, int]:
+    """Return each currency's unanimous role in the active vivier.
+
+    A BULL pair makes its base strong and quote weak; a BEAR pair does the
+    opposite. A currency observed in both roles is neutral (0), so ambiguous
+    vivier evidence does not reject a theoretical pair.
+    """
+    votes: dict[str, set[int]] = {}
+    for pair, entry in (vivier_entries or {}).items():
+        if len(pair) != 6:
+            continue
+        direction = entry.get("direction")
+        if direction not in (-1, 1):
+            continue
+        base, quote = pair[:3], pair[3:]
+        votes.setdefault(base, set()).add(int(direction))
+        votes.setdefault(quote, set()).add(-int(direction))
+    return {
+        currency: next(iter(roles)) if len(roles) == 1 else 0
+        for currency, roles in votes.items()
+    }
+
+
 def fibo_theoretical_pairs(rows: list[dict] | None,
-                           available_pairs: list[str] | set[str] | None = None) -> list[dict]:
+                           available_pairs: list[str] | set[str] | None = None,
+                           vivier_entries: dict[str, dict] | None = None) -> list[dict]:
     """Cross strict Top currencies against strict Bottom currencies.
 
     If the strong/weak pair exists, it is a theoretical long. If only the
@@ -1873,6 +1897,7 @@ def fibo_theoretical_pairs(rows: list[dict] | None,
         return []
 
     universe = set(available_pairs or PAIRS_29)
+    vivier_roles = vivier_currency_roles(vivier_entries)
     ideas: list[dict] = []
     seen: set[str] = set()
     for strong_item in strong:
@@ -1880,6 +1905,10 @@ def fibo_theoretical_pairs(rows: list[dict] | None,
         for weak_item in weak:
             weak_ccy = str(weak_item["currency"])
             if strong_ccy == weak_ccy:
+                continue
+            # Reject a theoretical role that contradicts an unambiguous role
+            # already established by the active vivier.
+            if vivier_roles.get(strong_ccy) == -1 or vivier_roles.get(weak_ccy) == 1:
                 continue
             direct = f"{strong_ccy}{weak_ccy}"
             inverse = f"{weak_ccy}{strong_ccy}"
@@ -1904,16 +1933,11 @@ def fibo_theoretical_pairs(rows: list[dict] | None,
 
 
 def fibo_theoretical_pairs_lines(rows: list[dict] | None,
-                                 vivier_pairs: list[str] | set[str] | None = None) -> list[str]:
-    ideas = fibo_theoretical_pairs(rows)
+                                 vivier_entries: dict[str, dict] | None = None) -> list[str]:
+    ideas = fibo_theoretical_pairs(rows, vivier_entries=vivier_entries)
     if not ideas:
         return []
-    vivier_currencies = {
-        currency
-        for pair in (vivier_pairs or [])
-        if len(pair) == 6
-        for currency in (pair[:3], pair[3:])
-    }
+    vivier_currencies = set(vivier_currency_roles(vivier_entries))
     lines = ["🧭 PAIRES FORT/FAIBLE"]
     for idea in ideas:
         icon = "🟢" if idea["direction"] == 1 else "🔴"
@@ -2291,12 +2315,10 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
     lines = ["📊 RENKO FIBO", ""]
     has_content = False
     strength_rows = all_rows if all_rows is not None else rows
-    active_vivier_pairs = {
-        pair for pair, _entry in bull_vivier + bear_vivier
-    }
+    active_vivier_entries = dict(bull_vivier + bear_vivier)
     theoretical_pairs = fibo_theoretical_pairs_lines(
         strength_rows,
-        vivier_pairs=active_vivier_pairs,
+        vivier_entries=active_vivier_entries,
     )
 
     for row in ordered:

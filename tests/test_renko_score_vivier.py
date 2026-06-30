@@ -194,6 +194,26 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(by_pair["AUDUSD"]["strong"], "USD")
         self.assertEqual(by_pair["AUDUSD"]["weak"], "AUD")
 
+    def test_fibo_theoretical_pairs_reject_vivier_role_conflicts(self):
+        rows = [
+            {"pair": "GBPNZD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "GBPAUD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "NZDUSD", "h1_fib": {"pct_of_range": 20.0, "sar_dir": -1}},
+            {"pair": "AUDUSD", "h1_fib": {"pct_of_range": 20.0, "sar_dir": -1}},
+        ]
+        vivier_entries = {
+            "AUDJPY": {"direction": 1},
+            "AUDCAD": {"direction": 1},
+        }
+
+        ideas = fibo_theoretical_pairs(
+            rows,
+            available_pairs={"GBPNZD", "GBPAUD", "NZDUSD", "AUDUSD"},
+            vivier_entries=vivier_entries,
+        )
+
+        self.assertEqual({idea["pair"] for idea in ideas}, {"GBPNZD", "NZDUSD"})
+
     def test_telegram_vivier_line_is_compact(self):
         state = {
             "pairs": {
