@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-07-01 10:33",
+  "updated_at_paris": "2026-07-01 11:16",
   "pairs": {
     "AUDCAD": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-07-01 10:33",
+      "last_seen_at_paris": "2026-07-01 11:16",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -18,8 +18,8 @@
       },
       "base_pct": 33.33333333333333,
       "weighted_pct": 0.0,
-      "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 37.10144927536131,
+      "fib_position": "Fibo <0.500",
+      "fib_pct_of_range": 42.31884057970799,
       "sar_flame": false,
       "fib_context_month_utc": "2026-07",
       "fib_objective_active": true,
@@ -39,7 +39,7 @@
     "AUDJPY": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-07-01 10:33",
+      "last_seen_at_paris": "2026-07-01 11:16",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -52,8 +52,8 @@
       },
       "base_pct": 50.0,
       "weighted_pct": 0.0,
-      "fib_position": "Fibo <0.236",
-      "fib_pct_of_range": 18.6440677966091,
+      "fib_position": "Fibo <0.382",
+      "fib_pct_of_range": 29.025423728814015,
       "sar_flame": false,
       "fib_context_month_utc": "2026-07",
       "fib_objective_active": true,
@@ -73,7 +73,7 @@
     "AUDNZD": {
       "direction": 1,
       "entered_at_paris": "2026-07-01 07:16",
-      "last_seen_at_paris": "2026-07-01 10:33",
+      "last_seen_at_paris": "2026-07-01 11:16",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -87,7 +87,7 @@
       "base_pct": 33.33333333333333,
       "weighted_pct": 0.0,
       "fib_position": "Fibo <0.236",
-      "fib_pct_of_range": 4.716981132074928,
+      "fib_pct_of_range": 11.320754716981922,
       "entry_fib_position": "Fibo <0.236",
       "entry_fib_pct_of_range": 1.0695187165785878,
       "fib_context_month_utc": "2026-07",
@@ -101,7 +101,7 @@
     "CADCHF": {
       "direction": -1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-07-01 10:33",
+      "last_seen_at_paris": "2026-07-01 11:16",
       "entry_px": {
         "M": -1,
         "W": 0,
@@ -114,8 +114,8 @@
       },
       "base_pct": -83.33333333333334,
       "weighted_pct": -0.0,
-      "fib_position": "Fibo >0.618",
-      "fib_pct_of_range": 74.9999999999923,
+      "fib_position": "Fibo >0.382",
+      "fib_pct_of_range": 47.22222222221965,
       "sar_flame": false,
       "fib_context_month_utc": "2026-07",
       "fib_objective_active": true,
@@ -133,7 +133,7 @@
     "EURCAD": {
       "direction": 1,
       "entered_at_paris": "2026-07-01 07:16",
-      "last_seen_at_paris": "2026-07-01 10:33",
+      "last_seen_at_paris": "2026-07-01 11:16",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -147,7 +147,7 @@
       "base_pct": 83.33333333333334,
       "weighted_pct": 0.0,
       "fib_position": "Fibo <0.500",
-      "fib_pct_of_range": 47.70642201835405,
+      "fib_pct_of_range": 42.20183486238541,
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 44.31818181819501,
       "fib_context_month_utc": "2026-07",
@@ -156,12 +156,16 @@
       "fib_objective_value": 1.62208,
       "fib_objective_origin_month_utc": "2026-07",
       "fib_objective_started_time_utc": "2026-07-01T05:00:00+00:00",
-      "sar_flame": false
+      "sar_flame": true,
+      "sar_last_processed_time_utc": "2026-07-01T09:00:00+00:00",
+      "sar_record_value": 1.6199,
+      "sar_record_time_utc": "2026-07-01T09:00:00+00:00",
+      "sar_flame_kind": "FIRST"
     },
     "GBPNZD": {
       "direction": 1,
       "entered_at_paris": "2026-07-01 07:16",
-      "last_seen_at_paris": "2026-07-01 10:33",
+      "last_seen_at_paris": "2026-07-01 11:16",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -175,7 +179,7 @@
       "base_pct": 83.33333333333334,
       "weighted_pct": 0.0,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 34.53947368421115,
+      "fib_pct_of_range": 33.059210526321294,
       "entry_fib_position": "Fibo <0.236",
       "entry_fib_pct_of_range": 16.25000000000497,
       "fib_context_month_utc": "2026-07",
@@ -189,7 +193,7 @@
     "NZDCAD": {
       "direction": -1,
       "entered_at_paris": "2026-07-01 07:16",
-      "last_seen_at_paris": "2026-07-01 10:33",
+      "last_seen_at_paris": "2026-07-01 11:16",
       "entry_px": {
         "M": -1,
         "W": -1,
@@ -203,7 +207,7 @@
       "base_pct": -83.33333333333334,
       "weighted_pct": -0.0,
       "fib_position": "Fibo >0.786",
-      "fib_pct_of_range": 97.47899159664072,
+      "fib_pct_of_range": 90.32258064516475,
       "entry_fib_position": "Fibo >0.786",
       "entry_fib_pct_of_range": 87.95180722891696,
       "fib_context_month_utc": "2026-07",
@@ -217,7 +221,7 @@
     "NZDCHF": {
       "direction": -1,
       "entered_at_paris": "2026-07-01 07:16",
-      "last_seen_at_paris": "2026-07-01 10:33",
+      "last_seen_at_paris": "2026-07-01 11:16",
       "entry_px": {
         "M": -1,
         "W": -1,
@@ -231,7 +235,7 @@
       "base_pct": -83.33333333333334,
       "weighted_pct": -0.0,
       "fib_position": "Fibo >0.786",
-      "fib_pct_of_range": 95.32163742690237,
+      "fib_pct_of_range": 88.30409356725268,
       "entry_fib_position": "Fibo >0.786",
       "entry_fib_pct_of_range": 88.78504672897128,
       "fib_context_month_utc": "2026-07",
@@ -266,6 +270,6 @@
     }
   },
   "objective_events": [],
-  "telegram_last_body_hash": "42952ef7cbbc53ef11bb90fec54dbb2f5036ab36524e2d7c7b99dc1c6f04cfa2",
-  "telegram_last_sent_at_paris": "2026-07-01 10:33"
+  "telegram_last_body_hash": "1836ea4bd9203be242c88d529c007fa07b249005645b38fccc555a665ee32dd9",
+  "telegram_last_sent_at_paris": "2026-07-01 11:16"
 }
