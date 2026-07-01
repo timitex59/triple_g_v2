@@ -1,6 +1,6 @@
 {
-  "updated": "2026-06-30",
-  "prev_update": "2026-06-29",
+  "updated": "2026-07-01",
+  "prev_update": "2026-06-30",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -21,7 +21,8 @@
       "last_rank": 3,
       "peak_rank": 2,
       "last_rel": 90.95,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-07-01"
     },
     "SNX": {
       "streak": 8,
@@ -35,13 +36,13 @@
       "dropped_on": "2026-06-26"
     },
     "ALGM": {
-      "streak": 4,
-      "days": 10,
+      "streak": 5,
+      "days": 11,
       "first_seen": "2026-06-17",
-      "last_seen": "2026-06-30",
-      "last_rank": 1,
+      "last_seen": "2026-07-01",
+      "last_rank": 2,
       "peak_rank": 1,
-      "last_rel": 125.46,
+      "last_rel": 91.32,
       "active": true
     },
     "MKSI": {
@@ -52,7 +53,8 @@
       "last_rank": 2,
       "peak_rank": 2,
       "last_rel": 92.25,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-07-01"
     },
     "AVT": {
       "streak": 1,
@@ -67,35 +69,33 @@
     },
     "SMTC": {
       "streak": 1,
-      "days": 3,
+      "days": 4,
       "first_seen": "2026-06-23",
-      "last_seen": "2026-06-26",
-      "last_rank": 4,
+      "last_seen": "2026-07-01",
+      "last_rank": 5,
       "peak_rank": 2,
-      "last_rel": 94.12,
-      "active": false,
-      "dropped_on": "2026-06-29"
+      "last_rel": 75.57,
+      "active": true
     },
     "SITM": {
-      "streak": 3,
-      "days": 4,
+      "streak": 4,
+      "days": 5,
       "first_seen": "2026-06-24",
-      "last_seen": "2026-06-30",
-      "last_rank": 5,
+      "last_seen": "2026-07-01",
+      "last_rank": 3,
       "peak_rank": 3,
-      "last_rel": 119.5,
+      "last_rel": 90.76,
       "active": true
     },
     "SANM": {
       "streak": 1,
-      "days": 1,
+      "days": 2,
       "first_seen": "2026-06-24",
-      "last_seen": "2026-06-24",
-      "last_rank": 5,
-      "peak_rank": 5,
-      "last_rel": 74.74,
-      "active": false,
-      "dropped_on": "2026-06-25"
+      "last_seen": "2026-07-01",
+      "last_rank": 4,
+      "peak_rank": 4,
+      "last_rel": 76.93,
+      "active": true
     },
     "LFUS": {
       "streak": 1,
@@ -109,13 +109,13 @@
       "dropped_on": "2026-06-26"
     },
     "CGNX": {
-      "streak": 3,
-      "days": 3,
+      "streak": 4,
+      "days": 4,
       "first_seen": "2026-06-26",
-      "last_seen": "2026-06-30",
-      "last_rank": 4,
-      "peak_rank": 2,
-      "last_rel": 40.29,
+      "last_seen": "2026-07-01",
+      "last_rank": 1,
+      "peak_rank": 1,
+      "last_rel": 33.57,
       "active": true
     },
     "ONTO": {
@@ -134,67 +134,95 @@
     "persistent": [
       [
         "ALGM",
-        4
+        5
       ],
       [
         "CGNX",
-        3
+        4
       ],
       [
         "SITM",
-        3
+        4
       ],
       [
-        "MKSI",
-        2
+        "SANM",
+        1
       ],
       [
-        "AMKR",
+        "SMTC",
         1
       ]
     ],
     "new": [
-      "AMKR"
+      "SANM",
+      "SMTC"
     ],
-    "weakening": [],
+    "weakening": [
+      {
+        "ticker": "CGNX",
+        "rank": 1,
+        "prev_rank": 4,
+        "rel": 33.57,
+        "prev_rel": 40.29
+      },
+      {
+        "ticker": "ALGM",
+        "rank": 2,
+        "prev_rank": 1,
+        "rel": 91.32,
+        "prev_rel": 125.46
+      },
+      {
+        "ticker": "SITM",
+        "rank": 3,
+        "prev_rank": 5,
+        "rel": 90.76,
+        "prev_rel": 119.5
+      }
+    ],
     "dropped": [
-      "ONTO"
+      "MKSI",
+      "AMKR"
     ],
     "durable": [
       [
         "ALGM",
-        4,
-        125.46,
-        501.8
+        5,
+        91.32,
+        456.6
       ],
       [
         "SITM",
-        3,
-        119.5,
-        358.5
-      ],
-      [
-        "MKSI",
-        2,
-        92.25,
-        184.5
+        4,
+        90.76,
+        363.0
       ],
       [
         "CGNX",
-        3,
-        40.29,
-        120.9
+        4,
+        33.57,
+        134.3
       ],
       [
-        "AMKR",
+        "SANM",
         1,
-        90.95,
-        91.0
+        76.93,
+        76.9
+      ],
+      [
+        "SMTC",
+        1,
+        75.57,
+        75.6
       ]
     ],
-    "switch": null
+    "switch": {
+      "from": "Distributors",
+      "to": "Semis",
+      "days": 3
+    }
   },
   "leader_raw": "Semis",
-  "leader_raw_days": 2,
-  "leader_confirmed": "Distributors"
+  "leader_raw_days": 3,
+  "leader_confirmed": "Semis"
 }
