@@ -63,6 +63,9 @@ f_table_position(_position) =>
 f_dir_text(_direction) =>
     _direction == 1 ? "BULL" : _direction == -1 ? "BEAR" : "MIXED"
 
+f_dir_icon(_direction) =>
+    _direction == 1 ? "🟢" : _direction == -1 ? "🔴" : "⚪"
+
 f_dir_color(_direction) =>
     _direction == 1 ? bullColor : _direction == -1 ? bearColor : neutralColor
 
@@ -576,37 +579,49 @@ if barstate.islast
     table.cell(vivierTable, 0, 2, "FIBO", bgcolor=headerColor, text_color=color.white)
     table.cell(vivierTable, 1, 2, fibText, bgcolor=neutralColor, text_color=color.white)
 
-alertcondition(entryEvent, "VIVIER Entry", "🌱 {{ticker}} ENTRE VIVIER")
-alertcondition(flameEvent, "VIVIER SAR Flame", "🔥 {{ticker}} FLAMME")
-alertcondition(objectiveCarryEvent, "VIVIER Objective Carried", "📌 {{ticker}} OBJECTIF REPORTE")
-alertcondition(objectiveTouchEvent, "VIVIER Objective Reached", "🎯 {{ticker}} OBJECTIF ATTEINT")
-alertcondition(postObjectiveCreatedEvent, "Post-Alignment Objective Started", "🎯 {{ticker}} OBJECTIF SUIVI")
-alertcondition(postObjectiveReachedEvent, "Post-Alignment Objective Reached", "🎯 {{ticker}} OBJECTIF ATTEINT")
-alertcondition(postObjectiveCanceledEvent, "Post-Alignment Objective Canceled", "❌ {{ticker}} OBJECTIF ANNULE")
-alertcondition(postObjectiveReattachedEvent, "Post-Alignment Objective Reattached", "🔄 {{ticker}} OBJECTIF REATTACHE")
-alertcondition(fibResetEvent, "VIVIER Fibonacci Rearm", "🔄 {{ticker}} FLAMME REARMEE")
-alertcondition(alignmentEvent, "VIVIER Alignment", "✅ {{ticker}} ALIGNE")
-alertcondition(renkoFiboTransitionEvent, "VIVIER to RENKO FIBO", "🚨 {{ticker}} RENKO FIBO")
-alertcondition(invalidExitEvent, "VIVIER Invalid Exit", "❌ {{ticker}} HORS VIVIER")
+alertcondition(entryEvent and entryEventDirection == 1, "VIVIER Entry BULL", "🟢 {{ticker}} ENTRE VIVIER")
+alertcondition(entryEvent and entryEventDirection == -1, "VIVIER Entry BEAR", "🔴 {{ticker}} ENTRE VIVIER")
+alertcondition(flameEvent and flameEventDirection == 1, "VIVIER SAR Flame BULL", "🟢 {{ticker}} 🔥")
+alertcondition(flameEvent and flameEventDirection == -1, "VIVIER SAR Flame BEAR", "🔴 {{ticker}} 🔥")
+alertcondition(objectiveCarryEvent and objectiveCarryDirection == 1, "VIVIER Objective Carried BULL", "🟢 {{ticker}} F1 REPORTE 📌")
+alertcondition(objectiveCarryEvent and objectiveCarryDirection == -1, "VIVIER Objective Carried BEAR", "🔴 {{ticker}} F0 REPORTE 📌")
+alertcondition(objectiveTouchEvent and objectiveTouchDirection == 1, "VIVIER Objective Reached BULL", "🟢 {{ticker}} F1 🎯")
+alertcondition(objectiveTouchEvent and objectiveTouchDirection == -1, "VIVIER Objective Reached BEAR", "🔴 {{ticker}} F0 🎯")
+alertcondition(postObjectiveCreatedEvent and postObjectiveEventDirection == 1, "Post-Alignment Objective Started BULL", "🟢 {{ticker}} F1 SUIVI 🎯")
+alertcondition(postObjectiveCreatedEvent and postObjectiveEventDirection == -1, "Post-Alignment Objective Started BEAR", "🔴 {{ticker}} F0 SUIVI 🎯")
+alertcondition(postObjectiveReachedEvent and postObjectiveEventDirection == 1, "Post-Alignment Objective Reached BULL", "🟢 {{ticker}} F1 🎯")
+alertcondition(postObjectiveReachedEvent and postObjectiveEventDirection == -1, "Post-Alignment Objective Reached BEAR", "🔴 {{ticker}} F0 🎯")
+alertcondition(postObjectiveCanceledEvent and postObjectiveEventDirection == 1, "Post-Alignment Objective Canceled BULL", "🟢 {{ticker}} F1 ANNULE ❌")
+alertcondition(postObjectiveCanceledEvent and postObjectiveEventDirection == -1, "Post-Alignment Objective Canceled BEAR", "🔴 {{ticker}} F0 ANNULE ❌")
+alertcondition(postObjectiveReattachedEvent and postObjectiveEventDirection == 1, "Post-Alignment Objective Reattached BULL", "🟢 {{ticker}} F1 REATTACHE 🔄")
+alertcondition(postObjectiveReattachedEvent and postObjectiveEventDirection == -1, "Post-Alignment Objective Reattached BEAR", "🔴 {{ticker}} F0 REATTACHE 🔄")
+alertcondition(fibResetEvent and objectiveTouchDirection == 1, "VIVIER Fibonacci Rearm BULL", "🟢 {{ticker}} FLAMME REARMEE 🔄")
+alertcondition(fibResetEvent and objectiveTouchDirection == -1, "VIVIER Fibonacci Rearm BEAR", "🔴 {{ticker}} FLAMME REARMEE 🔄")
+alertcondition(alignmentEvent and alignmentEventDirection == 1, "VIVIER Alignment BULL", "🟢 {{ticker}} ALIGNE ✅")
+alertcondition(alignmentEvent and alignmentEventDirection == -1, "VIVIER Alignment BEAR", "🔴 {{ticker}} ALIGNE ✅")
+alertcondition(renkoFiboTransitionEvent and alignmentEventDirection == 1, "VIVIER to RENKO FIBO BULL", "🟢 {{ticker}} RENKO FIBO 🚨")
+alertcondition(renkoFiboTransitionEvent and alignmentEventDirection == -1, "VIVIER to RENKO FIBO BEAR", "🔴 {{ticker}} RENKO FIBO 🚨")
+alertcondition(invalidExitEvent and invalidExitDirection == 1, "VIVIER Invalid Exit BULL", "🟢 {{ticker}} HORS VIVIER ❌")
+alertcondition(invalidExitEvent and invalidExitDirection == -1, "VIVIER Invalid Exit BEAR", "🔴 {{ticker}} HORS VIVIER ❌")
 
 if processBar
     if entryEvent
-        alert("🌱 " + syminfo.ticker + " " + f_dir_text(entryEventDirection) + " " + f_fib_directional_text(fibRatio, entryEventDirection), alert.freq_once_per_bar_close)
+        alert(f_dir_icon(entryEventDirection) + " " + syminfo.ticker + " " + f_fib_directional_text(fibRatio, entryEventDirection), alert.freq_once_per_bar_close)
     if flameEvent
-        alert("🔥 " + syminfo.ticker + " " + f_dir_text(flameEventDirection), alert.freq_once_per_bar_close)
+        alert(f_dir_icon(flameEventDirection) + " " + syminfo.ticker + " 🔥", alert.freq_once_per_bar_close)
     if objectiveCarryEvent
-        alert("📌 " + syminfo.ticker + " " + (objectiveCarryDirection == 1 ? "F1" : "F0") + " REPORTE", alert.freq_once_per_bar_close)
+        alert(f_dir_icon(objectiveCarryDirection) + " " + syminfo.ticker + " " + (objectiveCarryDirection == 1 ? "F1" : "F0") + " REPORTE 📌", alert.freq_once_per_bar_close)
     if objectiveTouchEvent
-        alert("🎯 " + syminfo.ticker + " " + (objectiveTouchDirection == 1 ? "F1" : "F0") + " ATTEINT" + (fibResetEvent ? " 🔄" : ""), alert.freq_once_per_bar_close)
+        alert(f_dir_icon(objectiveTouchDirection) + " " + syminfo.ticker + " " + (objectiveTouchDirection == 1 ? "F1" : "F0") + " 🎯" + (fibResetEvent ? " 🔄" : ""), alert.freq_once_per_bar_close)
     if postObjectiveCreatedEvent
-        alert("🎯 " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " SUIVI", alert.freq_once_per_bar_close)
+        alert(f_dir_icon(postObjectiveEventDirection) + " " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " SUIVI 🎯", alert.freq_once_per_bar_close)
     if postObjectiveReachedEvent
-        alert("🎯 " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " ATTEINT", alert.freq_once_per_bar_close)
+        alert(f_dir_icon(postObjectiveEventDirection) + " " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " 🎯", alert.freq_once_per_bar_close)
     if postObjectiveCanceledEvent
-        alert("❌ " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " ANNULE", alert.freq_once_per_bar_close)
+        alert(f_dir_icon(postObjectiveEventDirection) + " " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " ANNULE ❌", alert.freq_once_per_bar_close)
     if postObjectiveReattachedEvent
-        alert("🔄 " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " REATTACHE", alert.freq_once_per_bar_close)
+        alert(f_dir_icon(postObjectiveEventDirection) + " " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " REATTACHE 🔄", alert.freq_once_per_bar_close)
     if alignmentEvent
-        alert((renkoFiboTransitionEvent ? "🚨 " : "✅ ") + syminfo.ticker + " " + f_dir_text(alignmentEventDirection) + (renkoFiboTransitionEvent ? " RENKO FIBO" : " ALIGNE"), alert.freq_once_per_bar_close)
+        alert(f_dir_icon(alignmentEventDirection) + " " + syminfo.ticker + (renkoFiboTransitionEvent ? " RENKO FIBO 🚨" : " ALIGNE ✅"), alert.freq_once_per_bar_close)
     if invalidExitEvent
-        alert("❌ " + syminfo.ticker + " HORS VIVIER", alert.freq_once_per_bar_close)
+        alert(f_dir_icon(invalidExitDirection) + " " + syminfo.ticker + " HORS VIVIER ❌", alert.freq_once_per_bar_close)
