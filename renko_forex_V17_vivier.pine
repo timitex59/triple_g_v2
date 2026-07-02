@@ -497,7 +497,6 @@ if processBar
                 flameEventDirection := candidateDirection
                 lastEvent := "ENTREE + FLAMME " + f_dir_text(candidateDirection)
 
-candidateDirectionNow = f_entry_direction(pxM, pxW, pxD, baseScorePct, fibPct)
 displayDirection = vivierDirection != 0 ? vivierDirection : postAlignmentObjective ? fibObjectiveDirection : pxM
 fibDirectionalText = f_fib_directional_text(fibRatio, displayDirection)
 sameFibAndObjectiveTouch = fibTouchEvent and objectiveTouchEvent and math.abs(fibTouchLevel - objectiveTouchLevel) <= syminfo.mintick
@@ -563,59 +562,21 @@ if barstate.islast
     f_update_fib(fibLine786, fibLabel786, showFib786, fibActive, fibEffectiveStartTime, fibEndTime, fib786, "0.786 " + fibSourceText, fibColor)
     f_update_fib(fibLine1, fibLabel1, showFibExtremes, fibActive, fibEffectiveStartTime, fibEndTime, fib1, "1 " + fibSourceText, fibHighColor)
 
-var table vivierTable = table.new(f_table_position(tablePosition), 4, 8, border_width=1, frame_color=color.white, border_color=color.gray)
-if barstate.isfirst
-    table.merge_cells(vivierTable, 1, 6, 3, 6)
+var table vivierTable = table.new(f_table_position(tablePosition), 2, 4, border_width=1, frame_color=color.white, border_color=color.gray)
 if barstate.islast
     string statusText = vivierDirection != 0 ? "VIVIER " + f_dir_text(vivierDirection) : postAlignmentObjective ? "SUIVI POST-ALIGNEMENT " + f_dir_text(fibObjectiveDirection) : "HORS VIVIER"
     color statusColor = vivierDirection != 0 ? f_dir_color(vivierDirection) : postAlignmentObjective ? carriedObjectiveColor : neutralColor
-    string candidateText = candidateDirectionNow == 0 ? "NON" : "OUI " + f_dir_text(candidateDirectionNow)
-    color candidateColor = candidateDirectionNow == 0 ? neutralColor : f_dir_color(candidateDirectionNow)
     string scoreText = na(baseScorePct) ? "?" : (baseScorePct >= 0.0 ? "+" : "") + str.tostring(baseScorePct, "#.0") + "%"
-    string fibText = na(fibPct) ? "?" : str.tostring(fibPct, "#.0") + "% | " + fibDirectionalText + " | " + fibSourceText
-    string recordText = na(sarRecord) ? "AUCUN" : str.tostring(sarRecord, format.mintick)
-    string objectiveText = na(fibObjective) ? "AUCUN" : (postAlignmentObjective ? "POST-SIGNAL " : fibObjectiveCarried ? "REPORTE " : "ACTIF ") + str.tostring(fibObjective, format.mintick)
-    color objectiveColor = na(fibObjective) ? neutralColor : fibObjectiveCarried ? carriedObjectiveColor : color.orange
-    string confluenceText = renkoFiboBull ? "RENKO FIBO BULL" : renkoFiboBear ? "RENKO FIBO BEAR" : "NON"
-    color confluenceColor = renkoFiboBull ? bullColor : renkoFiboBear ? bearColor : neutralColor
+    string fibText = na(fibPct) ? "?" : fibDirectionalText
 
     table.cell(vivierTable, 0, 0, "STATUT", bgcolor=headerColor, text_color=color.white)
     table.cell(vivierTable, 1, 0, statusText, bgcolor=statusColor, text_color=color.white)
-    table.cell(vivierTable, 2, 0, "M/W/D", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 3, 0, f_px_text(pxM, pxW, pxD), bgcolor=neutralColor, text_color=color.white)
-
-    table.cell(vivierTable, 0, 1, "ENTREE", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 1, 1, candidateText, bgcolor=candidateColor, text_color=color.white)
-    table.cell(vivierTable, 2, 1, "SCORE", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 3, 1, scoreText, bgcolor=f_dir_color(baseScorePct > 0 ? 1 : baseScorePct < 0 ? -1 : 0), text_color=color.white)
-
-    table.cell(vivierTable, 0, 2, "FIBO", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 1, 2, fibText, bgcolor=neutralColor, text_color=color.white)
-    table.cell(vivierTable, 2, 2, "SAR", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 3, 2, f_dir_text(sarDirection), bgcolor=f_dir_color(sarDirection), text_color=color.white)
-
-    table.cell(vivierTable, 0, 3, "RECORD", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 1, 3, recordText, bgcolor=na(sarRecord) ? neutralColor : color.orange, text_color=color.white)
-    table.cell(vivierTable, 2, 3, "FLAMMES", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 3, 3, str.tostring(flameCount), bgcolor=neutralColor, text_color=color.white)
-
-    table.cell(vivierTable, 0, 4, "OBJECTIF", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 1, 4, objectiveText, bgcolor=objectiveColor, text_color=color.white)
-    table.cell(vivierTable, 2, 4, "ORIGINE", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 3, 4, na(fibObjective) or fibObjectiveOriginMonth == "" ? "-" : fibObjectiveOriginMonth, bgcolor=neutralColor, text_color=color.white)
-
-    table.cell(vivierTable, 0, 5, "TOUCHES", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 1, 5, "F1 " + str.tostring(fib1TouchCount) + " | F0 " + str.tostring(fib0TouchCount), bgcolor=neutralColor, text_color=color.white)
-    table.cell(vivierTable, 2, 5, "CONFLUENCE", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 3, 5, confluenceText, bgcolor=confluenceColor, text_color=color.white)
-
-    table.cell(vivierTable, 0, 6, "EVENEMENT", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 1, 6, lastEvent, bgcolor=neutralColor, text_color=color.white)
-
-    table.cell(vivierTable, 0, 7, "CHART", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 1, 7, timeframeOk ? "1H OK" : "UTILISER LE 1H", bgcolor=timeframeOk ? color.new(bullColor, 35) : bearColor, text_color=color.white)
-    table.cell(vivierTable, 2, 7, "CLOTURE", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 3, 7, barstate.isconfirmed ? "CONFIRMEE" : "EN COURS", bgcolor=barstate.isconfirmed ? color.new(bullColor, 35) : neutralColor, text_color=color.white)
+    table.cell(vivierTable, 0, 1, "SCORE", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 1, scoreText, bgcolor=f_dir_color(baseScorePct > 0 ? 1 : baseScorePct < 0 ? -1 : 0), text_color=color.white)
+    table.cell(vivierTable, 0, 2, "SAR", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 2, f_dir_text(sarDirection), bgcolor=f_dir_color(sarDirection), text_color=color.white)
+    table.cell(vivierTable, 0, 3, "FIBO", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 3, fibText, bgcolor=neutralColor, text_color=color.white)
 
 alertcondition(entryEvent, "VIVIER Entry", "{{ticker}} entered the VIVIER.")
 alertcondition(flameEvent, "VIVIER SAR Flame", "{{ticker}} printed a new VIVIER SAR record flame.")
