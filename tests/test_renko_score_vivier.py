@@ -457,6 +457,12 @@ class VivierStateTests(unittest.TestCase):
             "effective_fib_source": "PREVIOUS",
             "current_month_utc": "2026-07",
         })
+        validated = row("VALIDATED", -1, 1, -1, fib_pct=49.0)
+        validated["h1_fib"].update({
+            "transition_active": True,
+            "effective_fib_source": "PREVIOUS",
+            "current_month_utc": "2026-07",
+        })
         previous = {
             "pairs": {
                 "CURRENT": {
@@ -469,18 +475,26 @@ class VivierStateTests(unittest.TestCase):
                     "entered_at_paris": "2026-06-27 18:38",
                     "last_px": {"M": 1, "W": 1, "D": 0},
                 },
+                "VALIDATED": {
+                    "direction": -1,
+                    "entered_at_paris": "2026-07-02 20:23",
+                    "entry_fib_source": "PREVIOUS",
+                    "last_px": {"M": -1, "W": 1, "D": -1},
+                },
             }
         }
 
         state, signals = update_vivier(
-            [current, older],
+            [current, older, validated],
             previous,
             now=datetime(2026, 7, 2, 19, 0, tzinfo=PARIS),
         )
 
         self.assertNotIn("CURRENT", state["pairs"])
         self.assertIn("OLDER", state["pairs"])
+        self.assertIn("VALIDATED", state["pairs"])
         self.assertEqual(state["pairs"]["OLDER"]["fib_source"], "PREVIOUS")
+        self.assertEqual(state["pairs"]["VALIDATED"]["fib_source"], "PREVIOUS")
         self.assertEqual(signals, [])
 
     def test_entry_accepts_opposition_or_aligned_weekly_with_daily_inside(self):

@@ -300,7 +300,6 @@ processBar = timeframeOk and barstate.isconfirmed and dataReady and fibActive
 
 // Persistent single-pair VIVIER state.
 var int vivierDirection = 0
-var string vivierEntryMonth = ""
 var float sarRecord = na
 var int flameCount = 0
 var int fib1TouchCount = 0
@@ -346,22 +345,7 @@ if processBar
     if vivierDirection != 0
         int activeDirection = vivierDirection
         bool fullAlignment = pxM == activeDirection and pxW == activeDirection and pxD == activeDirection
-        bool transitionFibInvalid = usePreviousFib and vivierEntryMonth == currentMonthKey and not na(fibPct) and ((activeDirection == 1 and fibPct > fibMidpointPct) or (activeDirection == -1 and fibPct < fibMidpointPct))
-        if transitionFibInvalid
-            invalidExitEvent := true
-            invalidExitDirection := activeDirection
-            lastEvent := "SORTIE: FIB M-1 INVALIDE"
-            f_finish_carried_line(carriedObjectiveLine, carriedObjectiveLabel, h1Time, "ANNULE", neutralColor)
-            carriedObjectiveLine := na
-            carriedObjectiveLabel := na
-            vivierDirection := 0
-            vivierEntryMonth := ""
-            sarRecord := na
-            fibObjective := na
-            fibObjectiveDirection := 0
-            fibObjectiveCarried := false
-            postAlignmentObjective := false
-        else if fullAlignment
+        if fullAlignment
             alignmentEvent := true
             alignmentEventDirection := activeDirection
             renkoFiboTransitionEvent := activeDirection == 1 ? renkoFiboBull : renkoFiboBear
@@ -379,7 +363,6 @@ if processBar
                     else if not na(carriedObjectiveLabel)
                         label.set_text(carriedObjectiveLabel, "OBJECTIF POST-ALIGNEMENT\n" + f_dir_text(activeDirection) + " " + str.tostring(fibObjective, format.mintick) + "\nOrigine " + fibObjectiveOriginMonth)
             vivierDirection := 0
-            vivierEntryMonth := ""
             sarRecord := na
         else if pxM == activeDirection and math.abs(baseScorePct) >= vivierMinScore
             if effectiveMonthChanged and not na(fibObjective) and not fibObjectiveCarried
@@ -441,7 +424,6 @@ if processBar
             carriedObjectiveLine := na
             carriedObjectiveLabel := na
             vivierDirection := 0
-            vivierEntryMonth := ""
             sarRecord := na
             fibObjective := na
             fibObjectiveDirection := 0
@@ -483,7 +465,6 @@ if processBar
         if candidateDirection != 0
             bool reusePostObjective = postAlignmentObjective and fibObjectiveDirection == candidateDirection and not na(fibObjective)
             vivierDirection := candidateDirection
-            vivierEntryMonth := currentMonthKey
             entryEvent := true
             entryEventDirection := candidateDirection
             sarRecord := na

@@ -1169,6 +1169,11 @@ def apply_vivier_fib_extreme_reset(entry: dict, row: dict, direction: int) -> bo
 
 def transition_entry_fib_invalid(entry: dict, row: dict, direction: int) -> bool:
     """Revalidate entries created during an unstable month-reset window."""
+    # Entries created after the transition logic was deployed were already
+    # validated with their effective Fibo. Fibo remains an entry filter only;
+    # this migration guard is exclusively for legacy entries with no source.
+    if entry.get("entry_fib_source") in ("PREVIOUS", "CURRENT"):
+        return False
     h1 = row.get("h1_fib") or {}
     if not h1.get("transition_active"):
         return False
