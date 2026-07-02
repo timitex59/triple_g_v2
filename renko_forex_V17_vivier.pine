@@ -7,7 +7,7 @@ indicator("renko_forex_V17_VIVIER", shorttitle="RF_V17_VIVIER", overlay=true, dy
 groupRenko = "Renko"
 groupVivier = "VIVIER"
 groupSar = "Parabolic SAR / Flames"
-groupFib = "Fibonacci (Monthly Reset)"
+groupFib = "Fibonacci (Monthly Transition)"
 groupDisplay = "Display"
 groupColors = "Colors"
 
@@ -38,6 +38,9 @@ showFib618 = input.bool(true, "Show 0.618", group=groupFib)
 showFib786 = input.bool(true, "Show 0.786", group=groupFib)
 showFibExtremes = input.bool(true, "Show 0 and 1", group=groupFib)
 showCarriedObjective = input.bool(true, "Show Carried Objective", group=groupFib)
+fibTransitionMinDays = input.int(5, "Transition: Minimum Trading Days", minval=1, maxval=10, group=groupFib)
+fibTransitionMinRangePct = input.float(60.0, "Transition: Minimum Previous Range (%)", minval=0.0, maxval=100.0, step=5.0, group=groupFib)
+fibTransitionForceDay = input.int(11, "Transition: Force Current Month From Day", minval=2, maxval=20, group=groupFib)
 
 showEventLabels = input.bool(true, "Show VIVIER Event Labels", group=groupDisplay)
 showAllProcessTouches = input.bool(true, "Show Every Fibo 1/0 Touch During VIVIER", group=groupDisplay)
@@ -213,29 +216,66 @@ confirmedBull = signalState == 1 and strictBull and not na(finalScorePct) and fi
 confirmedBear = signalState == -1 and strictBear and not na(finalScorePct) and finalScorePct <= -scoreThreshold
 confirmedState = confirmedBull ? 1 : confirmedBear ? -1 : 0
 
-// Monthly-reset Fibonacci, calculated from standard H1 candles. Python uses
-// the UTC calendar month, not the broker's Forex monthly-session boundary.
+// Effective monthly Fibonacci, calculated from standard H1 candles in UTC.
+// At a month reset, the completed previous month stays active until the new
+// range is mature and agrees around 0.5, or until the forced relay day.
 utcMonth = month(h1Time, "UTC+0")
 utcYear = year(h1Time, "UTC+0")
+utcDay = dayofmonth(h1Time, "UTC+0")
+utcWeekday = dayofweek(h1Time, "UTC+0")
 currentMonthKey = f_month_key(utcYear, utcMonth)
+currentMonthId = utcYear * 100 + utcMonth
 newMonth = na(h1Time[1]) or utcMonth != month(h1Time[1], "UTC+0") or utcYear != year(h1Time[1], "UTC+0")
+newUtcDay = na(h1Time[1]) or utcDay != dayofmonth(h1Time[1], "UTC+0") or newMonth
+isTradingDay = utcWeekday != dayofweek.saturday and utcWeekday != dayofweek.sunday
 var float fibMonthHigh = na
 var float fibMonthLow = na
 var int fibMonthStartTime = na
+var float fibPreviousHigh = na
+var float fibPreviousLow = na
+var int fibPreviousStartTime = na
+var string fibPreviousMonthKey = ""
+var int fibPreviousMonthId = na
+var int fibCurrentTradingDays = 0
 float fibHighBefore = newMonth ? na : fibMonthHigh
 float fibLowBefore = newMonth ? na : fibMonthLow
 if newMonth or na(fibMonthHigh)
+    if not na(fibMonthHigh) and not na(fibMonthLow) and not na(h1Time[1])
+        fibPreviousHigh := fibMonthHigh
+        fibPreviousLow := fibMonthLow
+        fibPreviousStartTime := fibMonthStartTime
+        fibPreviousMonthKey := f_month_key(year(h1Time[1], "UTC+0"), month(h1Time[1], "UTC+0"))
+        fibPreviousMonthId := year(h1Time[1], "UTC+0") * 100 + month(h1Time[1], "UTC+0")
     fibMonthHigh := h1High
     fibMonthLow := h1Low
     fibMonthStartTime := h1Time
+    fibCurrentTradingDays := isTradingDay ? 1 : 0
 else
     fibMonthHigh := math.max(fibMonthHigh, h1High)
     fibMonthLow := math.min(fibMonthLow, h1Low)
+    if newUtcDay and isTradingDay
+        fibCurrentTradingDays += 1
 
-fibRange = fibMonthHigh - fibMonthLow
+fibCurrentRange = fibMonthHigh - fibMonthLow
+fibPreviousRange = fibPreviousHigh - fibPreviousLow
+fibCurrentActive = not na(fibCurrentRange) and fibCurrentRange > 0.0
+fibPreviousActive = not na(fibPreviousRange) and fibPreviousRange > 0.0
+fibCurrentRatio = fibCurrentActive ? (h1Close - fibMonthLow) / fibCurrentRange : na
+fibPreviousRatio = fibPreviousActive ? (h1Close - fibPreviousLow) / fibPreviousRange : na
+fibTransitionRangeRatio = fibCurrentActive and fibPreviousActive ? fibCurrentRange / fibPreviousRange : na
+fibTransitionSameSide = not na(fibCurrentRatio) and not na(fibPreviousRatio) and ((fibCurrentRatio <= 0.5) == (fibPreviousRatio <= 0.5))
+fibEarlyRelay = fibCurrentTradingDays >= fibTransitionMinDays and not na(fibTransitionRangeRatio) and fibTransitionRangeRatio >= fibTransitionMinRangePct / 100.0 and fibTransitionSameSide
+fibForcedRelay = utcDay >= fibTransitionForceDay
+usePreviousFib = fibPreviousActive and not fibEarlyRelay and not fibForcedRelay
+effectiveMonthKey = usePreviousFib ? fibPreviousMonthKey : currentMonthKey
+effectiveMonthId = usePreviousFib ? fibPreviousMonthId : currentMonthId
+effectiveMonthChanged = not na(effectiveMonthId[1]) and effectiveMonthId != effectiveMonthId[1]
+fibSourceText = usePreviousFib ? "M-1" : "M"
+fibEffectiveStartTime = usePreviousFib ? fibPreviousStartTime : fibMonthStartTime
+fibRange = usePreviousFib ? fibPreviousRange : fibCurrentRange
 fibActive = not na(fibRange) and fibRange > 0.0
-fib0 = fibMonthLow
-fib1 = fibMonthHigh
+fib0 = usePreviousFib ? fibPreviousLow : fibMonthLow
+fib1 = usePreviousFib ? fibPreviousHigh : fibMonthHigh
 fib236 = fib0 + fibRange * 0.236
 fib382 = fib0 + fibRange * 0.382
 fib500 = fib0 + fibRange * 0.500
@@ -260,6 +300,7 @@ processBar = timeframeOk and barstate.isconfirmed and dataReady and fibActive
 
 // Persistent single-pair VIVIER state.
 var int vivierDirection = 0
+var string vivierEntryMonth = ""
 var float sarRecord = na
 var int flameCount = 0
 var int fib1TouchCount = 0
@@ -305,7 +346,22 @@ if processBar
     if vivierDirection != 0
         int activeDirection = vivierDirection
         bool fullAlignment = pxM == activeDirection and pxW == activeDirection and pxD == activeDirection
-        if fullAlignment
+        bool transitionFibInvalid = usePreviousFib and vivierEntryMonth == currentMonthKey and not na(fibPct) and ((activeDirection == 1 and fibPct > fibMidpointPct) or (activeDirection == -1 and fibPct < fibMidpointPct))
+        if transitionFibInvalid
+            invalidExitEvent := true
+            invalidExitDirection := activeDirection
+            lastEvent := "SORTIE: FIB M-1 INVALIDE"
+            f_finish_carried_line(carriedObjectiveLine, carriedObjectiveLabel, h1Time, "ANNULE", neutralColor)
+            carriedObjectiveLine := na
+            carriedObjectiveLabel := na
+            vivierDirection := 0
+            vivierEntryMonth := ""
+            sarRecord := na
+            fibObjective := na
+            fibObjectiveDirection := 0
+            fibObjectiveCarried := false
+            postAlignmentObjective := false
+        else if fullAlignment
             alignmentEvent := true
             alignmentEventDirection := activeDirection
             renkoFiboTransitionEvent := activeDirection == 1 ? renkoFiboBull : renkoFiboBear
@@ -323,9 +379,10 @@ if processBar
                     else if not na(carriedObjectiveLabel)
                         label.set_text(carriedObjectiveLabel, "OBJECTIF POST-ALIGNEMENT\n" + f_dir_text(activeDirection) + " " + str.tostring(fibObjective, format.mintick) + "\nOrigine " + fibObjectiveOriginMonth)
             vivierDirection := 0
+            vivierEntryMonth := ""
             sarRecord := na
         else if pxM == activeDirection and math.abs(baseScorePct) >= vivierMinScore
-            if newMonth and not na(fibObjective) and not fibObjectiveCarried
+            if effectiveMonthChanged and not na(fibObjective) and not fibObjectiveCarried
                 fibObjectiveCarried := true
                 objectiveCarryEvent := true
                 objectiveCarryLevel := fibObjective
@@ -373,7 +430,7 @@ if processBar
                 if na(fibObjective)
                     fibObjective := activeDirection == 1 ? fib1 : fib0
                     fibObjectiveDirection := activeDirection
-                    fibObjectiveOriginMonth := currentMonthKey
+                    fibObjectiveOriginMonth := effectiveMonthKey
                     fibObjectiveCarried := false
                 lastEvent := (initialFlameEvent ? "FLAMME INITIALE " : "FLAMME RECORD ") + f_dir_text(activeDirection)
         else
@@ -384,6 +441,7 @@ if processBar
             carriedObjectiveLine := na
             carriedObjectiveLabel := na
             vivierDirection := 0
+            vivierEntryMonth := ""
             sarRecord := na
             fibObjective := na
             fibObjectiveDirection := 0
@@ -425,6 +483,7 @@ if processBar
         if candidateDirection != 0
             bool reusePostObjective = postAlignmentObjective and fibObjectiveDirection == candidateDirection and not na(fibObjective)
             vivierDirection := candidateDirection
+            vivierEntryMonth := currentMonthKey
             entryEvent := true
             entryEventDirection := candidateDirection
             sarRecord := na
@@ -443,7 +502,7 @@ if processBar
             else
                 fibObjective := candidateDirection == 1 ? fib1 : fib0
                 fibObjectiveDirection := candidateDirection
-                fibObjectiveOriginMonth := currentMonthKey
+                fibObjectiveOriginMonth := effectiveMonthKey
                 fibObjectiveCarried := false
                 postAlignmentObjective := false
                 carriedObjectiveLine := na
@@ -470,7 +529,7 @@ bgcolor(showVivierBackground ? vivierDirection == 1 ? color.new(bullColor, 92) :
 if showEventLabels and entryEvent
     float entryY = entryEventDirection == 1 ? h1Low : h1High
     string reattachedText = postObjectiveReattachedEvent ? "\nOBJECTIF POST-SIGNAL REATTACHE" : ""
-    label.new(bar_index, entryY, "VIVIER " + f_dir_text(entryEventDirection) + "\n" + f_px_text(pxM, pxW, pxD) + " | " + f_fib_directional_text(fibRatio, entryEventDirection) + reattachedText, yloc=yloc.price, style=entryEventDirection == 1 ? label.style_label_up : label.style_label_down, color=f_dir_color(entryEventDirection), textcolor=color.white, size=size.small)
+    label.new(bar_index, entryY, "VIVIER " + f_dir_text(entryEventDirection) + "\n" + f_px_text(pxM, pxW, pxD) + " | " + f_fib_directional_text(fibRatio, entryEventDirection) + " | " + fibSourceText + reattachedText, yloc=yloc.price, style=entryEventDirection == 1 ? label.style_label_up : label.style_label_down, color=f_dir_color(entryEventDirection), textcolor=color.white, size=size.small)
 
 if showEventLabels and flameEvent
     string flameName = initialFlameEvent ? "FLAMME INITIALE " : "FLAMME RECORD "
@@ -515,13 +574,13 @@ var label fibLabel786 = label.new(na, na, "", xloc=xloc.bar_time, style=label.st
 var label fibLabel1 = label.new(na, na, "", xloc=xloc.bar_time, style=label.style_label_left, color=color.new(color.white, 100), size=size.small)
 
 if barstate.islast
-    f_update_fib(fibLine0, fibLabel0, showFibExtremes, fibActive, fibMonthStartTime, fibEndTime, fib0, "0", fibLowColor)
-    f_update_fib(fibLine236, fibLabel236, showFib236, fibActive, fibMonthStartTime, fibEndTime, fib236, "0.236", fibColor)
-    f_update_fib(fibLine382, fibLabel382, showFib382, fibActive, fibMonthStartTime, fibEndTime, fib382, "0.382", fibColor)
-    f_update_fib(fibLine500, fibLabel500, showFib500, fibActive, fibMonthStartTime, fibEndTime, fib500, "0.500", fibColor)
-    f_update_fib(fibLine618, fibLabel618, showFib618, fibActive, fibMonthStartTime, fibEndTime, fib618, "0.618", fibColor)
-    f_update_fib(fibLine786, fibLabel786, showFib786, fibActive, fibMonthStartTime, fibEndTime, fib786, "0.786", fibColor)
-    f_update_fib(fibLine1, fibLabel1, showFibExtremes, fibActive, fibMonthStartTime, fibEndTime, fib1, "1", fibHighColor)
+    f_update_fib(fibLine0, fibLabel0, showFibExtremes, fibActive, fibEffectiveStartTime, fibEndTime, fib0, "0 " + fibSourceText, fibLowColor)
+    f_update_fib(fibLine236, fibLabel236, showFib236, fibActive, fibEffectiveStartTime, fibEndTime, fib236, "0.236 " + fibSourceText, fibColor)
+    f_update_fib(fibLine382, fibLabel382, showFib382, fibActive, fibEffectiveStartTime, fibEndTime, fib382, "0.382 " + fibSourceText, fibColor)
+    f_update_fib(fibLine500, fibLabel500, showFib500, fibActive, fibEffectiveStartTime, fibEndTime, fib500, "0.500 " + fibSourceText, fibColor)
+    f_update_fib(fibLine618, fibLabel618, showFib618, fibActive, fibEffectiveStartTime, fibEndTime, fib618, "0.618 " + fibSourceText, fibColor)
+    f_update_fib(fibLine786, fibLabel786, showFib786, fibActive, fibEffectiveStartTime, fibEndTime, fib786, "0.786 " + fibSourceText, fibColor)
+    f_update_fib(fibLine1, fibLabel1, showFibExtremes, fibActive, fibEffectiveStartTime, fibEndTime, fib1, "1 " + fibSourceText, fibHighColor)
 
 var table vivierTable = table.new(f_table_position(tablePosition), 4, 8, border_width=1, frame_color=color.white, border_color=color.gray)
 if barstate.isfirst
@@ -532,7 +591,7 @@ if barstate.islast
     string candidateText = candidateDirectionNow == 0 ? "NON" : "OUI " + f_dir_text(candidateDirectionNow)
     color candidateColor = candidateDirectionNow == 0 ? neutralColor : f_dir_color(candidateDirectionNow)
     string scoreText = na(baseScorePct) ? "?" : (baseScorePct >= 0.0 ? "+" : "") + str.tostring(baseScorePct, "#.0") + "%"
-    string fibText = na(fibPct) ? "?" : str.tostring(fibPct, "#.0") + "% | " + fibDirectionalText
+    string fibText = na(fibPct) ? "?" : str.tostring(fibPct, "#.0") + "% | " + fibDirectionalText + " | " + fibSourceText
     string recordText = na(sarRecord) ? "AUCUN" : str.tostring(sarRecord, format.mintick)
     string objectiveText = na(fibObjective) ? "AUCUN" : (postAlignmentObjective ? "POST-SIGNAL " : fibObjectiveCarried ? "REPORTE " : "ACTIF ") + str.tostring(fibObjective, format.mintick)
     color objectiveColor = na(fibObjective) ? neutralColor : fibObjectiveCarried ? carriedObjectiveColor : color.orange
@@ -592,7 +651,7 @@ alertcondition(invalidExitEvent, "VIVIER Invalid Exit", "{{ticker}} left the VIV
 
 if processBar
     if entryEvent
-        alert(syminfo.ticker + " ENTREE VIVIER " + f_dir_text(entryEventDirection) + " | " + f_fib_directional_text(fibRatio, entryEventDirection), alert.freq_once_per_bar_close)
+        alert(syminfo.ticker + " ENTREE VIVIER " + f_dir_text(entryEventDirection) + " | " + f_fib_directional_text(fibRatio, entryEventDirection) + " | " + fibSourceText, alert.freq_once_per_bar_close)
     if flameEvent
         alert(syminfo.ticker + " FLAMME " + f_dir_text(flameEventDirection) + " | SAR " + str.tostring(sarValue, format.mintick), alert.freq_once_per_bar_close)
     if objectiveCarryEvent
