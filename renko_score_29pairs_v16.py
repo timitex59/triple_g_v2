@@ -1284,6 +1284,9 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 existing["fib_source"] = (row.get("h1_fib") or {}).get(
                     "effective_fib_source"
                 )
+                sar_dir = (row.get("h1_fib") or {}).get("sar_dir")
+                if sar_dir in (-1, 1):
+                    existing["sar_dir"] = int(sar_dir)
                 update_vivier_fib_objective_month(existing, row, direction)
                 objective_touched_now = apply_vivier_fib_extreme_reset(
                     existing, row, direction
@@ -1342,6 +1345,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 "entry_fib_source": (row.get("h1_fib") or {}).get(
                     "effective_fib_source"
                 ),
+                "sar_dir": (row.get("h1_fib") or {}).get("sar_dir"),
             }
             reusable = pending_objectives.get(pair)
             if reusable is not None and reusable.get("direction") == direction:
@@ -1438,9 +1442,10 @@ def _format_telegram_vivier_entry_line(pair: str, entry: dict) -> str:
     """Compact Telegram line: current score, current Fibo and active flame."""
     direction = int(entry.get("direction", 1))
     icon = "🟢" if direction == 1 else "🔴"
+    sar_icon = {1: "🟢", -1: "🔴"}.get(entry.get("sar_dir"), "⚪")
     score = vivier_base_score(entry)
     current_fib = _strip_fibo_prefix(entry.get("fib_position"))
-    line = f"{icon} {pair} ({score:+.0f}% | {current_fib})"
+    line = f"{icon}{sar_icon} {pair} ({score:+.0f}% | {current_fib})"
     flame = vivier_flame_label(entry)
     return f"{line} {flame}" if flame else line
 
@@ -1512,6 +1517,7 @@ def post_signal_tracking_entries(state: dict, all_rows: list[dict] | None = None
             "objective_label": "F1" if direction == 1 else "F0",
             "directional_pct": directional_pct,
             "signal_weighted_pct": objective.get("signal_weighted_pct"),
+            "sar_dir": ((row or {}).get("h1_fib") or {}).get("sar_dir"),
         })
     return sorted(result, key=lambda item: (
         -abs(item["directional_pct"]) if isinstance(item["directional_pct"], (int, float)) else 0,
@@ -2512,9 +2518,10 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         lines.append("🎯 SUIVI SIGNAL")
         for item in post_signal_entries:
             icon = "🟢" if item["direction"] == 1 else "🔴"
+            sar_icon = {1: "🟢", -1: "🔴"}.get(item.get("sar_dir"), "⚪")
             pct = item.get("directional_pct")
             pct_txt = f" ({pct:+.2f}%)" if isinstance(pct, (int, float)) else ""
-            lines.append(f"{icon} {item['pair']}{pct_txt}")
+            lines.append(f"{icon}{sar_icon} {item['pair']}{pct_txt}")
         has_content = True
 
     for direction, title, entries in (
@@ -2537,9 +2544,10 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         for pair, entry in near_entries:
             direction = int(entry["direction"])
             icon = "🟢" if direction == 1 else "🔴"
+            sar_icon = {1: "🟢", -1: "🔴"}.get(entry.get("sar_dir"), "⚪")
             score = vivier_base_score(entry)
             missing = "D restant"
-            lines.append(f"{icon} {pair} · {missing} · {score:+.0f}%")
+            lines.append(f"{icon}{sar_icon} {pair} · {missing} · {score:+.0f}%")
         has_content = True
 
     if theoretical_pairs:

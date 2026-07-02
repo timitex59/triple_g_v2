@@ -290,13 +290,14 @@ class VivierStateTests(unittest.TestCase):
                     "last_px": {"M": 1, "W": 1, "D": 0},
                     "fib_position": "Fibo <0.382",
                     "fib_source": "PREVIOUS",
+                    "sar_dir": -1,
                 }
             }
         }
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("🟢 GBPJPY (+83% | <0.382)", message)
+        self.assertIn("🟢🔴 GBPJPY (+83% | <0.382)", message)
         self.assertNotIn("M-1", message)
         self.assertNotIn("M+ W+ D0", message)
 
@@ -314,7 +315,7 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("🟢 GBPJPY (+83% | <0.382) 🔥", message)
+        self.assertIn("🟢⚪ GBPJPY (+83% | <0.382) 🔥", message)
 
     def test_telegram_shows_current_fibo_and_flame_kind(self):
         state = {
@@ -366,13 +367,13 @@ class VivierStateTests(unittest.TestCase):
         current = {
             "pair": "GBPJPY",
             "h1_price": 214.065,
-            "h1_fib": {},
+            "h1_fib": {"sar_dir": 1},
         }
 
         message = build_telegram_message([], [current], vivier_state=state)
 
         self.assertIn("SUIVI SIGNAL", message)
-        self.assertIn("GBPJPY (+0.50%)", message)
+        self.assertIn("🟢🟢 GBPJPY (+0.50%)", message)
         self.assertNotIn("depuis signal", message)
         self.assertNotIn("F1 215.614", message)
 
