@@ -296,7 +296,8 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("🟢 GBPJPY (+83% | <0.382 | M-1)", message)
+        self.assertIn("🟢 GBPJPY (+83% | <0.382)", message)
+        self.assertNotIn("M-1", message)
         self.assertNotIn("M+ W+ D0", message)
 
     def test_telegram_adds_flame_only_for_current_record_event(self):
@@ -315,7 +316,7 @@ class VivierStateTests(unittest.TestCase):
 
         self.assertIn("🟢 GBPJPY (+83% | <0.382) 🔥", message)
 
-    def test_telegram_shows_fibo_path_and_flame_kind(self):
+    def test_telegram_shows_current_fibo_and_flame_kind(self):
         state = {
             "pairs": {
                 "EURJPY": {
@@ -331,7 +332,8 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("EURJPY (+83% | <0.236→<0.500)", message)
+        self.assertIn("EURJPY (+83% | <0.500)", message)
+        self.assertNotIn("<0.236→", message)
         self.assertIn("🔥R", message)
 
     def test_telegram_shows_near_alignment_section(self):
@@ -370,7 +372,9 @@ class VivierStateTests(unittest.TestCase):
         message = build_telegram_message([], [current], vivier_state=state)
 
         self.assertIn("SUIVI SIGNAL", message)
-        self.assertIn("GBPJPY (+0.50% depuis signal | F1 215.614)", message)
+        self.assertIn("GBPJPY (+0.50%)", message)
+        self.assertNotIn("depuis signal", message)
+        self.assertNotIn("F1 215.614", message)
 
     def test_telegram_shows_compact_theoretical_pairs_without_strength_blocks(self):
         state = {

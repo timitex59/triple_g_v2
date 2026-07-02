@@ -1429,6 +1429,17 @@ def _format_vivier_entry_line(pair: str, entry: dict, now: datetime | None = Non
     return f"{line} {flame}" if flame else line
 
 
+def _format_telegram_vivier_entry_line(pair: str, entry: dict) -> str:
+    """Compact Telegram line: current score, current Fibo and active flame."""
+    direction = int(entry.get("direction", 1))
+    icon = "🟢" if direction == 1 else "🔴"
+    score = vivier_base_score(entry)
+    current_fib = _strip_fibo_prefix(entry.get("fib_position"))
+    line = f"{icon} {pair} ({score:+.0f}% | {current_fib})"
+    flame = vivier_flame_label(entry)
+    return f"{line} {flame}" if flame else line
+
+
 def vivier_groups(state: dict) -> tuple[list[tuple[str, dict]], list[tuple[str, dict]]]:
     pairs = state.get("pairs") or {}
     rank = lambda item: (-abs(vivier_base_score(item[1])), item[0])
@@ -2496,10 +2507,9 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         lines.append("🎯 SUIVI SIGNAL")
         for item in post_signal_entries:
             icon = "🟢" if item["direction"] == 1 else "🔴"
-            objective = f"{item['objective_label']} {_compact_price(item.get('objective_value'))}"
             pct = item.get("directional_pct")
-            pct_txt = f"{pct:+.2f}% depuis signal" if isinstance(pct, (int, float)) else "depuis signal"
-            lines.append(f"{icon} {item['pair']} ({pct_txt} | {objective})")
+            pct_txt = f" ({pct:+.2f}%)" if isinstance(pct, (int, float)) else ""
+            lines.append(f"{icon} {item['pair']}{pct_txt}")
         has_content = True
 
     for direction, title, entries in (
@@ -2512,7 +2522,7 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
             lines.append("")
         lines.append(title)
         for pair, entry in entries:
-            lines.append(_format_vivier_entry_line(pair, entry))
+            lines.append(_format_telegram_vivier_entry_line(pair, entry))
         has_content = True
 
     if near_entries:
