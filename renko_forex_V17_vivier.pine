@@ -562,7 +562,7 @@ if barstate.islast
     f_update_fib(fibLine786, fibLabel786, showFib786, fibActive, fibEffectiveStartTime, fibEndTime, fib786, "0.786 " + fibSourceText, fibColor)
     f_update_fib(fibLine1, fibLabel1, showFibExtremes, fibActive, fibEffectiveStartTime, fibEndTime, fib1, "1 " + fibSourceText, fibHighColor)
 
-var table vivierTable = table.new(f_table_position(tablePosition), 2, 4, border_width=1, frame_color=color.white, border_color=color.gray)
+var table vivierTable = table.new(f_table_position(tablePosition), 2, 3, border_width=1, frame_color=color.white, border_color=color.gray)
 if barstate.islast
     string statusText = vivierDirection != 0 ? "VIVIER " + f_dir_text(vivierDirection) : postAlignmentObjective ? "SUIVI POST-ALIGNEMENT " + f_dir_text(fibObjectiveDirection) : "HORS VIVIER"
     color statusColor = vivierDirection != 0 ? f_dir_color(vivierDirection) : postAlignmentObjective ? carriedObjectiveColor : neutralColor
@@ -573,44 +573,40 @@ if barstate.islast
     table.cell(vivierTable, 1, 0, statusText, bgcolor=statusColor, text_color=color.white)
     table.cell(vivierTable, 0, 1, "SCORE", bgcolor=headerColor, text_color=color.white)
     table.cell(vivierTable, 1, 1, scoreText, bgcolor=f_dir_color(baseScorePct > 0 ? 1 : baseScorePct < 0 ? -1 : 0), text_color=color.white)
-    table.cell(vivierTable, 0, 2, "SAR", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 1, 2, f_dir_text(sarDirection), bgcolor=f_dir_color(sarDirection), text_color=color.white)
-    table.cell(vivierTable, 0, 3, "FIBO", bgcolor=headerColor, text_color=color.white)
-    table.cell(vivierTable, 1, 3, fibText, bgcolor=neutralColor, text_color=color.white)
+    table.cell(vivierTable, 0, 2, "FIBO", bgcolor=headerColor, text_color=color.white)
+    table.cell(vivierTable, 1, 2, fibText, bgcolor=neutralColor, text_color=color.white)
 
-alertcondition(entryEvent, "VIVIER Entry", "{{ticker}} entered the VIVIER.")
-alertcondition(flameEvent, "VIVIER SAR Flame", "{{ticker}} printed a new VIVIER SAR record flame.")
-alertcondition(objectiveCarryEvent, "VIVIER Objective Carried", "{{ticker}} carried its untouched Fibonacci objective into a new UTC month.")
-alertcondition(objectiveTouchEvent, "VIVIER Objective Reached", "{{ticker}} reached its active or carried Fibonacci objective.")
-alertcondition(postObjectiveCreatedEvent, "Post-Alignment Objective Started", "{{ticker}} kept its untouched objective after full alignment.")
-alertcondition(postObjectiveReachedEvent, "Post-Alignment Objective Reached", "{{ticker}} reached its post-alignment objective.")
-alertcondition(postObjectiveCanceledEvent, "Post-Alignment Objective Canceled", "{{ticker}} invalidated its post-alignment objective.")
-alertcondition(postObjectiveReattachedEvent, "Post-Alignment Objective Reattached", "{{ticker}} reattached its post-alignment objective to a new VIVIER cycle.")
-alertcondition(fibResetEvent, "VIVIER Fibonacci Rearm", "{{ticker}} touched directional Fibo 1/0 and rearmed the first flame.")
-alertcondition(alignmentEvent, "VIVIER Alignment", "{{ticker}} left the VIVIER through full M/W/D alignment.")
-alertcondition(renkoFiboTransitionEvent, "VIVIER to RENKO FIBO", "{{ticker}} moved directly from VIVIER to RENKO FIBO.")
-alertcondition(invalidExitEvent, "VIVIER Invalid Exit", "{{ticker}} left the VIVIER after invalidation.")
+alertcondition(entryEvent, "VIVIER Entry", "🌱 {{ticker}} ENTRE VIVIER")
+alertcondition(flameEvent, "VIVIER SAR Flame", "🔥 {{ticker}} FLAMME")
+alertcondition(objectiveCarryEvent, "VIVIER Objective Carried", "📌 {{ticker}} OBJECTIF REPORTE")
+alertcondition(objectiveTouchEvent, "VIVIER Objective Reached", "🎯 {{ticker}} OBJECTIF ATTEINT")
+alertcondition(postObjectiveCreatedEvent, "Post-Alignment Objective Started", "🎯 {{ticker}} OBJECTIF SUIVI")
+alertcondition(postObjectiveReachedEvent, "Post-Alignment Objective Reached", "🎯 {{ticker}} OBJECTIF ATTEINT")
+alertcondition(postObjectiveCanceledEvent, "Post-Alignment Objective Canceled", "❌ {{ticker}} OBJECTIF ANNULE")
+alertcondition(postObjectiveReattachedEvent, "Post-Alignment Objective Reattached", "🔄 {{ticker}} OBJECTIF REATTACHE")
+alertcondition(fibResetEvent, "VIVIER Fibonacci Rearm", "🔄 {{ticker}} FLAMME REARMEE")
+alertcondition(alignmentEvent, "VIVIER Alignment", "✅ {{ticker}} ALIGNE")
+alertcondition(renkoFiboTransitionEvent, "VIVIER to RENKO FIBO", "🚨 {{ticker}} RENKO FIBO")
+alertcondition(invalidExitEvent, "VIVIER Invalid Exit", "❌ {{ticker}} HORS VIVIER")
 
 if processBar
     if entryEvent
-        alert(syminfo.ticker + " ENTREE VIVIER " + f_dir_text(entryEventDirection) + " | " + f_fib_directional_text(fibRatio, entryEventDirection) + " | " + fibSourceText, alert.freq_once_per_bar_close)
+        alert("🌱 " + syminfo.ticker + " " + f_dir_text(entryEventDirection) + " " + f_fib_directional_text(fibRatio, entryEventDirection), alert.freq_once_per_bar_close)
     if flameEvent
-        alert(syminfo.ticker + " FLAMME " + f_dir_text(flameEventDirection) + " | SAR " + str.tostring(sarValue, format.mintick), alert.freq_once_per_bar_close)
+        alert("🔥 " + syminfo.ticker + " " + f_dir_text(flameEventDirection), alert.freq_once_per_bar_close)
     if objectiveCarryEvent
-        alert(syminfo.ticker + " OBJECTIF " + (objectiveCarryDirection == -1 ? "FIB 0" : "FIB 1") + " REPORTE | " + str.tostring(objectiveCarryLevel, format.mintick), alert.freq_once_per_bar_close)
+        alert("📌 " + syminfo.ticker + " " + (objectiveCarryDirection == 1 ? "F1" : "F0") + " REPORTE", alert.freq_once_per_bar_close)
     if objectiveTouchEvent
-        alert(syminfo.ticker + " OBJECTIF " + (objectiveTouchWasCarried ? "REPORTE " : "") + "ATTEINT | " + str.tostring(objectiveTouchLevel, format.mintick) + (fibResetEvent ? " | REARMEMENT FLAMME" : ""), alert.freq_once_per_bar_close)
+        alert("🎯 " + syminfo.ticker + " " + (objectiveTouchDirection == 1 ? "F1" : "F0") + " ATTEINT" + (fibResetEvent ? " 🔄" : ""), alert.freq_once_per_bar_close)
     if postObjectiveCreatedEvent
-        alert(syminfo.ticker + " OBJECTIF CONSERVE APRES ALIGNEMENT | " + str.tostring(postObjectiveEventLevel, format.mintick), alert.freq_once_per_bar_close)
+        alert("🎯 " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " SUIVI", alert.freq_once_per_bar_close)
     if postObjectiveReachedEvent
-        alert(syminfo.ticker + " OBJECTIF POST-SIGNAL ATTEINT | " + str.tostring(postObjectiveEventLevel, format.mintick), alert.freq_once_per_bar_close)
+        alert("🎯 " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " ATTEINT", alert.freq_once_per_bar_close)
     if postObjectiveCanceledEvent
-        alert(syminfo.ticker + " OBJECTIF POST-SIGNAL ANNULE | MONTHLY INVALIDE", alert.freq_once_per_bar_close)
+        alert("❌ " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " ANNULE", alert.freq_once_per_bar_close)
     if postObjectiveReattachedEvent
-        alert(syminfo.ticker + " OBJECTIF POST-SIGNAL REATTACHE AU VIVIER", alert.freq_once_per_bar_close)
-    if fibResetEvent
-        alert(syminfo.ticker + (objectiveTouchDirection == 1 ? " FIB 1 TOUCH" : " FIB 0 TOUCH") + " | REARMEMENT FLAMME", alert.freq_once_per_bar_close)
+        alert("🔄 " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " REATTACHE", alert.freq_once_per_bar_close)
     if alignmentEvent
-        alert(syminfo.ticker + (renkoFiboTransitionEvent ? " VIVIER -> RENKO FIBO " : " ALIGNEMENT ") + f_dir_text(alignmentEventDirection), alert.freq_once_per_bar_close)
+        alert((renkoFiboTransitionEvent ? "🚨 " : "✅ ") + syminfo.ticker + " " + f_dir_text(alignmentEventDirection) + (renkoFiboTransitionEvent ? " RENKO FIBO" : " ALIGNE"), alert.freq_once_per_bar_close)
     if invalidExitEvent
-        alert(syminfo.ticker + " SORTIE VIVIER INVALIDE", alert.freq_once_per_bar_close)
+        alert("❌ " + syminfo.ticker + " HORS VIVIER", alert.freq_once_per_bar_close)
