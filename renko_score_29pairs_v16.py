@@ -93,6 +93,9 @@ FIB_LEVELS = (
     (0.786, "0.786"),
     (1.0, "1"),
 )
+FIB_TRANSITION_MIN_TRADING_DAYS = 5
+FIB_TRANSITION_MIN_RANGE_RATIO = 0.60
+FIB_TRANSITION_FORCE_CURRENT_DAY = 11
 VIVIER_EVENTS_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "renko_vivier_events.jsonl"
 )
@@ -469,31 +472,123 @@ def sar_cross_event(df: pd.DataFrame, sar_state: dict | None) -> dict | None:
     }
 
 
-def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
-    """Same Fibo as the V15 Pine "Monthly Reset" panel, but built from H1
-    bars: range = high/low accumulated since the start of the current
-    calendar month (UTC), 0.5 level = midpoint of that range. Returns where
-    the live H1 price sits relative to that 0.5 level."""
-    df = fetch_tv_ohlc(f"OANDA:{pair}", "60", h1_candles)
+def monthly_fib_transition_context(df: pd.DataFrame) -> dict | None:
+    """Select the stable Fibo range used around an UTC month reset.
+
+    The completed previous month remains authoritative until the current
+    month has at least five trading days, 60% of the previous range and both
+    ranges agree on the side of 0.5. The current month is forced from day 11.
+    """
     if df is None or df.empty:
         return None
-
     last_ts = pd.Timestamp(df.index[-1])
     month_start = last_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    month_df = df[df.index >= month_start]
-    if month_df.empty:
+    previous_start = month_start - pd.offsets.MonthBegin(1)
+    current_df = df[df.index >= month_start]
+    previous_df = df[(df.index >= previous_start) & (df.index < month_start)]
+    if current_df.empty:
         return None
 
-    month_high = float(month_df["high"].max())
-    month_low = float(month_df["low"].min())
-    month_utc = month_start.strftime("%Y-%m")
-    fib_range = month_high - month_low
-    if fib_range <= 0:
+    current_high = float(current_df["high"].max())
+    current_low = float(current_df["low"].min())
+    current_range = current_high - current_low
+    if current_range <= 0:
         return None
-
-    fib50 = month_low + fib_range * 0.5
     live_price = float(df["close"].iloc[-1])
+    current_pct = (live_price - current_low) / current_range * 100.0
+    current_month_utc = month_start.strftime("%Y-%m")
+
+    previous_high = previous_low = previous_pct = previous_range = None
+    if not previous_df.empty:
+        previous_high = float(previous_df["high"].max())
+        previous_low = float(previous_df["low"].min())
+        previous_range = previous_high - previous_low
+        if previous_range > 0:
+            previous_pct = (live_price - previous_low) / previous_range * 100.0
+
+    trading_dates = {
+        pd.Timestamp(ts).date()
+        for ts in current_df.index
+        if pd.Timestamp(ts).weekday() < 5
+    }
+    trading_days = len(trading_dates)
+    range_ratio = (
+        current_range / previous_range
+        if isinstance(previous_range, (int, float)) and previous_range > 0
+        else None
+    )
+    same_side = (
+        (current_pct <= 50.0) == (previous_pct <= 50.0)
+        if isinstance(previous_pct, (int, float)) else None
+    )
+    early_relay = bool(
+        trading_days >= FIB_TRANSITION_MIN_TRADING_DAYS
+        and isinstance(range_ratio, (int, float))
+        and range_ratio >= FIB_TRANSITION_MIN_RANGE_RATIO
+        and same_side is True
+    )
+    forced_relay = last_ts.day >= FIB_TRANSITION_FORCE_CURRENT_DAY
+    previous_available = (
+        isinstance(previous_low, (int, float))
+        and isinstance(previous_high, (int, float))
+        and isinstance(previous_pct, (int, float))
+        and isinstance(previous_range, (int, float))
+        and previous_range > 0
+    )
+    use_current = not previous_available or early_relay or forced_relay
+    if use_current:
+        month_high = current_high
+        month_low = current_low
+        month_utc = current_month_utc
+        pct_of_range = current_pct
+        source = "CURRENT"
+        relay_reason = (
+            "NO_PREVIOUS" if not previous_available
+            else "FORCED_DAY_11" if forced_relay
+            else "MATURE_AGREEMENT"
+        )
+    else:
+        month_high = float(previous_high)
+        month_low = float(previous_low)
+        month_utc = previous_start.strftime("%Y-%m")
+        pct_of_range = float(previous_pct)
+        source = "PREVIOUS"
+        relay_reason = "PREVIOUS_TRANSITION"
+
+    fib50 = month_low + (month_high - month_low) * 0.5
     position = "ABOVE" if live_price > fib50 else ("BELOW" if live_price < fib50 else "AT")
+    return {
+        "fib50": fib50,
+        "position": position,
+        "live_price": live_price,
+        "month_high": month_high,
+        "month_low": month_low,
+        "month_utc": month_utc,
+        "pct_of_range": pct_of_range,
+        "effective_fib_source": source,
+        "transition_active": source == "PREVIOUS",
+        "transition_relay_reason": relay_reason,
+        "transition_trading_days": trading_days,
+        "transition_range_ratio": range_ratio,
+        "transition_same_side": same_side,
+        "current_month_high": current_high,
+        "current_month_low": current_low,
+        "current_month_utc": current_month_utc,
+        "current_pct_of_range": current_pct,
+        "previous_month_high": previous_high,
+        "previous_month_low": previous_low,
+        "previous_month_utc": previous_start.strftime("%Y-%m"),
+        "previous_pct_of_range": previous_pct,
+    }
+
+
+def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
+    """Build the effective monthly Fibo plus H1 SAR timing for one pair."""
+    df = fetch_tv_ohlc(f"OANDA:{pair}", "60", h1_candles)
+    context = monthly_fib_transition_context(df)
+    if context is None:
+        return None
+    fib50 = float(context["fib50"])
 
     # Parabolic SAR 1H: retournement strict sur les deux dernieres barres.
     # BULL: open precedent sous SAR precedent, close courant au-dessus du SAR.
@@ -525,12 +620,7 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
             closed_extreme["fib1_before"] = float(before_closed["high"].max())
             closed_extreme["fib0_before"] = float(before_closed["low"].min())
     if cross_event is not None:
-        event_ts = pd.Timestamp(closed_df.index[-1])
-        event_month_start = event_ts.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        event_month_df = closed_df[closed_df.index >= event_month_start]
-        event_high = float(event_month_df["high"].max())
-        event_low = float(event_month_df["low"].min())
-        cross_event["fib50"] = event_low + (event_high - event_low) * 0.5
+        cross_event["fib50"] = fib50
 
     closed_bars = [
         {
@@ -549,13 +639,7 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
     )
 
     return {
-        "fib50": fib50,
-        "position": position,
-        "live_price": live_price,
-        "month_high": month_high,
-        "month_low": month_low,
-        "month_utc": month_utc,
-        "pct_of_range": (live_price - month_low) / fib_range * 100.0,
+        **context,
         "sar_dir": sar_dir,
         "sar_flipped": sar_flipped,
         "sar_value": sar_values[-1] if sar_values else None,
@@ -919,7 +1003,7 @@ def update_vivier_fib_objective_month(entry: dict, row: dict,
                                        direction: int) -> None:
     """Carry one untouched objective across UTC month resets."""
     h1 = row.get("h1_fib") or {}
-    current_month = h1.get("h1_closed_month_utc") or h1.get("month_utc")
+    current_month = h1.get("month_utc") or h1.get("h1_closed_month_utc")
     if "fib_objective_active" not in entry:
         _set_vivier_fib_objective(entry, row, direction)
         return
@@ -1083,6 +1167,23 @@ def apply_vivier_fib_extreme_reset(entry: dict, row: dict, direction: int) -> bo
     return True
 
 
+def transition_entry_fib_invalid(entry: dict, row: dict, direction: int) -> bool:
+    """Revalidate entries created during an unstable month-reset window."""
+    h1 = row.get("h1_fib") or {}
+    if not h1.get("transition_active"):
+        return False
+    current_month = h1.get("current_month_utc")
+    entered_at = str(entry.get("entered_at_paris") or "")
+    if not current_month or entered_at[:7] != current_month:
+        return False
+    pct = h1.get("pct_of_range")
+    if not isinstance(pct, (int, float)):
+        return False
+    return (direction == 1 and pct > VIVIER_FIB_MIDPOINT_PCT) or (
+        direction == -1 and pct < VIVIER_FIB_MIDPOINT_PCT
+    )
+
+
 def update_vivier(rows: list[dict], previous_state: dict | None = None,
                    now: datetime | None = None) -> tuple[dict, list[dict]]:
     """Advance the persistent VIVIER state and return one-shot alignments.
@@ -1125,6 +1226,9 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
         existing = tracked.get(pair)
         if existing is not None:
             direction = int(existing["direction"])
+            if transition_entry_fib_invalid(existing, row, direction):
+                del tracked[pair]
+                continue
             if vivier_full_alignment(row, direction):
                 pending = _pending_objective_from_entry(existing, row, direction)
                 if pending is not None:
@@ -1172,6 +1276,9 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 existing["weighted_pct"] = row.get("weighted_pct")
                 existing["fib_position"] = fib_directional_label(row.get("h1_fib"), direction)
                 existing["fib_pct_of_range"] = (row.get("h1_fib") or {}).get("pct_of_range")
+                existing["fib_source"] = (row.get("h1_fib") or {}).get(
+                    "effective_fib_source"
+                )
                 update_vivier_fib_objective_month(existing, row, direction)
                 objective_touched_now = apply_vivier_fib_extreme_reset(
                     existing, row, direction
@@ -1224,8 +1331,12 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 "weighted_pct": row.get("weighted_pct"),
                 "fib_position": fib_directional_label(row.get("h1_fib"), direction),
                 "fib_pct_of_range": (row.get("h1_fib") or {}).get("pct_of_range"),
+                "fib_source": (row.get("h1_fib") or {}).get("effective_fib_source"),
                 "entry_fib_position": fib_directional_label(row.get("h1_fib"), direction),
                 "entry_fib_pct_of_range": (row.get("h1_fib") or {}).get("pct_of_range"),
+                "entry_fib_source": (row.get("h1_fib") or {}).get(
+                    "effective_fib_source"
+                ),
             }
             reusable = pending_objectives.get(pair)
             if reusable is not None and reusable.get("direction") == direction:
@@ -1308,6 +1419,8 @@ def _format_vivier_entry_line(pair: str, entry: dict, now: datetime | None = Non
     icon = "🟢" if direction == 1 else "🔴"
     score = vivier_base_score(entry)
     parts = [f"{score:+.0f}%", vivier_fib_path(entry)]
+    if entry.get("fib_source") == "PREVIOUS":
+        parts.append("M-1")
     age = vivier_age_label(entry, now)
     if age:
         parts.append(age)

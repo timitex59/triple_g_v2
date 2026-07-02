@@ -24,6 +24,7 @@ from renko_score_29pairs_v16 import (
     fibo_currency_strength,
     fibo_theoretical_pairs,
     fib_directional_label,
+    monthly_fib_transition_context,
     sar_cross_event,
     telegram_body_hash,
     update_vivier,
@@ -82,6 +83,73 @@ def extreme(time_utc, high, low, fib1_before, fib0_before, month_utc="2026-06"):
 
 
 class VivierStateTests(unittest.TestCase):
+    def test_monthly_fib_keeps_previous_range_during_early_disagreement(self):
+        index = pd.to_datetime([
+            "2026-06-03 10:00Z",
+            "2026-06-20 10:00Z",
+            "2026-07-01 10:00Z",
+            "2026-07-02 10:00Z",
+        ])
+        frame = pd.DataFrame({
+            "open": [90, 110, 103, 103],
+            "high": [100, 120, 110, 108],
+            "low": [80, 100, 100, 102],
+            "close": [90, 110, 103, 104],
+        }, index=index)
+
+        context = monthly_fib_transition_context(frame)
+
+        self.assertEqual(context["effective_fib_source"], "PREVIOUS")
+        self.assertTrue(context["transition_active"])
+        self.assertAlmostEqual(context["current_pct_of_range"], 40.0)
+        self.assertAlmostEqual(context["previous_pct_of_range"], 60.0)
+        self.assertAlmostEqual(context["pct_of_range"], 60.0)
+        self.assertEqual(context["month_utc"], "2026-06")
+
+    def test_monthly_fib_relays_after_maturity_and_agreement(self):
+        index = pd.to_datetime([
+            "2026-06-03 10:00Z",
+            "2026-06-20 10:00Z",
+            "2026-07-01 10:00Z",
+            "2026-07-02 10:00Z",
+            "2026-07-03 10:00Z",
+            "2026-07-06 10:00Z",
+            "2026-07-07 10:00Z",
+        ])
+        frame = pd.DataFrame({
+            "open": [90, 110, 90, 91, 92, 91, 90],
+            "high": [100, 120, 100, 105, 110, 100, 95],
+            "low": [80, 100, 80, 85, 90, 88, 86],
+            "close": [90, 110, 90, 92, 95, 92, 90],
+        }, index=index)
+
+        context = monthly_fib_transition_context(frame)
+
+        self.assertEqual(context["transition_trading_days"], 5)
+        self.assertGreaterEqual(context["transition_range_ratio"], 0.60)
+        self.assertTrue(context["transition_same_side"])
+        self.assertEqual(context["effective_fib_source"], "CURRENT")
+        self.assertEqual(context["transition_relay_reason"], "MATURE_AGREEMENT")
+
+    def test_monthly_fib_forces_current_range_from_day_11(self):
+        index = pd.to_datetime([
+            "2026-06-03 10:00Z",
+            "2026-06-20 10:00Z",
+            "2026-07-01 10:00Z",
+            "2026-07-13 10:00Z",
+        ])
+        frame = pd.DataFrame({
+            "open": [90, 110, 103, 103],
+            "high": [100, 120, 110, 108],
+            "low": [80, 100, 100, 102],
+            "close": [90, 110, 103, 104],
+        }, index=index)
+
+        context = monthly_fib_transition_context(frame)
+
+        self.assertEqual(context["effective_fib_source"], "CURRENT")
+        self.assertEqual(context["transition_relay_reason"], "FORCED_DAY_11")
+
     def test_closed_h1_source_excludes_only_open_hour(self):
         index = pd.to_datetime(["2026-06-27T09:00:00Z", "2026-06-27T10:00:00Z"])
         df = pd.DataFrame({"close": [1.0, 2.0]}, index=index)
@@ -221,13 +289,14 @@ class VivierStateTests(unittest.TestCase):
                     "direction": 1,
                     "last_px": {"M": 1, "W": 1, "D": 0},
                     "fib_position": "Fibo <0.382",
+                    "fib_source": "PREVIOUS",
                 }
             }
         }
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("🟢 GBPJPY (+83% | <0.382)", message)
+        self.assertIn("🟢 GBPJPY (+83% | <0.382 | M-1)", message)
         self.assertNotIn("M+ W+ D0", message)
 
     def test_telegram_adds_flame_only_for_current_record_event(self):
@@ -370,6 +439,45 @@ class VivierStateTests(unittest.TestCase):
         self.assertIn("🟢 GBPJPY (+80% | <0.786)", message)
         self.assertEqual(message.count("GBPJPY"), 1)
         self.assertNotIn("SIGNAL VIVIER", message)
+
+    def test_transition_revalidates_only_entries_created_in_current_month(self):
+        current = row("CURRENT", 1, 1, 0, fib_pct=60.0)
+        current["h1_fib"].update({
+            "transition_active": True,
+            "effective_fib_source": "PREVIOUS",
+            "current_month_utc": "2026-07",
+        })
+        older = row("OLDER", 1, 1, 0, fib_pct=60.0)
+        older["h1_fib"].update({
+            "transition_active": True,
+            "effective_fib_source": "PREVIOUS",
+            "current_month_utc": "2026-07",
+        })
+        previous = {
+            "pairs": {
+                "CURRENT": {
+                    "direction": 1,
+                    "entered_at_paris": "2026-07-01 07:16",
+                    "last_px": {"M": 1, "W": 1, "D": 0},
+                },
+                "OLDER": {
+                    "direction": 1,
+                    "entered_at_paris": "2026-06-27 18:38",
+                    "last_px": {"M": 1, "W": 1, "D": 0},
+                },
+            }
+        }
+
+        state, signals = update_vivier(
+            [current, older],
+            previous,
+            now=datetime(2026, 7, 2, 19, 0, tzinfo=PARIS),
+        )
+
+        self.assertNotIn("CURRENT", state["pairs"])
+        self.assertIn("OLDER", state["pairs"])
+        self.assertEqual(state["pairs"]["OLDER"]["fib_source"], "PREVIOUS")
+        self.assertEqual(signals, [])
 
     def test_entry_accepts_opposition_or_aligned_weekly_with_daily_inside(self):
         rows = [
