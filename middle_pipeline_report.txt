@@ -1,88 +1,91 @@
 MID-CAP TECH PIPELINE (S&P MidCap 400 — Information Technology)
-Generated: 2026-07-01 20:22 CEST
+Generated: 2026-07-02 19:18 CEST
 Universe: 49 mid-cap tech stocks | Benchmark: IWR | News window: 14 days
 
 DOMINANT SUB-THEMES
-| Theme        |   Score |   N | 21D    | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
-|--------------|---------|-----|--------|---------|----------------|----------|------------|
-| Semis        |   68.62 |  16 | +1.10% | +58.33% | +44.28%        | 75%      | 12/8       |
-| Distributors |   61.34 |   3 | -1.77% | +48.66% | +34.61%        | 100%     | 6/2        |
-| Hardware     |   55.72 |  11 | +0.85% | +31.24% | +17.20%        | 64%      | 12/12      |
+| Theme     |   Score |   N | 21D     | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
+|-----------|---------|-----|---------|---------|----------------|----------|------------|
+| Semis     |   54.76 |  16 | -12.84% | +38.40% | +26.00%        | 25%      | 12/10      |
+| Logiciels |   51.25 |  18 | -2.77%  | +12.97% | +0.57%         | 72%      | 12/9       |
+| Hardware  |   49.53 |  11 | -11.91% | +20.41% | +8.01%         | 36%      | 12/12      |
 
 SUIVI DE PERSISTANCE (vivier TOP)
-🔄 BASCULE confirmee: Distributors -> Semis (3j de #1)
-Durables (streak x force): ALGM [5j, Rel +91%, score 457], SITM [4j, Rel +91%, score 363], CGNX [4j, Rel +34%, score 134], SANM [1j, Rel +77%, score 77], SMTC [1j, Rel +76%, score 76]
-Entrants: SANM, SMTC
-Faiblissent: CGNX (rang 4→1, Rel +40→+34), ALGM (rang 1→2, Rel +125→+91), SITM (rang 5→3, Rel +120→+91)
-Sortis du TOP: MKSI, AMKR
+Durables (streak x force): SITM [5j, Rel +57%, score 286], SANM [2j, Rel +57%, score 114], CVLT [1j, Rel +78%, score 78], OKTA [1j, Rel +66%, score 66], QLYS [1j, Rel +58%, score 58]
+Entrants: CVLT, OKTA, QLYS
+Faiblissent: SITM (rang 3→4, Rel +91→+57), SANM (rang 4→5, Rel +77→+57)
+Sortis du TOP: SMTC, ALGM, CGNX
 
 TOP STOCKS BY SUB-THEME
 
 Semis
-| Ticker   | Name                 | Theme   |   Score | 21D     | 63D      | Rel63   |   RSI | >SMA50   |
-|----------|----------------------|---------|---------|---------|----------|---------|-------|----------|
-| ALGM     | Allegro MicroSystems | Semis   |     100 | +36.35% | +103.81% | +89.76% |  69.4 | Y        |
-| MKSI     | MKS Instruments      | Semis   |     100 | +29.72% | +79.29%  | +65.25% |  65.9 | Y        |
-| ONTO     | Onto Innovation      | Semis   |     100 | +36.55% | +70.27%  | +56.23% |  64.1 | Y        |
+| Ticker   | Name                 | Theme   |   Score | 21D    | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|----------------------|---------|---------|--------|---------|---------|-------|----------|
+| ALGM     | Allegro MicroSystems | Semis   |  100    | +9.73% | +65.84% | +53.44% |  56.4 | Y        |
+| MKSI     | MKS Instruments      | Semis   |  100    | +9.81% | +54.21% | +41.81% |  52.9 | Y        |
+| ONTO     | Onto Innovation      | Semis   |   91.98 | +8.45% | +42.41% | +30.01% |  49.7 | Y        |
 
-Distributors
-| Ticker   | Name              | Theme        |   Score | 21D    | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|-------------------|--------------|---------|--------|---------|---------|-------|----------|
-| SNX      | TD Synnex         | Distributors |   65.95 | -1.77% | +57.86% | +43.82% |  48.3 | Y        |
-| ARW      | Arrow Electronics | Distributors |   64.79 | -1.99% | +48.66% | +34.61% |  47.9 | Y        |
-| AVT      | Avnet             | Distributors |   58.69 | +1.76% | +43.59% | +29.54% |  55.4 | Y        |
+Logiciels
+| Ticker   | Name              | Theme     |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|-------------------|-----------|---------|---------|---------|---------|-------|----------|
+| CVLT     | CommVault Systems | Logiciels |     100 | +22.16% | +90.26% | +77.85% |  76.6 | Y        |
+| OKTA     | Okta, Inc.        | Logiciels |     100 | +4.23%  | +78.22% | +65.82% |  79.5 | Y        |
+| QLYS     | Qualys            | Logiciels |     100 | +29.41% | +70.26% | +57.86% |  87.3 | Y        |
 
 Hardware
-| Ticker   | Name                | Theme    |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|---------------------|----------|---------|---------|---------|---------|-------|----------|
-| TTMI     | TTM Technologies    | Hardware |   95.8  | +4.26%  | +84.54% | +70.50% |  53.6 | Y        |
-| CGNX     | Cognex              | Hardware |   82.67 | +10.76% | +46.34% | +32.29% |  76.1 | Y        |
-| SANM     | Sanmina Corporation | Hardware |   78.01 | -6.81%  | +90.41% | +76.37% |  57   | Y        |
+| Ticker   | Name             | Theme    |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|------------------|----------|---------|---------|---------|---------|-------|----------|
+| CGNX     | Cognex           | Hardware |   77.61 | +1.00%  | +35.45% | +23.05% |  58.8 | Y        |
+| TTMI     | TTM Technologies | Hardware |   75.71 | -13.87% | +59.36% | +46.96% |  36.1 | N        |
+| CXT      | Crane NXT        | Hardware |   74.43 | +42.07% | +24.39% | +11.99% |  88.6 | Y        |
 
 FINAL SELECTION - RENKO VALIDATED
-| Final     | Type   | Ticker   | Theme    | Renko          | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL    |
-|-----------|--------|----------|----------|----------------|--------|----------|---------|---------|--------|
-| VALIDATED | STOCK  | CGNX     | Hardware | BULL CONFIRMED | BULL   | 1/1/1    | +50.41% | +68.94% | +0.00% |
+| Final     | Type   | Ticker   | Theme     | Renko          | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL    |
+|-----------|--------|----------|-----------|----------------|--------|----------|---------|---------|--------|
+| VALIDATED | STOCK  | CVLT     | Logiciels | BULL CONFIRMED | BULL   | 1/1/1    | +96.11% | +73.35% | +0.00% |
+| VALIDATED | STOCK  | OKTA     | Logiciels | BULL CONFIRMED | BULL   | 1/1/1    | +92.57% | +62.58% | +0.00% |
+| VALIDATED | STOCK  | QLYS     | Logiciels | BULL CONFIRMED | BULL   | 1/1/1    | +71.44% | +32.49% | +0.00% |
 
 GLOBAL RANKING - RETAINED STOCKS
-|   # | Ticker   | Type   | Theme    |   Rank |   Score | 63D     | Rel63   | R14     | R21     | PnL Renko   |
-|-----|----------|--------|----------|--------|---------|---------|---------|---------|---------|-------------|
-|   1 | CGNX     | STOCK  | Hardware |  54.18 |   82.67 | +46.34% | +32.29% | +50.41% | +68.94% | +0.00%      |
+|   # | Ticker   | Type   | Theme     |   Rank |   Score | 63D     | Rel63   | R14     | R21     | PnL Renko   |
+|-----|----------|--------|-----------|--------|---------|---------|---------|---------|---------|-------------|
+|   1 | CVLT     | STOCK  | Logiciels |  81.68 |     100 | +90.26% | +77.85% | +96.11% | +73.35% | +0.00%      |
+|   2 | OKTA     | STOCK  | Logiciels |  75.59 |     100 | +78.22% | +65.82% | +92.57% | +62.58% | +0.00%      |
+|   3 | QLYS     | STOCK  | Logiciels |  65.71 |     100 | +70.26% | +57.86% | +71.44% | +32.49% | +0.00%      |
 
 ANALYTIC CLASSIFICATION
-| Theme    | Bucket         | Type   | Ticker   |   Score | 63D     | Rel63   | R14     | R21     | Role                        | Use                                              |
-|----------|----------------|--------|----------|---------|---------|---------|---------|---------|-----------------------------|--------------------------------------------------|
-| Hardware | TACTICAL STOCK | STOCK  | CGNX     |   82.67 | +46.34% | +32.29% | +50.41% | +68.94% | Strong single-name momentum | Actionable, but monitor extension and volatility |
+| Theme     | Bucket         | Type   | Ticker   |   Score | 63D     | Rel63   | R14     | R21     | Role                        | Use                                              |
+|-----------|----------------|--------|----------|---------|---------|---------|---------|---------|-----------------------------|--------------------------------------------------|
+| Logiciels | LEADER STOCK   | STOCK  | CVLT     |     100 | +90.26% | +77.85% | +96.11% | +73.35% | Primary momentum leader     | Best single-name expression of the theme         |
+| Logiciels | LEADER STOCK   | STOCK  | OKTA     |     100 | +78.22% | +65.82% | +92.57% | +62.58% | Primary momentum leader     | Best single-name expression of the theme         |
+| Logiciels | TACTICAL STOCK | STOCK  | QLYS     |     100 | +70.26% | +57.86% | +71.44% | +32.49% | Strong single-name momentum | Actionable, but monitor extension and volatility |
 
 WATCHLIST - GOOD THEME, WAITING FOR RENKO
-| Final     | Type   | Ticker   | Theme        | Renko   | Bias   | 3M/M/W   | ROC14    | ROC21   | PnL   |
-|-----------|--------|----------|--------------|---------|--------|----------|----------|---------|-------|
-| WATCHLIST | STOCK  | ARW      | Distributors | MIXED   | MIXED  | 1/1/-1   | +52.51%  | +34.27% | ---   |
-| WATCHLIST | STOCK  | AVT      | Distributors | MIXED   | MIXED  | 1/1/0    | +47.58%  | +32.32% | ---   |
-| WATCHLIST | STOCK  | SNX      | Distributors | MIXED   | MIXED  | 1/1/-1   | +69.01%  | +54.95% | ---   |
-| WATCHLIST | STOCK  | SANM     | Hardware     | MIXED   | MIXED  | 1/-1/1   | +88.48%  | +64.71% | ---   |
-| WATCHLIST | STOCK  | ALGM     | Semis        | MIXED   | MIXED  | 1/0/1    | +113.31% | +54.56% | ---   |
-| WATCHLIST | STOCK  | MKSI     | Semis        | MIXED   | MIXED  | 0/-1/1   | +84.75%  | +69.71% | ---   |
-| WATCHLIST | STOCK  | ONTO     | Semis        | MIXED   | MIXED  | -1/0/1   | +71.19%  | +67.68% | ---   |
+| Final     | Type   | Ticker   | Theme    | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL   |
+|-----------|--------|----------|----------|---------|--------|----------|---------|---------|-------|
+| WATCHLIST | STOCK  | CGNX     | Hardware | MIXED   | MIXED  | 1/0/1    | +40.11% | +57.38% | ---   |
+| WATCHLIST | STOCK  | CXT      | Hardware | MIXED   | MIXED  | 0/1/1    | +25.88% | -7.58%  | ---   |
+| WATCHLIST | STOCK  | ALGM     | Semis    | MIXED   | MIXED  | 0/-1/0   | +82.93% | +32.55% | ---   |
 
 REJECTED BY RENKO
 | Final    | Type   | Ticker   | Theme    | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL    |
 |----------|--------|----------|----------|---------|--------|----------|---------|---------|--------|
-| REJECTED | STOCK  | TTMI     | Hardware | BEAR    | BEAR   | -1/-1/-1 | +88.28% | +82.34% | +0.00% |
+| REJECTED | STOCK  | TTMI     | Hardware | BEAR    | BEAR   | -1/-1/-1 | +61.97% | +56.86% | +0.00% |
+| REJECTED | STOCK  | MKSI     | Semis    | BEAR    | BEAR   | -1/-1/-1 | +63.03% | +49.75% | +0.00% |
+| REJECTED | STOCK  | ONTO     | Semis    | BEAR    | BEAR   | -1/-1/-1 | +47.48% | +44.46% | +0.00% |
 
 NEWS VALIDATION
 
-Semis: score=100.0 hits=12 sources=8
-- 2026-07-01 | Yahoo Finance | Dow falls 184 points as chip stocks pull back after record start to year - Yahoo Finance
-- 2026-07-01 | Seeking Alpha | AI infrastructure, chip stocks fall after report Meta building cloud business for excess AI compute - Seeking Alpha
+Semis: score=100.0 hits=12 sources=10
+- 2026-07-02 | ABC News - Breaking News, Latest News and Videos | Wall Street quietly mixed as chip companies continue to lose ground following Wednesday's sell-off - ABC News - Breaking News, Latest News and Videos
+- 2026-07-02 | Axios | Why AI and semiconductor stocks stumbled - Axios
 
-Distributors: score=42.0 hits=6 sources=2
-- 2026-06-29 | Yahoo Finance | Q1 Earnings Highlights: Herc (NYSE:HRI) Vs The Rest Of The Specialty Equipment Distributors Stocks - Yahoo Finance
-- 2026-06-25 | Yahoo Finance | Industrial Distributors Stocks Q1 In Review: Rush Enterprises (NASDAQ:RUSHA) Vs Peers - Yahoo Finance
+Logiciels: score=100.0 hits=12 sources=9
+- 2026-07-02 | Barron's | Inside the Analyst Report That Saved Software Stocks - Barron's
+- 2026-07-02 | StockStory | 3 Stocks Under $10 Walking a Fine Line - StockStory
 
 Hardware: score=100.0 hits=12 sources=12
-- 2026-07-01 | Proactive financial news | Nasdaq slips back as tech hardware stocks fall, Warsh speaks - Proactive financial news
-- 2026-06-25 | Yahoo Finance | Electronic Components Stocks Q1 Earnings Review: nLIGHT (NASDAQ:LASR) Shines - Yahoo Finance
+- 2026-07-02 | simplywall.st | Nvidia And 3 AI Hardware Stocks Retail Investors Are Watching - simplywall.st
+- 2026-07-02 | investingLive | JPMorgan sees dot-com era warning as AI hardware stocks diverge from spenders - investingLive
 
 METHOD
 Univers = actions MID-CAP (S&P 400) du seul secteur Information Technology.
