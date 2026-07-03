@@ -282,6 +282,29 @@ class VivierStateTests(unittest.TestCase):
 
         self.assertEqual(ideas, [])
 
+    def test_fibo_theoretical_pairs_require_both_vivier_roles(self):
+        rows = [
+            {"pair": "GBPCAD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "GBPNZD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "USDCAD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "NZDUSD", "h1_fib": {"pct_of_range": 20.0, "sar_dir": -1}},
+        ]
+        vivier_entries = {
+            "USDJPY": {"direction": 1},  # USD fort, JPY faible
+            "AUDCAD": {"direction": 1},  # AUD fort, CAD faible
+        }
+
+        ideas = fibo_theoretical_pairs(
+            rows,
+            available_pairs={"GBPCAD", "GBPNZD", "USDCAD", "NZDUSD"},
+            vivier_entries=vivier_entries,
+        )
+
+        self.assertEqual([idea["pair"] for idea in ideas], ["USDCAD"])
+        self.assertEqual(ideas[0]["direction"], 1)
+        self.assertEqual(ideas[0]["strong"], "USD")
+        self.assertEqual(ideas[0]["weak"], "CAD")
+
     def test_telegram_vivier_line_is_compact(self):
         state = {
             "pairs": {
@@ -380,24 +403,23 @@ class VivierStateTests(unittest.TestCase):
     def test_telegram_shows_compact_theoretical_pairs_without_strength_blocks(self):
         state = {
             "pairs": {
+                "USDJPY": {
+                    "direction": 1,
+                    "last_px": {"M": 1, "W": 1, "D": 0},
+                    "fib_position": "Fibo <0.500",
+                },
                 "AUDCAD": {
                     "direction": 1,
                     "last_px": {"M": 1, "W": 1, "D": 0},
                     "fib_position": "Fibo <0.500",
                 },
-                "CADCHF": {
-                    "direction": -1,
-                    "last_px": {"M": -1, "W": 0, "D": 1},
-                    "fib_position": "Fibo >0.500",
-                },
             }
         }
         all_rows = [
-            {"pair": "GBPCAD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": -1}},
-            {"pair": "EURGBP", "h1_fib": {"pct_of_range": 20.0, "sar_dir": 1}},
-            {"pair": "AUDCAD", "h1_fib": {"pct_of_range": 55.0, "sar_dir": 1}},
-            {"pair": "AUDJPY", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
-            {"pair": "EURJPY", "h1_fib": {"pct_of_range": 55.0, "sar_dir": 1}},
+            {"pair": "GBPCAD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "GBPNZD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "USDCAD", "h1_fib": {"pct_of_range": 90.0, "sar_dir": 1}},
+            {"pair": "NZDUSD", "h1_fib": {"pct_of_range": 20.0, "sar_dir": -1}},
         ]
 
         message = build_telegram_message([], all_rows, vivier_state=state)
@@ -405,10 +427,9 @@ class VivierStateTests(unittest.TestCase):
         self.assertNotIn("FORCE FIBO 0.5", message)
         self.assertNotIn("FORCE FIBO+SAR", message)
         self.assertIn("PAIRES FORT/FAIBLE", message)
-        self.assertIn("🟢 AUDJPY 🌱AUD", message)
-        self.assertIn("🟢 GBPCAD 🌱CAD", message)
-        self.assertNotIn("AUD>JPY", message)
-        self.assertNotIn("GBP>CAD", message)
+        self.assertIn("🟢 USDCAD 🌱USD/CAD", message)
+        self.assertNotIn("GBPCAD", message)
+        self.assertNotIn("NZDUSD", message)
         self.assertLess(message.index("VIVIER BULL"), message.index("PROCHE ALIGNEMENT"))
         self.assertLess(message.index("PROCHE ALIGNEMENT"), message.index("PAIRES FORT/FAIBLE"))
 

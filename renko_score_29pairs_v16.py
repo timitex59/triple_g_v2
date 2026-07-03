@@ -2243,8 +2243,8 @@ def vivier_currency_roles(vivier_entries: dict[str, dict] | None) -> dict[str, i
     """Return each currency's unanimous role in the active vivier.
 
     A BULL pair makes its base strong and quote weak; a BEAR pair does the
-    opposite. A currency observed in both roles is neutral (0), so ambiguous
-    vivier evidence does not reject a theoretical pair.
+    opposite. A currency observed in both roles is neutral (0) and therefore
+    cannot support a strict strong/weak theoretical pair.
     """
     votes: dict[str, set[int]] = {}
     for pair, entry in (vivier_entries or {}).items():
@@ -2296,14 +2296,12 @@ def fibo_theoretical_pairs(rows: list[dict] | None,
             weak_ccy = str(weak_item["currency"])
             if strong_ccy == weak_ccy:
                 continue
-            # The Telegram shortlist is anchored to the active vivier: at
-            # least one side of the theoretical pair must already appear in it.
-            if (require_vivier_link and strong_ccy not in vivier_roles
-                    and weak_ccy not in vivier_roles):
-                continue
-            # Reject a theoretical role that contradicts an unambiguous role
-            # already established by the active vivier.
-            if vivier_roles.get(strong_ccy) == -1 or vivier_roles.get(weak_ccy) == 1:
+            # Both currencies must be present in the active vivier and their
+            # roles must be unanimous: strong only versus weak only.
+            if require_vivier_link and (
+                vivier_roles.get(strong_ccy) != 1
+                or vivier_roles.get(weak_ccy) != -1
+            ):
                 continue
             direct = f"{strong_ccy}{weak_ccy}"
             inverse = f"{weak_ccy}{strong_ccy}"
