@@ -1042,12 +1042,62 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(performance["mae_72h_pct"], -5.0)
         self.assertEqual(performance["horizon_basis"], "closed_h1_bars")
         self.assertTrue(performance["complete"])
-        self.assertEqual(result["version"], 2)
+        self.assertEqual(result["version"], 3)
         self.assertEqual(result["summary"]["complete"], 1)
+        self.assertEqual(performance["first_profitable_h1_bars"], 1)
+        self.assertEqual(performance["peak_h1_bars"], 72)
+        self.assertTrue(performance["path_complete"])
+        self.assertEqual(
+            result["pair_profiles"]["GBPJPY"]["overall"]["status"],
+            "LEARNING",
+        )
         horizon = result["summary"]["overall"]["horizons"]["72h"]
         self.assertEqual(horizon["samples"], 1)
         self.assertEqual(horizon["win_rate_pct"], 100.0)
         self.assertEqual(horizon["avg_directional_pct"], 10.0)
+
+    def test_pair_profile_learns_profit_and_exit_timing(self):
+        tracked_events = [{
+            "event_id": f"audjpy-entry-{index}",
+            "event_type": "VIVIER_ENTRY",
+            "pair": "AUDJPY",
+            "direction": 1,
+            "time_utc": "2026-06-27T10:00:00+00:00",
+            "price": 100.0,
+            "objective_value": 108.0,
+        } for index in range(20)]
+        first_bar = pd.Timestamp("2026-06-27T11:00:00Z")
+        bars = []
+        closes = {1: 100.01, 2: 100.03, 3: 101.0, 4: 103.0, 5: 105.0}
+        for ordinal in range(1, 73):
+            close = closes.get(ordinal, 101.0)
+            bars.append({
+                "time_utc": (first_bar + pd.Timedelta(hours=ordinal - 1)).isoformat(),
+                "high": 108.1 if ordinal == 10 else close,
+                "low": min(100.0, close),
+                "close": close,
+                "sar_dir": 1 if ordinal <= 5 else -1,
+            })
+
+        result = update_vivier_performance(
+            {},
+            tracked_events,
+            [{"pair": "AUDJPY", "h1_fib": {"_closed_h1_bars": bars}}],
+            NOW,
+        )
+        profile = result["pair_profiles"]["AUDJPY"]["overall"]
+
+        self.assertEqual(profile["status"], "READY")
+        self.assertEqual(profile["complete_72h"], 20)
+        self.assertEqual(profile["median_first_profitable_h1"], 2.0)
+        self.assertEqual(profile["median_peak_h1"], 5.0)
+        self.assertEqual(profile["exit_window_h1"], {
+            "start_h1": 5.0,
+            "end_h1": 5.0,
+        })
+        self.assertEqual(profile["median_adverse_sar_h1"], 6.0)
+        self.assertEqual(profile["objective_hit_rate_pct"], 100.0)
+        self.assertEqual(profile["median_objective_h1"], 10.0)
 
     def test_performance_tracker_replaces_calendar_time_horizons(self):
         old_event = {

@@ -102,8 +102,20 @@ VIVIER_EVENTS_PATH = os.path.join(
 VIVIER_PERFORMANCE_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "renko_vivier_performance.json"
 )
-VIVIER_PERFORMANCE_VERSION = 2
+VIVIER_PERFORMANCE_VERSION = 3
 VIVIER_PERFORMANCE_HOURS = (1, 4, 12, 24, 72)
+VIVIER_PERFORMANCE_WINDOW_H1 = max(VIVIER_PERFORMANCE_HOURS)
+# A position is considered net profitable only after this configurable buffer.
+# The default 0.02% is a conservative proxy for spread/slippage when bid/ask
+# history is unavailable from the standard TradingView candles.
+VIVIER_BREAK_EVEN_PCT = float(os.getenv("VIVIER_BREAK_EVEN_PCT", "0.02"))
+VIVIER_PAIR_PROFILE_MIN_COMPLETE = 20
+VIVIER_ACTIONABLE_EVENT_TYPES = {
+    "VIVIER_ENTRY",
+    "SAR_FLAME",
+    "SIGNAL_VIVIER",
+    "VIVIER_TO_RENKO_FIBO",
+}
 FIBO_CURRENCY_MIN_PAIRS = 2
 FIBO_CURRENCY_TOP_N = 2
 FIBO_SAR_CONTRADICTION_FACTOR = 0.5
@@ -622,15 +634,24 @@ def compute_h1_month_fib(pair: str, h1_candles: int = 800) -> dict | None:
     if cross_event is not None:
         cross_event["fib50"] = fib50
 
-    closed_bars = [
-        {
+    closed_sar_values = (closed_sar_state or {}).get("sar") or []
+    closed_sar_trend = (closed_sar_state or {}).get("trend") or []
+    closed_bars = []
+    for index, (ts, bar) in enumerate(closed_df.iterrows()):
+        closed_bars.append({
             "time_utc": (pd.Timestamp(ts) + pd.Timedelta(hours=1)).isoformat(),
             "high": float(bar["high"]),
             "low": float(bar["low"]),
             "close": float(bar["close"]),
-        }
-        for ts, bar in closed_df.iterrows()
-    ]
+            "sar_value": (
+                float(closed_sar_values[index])
+                if index < len(closed_sar_values) else None
+            ),
+            "sar_dir": (
+                int(closed_sar_trend[index])
+                if index < len(closed_sar_trend) else 0
+            ),
+        })
     closed_time = closed_bars[-1]["time_utc"] if closed_bars else None
     closed_price = closed_bars[-1]["close"] if closed_bars else None
     closed_month_utc = (
@@ -1266,6 +1287,10 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                     "base_pct": row.get("base_pct"),
                     "weighted_pct": row.get("weighted_pct"),
                     "fib_position": fib_directional_label(row.get("h1_fib"), direction),
+                    "objective_value": (
+                        pending.get("value") if pending is not None
+                        else existing.get("fib_objective_value")
+                    ),
                 })
                 del tracked[pair]
                 continue
@@ -1625,6 +1650,7 @@ def collect_vivier_run_events(previous_state: dict, current_state: dict,
             events.append(_build_vivier_event(
                 "VIVIER_ENTRY", pair, int(entry["direction"]), rows_by_pair.get(pair),
                 entered_at_paris=entry.get("entered_at_paris"),
+                objective_value=entry.get("fib_objective_value"),
             ))
         if entry.get("sar_flame"):
             events.append(_build_vivier_event(
@@ -1632,6 +1658,7 @@ def collect_vivier_run_events(previous_state: dict, current_state: dict,
                 time_utc=entry.get("sar_record_time_utc"),
                 sar_value=entry.get("sar_record_value"),
                 flame_kind=entry.get("sar_flame_kind"),
+                objective_value=entry.get("fib_objective_value"),
             ))
         carried_time = entry.get("fib_objective_carried_at_time_utc")
         if carried_time and carried_time != (old or {}).get("fib_objective_carried_at_time_utc"):
@@ -1684,6 +1711,7 @@ def collect_vivier_run_events(previous_state: dict, current_state: dict,
         events.append(_build_vivier_event(
             event_type, pair, int(signal["direction"]), rows_by_pair.get(pair),
             entered_at_paris=signal.get("entered_at_paris"),
+            objective_value=signal.get("objective_value"),
         ))
 
     return sorted(events, key=lambda event: (event["time_utc"], event["pair"], event["event_type"]))
@@ -1727,6 +1755,222 @@ def load_vivier_performance(path: str = VIVIER_PERFORMANCE_PATH) -> dict:
         }
     except (FileNotFoundError, json.JSONDecodeError, OSError):
         return {"version": VIVIER_PERFORMANCE_VERSION, "events": []}
+
+
+def _percentile(values: list[float], ratio: float) -> float | None:
+    """Small dependency-free linear percentile for persistent JSON profiles."""
+    if not values:
+        return None
+    ordered = sorted(float(value) for value in values)
+    if len(ordered) == 1:
+        return ordered[0]
+    position = max(0.0, min(1.0, ratio)) * (len(ordered) - 1)
+    lower = int(position)
+    upper = min(lower + 1, len(ordered) - 1)
+    fraction = position - lower
+    return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction
+
+
+def _directional_return_pct(price: float, close: float, direction: int) -> float:
+    return (float(close) - float(price)) / float(price) * 100.0 * int(direction)
+
+
+def _update_event_path_metrics(event: dict,
+                               future_bars: list[tuple[pd.Timestamp, dict]]) -> None:
+    """Record the H1 path used to learn profitability and exit timing."""
+    price = event.get("price")
+    direction = event.get("direction")
+    if not isinstance(price, (int, float)) or price == 0 or direction not in (-1, 1):
+        return
+
+    # F0/F1 may be reached after the 72-H1 learning window. Keep looking for
+    # the first touch on every run until it is found, then persist it forever.
+    objective = event.get("objective_value")
+    if (isinstance(objective, (int, float))
+            and "objective_reached_h1_bars" not in event):
+        for ordinal, (ts, bar) in enumerate(future_bars, start=1):
+            extreme = bar.get("high" if direction == 1 else "low")
+            if not isinstance(extreme, (int, float)):
+                continue
+            reached = extreme >= objective if direction == 1 else extreme <= objective
+            if reached:
+                event["objective_reached_h1_bars"] = ordinal
+                event["objective_reached_time_utc"] = ts.isoformat()
+                break
+
+    # Once the first 72 traded H1 bars are frozen, never recalculate them from
+    # a shorter rolling market-data history.
+    if event.get("path_complete"):
+        return
+
+    window = future_bars[:VIVIER_PERFORMANCE_WINDOW_H1]
+    if not window:
+        return
+    returns = [
+        _directional_return_pct(float(price), float(bar["close"]), int(direction))
+        for _, bar in window
+    ]
+    event["observed_h1_bars"] = len(window)
+    event["break_even_pct"] = VIVIER_BREAK_EVEN_PCT
+    event["latest_directional_pct"] = returns[-1]
+
+    first_positive = next((i for i, value in enumerate(returns, 1) if value > 0.0), None)
+    first_profitable = next((
+        i for i, value in enumerate(returns, 1)
+        if value > VIVIER_BREAK_EVEN_PCT
+    ), None)
+    first_stable = next((
+        i for i in range(2, len(returns) + 1)
+        if returns[i - 2] > VIVIER_BREAK_EVEN_PCT
+        and returns[i - 1] > VIVIER_BREAK_EVEN_PCT
+    ), None)
+    if first_positive is not None:
+        event["first_positive_h1_bars"] = first_positive
+    if first_profitable is not None:
+        event["first_profitable_h1_bars"] = first_profitable
+    if first_stable is not None:
+        event["first_stable_profitable_h1_bars"] = first_stable
+
+    profitable_flags = [value > VIVIER_BREAK_EVEN_PCT for value in returns]
+    event["profitable_closes_pct"] = (
+        sum(profitable_flags) / len(profitable_flags) * 100.0
+    )
+    longest = current = 0
+    for profitable in profitable_flags:
+        current = current + 1 if profitable else 0
+        longest = max(longest, current)
+    event["longest_profitable_streak_h1"] = longest
+
+    peak_index = max(range(len(returns)), key=returns.__getitem__)
+    event["peak_directional_pct"] = returns[peak_index]
+    event["peak_h1_bars"] = peak_index + 1
+    event["peak_time_utc"] = window[peak_index][0].isoformat()
+    event["giveback_from_peak_pct"] = returns[peak_index] - returns[-1]
+
+    first_favorable_sar = None
+    first_adverse_after_favorable = None
+    for ordinal, (_, bar) in enumerate(window, start=1):
+        sar_dir = bar.get("sar_dir")
+        if first_favorable_sar is None and sar_dir == direction:
+            first_favorable_sar = ordinal
+        elif first_favorable_sar is not None and sar_dir == -direction:
+            first_adverse_after_favorable = ordinal
+            break
+    if first_favorable_sar is not None:
+        event["first_favorable_sar_h1_bars"] = first_favorable_sar
+    if first_adverse_after_favorable is not None:
+        event["first_adverse_sar_h1_bars"] = first_adverse_after_favorable
+
+    if len(window) >= VIVIER_PERFORMANCE_WINDOW_H1:
+        event["path_complete"] = True
+
+
+def _pair_profile_bucket(events: list[dict]) -> dict:
+    complete = [event for event in events if event.get("path_complete")]
+    first_profit = [
+        float(event["first_profitable_h1_bars"])
+        for event in complete if "first_profitable_h1_bars" in event
+    ]
+    first_stable = [
+        float(event["first_stable_profitable_h1_bars"])
+        for event in complete if "first_stable_profitable_h1_bars" in event
+    ]
+    profitable_peak_times = [
+        float(event["peak_h1_bars"])
+        for event in complete
+        if event.get("peak_directional_pct", 0.0) > VIVIER_BREAK_EVEN_PCT
+    ]
+    adverse_sar_times = [
+        float(event["first_adverse_sar_h1_bars"])
+        for event in complete if "first_adverse_sar_h1_bars" in event
+    ]
+    objective_samples = [
+        event for event in complete if isinstance(event.get("objective_value"), (int, float))
+    ]
+    objective_times = [
+        float(event["objective_reached_h1_bars"])
+        for event in objective_samples if "objective_reached_h1_bars" in event
+    ]
+    ready = len(complete) >= VIVIER_PAIR_PROFILE_MIN_COMPLETE
+    exit_window = None
+    if ready and profitable_peak_times:
+        exit_window = {
+            "start_h1": _percentile(profitable_peak_times, 0.25),
+            "end_h1": _percentile(profitable_peak_times, 0.75),
+        }
+    return {
+        "status": "READY" if ready else "LEARNING",
+        "signals": len(events),
+        "complete_72h": len(complete),
+        "minimum_complete_required": VIVIER_PAIR_PROFILE_MIN_COMPLETE,
+        "break_even_pct": VIVIER_BREAK_EVEN_PCT,
+        "profitable_within_4h_pct": (
+            sum(value <= 4 for value in first_profit) / len(complete) * 100.0
+            if complete else None
+        ),
+        "profitable_within_12h_pct": (
+            sum(value <= 12 for value in first_profit) / len(complete) * 100.0
+            if complete else None
+        ),
+        "profitable_within_24h_pct": (
+            sum(value <= 24 for value in first_profit) / len(complete) * 100.0
+            if complete else None
+        ),
+        "profitable_within_72h_pct": (
+            len(first_profit) / len(complete) * 100.0 if complete else None
+        ),
+        "median_first_profitable_h1": (
+            statistics.median(first_profit) if first_profit else None
+        ),
+        "median_first_stable_profitable_h1": (
+            statistics.median(first_stable) if first_stable else None
+        ),
+        "median_peak_h1": (
+            statistics.median(profitable_peak_times) if profitable_peak_times else None
+        ),
+        "exit_window_h1": exit_window,
+        "median_adverse_sar_h1": (
+            statistics.median(adverse_sar_times) if adverse_sar_times else None
+        ),
+        "objective_samples": len(objective_samples),
+        "objective_hit_rate_pct": (
+            len(objective_times) / len(objective_samples) * 100.0
+            if objective_samples else None
+        ),
+        "median_objective_h1": (
+            statistics.median(objective_times) if objective_times else None
+        ),
+    }
+
+
+def _pair_performance_profiles(events: list[dict]) -> dict:
+    grouped: dict[str, list[dict]] = {}
+    for event in events:
+        if event.get("event_type") not in VIVIER_ACTIONABLE_EVENT_TYPES:
+            continue
+        pair = event.get("pair")
+        if pair:
+            grouped.setdefault(str(pair), []).append(event)
+    profiles = {}
+    for pair, pair_events in sorted(grouped.items()):
+        event_types = sorted({event["event_type"] for event in pair_events})
+        profiles[pair] = {
+            "overall": _pair_profile_bucket(pair_events),
+            "by_direction": {
+                label: _pair_profile_bucket([
+                    event for event in pair_events if event.get("direction") == direction
+                ])
+                for direction, label in ((1, "BULL"), (-1, "BEAR"))
+                if any(event.get("direction") == direction for event in pair_events)
+            },
+            "by_signal": {
+                event_type: _pair_profile_bucket([
+                    event for event in pair_events if event["event_type"] == event_type
+                ])
+                for event_type in event_types
+            },
+        }
+    return profiles
 
 
 def _performance_bucket(events: list[dict]) -> dict:
@@ -1825,7 +2069,8 @@ def update_vivier_performance(previous: dict, new_events: list[dict],
                 "directional_pct": raw_pct * direction,
             }
 
-        window = [bar for _, bar in future_bars[:max(VIVIER_PERFORMANCE_HOURS)]]
+        _update_event_path_metrics(event, future_bars)
+        window = [bar for _, bar in future_bars[:VIVIER_PERFORMANCE_WINDOW_H1]]
         if window:
             if direction == 1:
                 mfe = (max(float(bar["high"]) for bar in window) - price) / price * 100.0
@@ -1840,9 +2085,18 @@ def update_vivier_performance(previous: dict, new_events: list[dict],
 
     events = sorted(tracked.values(), key=lambda event: (event["time_utc"], event["event_id"]))
     stamp = (now or datetime.now(ZoneInfo("UTC"))).isoformat()
-    return {"version": VIVIER_PERFORMANCE_VERSION,
-            "updated_at_utc": stamp, "summary": _performance_summary(events),
-            "events": events}
+    return {
+        "version": VIVIER_PERFORMANCE_VERSION,
+        "updated_at_utc": stamp,
+        "settings": {
+            "break_even_pct": VIVIER_BREAK_EVEN_PCT,
+            "learning_window_h1": VIVIER_PERFORMANCE_WINDOW_H1,
+            "pair_profile_min_complete": VIVIER_PAIR_PROFILE_MIN_COMPLETE,
+        },
+        "summary": _performance_summary(events),
+        "pair_profiles": _pair_performance_profiles(events),
+        "events": events,
+    }
 
 
 def save_vivier_performance(payload: dict, path: str = VIVIER_PERFORMANCE_PATH) -> None:
@@ -2617,11 +2871,17 @@ def main() -> int:
     save_vivier_state(vivier_state, args.vivier_state)
     print_vivier_report(vivier_state, vivier_signals)
     tracker_summary = performance["summary"]
+    pair_profiles = performance.get("pair_profiles") or {}
+    ready_profiles = sum(
+        profile.get("overall", {}).get("status") == "READY"
+        for profile in pair_profiles.values()
+    )
     print(
         "VIVIER TRACKER: "
         f"{new_event_count} événement(s) ajouté(s), "
         f"{tracker_summary['total']} suivi(s), "
-        f"{tracker_summary['complete']} complet(s) à 72h"
+        f"{tracker_summary['complete']} complet(s) à 72h, "
+        f"{ready_profiles}/{len(pair_profiles)} profil(s) paire prêt(s)"
     )
 
     message = build_telegram_message(
