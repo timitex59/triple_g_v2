@@ -152,7 +152,7 @@ f_entry_direction(_m, _w, _d, _score, _fibPct) =>
     bool _strictOpposition = _monthlyValid and (_w == -_direction or _d == -_direction)
     bool _alignedWeeklyInsideDaily = _monthlyValid and _w == _direction and _d == 0
     bool _profileValid = _strictOpposition or _alignedWeeklyInsideDaily
-    bool _scoreValid = not na(_score) and math.abs(_score) >= vivierMinScore
+    bool _scoreValid = not na(_score) and ((_direction == 1 and _score >= vivierMinScore) or (_direction == -1 and _score <= -vivierMinScore))
     bool _fibValid = not na(_fibPct) and ((_direction == 1 and _fibPct <= fibMidpointPct) or (_direction == -1 and _fibPct >= fibMidpointPct))
     _monthlyValid and _profileValid and _scoreValid and _fibValid ? _direction : 0
 
@@ -367,7 +367,7 @@ if processBar
                         label.set_text(carriedObjectiveLabel, "OBJECTIF POST-ALIGNEMENT\n" + f_dir_text(activeDirection) + " " + str.tostring(fibObjective, format.mintick) + "\nOrigine " + fibObjectiveOriginMonth)
             vivierDirection := 0
             sarRecord := na
-        else if pxM == activeDirection and math.abs(baseScorePct) >= vivierMinScore
+        else if pxM == activeDirection and ((activeDirection == 1 and baseScorePct >= vivierMinScore) or (activeDirection == -1 and baseScorePct <= -vivierMinScore))
             if effectiveMonthChanged and not na(fibObjective) and not fibObjectiveCarried
                 fibObjectiveCarried := true
                 objectiveCarryEvent := true
@@ -601,8 +601,6 @@ alertcondition(alignmentEvent and alignmentEventDirection == 1, "VIVIER Alignmen
 alertcondition(alignmentEvent and alignmentEventDirection == -1, "VIVIER Alignment BEAR", "🔴 {{ticker}} ALIGNE ✅")
 alertcondition(renkoFiboTransitionEvent and alignmentEventDirection == 1, "VIVIER to RENKO FIBO BULL", "🟢 {{ticker}} RENKO FIBO 🚨")
 alertcondition(renkoFiboTransitionEvent and alignmentEventDirection == -1, "VIVIER to RENKO FIBO BEAR", "🔴 {{ticker}} RENKO FIBO 🚨")
-alertcondition(invalidExitEvent and invalidExitDirection == 1, "VIVIER Invalid Exit BULL", "🟢 {{ticker}} HORS VIVIER ❌")
-alertcondition(invalidExitEvent and invalidExitDirection == -1, "VIVIER Invalid Exit BEAR", "🔴 {{ticker}} HORS VIVIER ❌")
 
 if processBar
     if entryEvent
@@ -623,5 +621,3 @@ if processBar
         alert(f_dir_icon(postObjectiveEventDirection) + " " + syminfo.ticker + " " + (postObjectiveEventDirection == 1 ? "F1" : "F0") + " REATTACHE 🔄", alert.freq_once_per_bar_close)
     if alignmentEvent
         alert(f_dir_icon(alignmentEventDirection) + " " + syminfo.ticker + (renkoFiboTransitionEvent ? " RENKO FIBO 🚨" : " ALIGNE ✅"), alert.freq_once_per_bar_close)
-    if invalidExitEvent
-        alert(f_dir_icon(invalidExitDirection) + " " + syminfo.ticker + " HORS VIVIER ❌", alert.freq_once_per_bar_close)
