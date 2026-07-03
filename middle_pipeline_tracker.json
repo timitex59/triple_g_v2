@@ -1,6 +1,6 @@
 {
-  "updated": "2026-07-02",
-  "prev_update": "2026-07-01",
+  "updated": "2026-07-03",
+  "prev_update": "2026-07-02",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -70,23 +70,22 @@
     },
     "SMTC": {
       "streak": 1,
-      "days": 4,
+      "days": 5,
       "first_seen": "2026-06-23",
-      "last_seen": "2026-07-01",
+      "last_seen": "2026-07-03",
       "last_rank": 5,
       "peak_rank": 2,
-      "last_rel": 75.57,
-      "active": false,
-      "dropped_on": "2026-07-02"
+      "last_rel": 56.01,
+      "active": true
     },
     "SITM": {
-      "streak": 5,
-      "days": 6,
+      "streak": 6,
+      "days": 7,
       "first_seen": "2026-06-24",
-      "last_seen": "2026-07-02",
+      "last_seen": "2026-07-03",
       "last_rank": 4,
       "peak_rank": 3,
-      "last_rel": 57.25,
+      "last_rel": 56.81,
       "active": true
     },
     "SANM": {
@@ -97,7 +96,8 @@
       "last_rank": 5,
       "peak_rank": 4,
       "last_rel": 56.78,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-07-03"
     },
     "LFUS": {
       "streak": 1,
@@ -133,33 +133,33 @@
       "dropped_on": "2026-06-30"
     },
     "CVLT": {
-      "streak": 1,
-      "days": 1,
+      "streak": 2,
+      "days": 2,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-07-02",
+      "last_seen": "2026-07-03",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 77.85,
+      "last_rel": 78.28,
       "active": true
     },
     "OKTA": {
-      "streak": 1,
-      "days": 1,
+      "streak": 2,
+      "days": 2,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-07-02",
+      "last_seen": "2026-07-03",
       "last_rank": 2,
       "peak_rank": 2,
-      "last_rel": 65.82,
+      "last_rel": 65.69,
       "active": true
     },
     "QLYS": {
-      "streak": 1,
-      "days": 1,
+      "streak": 2,
+      "days": 2,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-07-02",
+      "last_seen": "2026-07-03",
       "last_rank": 3,
       "peak_rank": 3,
-      "last_rel": 57.86,
+      "last_rel": 58.82,
       "active": true
     }
   },
@@ -167,86 +167,67 @@
     "persistent": [
       [
         "SITM",
-        5
-      ],
-      [
-        "SANM",
-        2
+        6
       ],
       [
         "CVLT",
-        1
+        2
       ],
       [
         "OKTA",
-        1
+        2
       ],
       [
         "QLYS",
+        2
+      ],
+      [
+        "SMTC",
         1
       ]
     ],
     "new": [
-      "CVLT",
-      "OKTA",
-      "QLYS"
+      "SMTC"
     ],
-    "weakening": [
-      {
-        "ticker": "SITM",
-        "rank": 4,
-        "prev_rank": 3,
-        "rel": 57.25,
-        "prev_rel": 90.76
-      },
-      {
-        "ticker": "SANM",
-        "rank": 5,
-        "prev_rank": 4,
-        "rel": 56.78,
-        "prev_rel": 76.93
-      }
-    ],
+    "weakening": [],
     "dropped": [
-      "SMTC",
-      "ALGM",
-      "CGNX"
+      "SANM"
     ],
     "durable": [
       [
         "SITM",
-        5,
-        57.25,
-        286.2
-      ],
-      [
-        "SANM",
-        2,
-        56.78,
-        113.6
+        6,
+        56.81,
+        340.9
       ],
       [
         "CVLT",
-        1,
-        77.85,
-        77.8
+        2,
+        78.28,
+        156.6
       ],
       [
         "OKTA",
-        1,
-        65.82,
-        65.8
+        2,
+        65.69,
+        131.4
       ],
       [
         "QLYS",
+        2,
+        58.82,
+        117.6
+      ],
+      [
+        "SMTC",
         1,
-        57.86,
-        57.9
+        56.01,
+        56.0
       ]
     ],
     "switch": null
   },
   "leader_raw": "Semis",
-  "leader_raw_days": 4,
+  "leader_raw_days": 5,
   "leader_confirmed": "Semis"
 }
