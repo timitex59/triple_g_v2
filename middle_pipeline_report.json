@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-03T17:18:00.293451+00:00",
-  "runtime_seconds": 42.33,
+  "generated_at": "2026-07-03T17:49:58.532537+00:00",
+  "runtime_seconds": 35.78,
   "source": "S&P MidCap 400 (Wikipedia)",
   "benchmark": "IWR",
   "themes": [
@@ -29,7 +29,7 @@
       "pct_above_sma200": 0.0,
       "news_score": 100.0,
       "news_hits": 12,
-      "news_sources": 8,
+      "news_sources": 9,
       "final_score": 51.05
     },
     {
@@ -204,7 +204,7 @@
       "perf_5d": 9.30668610099965,
       "perf_21d": 43.99342105951494,
       "perf_63d": 26.073913756017063,
-      "perf_126d": 10.730848574766426,
+      "perf_126d": 10.730857483953237,
       "perf_ytd": 10.893251418661954,
       "rel_63d_vs_qqq": 13.078227402856179,
       "rsi14": 89.9791319850842,
@@ -667,7 +667,7 @@
       "perf_21d": -11.23352918577105,
       "perf_63d": 31.124917959407682,
       "perf_126d": 69.4849443704045,
-      "perf_ytd": 68.11091905811662,
+      "perf_ytd": 68.11093217666613,
       "rel_63d_vs_qqq": 18.129231606246798,
       "rsi14": 38.816023626519254,
       "vol_21d": 41.90241449903929,
@@ -799,7 +799,7 @@
       "perf_21d": 5.510652188469511,
       "perf_63d": -0.9859306213843011,
       "perf_126d": -2.120888146135058,
-      "perf_ytd": -1.954719694054019,
+      "perf_ytd": -1.9547260488260498,
       "rel_63d_vs_qqq": -13.981616974545187,
       "rsi14": 55.99678584808474,
       "vol_21d": 39.844952134535674,
@@ -953,7 +953,7 @@
       "perf_21d": 8.64864629207891,
       "perf_63d": -7.9519984363375045,
       "perf_126d": -13.058381820633292,
-      "perf_ytd": -13.364835213154914,
+      "perf_ytd": -13.364843352966494,
       "rel_63d_vs_qqq": -20.94768478949839,
       "rsi14": 53.760705614133975,
       "vol_21d": 44.537585849119516,
@@ -1106,8 +1106,8 @@
       "perf_5d": 8.221145478823377,
       "perf_21d": -15.10212532275148,
       "perf_63d": -26.50482308173573,
-      "perf_126d": -49.25201065215289,
-      "perf_ytd": -44.5183110810952,
+      "perf_126d": -49.25200748815496,
+      "perf_ytd": -44.518314862888595,
       "rel_63d_vs_qqq": -39.500509434896614,
       "rsi14": 40.635628310779566,
       "vol_21d": 46.44166889028445,
@@ -1128,7 +1128,7 @@
       "perf_5d": -5.762265234248087,
       "perf_21d": 0.8987479781751073,
       "perf_63d": -20.34161249976111,
-      "perf_126d": -24.272558215025207,
+      "perf_126d": -24.27256585860782,
       "perf_ytd": -24.17239432861661,
       "rel_63d_vs_qqq": -33.33729885292199,
       "rsi14": 49.607541479574905,
@@ -1342,6 +1342,52 @@
     }
   },
   "news": {
+    "Distributors": {
+      "theme": "Distributors",
+      "query_url": "https://news.google.com/rss/search?q=Distributors+OR+%22technology+distributor%22+OR+%22it+distribution%22+OR+%22electronics+distribution%22+Nasdaq+OR+stocks&hl=en-US&gl=US&ceid=US:en",
+      "hits": 6,
+      "sources": 2,
+      "keyword_hits": 0,
+      "score": 42.0,
+      "entries": [
+        {
+          "title": "Specialty Equipment Distributors Stocks Q1 Teardown: Karat Packaging (NASDAQ:KRT) Vs The Rest - Yahoo Finance",
+          "source": "Yahoo Finance",
+          "published": "2026-07-02T21:40:24+00:00",
+          "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxQSGt4eUdlWVlBS3dxcFctRXp1T0JHOWdfQ01fVjkwZEk1RkhSRGhGVnBIOHJlZFB6VnBXZEVyWlNFSUVDLUtzdHJfN3JOUndRX3VlbEF0WFo1a01yZENDQWFjZDF6NWJvWFVyR3FEbXYwTVJyTklCZi1VWmRLSjd4R0ZDUWVHajRacWVrVjI3bWM5WW9Ba2pVWUpZWjFCSVR3UG8tbFJpM21yMDg?oc=5"
+        },
+        {
+          "title": "Q1 Earnings Highlights: Herc (NYSE:HRI) Vs The Rest Of The Specialty Equipment Distributors Stocks - Yahoo Finance",
+          "source": "Yahoo Finance",
+          "published": "2026-06-29T20:50:15+00:00",
+          "link": "https://news.google.com/rss/articles/CBMingFBVV95cUxNV2tkcnhKdFY1bkVhVHZ1YnYxS2pOdjZCeEowVGNmVS1IRGdMUkVxR0pmWV9TR3dLbUFqdnl1VDBYU3AyTTlNS18yS1BuR3VuZ1hFZXIzaUdPR3RzN2d1cEJJNFFBZTRzbVdRMVl4N0Rad0dHZXI4YUQwck91UXdhNjJnb19kNEtUWVJUeDRMV0o4eENCU2ZraEw3cG0zdw?oc=5"
+        },
+        {
+          "title": "Industrial Distributors Stocks Q1 In Review: Rush Enterprises (NASDAQ:RUSHA) Vs Peers - Yahoo Finance",
+          "source": "Yahoo Finance",
+          "published": "2026-06-25T20:41:50+00:00",
+          "link": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxQVzVUZ1pKRkxTR3ZScVBxSGtUdmR6QzRpZm50RXBHNlc5TTJGczQ0cmI0NWo2NlFoWndkOVdtcW85aU5ZbG00YWtKNEdJbjAtZDNKTWZ4MGJCbW03SFdGdHk2OVZzbHFJd0dsMGZvZkg5S3RQM0hYSDFHM1NTbkk2UlFkR3NZSFZoWHB4anNJdE5ZRXBZQUs5MHNfZXV3dVY3R05CdDVMSUk?oc=5"
+        },
+        {
+          "title": "Q1 Earnings Highlights: Hudson Technologies (NASDAQ:HDSN) Vs The Rest Of The Specialty Equipment Distributors Stocks - Yahoo Finance",
+          "source": "Yahoo Finance",
+          "published": "2026-06-25T21:13:50+00:00",
+          "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxQUmpaajdRVkp2N2xYNmEtd2lOQmJGdzN6TDJxUkJXQ0EzZnRQV0Q4UDA5RTNrbldicFlxMVB3SnY0WGlGT2lWNVpzaE1JR0FmOHBKcFF0OWVhajA5MElMbF9XVFN0Mk5Denc3TndZQ1F6MDNQUjlJcGdmOHhoaG55LWRBanlFU2JTRzBRd2xBeXVkWXJ1NFpna21OdWNqaUVMVDVQcHVsNFdhd1U?oc=5"
+        },
+        {
+          "title": "Q1 Earnings Roundup: GATX (NYSE:GATX) And The Rest Of The Industrial Distributors Segment - Yahoo Finance",
+          "source": "Yahoo Finance",
+          "published": "2026-06-22T07:00:00+00:00",
+          "link": "https://news.google.com/rss/articles/CBMimgFBVV95cUxPNlJGR2VpMTA1UElEcTBoUHcxazZFRG5NLWRBWFY0UERhNWloRHpNUTF2Q21ETzNpR0NTQngzdHEweXoyVUdzbEtRY19jR2NCSUlFSzU1SGhfYkNka01oc3dPUzFwcVhHbnlLZm13YzQ4UV9DVjc0VUw5NmZicFM4LUdkc3NkbGd2UkR4bDhZTjZzcmdMaHZYdWZB?oc=5"
+        },
+        {
+          "title": "Q1 Earnings Highlights: Hudson Technologies (NASDAQ:HDSN) Vs The Rest Of The Specialty Equipment Distributors Stocks - Barchart.com",
+          "source": "Barchart.com",
+          "published": "2026-06-25T03:36:30+00:00",
+          "link": "https://news.google.com/rss/articles/CBMi7AFBVV95cUxPOUx6RGJYOTd0WFJyRzNPYWFfNms3RUhkSElYUkRRRGI0enFncEFWSkt2eUE2QlpKcFJ2NFFVZ3ZRMVM1dE9EMW5Ya0V3YjZmNFF4R09qS21SaWg5QkhvUWlUMkpuOXZRSWFhZUpLUC1rRTJxT1pLSU14VEsxblVwbGdTZVhRdlNQYnNyNDNjYmxMX2drVHl4dnlyeWxkN195N2k4M2RpcTZrNHVSQ1FlcnFZRzUzUTExVDhuVHZZT3EzaXFnQnJSc0swWE9CUW5FOFNUQlRwQUZXUDU1Rzd0SGVlYS0xd09Ua0FhOA?oc=5"
+        }
+      ]
+    },
     "IT / Internet": {
       "theme": "IT / Internet",
       "query_url": "https://news.google.com/rss/search?q=%22IT+%2F+Internet%22+OR+%22it+services%22+OR+%22internet+infrastructure%22+OR+%22it+consulting%22+OR+%22cloud+infrastructure%22+Nasdaq+OR+stocks&hl=en-US&gl=US&ceid=US:en",
@@ -1406,57 +1452,11 @@
         }
       ]
     },
-    "Distributors": {
-      "theme": "Distributors",
-      "query_url": "https://news.google.com/rss/search?q=Distributors+OR+%22technology+distributor%22+OR+%22it+distribution%22+OR+%22electronics+distribution%22+Nasdaq+OR+stocks&hl=en-US&gl=US&ceid=US:en",
-      "hits": 6,
-      "sources": 2,
-      "keyword_hits": 0,
-      "score": 42.0,
-      "entries": [
-        {
-          "title": "Specialty Equipment Distributors Stocks Q1 Teardown: Karat Packaging (NASDAQ:KRT) Vs The Rest - Yahoo Finance",
-          "source": "Yahoo Finance",
-          "published": "2026-07-02T21:40:24+00:00",
-          "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxQSGt4eUdlWVlBS3dxcFctRXp1T0JHOWdfQ01fVjkwZEk1RkhSRGhGVnBIOHJlZFB6VnBXZEVyWlNFSUVDLUtzdHJfN3JOUndRX3VlbEF0WFo1a01yZENDQWFjZDF6NWJvWFVyR3FEbXYwTVJyTklCZi1VWmRLSjd4R0ZDUWVHajRacWVrVjI3bWM5WW9Ba2pVWUpZWjFCSVR3UG8tbFJpM21yMDg?oc=5"
-        },
-        {
-          "title": "Q1 Earnings Highlights: Herc (NYSE:HRI) Vs The Rest Of The Specialty Equipment Distributors Stocks - Yahoo Finance",
-          "source": "Yahoo Finance",
-          "published": "2026-06-29T20:50:15+00:00",
-          "link": "https://news.google.com/rss/articles/CBMingFBVV95cUxNV2tkcnhKdFY1bkVhVHZ1YnYxS2pOdjZCeEowVGNmVS1IRGdMUkVxR0pmWV9TR3dLbUFqdnl1VDBYU3AyTTlNS18yS1BuR3VuZ1hFZXIzaUdPR3RzN2d1cEJJNFFBZTRzbVdRMVl4N0Rad0dHZXI4YUQwck91UXdhNjJnb19kNEtUWVJUeDRMV0o4eENCU2ZraEw3cG0zdw?oc=5"
-        },
-        {
-          "title": "Industrial Distributors Stocks Q1 In Review: Rush Enterprises (NASDAQ:RUSHA) Vs Peers - Yahoo Finance",
-          "source": "Yahoo Finance",
-          "published": "2026-06-25T20:41:50+00:00",
-          "link": "https://news.google.com/rss/articles/CBMiqAFBVV95cUxQVzVUZ1pKRkxTR3ZScVBxSGtUdmR6QzRpZm50RXBHNlc5TTJGczQ0cmI0NWo2NlFoWndkOVdtcW85aU5ZbG00YWtKNEdJbjAtZDNKTWZ4MGJCbW03SFdGdHk2OVZzbHFJd0dsMGZvZkg5S3RQM0hYSDFHM1NTbkk2UlFkR3NZSFZoWHB4anNJdE5ZRXBZQUs5MHNfZXV3dVY3R05CdDVMSUk?oc=5"
-        },
-        {
-          "title": "Q1 Earnings Highlights: Hudson Technologies (NASDAQ:HDSN) Vs The Rest Of The Specialty Equipment Distributors Stocks - Yahoo Finance",
-          "source": "Yahoo Finance",
-          "published": "2026-06-25T21:13:50+00:00",
-          "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxQUmpaajdRVkp2N2xYNmEtd2lOQmJGdzN6TDJxUkJXQ0EzZnRQV0Q4UDA5RTNrbldicFlxMVB3SnY0WGlGT2lWNVpzaE1JR0FmOHBKcFF0OWVhajA5MElMbF9XVFN0Mk5Denc3TndZQ1F6MDNQUjlJcGdmOHhoaG55LWRBanlFU2JTRzBRd2xBeXVkWXJ1NFpna21OdWNqaUVMVDVQcHVsNFdhd1U?oc=5"
-        },
-        {
-          "title": "Q1 Earnings Roundup: GATX (NYSE:GATX) And The Rest Of The Industrial Distributors Segment - Yahoo Finance",
-          "source": "Yahoo Finance",
-          "published": "2026-06-22T07:00:00+00:00",
-          "link": "https://news.google.com/rss/articles/CBMimgFBVV95cUxPNlJGR2VpMTA1UElEcTBoUHcxazZFRG5NLWRBWFY0UERhNWloRHpNUTF2Q21ETzNpR0NTQngzdHEweXoyVUdzbEtRY19jR2NCSUlFSzU1SGhfYkNka01oc3dPUzFwcVhHbnlLZm13YzQ4UV9DVjc0VUw5NmZicFM4LUdkc3NkbGd2UkR4bDhZTjZzcmdMaHZYdWZB?oc=5"
-        },
-        {
-          "title": "Q1 Earnings Highlights: Hudson Technologies (NASDAQ:HDSN) Vs The Rest Of The Specialty Equipment Distributors Stocks - Barchart.com",
-          "source": "Barchart.com",
-          "published": "2026-06-25T03:36:30+00:00",
-          "link": "https://news.google.com/rss/articles/CBMi7AFBVV95cUxPOUx6RGJYOTd0WFJyRzNPYWFfNms3RUhkSElYUkRRRGI0enFncEFWSkt2eUE2QlpKcFJ2NFFVZ3ZRMVM1dE9EMW5Ya0V3YjZmNFF4R09qS21SaWg5QkhvUWlUMkpuOXZRSWFhZUpLUC1rRTJxT1pLSU14VEsxblVwbGdTZVhRdlNQYnNyNDNjYmxMX2drVHl4dnlyeWxkN195N2k4M2RpcTZrNHVSQ1FlcnFZRzUzUTExVDhuVHZZT3EzaXFnQnJSc0swWE9CUW5FOFNUQlRwQUZXUDU1Rzd0SGVlYS0xd09Ua0FhOA?oc=5"
-        }
-      ]
-    },
     "Logiciels": {
       "theme": "Logiciels",
       "query_url": "https://news.google.com/rss/search?q=Logiciels+OR+software+OR+saas+OR+%22application+software%22+OR+%22cloud+software%22+Nasdaq+OR+stocks&hl=en-US&gl=US&ceid=US:en",
       "hits": 12,
-      "sources": 8,
+      "sources": 9,
       "keyword_hits": 10,
       "score": 100.0,
       "entries": [
@@ -1465,6 +1465,12 @@
           "source": "Yahoo Finance",
           "published": "2026-07-03T15:05:00+00:00",
           "link": "https://news.google.com/rss/articles/CBMilgFBVV95cUxOMmhVa0JlNTB6N19aWUZhMTc2R1lweXpGcEVWRXI2S1JLZlQtZ2RGSjJPMWJ5R0V5WEtSTTZWVG1tTmtKREd1SE5jbm1pVUJMbXFxNVh6bGpPZmstYUlfSk1UZFRNV0tfc3hyU2M3Q3JNVmladU1QdnEwSVdhY0VzTnlXYThOY1BkbWpETVg2WjQyYVFDc0E?oc=5"
+        },
+        {
+          "title": "Veteran Tech Analyst: The Market Has Wrongly Left Software for Dead in the AI Rotation - 24/7 Wall St.",
+          "source": "24/7 Wall St.",
+          "published": "2026-07-03T17:35:15+00:00",
+          "link": "https://news.google.com/rss/articles/CBMiyAFBVV95cUxPaTVMVWZ4N3R6eC12T3dWcUZudWJiNldQczhvRy1zODdTdFhSVUZEbENqYjZCdXVBMEpKSmpXUlgwUEIzQWRWcTJ1WDhkVEUwUlg5VDZFQWpqZTR6WTFweVVOWG52TFJkM2dETEh4RXpndWJ1dmNkUl9YVHNNNDd6d2hDMjBTeFdYWGQxTGE2dnV2UXA3QnFUTjl2WElMaXNpOXNlQzUwTzJVRlJleEdtd0FnWjlhQ1B6MU9CdGU5bzdpcTZZazJqcQ?oc=5"
         },
         {
           "title": "Software Used to Beat the Market Long-Term. Not Anymore. - Barron's",
@@ -1521,98 +1527,10 @@
           "link": "https://news.google.com/rss/articles/CBMilAFBVV95cUxQbTY1dUZmX0U3anJha3ZNQ0IyVjI0VERrTnp2YWVSLWJiZXVkcFV1VlFQeEhlXzJLQ1I2YTA1VmljWl94WTZQVTh1N0g3elFLVU5qWFJ1QWZTTkdBQ2dBYWo3S1Q5QVhfeU9aWk02NF83a2JpZ2NLbV85TXNRWkhDWFhfa0ZNdGtQRmg5b2xEbFFvNklf?oc=5"
         },
         {
-          "title": "Zscaler (ZS) Could Be 34% Below Fair Value As Software Sentiment Improves - simplywall.st",
-          "source": "simplywall.st",
-          "published": "2026-07-03T00:49:52+00:00",
-          "link": "https://news.google.com/rss/articles/CBMiwgFBVV95cUxOWGtQRWlIdngtdFFaX1ZZTy1RSUo0ZVp0bHBVTzNDN3hyY2NKYXVOZmFfTkM0eDZIWWxXRkhnVE5icUJvTk90MzFDSFYwc3FoUk54Y3BidnNJaUt3MUU0WkdDLU5ZQlBrc1IzS1BFWXpiNG1xM3pmWUg4d0E5Y1Z4NlVKWEVUbzVOTGhDdXgwODdEQzcxd2g3czFuRktBMTNOT2RlLXlfUU1uQno0bWsybUhMcDdydkNoQV93WWFlR3ptUdIBxwFBVV95cUxOdXlMSmt4R2tiZUpQdmpzYm1EODdXeHdwVUZYWWxaa2Nrd0RtYzF5RnFWTW83YnhfcGZHT2FDVXN5aXBMdDJsa016YUpQQXFOY1kzUG16LTlZRUpaS1dNc2FTZld5NldRdVRjY2NlWXYzRlFSSDB0UFNnTVFZQWdnYjJaOXVoSktvdEhMWVpNRkc1T2pObk0zQm9QNURWQ21Fa0Jwcjd3MXBKU2UxeU5zd1YyUXBBV2ZJWHBvb2t3UllERGlKR1JJ?oc=5"
-        },
-        {
           "title": "Here’s Why Fortinet, Inc. (FTNT) Is Among the Most Profitable Software Stocks to Buy - Yahoo Finance",
           "source": "Yahoo Finance",
           "published": "2026-07-02T11:28:14+00:00",
           "link": "https://news.google.com/rss/articles/CBMilwFBVV95cUxNc3Q0aWZoODNfcFdIMmFnUElVckV3YkdUYWtJZXREaTEyWVp1NWR6MDFNZEhjbExobzFsUFRzekt4VzdQYy1SRFQwZ0ZRamdxaEItWGFFYTlsSE9UYjh6Zkx5MHFNaU1IdTJNVGlGNlA2M3JXZWVUQjg0ektMd1F2MENVQ0N0dTg1OHBhS2lkbE9lWldBcE00?oc=5"
-        }
-      ]
-    },
-    "Semis": {
-      "theme": "Semis",
-      "query_url": "https://news.google.com/rss/search?q=Semis+OR+semiconductor+OR+chip+OR+foundry+OR+wafer+OR+%22semiconductor+equipment%22+Nasdaq+OR+stocks&hl=en-US&gl=US&ceid=US:en",
-      "hits": 12,
-      "sources": 11,
-      "keyword_hits": 10,
-      "score": 100.0,
-      "entries": [
-        {
-          "title": "Why AI and semiconductor stocks stumbled - Axios",
-          "source": "Axios",
-          "published": "2026-07-02T16:10:45+00:00",
-          "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE8xRXEtNnkwVER3WUFzT1RMbm5qQnNYN2VJSHB6VncyV3R5eFRiTEVqaVBuQmFJSmlNS0FWaVQyNzNmMFVhTVpCc2djelc1RklzVjk4U0NRS1NSQ19PcU1KeVJoTQ?oc=5"
-        },
-        {
-          "title": "Chip stocks that notched record rallies in second quarter start Q3 with a dud - CNBC",
-          "source": "CNBC",
-          "published": "2026-07-01T20:11:47+00:00",
-          "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxNS2lFMTA5Y1lpNXhFRUg0a0J5VW54ZHVZa0ZBczBRb2doLVg5T194ejRQME94VzM0RFB0UnZPZ3Q4Ymp5YUZQRXIxbTIzMHZ4ZW8wYkp5MjR2eTlIOUVvbTc4T2Q3UFZwYU9SS0F5UmF3bDhzMl9UWTBLcU12UjV4RHNOS1l0NmJaSUNscGc0RUdWZl9IaUxzMVdCWXhPakNxVmFJVjhqNHo5RmvSAbABQVVfeXFMTUlnRjZvbzNoTGFDSlllQXJYLU1DNVBfd1pMdzdvN2xqaENJcTVUMFlFRzhya21GbmFBbnJncmJxM2J6RTlTOUFYR2doV1NxYXlIcXNpWGdWY0NrZ1N4VEQtTDVyQkprRGcyVC1ZTXZ2QmozQlFiSU5CRDJjSTdiMkREakUzU2x2aFFscEUyYk1qUUt4Tl9ZY2JEWkdyNFduN3F3elh5V2pPTUhfb0g5MnQ?oc=5"
-        },
-        {
-          "title": "Wall Street rises toward the finish of its best week in nearly 2 months after bond yields relax - ABC News - Breaking News, Latest News and Videos",
-          "source": "ABC News - Breaking News, Latest News and Videos",
-          "published": "2026-07-02T12:54:15+00:00",
-          "link": "https://news.google.com/rss/articles/CBMipgFBVV95cUxPbjQ3d2dnZW5OcEY3UzVmZ0NWYVVRUGZSLXB6OGhRNUV2cHNKTkJBT0VYbXMyTU1ZRjRHYTJCbFB4OHJBNzNhQ2ZjVXZDYUVTV2VOSUFzMmN5SHlQbDRFS1o5aFJsS0ZucVdrbjV6X0UydFJadzRZWURFZUd2bmtkY2JUVGlPV1BrVmxsWGRkVHFzQnRIY1FBWHdMV3Bmel92WVJGMmZR0gGrAUFVX3lxTE5udlVtTVpNVTRGcER1MVp2WVZUZU9mTWNPUGhEZl82VzJoTWx0VUdiM2R6c3JGbXBJdVZtbGhKM3l0T3lLZnh5RjJxR3pWODhFMHlnelBSTW9LZ2psQXN5WmhZeE1mNUE2TlNESlVTUlhvYkZOd18xb05XUF9VQzRaYl9NMDEzc2psSEhac2dqXzVjYXc2Z0s0QjlSN1FrX1EtdEYwZzY2bm5WOA?oc=5"
-        },
-        {
-          "title": "Chip stocks selloff extends on valuation, Meta’s pivot fears - Yahoo Finance",
-          "source": "Yahoo Finance",
-          "published": "2026-07-02T09:09:37+00:00",
-          "link": "https://news.google.com/rss/articles/CBMinwFBVV95cUxOYlEwRkpGS2YtV25pX0xUMW9RbmVZOExxMi0tMWZDLUQ4T3R1VHA3MnNfbWV5RlZjNTZhbkRIUHRfQ0xWWlYwVU5ZYlVsbDZhaVZIaTc2RE4tMm9JdW5TYlJORjdOcW9PaTFWS2hWQXNmY2R1LVZTdUlBcTdCNlBNU2xQZmY1WXVLMVNWTlljMUtuM2F0WU5oVWc0S2NaSEU?oc=5"
-        },
-        {
-          "title": "Bitcoin (BTC) price bounces as memory, semiconductor stock trade starts to cool - CoinDesk",
-          "source": "CoinDesk",
-          "published": "2026-07-03T10:42:05+00:00",
-          "link": "https://news.google.com/rss/articles/CBMi2AFBVV95cUxNcnZabWhFQUtYQnhIN2VmS0ZLNTZoRjRZMjZhX0ZTMFhpSGFjNnRpc05Ba0dTbWgyRDh6S05wZlRpM1VDWnIxdmUxbnl6SmdrN1ZFY0RUNUoyVXVXd2hyd01Hc2Z6ZUVrME93VkNMNVNja21HVFhJR3dLRkZaUGZjZjhZMXp0LVNHSG1vZGFxM2ZBNW0ySFYweDc1MkRpWlI5RG9QZ0xqY21OaWRYbDA2OUF0LTQ1eGRFU0xUN3VBVzhaOG10YTNieDVpVXJZUjRlOWVod056N28?oc=5"
-        },
-        {
-          "title": "Michael Burry Shorts Micron, Adding to His NVIDIA and Applied Materials Short Bets Against Chip Stocks - 24/7 Wall St.",
-          "source": "24/7 Wall St.",
-          "published": "2026-07-03T14:18:19+00:00",
-          "link": "https://news.google.com/rss/articles/CBMi3gFBVV95cUxNNDdlb09mbFZVVnpyRzZXMTFVbV9VOWRaWWdEREUwUGpBcVVTdDZ0NURQNXZzdy10cDBtX1ZtUlRPT0M3SUhLcmFRMHB0eFQ4LXlScmtrMzVJekVCdjNZeDQ3bWcyY0l3RXpxd2xERWhVbXZKbXQycDFDUFhhZzFDb21tXzlQQmxqaU5udVJMQ1Rhb2dlU3RwOHAyNElaVW5pcWU1RUkwNUpIaWItZE9BeWt3YWdyY3VMX0d4WHRFT082Y1VJdExvREJ2ekZvVFhlUTdEalhDSDd6eVdwV2c?oc=5"
-        },
-        {
-          "title": "Chip Stocks Tumble Again, Jobs Cool and Rivian Rallies | Markets P.M. for July 2 - WSJ",
-          "source": "WSJ",
-          "published": "2026-07-02T20:34:00+00:00",
-          "link": "https://news.google.com/rss/articles/CBMie0FVX3lxTE0zRmVKaW9ONlg4LS0tcWI0ckQtd3FIVTFkbWR1YTBIcENULU9rYnIzZ3ZPYTZTLWQ2WmtEUTFHV2dKNDlGN2dDUUs0a0o2Wkd4SkUyTjlZeU13RWRrbV9BM0hiZVpTMWJLVHNTV2ItdEo3ZDkzd3ZybFoxSQ?oc=5"
-        },
-        {
-          "title": "AI memory, chip stocks slump as sell-off continues amid global peers tumbling - Seeking Alpha",
-          "source": "Seeking Alpha",
-          "published": "2026-07-02T17:33:00+00:00",
-          "link": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPYlpGVFlEZkRoQlExbHYyQ1Jrc1lkWHhaY2VDVE5Od1l2WG1qRklOX0tmRFBWNU5xemVpOWE3aHFsU0VyenpmYndqOXp3WUN5WmJ1c1NNNTRVN2hYSk1oZ2dVQkg0X0JVOTA0SzBSOG45dGJxUTEza216TkZCS0VVRERYSDhMWWtCS1Z4SEFocjlablVmN1JLVGIxTWtBT0IyUlpfRw?oc=5"
-        },
-        {
-          "title": "Dow jumps to record closing high after soft US jobs data, Nasdaq down with chip shares - Reuters",
-          "source": "Reuters",
-          "published": "2026-07-02T23:11:39+00:00",
-          "link": "https://news.google.com/rss/articles/CBMinAFBVV95cUxQNmlSQU1CX2FPdk85U1ZHQjBSbHFXZDZ3VjUxNDg3THFOeUFyM0tiQURWczlyLUVxYm9QR0g5ZW5mcVA2bXVEc2QydjlQdkpfNHkxeTFzbXdxRkZVQ21lS2lXVVJQSktrWUVrY1pqUXdRN2VJdmpyWnRhT0ZncG1MT1RvZmpOcF9QcV91RXJ2SzBiQmpHd0ZHbkZNQzE?oc=5"
-        },
-        {
-          "title": "Asian stocks rally after Dow sets fresh record, though chip weakness lingers - Euronews.com",
-          "source": "Euronews.com",
-          "published": "2026-07-03T08:07:44+00:00",
-          "link": "https://news.google.com/rss/articles/CBMivAFBVV95cUxNWGI5RXpxLUNxb0NQQ1hBWGdqUHVURWFhMVdjU1VQTkFzbTZ0ZlNPekJ4Sy1aMkM4VjNoUWV2MEhMY0drZjFiY3piUWpzUnlXZlkxQXZjV28xOTlmcmpzajdpejZfaVpEdVM4amxpNzAwc2xNTjk5NTI4VlJzMGx0aUlRR1o1ZzBHd0RSYkpKZVRZcE1WYWJhdTJ2UkVWQkNFZ2IxcTdGVzlaNXh2ek95YlNRU2hTVDdvSHZteQ?oc=5"
-        },
-        {
-          "title": "These Experts See 'Screaming Buys' in AI Stocks After a Recent Pullback - Investopedia",
-          "source": "Investopedia",
-          "published": "2026-07-02T12:48:21+00:00",
-          "link": "https://news.google.com/rss/articles/CBMisgFBVV95cUxNT0g0Z2JwZ0I0ZW5jZ29sbHVfT2ZwRVI0WV9LOVV1ME85S2RsaXg0YkVIdkJDQmtTSlZ4eF9CTmw0TUVtTVNvdmwtd3c5Zkhabzd5QklONDhEbWNUM2NmLWlBWnNlU1lUTWhuN3NEQzVrd2FIbEtMYjdUSm9pbFlmaFR5UXNQamJ6eDRnVmFndTJzaTFHWEFSdTJwaVY0bHZyY3lQby0ybElnWnBGc2gzY0lB?oc=5"
-        },
-        {
-          "title": "Dow falls 184 points as chip stocks pull back after record start to year - Yahoo Finance",
-          "source": "Yahoo Finance",
-          "published": "2026-07-01T14:02:34+00:00",
-          "link": "https://news.google.com/rss/articles/CBMilAFBVV95cUxPMzFFWjBObVpoS2RYWFRKcEFlSGo5a0FQdWNNeUZGZUdyOE12NTNkejVCREgwWnM3S0JQeVZrckhpdkFTSUpBTUFDZlZ2RlJGLTA2dXNFLUpsdFg0bmpfaFdfZ1VwVkt5YUVnM01oZU8wLTdMaURzOFZfeXZOaWVLbUhQNS0xb3kzTTFLZGdLZUhQSU1k?oc=5"
         }
       ]
     },
@@ -1695,6 +1613,88 @@
           "source": "Benzinga",
           "published": "2026-07-02T13:39:27+00:00",
           "link": "https://news.google.com/rss/articles/CBMixwFBVV95cUxNQzBBcHNPYjFyUGRweW9sSTRINFZCS2pjLW9KV3A2RVJKZlUwaHFRSEo4VnZmVTZSZWQyb0NDVElaakF4dWF3cWNGM3hMdGtVcHJ2bTloejV3aUwyYUVkb1Z6S09faWhLQVpLV0lsNFZId21DcGFZVGxLNzdoeDB4SHA2bC1qMEVYdGJVWWNVMzJKT0xEaGN6WnpuXzlkRURQZGJ4MEZMMmNSVlM2eXllTmtOUmNfa1VvVE1lV3JhNS16dU9zaDhz?oc=5"
+        }
+      ]
+    },
+    "Semis": {
+      "theme": "Semis",
+      "query_url": "https://news.google.com/rss/search?q=Semis+OR+semiconductor+OR+chip+OR+foundry+OR+wafer+OR+%22semiconductor+equipment%22+Nasdaq+OR+stocks&hl=en-US&gl=US&ceid=US:en",
+      "hits": 12,
+      "sources": 11,
+      "keyword_hits": 10,
+      "score": 100.0,
+      "entries": [
+        {
+          "title": "Why AI and semiconductor stocks stumbled - Axios",
+          "source": "Axios",
+          "published": "2026-07-02T16:10:45+00:00",
+          "link": "https://news.google.com/rss/articles/CBMiY0FVX3lxTE8xRXEtNnkwVER3WUFzT1RMbm5qQnNYN2VJSHB6VncyV3R5eFRiTEVqaVBuQmFJSmlNS0FWaVQyNzNmMFVhTVpCc2djelc1RklzVjk4U0NRS1NSQ19PcU1KeVJoTQ?oc=5"
+        },
+        {
+          "title": "Chip stocks that notched record rallies in second quarter start Q3 with a dud - CNBC",
+          "source": "CNBC",
+          "published": "2026-07-01T20:11:47+00:00",
+          "link": "https://news.google.com/rss/articles/CBMiqwFBVV95cUxNS2lFMTA5Y1lpNXhFRUg0a0J5VW54ZHVZa0ZBczBRb2doLVg5T194ejRQME94VzM0RFB0UnZPZ3Q4Ymp5YUZQRXIxbTIzMHZ4ZW8wYkp5MjR2eTlIOUVvbTc4T2Q3UFZwYU9SS0F5UmF3bDhzMl9UWTBLcU12UjV4RHNOS1l0NmJaSUNscGc0RUdWZl9IaUxzMVdCWXhPakNxVmFJVjhqNHo5RmvSAbABQVVfeXFMTUlnRjZvbzNoTGFDSlllQXJYLU1DNVBfd1pMdzdvN2xqaENJcTVUMFlFRzhya21GbmFBbnJncmJxM2J6RTlTOUFYR2doV1NxYXlIcXNpWGdWY0NrZ1N4VEQtTDVyQkprRGcyVC1ZTXZ2QmozQlFiSU5CRDJjSTdiMkREakUzU2x2aFFscEUyYk1qUUt4Tl9ZY2JEWkdyNFduN3F3elh5V2pPTUhfb0g5MnQ?oc=5"
+        },
+        {
+          "title": "Wall Street rises toward the finish of its best week in nearly 2 months after bond yields relax - ABC News - Breaking News, Latest News and Videos",
+          "source": "ABC News - Breaking News, Latest News and Videos",
+          "published": "2026-07-02T12:54:15+00:00",
+          "link": "https://news.google.com/rss/articles/CBMipgFBVV95cUxPbjQ3d2dnZW5OcEY3UzVmZ0NWYVVRUGZSLXB6OGhRNUV2cHNKTkJBT0VYbXMyTU1ZRjRHYTJCbFB4OHJBNzNhQ2ZjVXZDYUVTV2VOSUFzMmN5SHlQbDRFS1o5aFJsS0ZucVdrbjV6X0UydFJadzRZWURFZUd2bmtkY2JUVGlPV1BrVmxsWGRkVHFzQnRIY1FBWHdMV3Bmel92WVJGMmZR0gGrAUFVX3lxTE5udlVtTVpNVTRGcER1MVp2WVZUZU9mTWNPUGhEZl82VzJoTWx0VUdiM2R6c3JGbXBJdVZtbGhKM3l0T3lLZnh5RjJxR3pWODhFMHlnelBSTW9LZ2psQXN5WmhZeE1mNUE2TlNESlVTUlhvYkZOd18xb05XUF9VQzRaYl9NMDEzc2psSEhac2dqXzVjYXc2Z0s0QjlSN1FrX1EtdEYwZzY2bm5WOA?oc=5"
+        },
+        {
+          "title": "Chip stocks selloff extends on valuation, Meta’s pivot fears - Yahoo Finance",
+          "source": "Yahoo Finance",
+          "published": "2026-07-02T09:09:37+00:00",
+          "link": "https://news.google.com/rss/articles/CBMinwFBVV95cUxOYlEwRkpGS2YtV25pX0xUMW9RbmVZOExxMi0tMWZDLUQ4T3R1VHA3MnNfbWV5RlZjNTZhbkRIUHRfQ0xWWlYwVU5ZYlVsbDZhaVZIaTc2RE4tMm9JdW5TYlJORjdOcW9PaTFWS2hWQXNmY2R1LVZTdUlBcTdCNlBNU2xQZmY1WXVLMVNWTlljMUtuM2F0WU5oVWc0S2NaSEU?oc=5"
+        },
+        {
+          "title": "Bitcoin (BTC) price bounces as memory, semiconductor stock trade starts to cool - CoinDesk",
+          "source": "CoinDesk",
+          "published": "2026-07-03T10:42:05+00:00",
+          "link": "https://news.google.com/rss/articles/CBMi2AFBVV95cUxNcnZabWhFQUtYQnhIN2VmS0ZLNTZoRjRZMjZhX0ZTMFhpSGFjNnRpc05Ba0dTbWgyRDh6S05wZlRpM1VDWnIxdmUxbnl6SmdrN1ZFY0RUNUoyVXVXd2hyd01Hc2Z6ZUVrME93VkNMNVNja21HVFhJR3dLRkZaUGZjZjhZMXp0LVNHSG1vZGFxM2ZBNW0ySFYweDc1MkRpWlI5RG9QZ0xqY21OaWRYbDA2OUF0LTQ1eGRFU0xUN3VBVzhaOG10YTNieDVpVXJZUjRlOWVod056N28?oc=5"
+        },
+        {
+          "title": "Michael Burry Shorts Micron, Adding to His NVIDIA and Applied Materials Short Bets Against Chip Stocks - 24/7 Wall St.",
+          "source": "24/7 Wall St.",
+          "published": "2026-07-03T14:18:19+00:00",
+          "link": "https://news.google.com/rss/articles/CBMi3gFBVV95cUxNNDdlb09mbFZVVnpyRzZXMTFVbV9VOWRaWWdEREUwUGpBcVVTdDZ0NURQNXZzdy10cDBtX1ZtUlRPT0M3SUhLcmFRMHB0eFQ4LXlScmtrMzVJekVCdjNZeDQ3bWcyY0l3RXpxd2xERWhVbXZKbXQycDFDUFhhZzFDb21tXzlQQmxqaU5udVJMQ1Rhb2dlU3RwOHAyNElaVW5pcWU1RUkwNUpIaWItZE9BeWt3YWdyY3VMX0d4WHRFT082Y1VJdExvREJ2ekZvVFhlUTdEalhDSDd6eVdwV2c?oc=5"
+        },
+        {
+          "title": "Chip Stocks Tumble Again, Jobs Cool and Rivian Rallies | Markets P.M. for July 2 - WSJ",
+          "source": "WSJ",
+          "published": "2026-07-02T20:34:00+00:00",
+          "link": "https://news.google.com/rss/articles/CBMie0FVX3lxTE0zRmVKaW9ONlg4LS0tcWI0ckQtd3FIVTFkbWR1YTBIcENULU9rYnIzZ3ZPYTZTLWQ2WmtEUTFHV2dKNDlGN2dDUUs0a0o2Wkd4SkUyTjlZeU13RWRrbV9BM0hiZVpTMWJLVHNTV2ItdEo3ZDkzd3ZybFoxSQ?oc=5"
+        },
+        {
+          "title": "AI memory, chip stocks slump as sell-off continues amid global peers tumbling - Seeking Alpha",
+          "source": "Seeking Alpha",
+          "published": "2026-07-02T17:33:00+00:00",
+          "link": "https://news.google.com/rss/articles/CBMipAFBVV95cUxPYlpGVFlEZkRoQlExbHYyQ1Jrc1lkWHhaY2VDVE5Od1l2WG1qRklOX0tmRFBWNU5xemVpOWE3aHFsU0VyenpmYndqOXp3WUN5WmJ1c1NNNTRVN2hYSk1oZ2dVQkg0X0JVOTA0SzBSOG45dGJxUTEza216TkZCS0VVRERYSDhMWWtCS1Z4SEFocjlablVmN1JLVGIxTWtBT0IyUlpfRw?oc=5"
+        },
+        {
+          "title": "Dow jumps to record closing high after soft US jobs data, Nasdaq down with chip shares - Reuters",
+          "source": "Reuters",
+          "published": "2026-07-02T23:11:39+00:00",
+          "link": "https://news.google.com/rss/articles/CBMinAFBVV95cUxQNmlSQU1CX2FPdk85U1ZHQjBSbHFXZDZ3VjUxNDg3THFOeUFyM0tiQURWczlyLUVxYm9QR0g5ZW5mcVA2bXVEc2QydjlQdkpfNHkxeTFzbXdxRkZVQ21lS2lXVVJQSktrWUVrY1pqUXdRN2VJdmpyWnRhT0ZncG1MT1RvZmpOcF9QcV91RXJ2SzBiQmpHd0ZHbkZNQzE?oc=5"
+        },
+        {
+          "title": "Asian stocks rally after Dow sets fresh record, though chip weakness lingers - Euronews.com",
+          "source": "Euronews.com",
+          "published": "2026-07-03T08:07:44+00:00",
+          "link": "https://news.google.com/rss/articles/CBMivAFBVV95cUxNWGI5RXpxLUNxb0NQQ1hBWGdqUHVURWFhMVdjU1VQTkFzbTZ0ZlNPekJ4Sy1aMkM4VjNoUWV2MEhMY0drZjFiY3piUWpzUnlXZlkxQXZjV28xOTlmcmpzajdpejZfaVpEdVM4amxpNzAwc2xNTjk5NTI4VlJzMGx0aUlRR1o1ZzBHd0RSYkpKZVRZcE1WYWJhdTJ2UkVWQkNFZ2IxcTdGVzlaNXh2ek95YlNRU2hTVDdvSHZteQ?oc=5"
+        },
+        {
+          "title": "These Experts See 'Screaming Buys' in AI Stocks After a Recent Pullback - Investopedia",
+          "source": "Investopedia",
+          "published": "2026-07-02T12:48:21+00:00",
+          "link": "https://news.google.com/rss/articles/CBMisgFBVV95cUxNT0g0Z2JwZ0I0ZW5jZ29sbHVfT2ZwRVI0WV9LOVV1ME85S2RsaXg0YkVIdkJDQmtTSlZ4eF9CTmw0TUVtTVNvdmwtd3c5Zkhabzd5QklONDhEbWNUM2NmLWlBWnNlU1lUTWhuN3NEQzVrd2FIbEtMYjdUSm9pbFlmaFR5UXNQamJ6eDRnVmFndTJzaTFHWEFSdTJwaVY0bHZyY3lQby0ybElnWnBGc2gzY0lB?oc=5"
+        },
+        {
+          "title": "Dow falls 184 points as chip stocks pull back after record start to year - Yahoo Finance",
+          "source": "Yahoo Finance",
+          "published": "2026-07-01T14:02:34+00:00",
+          "link": "https://news.google.com/rss/articles/CBMilAFBVV95cUxPMzFFWjBObVpoS2RYWFRKcEFlSGo5a0FQdWNNeUZGZUdyOE12NTNkejVCREgwWnM3S0JQeVZrckhpdkFTSUpBTUFDZlZ2RlJGLTA2dXNFLUpsdFg0bmpfaFdfZ1VwVkt5YUVnM01oZU8wLTdMaURzOFZfeXZOaWVLbUhQNS0xb3kzTTFLZGdLZUhQSU1k?oc=5"
         }
       ]
     }
