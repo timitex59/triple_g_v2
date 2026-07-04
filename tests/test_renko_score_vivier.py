@@ -100,6 +100,28 @@ class VivierStateTests(unittest.TestCase):
             pine,
         )
 
+    def test_pine_fib_midpoint_is_always_emphasized(self):
+        pine = (PROJECT_ROOT / "renko_forex_V17_vivier.pine").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            'fibLine500 = line.new(na, na, na, na, xloc=xloc.bar_time, '
+            'color=fibMidColor, style=line.style_solid, width=3)',
+            pine,
+        )
+        self.assertIn(
+            'fibLabel500 = label.new(na, na, "", xloc=xloc.bar_time, '
+            'style=label.style_label_left, color=color.new(color.white, 100), '
+            'size=size.normal)',
+            pine,
+        )
+        self.assertIn(
+            'f_update_fib(fibLine500, fibLabel500, true,',
+            pine,
+        )
+        self.assertIn('label.set_textcolor(fibLabel500, fibMidColor)', pine)
+
     def test_monthly_fib_keeps_previous_range_during_early_disagreement(self):
         index = pd.to_datetime([
             "2026-06-03 10:00Z",
