@@ -1,8 +1,10 @@
 //@version=6
-indicator("renko_forex_V17_VIVIER", shorttitle="RF_V17_VIVIER", overlay=true, dynamic_requests=true, max_labels_count=500, max_lines_count=100)
+indicator("renko_forex_V17_VIVIER_NR", shorttitle="RF_V17_NR", overlay=true, dynamic_requests=true, max_labels_count=500, max_lines_count=100)
 
 // This indicator mirrors the single-pair VIVIER state machine implemented in
 // renko_score_29pairs_v16.py. Use it on a standard OANDA 1H candlestick chart.
+// All M/W/D Renko decisions use the last CONFIRMED higher-timeframe values so
+// Replay, historical recalculation and realtime alerts follow the same path.
 
 groupRenko = "Renko"
 groupVivier = "VIVIER"
@@ -13,7 +15,7 @@ groupColors = "Colors"
 
 atrLength = input.int(14, "ATR Length", minval=1, group=groupRenko)
 maxStreakBars = input.int(50, "Max Streak Bricks", minval=5, maxval=200, group=groupRenko)
-priceMode = input.string("H1 Close (Python)", "Price Compared To Renko", options=["H1 Close (Python)", "Daily Live Close"], group=groupRenko)
+priceMode = input.string("H1 Close (Confirmed)", "Price Compared To Renko", options=["H1 Close (Confirmed)", "Previous Daily Close (Confirmed)"], group=groupRenko)
 
 weightMonthly = input.float(3.0, "Monthly Weight", minval=0.0, group=groupVivier)
 weightWeekly = input.float(2.0, "Weekly Weight", minval=0.0, group=groupVivier)
@@ -187,15 +189,15 @@ f_finish_carried_line(_line, _label, _endTime, _suffix, _color) =>
 // non-standard chart's synthetic candles.
 baseTicker = ticker.new(syminfo.prefix, syminfo.ticker)
 [h1Open, h1High, h1Low, h1Close, h1Time, sarValue] = request.security(baseTicker, "60", [open, high, low, close, time, ta.sar(sarStart, sarIncrement, sarMaximum)], barmerge.gaps_off, barmerge.lookahead_off)
-[dailyLiveClose, previousDailyClose] = request.security(baseTicker, "D", [close, close[1]], barmerge.gaps_off, barmerge.lookahead_off)
-dailyChgPct = request.security(baseTicker, "D", close[1] != 0.0 ? (close - close[1]) / close[1] * 100.0 : float(na), barmerge.gaps_off, barmerge.lookahead_off)
+dailyConfirmedClose = request.security(baseTicker, "D", close[1], barmerge.gaps_off, barmerge.lookahead_on)
+dailyChgPct = request.security(baseTicker, "D", close[2] != 0.0 ? (close[1] - close[2]) / close[2] * 100.0 : float(na), barmerge.gaps_off, barmerge.lookahead_on)
 
 renkoTicker = ticker.renko(baseTicker, "ATR", atrLength)
-[renkoOpenM, renkoCloseM, greenM, redM, streakLowM, streakHighM] = request.security(renkoTicker, "M", [open, close, f_green_streak(maxStreakBars), f_red_streak(maxStreakBars), f_streak_low(maxStreakBars), f_streak_high(maxStreakBars)], barmerge.gaps_off, barmerge.lookahead_off)
-[renkoOpenW, renkoCloseW, greenW, redW, streakLowW, streakHighW] = request.security(renkoTicker, "W", [open, close, f_green_streak(maxStreakBars), f_red_streak(maxStreakBars), f_streak_low(maxStreakBars), f_streak_high(maxStreakBars)], barmerge.gaps_off, barmerge.lookahead_off)
-[renkoOpenD, renkoCloseD, greenD, redD, streakLowD, streakHighD] = request.security(renkoTicker, "D", [open, close, f_green_streak(maxStreakBars), f_red_streak(maxStreakBars), f_streak_low(maxStreakBars), f_streak_high(maxStreakBars)], barmerge.gaps_off, barmerge.lookahead_off)
+[renkoOpenM, renkoCloseM, greenM, redM, streakLowM, streakHighM] = request.security(renkoTicker, "M", [open[1], close[1], f_green_streak(maxStreakBars)[1], f_red_streak(maxStreakBars)[1], f_streak_low(maxStreakBars)[1], f_streak_high(maxStreakBars)[1]], barmerge.gaps_off, barmerge.lookahead_on)
+[renkoOpenW, renkoCloseW, greenW, redW, streakLowW, streakHighW] = request.security(renkoTicker, "W", [open[1], close[1], f_green_streak(maxStreakBars)[1], f_red_streak(maxStreakBars)[1], f_streak_low(maxStreakBars)[1], f_streak_high(maxStreakBars)[1]], barmerge.gaps_off, barmerge.lookahead_on)
+[renkoOpenD, renkoCloseD, greenD, redD, streakLowD, streakHighD] = request.security(renkoTicker, "D", [open[1], close[1], f_green_streak(maxStreakBars)[1], f_red_streak(maxStreakBars)[1], f_streak_low(maxStreakBars)[1], f_streak_high(maxStreakBars)[1]], barmerge.gaps_off, barmerge.lookahead_on)
 
-referencePrice = priceMode == "Daily Live Close" ? dailyLiveClose : h1Close
+referencePrice = priceMode == "Previous Daily Close (Confirmed)" ? dailyConfirmedClose : h1Close
 dataReady = not na(referencePrice) and not na(renkoOpenM) and not na(renkoCloseM) and not na(renkoOpenW) and not na(renkoCloseW) and not na(renkoOpenD) and not na(renkoCloseD)
 
 pxM = dataReady ? f_px_state(renkoOpenM, renkoCloseM, referencePrice) : 0

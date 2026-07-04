@@ -83,6 +83,23 @@ def extreme(time_utc, high, low, fib1_before, fib0_before, month_utc="2026-06"):
 
 
 class VivierStateTests(unittest.TestCase):
+    def test_pine_uses_confirmed_non_repainting_htf_requests(self):
+        pine = (PROJECT_ROOT / "renko_forex_V17_vivier.pine").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('indicator("renko_forex_V17_VIVIER_NR"', pine)
+        for timeframe in ("M", "W", "D"):
+            request_start = f'request.security(renkoTicker, "{timeframe}", [open[1], close[1]'
+            self.assertIn(request_start, pine)
+        self.assertGreaterEqual(pine.count("barmerge.lookahead_on"), 5)
+        self.assertNotIn('[open, close, f_green_streak(maxStreakBars)', pine)
+        self.assertIn(
+            'request.security(baseTicker, "D", close[1], '
+            'barmerge.gaps_off, barmerge.lookahead_on)',
+            pine,
+        )
+
     def test_monthly_fib_keeps_previous_range_during_early_disagreement(self):
         index = pd.to_datetime([
             "2026-06-03 10:00Z",
