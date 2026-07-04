@@ -143,11 +143,13 @@ class VivierStateTests(unittest.TestCase):
             pine,
         )
         self.assertIn(
-            'barstate.isconfirmed and sarFibCrossUp ? fib500 : na',
+            'barstate.isconfirmed and vivierDirection == -1 and '
+            'sarFibCrossUp ? fib500 : na',
             pine,
         )
         self.assertIn(
-            'barstate.isconfirmed and sarFibCrossDown ? fib500 : na',
+            'barstate.isconfirmed and vivierDirection == 1 and '
+            'sarFibCrossDown ? fib500 : na',
             pine,
         )
 
