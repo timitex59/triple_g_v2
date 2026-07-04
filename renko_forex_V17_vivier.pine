@@ -26,6 +26,7 @@ scoreThreshold = input.float(60.0, "RENKO FIBO Final Score (%)", minval=0.0, max
 
 showSar = input.bool(true, "Show Parabolic SAR", group=groupSar)
 showAllSarCrosses = input.bool(false, "Show All H1 SAR Crosses", group=groupSar)
+showSarFibCrosses = input.bool(true, "Show SAR / Fibo 0.500 Crosses", group=groupSar)
 sarStart = input.float(0.1, "Start", minval=0.0, group=groupSar)
 sarIncrement = input.float(0.1, "Increment", minval=0.0, group=groupSar)
 sarMaximum = input.float(0.2, "Maximum", minval=0.0, group=groupSar)
@@ -294,6 +295,9 @@ sarDirection = h1Close > sarValue ? 1 : h1Close < sarValue ? -1 : 0
 sarCrossBull = ta.crossover(h1Close, sarValue)
 sarCrossBear = ta.crossunder(h1Close, sarValue)
 sarCrossDirection = sarCrossBull ? 1 : sarCrossBear ? -1 : 0
+sameFibContext = not na(effectiveMonthId[1]) and effectiveMonthId == effectiveMonthId[1]
+sarFibCrossUp = sameFibContext and ta.crossover(sarValue, fib500) and sarValue > sarValue[1]
+sarFibCrossDown = sameFibContext and ta.crossunder(sarValue, fib500) and sarValue < sarValue[1]
 
 h1BeyondBull = h1Close > streakHighM and h1Close > streakHighW and h1Close > streakHighD
 h1BeyondBear = h1Close < streakLowM and h1Close < streakLowW and h1Close < streakLowD
@@ -509,6 +513,8 @@ sameFibAndObjectiveTouch = fibTouchEvent and objectiveTouchEvent and math.abs(fi
 plot(showSar ? sarValue : na, "H1 SAR", style=plot.style_line, color=sarColor, linewidth=2)
 plotshape(showAllSarCrosses and sarCrossBull and barstate.isconfirmed, "SAR Crossover", shape.triangleup, location.belowbar, color=color.new(bullColor, 45), size=size.tiny, text="SAR+")
 plotshape(showAllSarCrosses and sarCrossBear and barstate.isconfirmed, "SAR Crossunder", shape.triangledown, location.abovebar, color=color.new(bearColor, 45), size=size.tiny, text="SAR-")
+plotshape(showSarFibCrosses and timeframeOk and barstate.isconfirmed and sarFibCrossUp ? fib500 : na, "SAR crosses above Fibo 0.500", shape.triangleup, location.absolute, color=bearColor, textcolor=color.white, size=size.small, text="SAR>0.5")
+plotshape(showSarFibCrosses and timeframeOk and barstate.isconfirmed and sarFibCrossDown ? fib500 : na, "SAR crosses below Fibo 0.500", shape.triangledown, location.absolute, color=bullColor, textcolor=color.white, size=size.small, text="SAR<0.5")
 bgcolor(showVivierBackground ? vivierDirection == 1 ? color.new(bullColor, 92) : vivierDirection == -1 ? color.new(bearColor, 92) : postAlignmentObjective ? color.new(carriedObjectiveColor, 94) : na : na, title="VIVIER Background")
 
 if showEventLabels and entryEvent

@@ -122,6 +122,35 @@ class VivierStateTests(unittest.TestCase):
         )
         self.assertIn('label.set_textcolor(fibLabel500, fibMidColor)', pine)
 
+    def test_pine_marks_confirmed_sar_fib_midpoint_crosses(self):
+        pine = (PROJECT_ROOT / "renko_forex_V17_vivier.pine").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(
+            'showSarFibCrosses = input.bool(true, '
+            '"Show SAR / Fibo 0.500 Crosses"',
+            pine,
+        )
+        self.assertIn(
+            'sarFibCrossUp = sameFibContext and '
+            'ta.crossover(sarValue, fib500) and sarValue > sarValue[1]',
+            pine,
+        )
+        self.assertIn(
+            'sarFibCrossDown = sameFibContext and '
+            'ta.crossunder(sarValue, fib500) and sarValue < sarValue[1]',
+            pine,
+        )
+        self.assertIn(
+            'barstate.isconfirmed and sarFibCrossUp ? fib500 : na',
+            pine,
+        )
+        self.assertIn(
+            'barstate.isconfirmed and sarFibCrossDown ? fib500 : na',
+            pine,
+        )
+
     def test_monthly_fib_keeps_previous_range_during_early_disagreement(self):
         index = pd.to_datetime([
             "2026-06-03 10:00Z",
