@@ -645,6 +645,28 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(segment["start_time_paris"][:16], "2026-07-06T07:00")
         self.assertAlmostEqual(report["intraday"]["bull_pips"], 15.0)
 
+    def test_vivier_pips_day_close_is_idempotent(self):
+        active = {"pairs": {"EURUSD": {"direction": 1}}}
+        state, _ = update_vivier_pip_tracker(
+            {}, active, [pip_row("EURUSD", 1.1000, "2026-07-06 07:00+02:00")],
+            now=datetime(2026, 7, 6, 7, 17, tzinfo=PARIS),
+        )
+        state, report = update_vivier_pip_tracker(
+            state, active, [pip_row("EURUSD", 1.1010, "2026-07-06 23:00+02:00")],
+            now=datetime(2026, 7, 6, 23, 2, tzinfo=PARIS),
+        )
+        self.assertAlmostEqual(report["intraday"]["total_pips"], 10.0)
+        self.assertEqual(len(state["days"]["2026-07-06"]["segments"]), 1)
+
+        state, report = update_vivier_pip_tracker(
+            state, active, [pip_row("EURUSD", 1.1020, "2026-07-06 23:00+02:00")],
+            now=datetime(2026, 7, 6, 23, 30, tzinfo=PARIS),
+        )
+
+        self.assertAlmostEqual(report["intraday"]["total_pips"], 10.0)
+        self.assertEqual(len(state["days"]["2026-07-06"]["segments"]), 1)
+        self.assertEqual(state["open_segments"], {})
+
     def test_vivier_pips_build_weekly_and_monthly_reports(self):
         state = {}
         active = {"pairs": {"EURUSD": {"direction": 1}}}

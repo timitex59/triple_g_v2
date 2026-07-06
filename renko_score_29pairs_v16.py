@@ -2374,8 +2374,11 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
     }
     fresh_market = bool(fresh_pairs)
     active_entries = (vivier_state or {}).get("pairs") or {}
+    day_already_finalized = bool(
+        ((state.get("days") or {}).get(today) or {}).get("finalized")
+    )
 
-    if in_window and fresh_market:
+    if in_window and fresh_market and not day_already_finalized:
         day = _pip_day(state, today)
         day["finalized"] = False
 
