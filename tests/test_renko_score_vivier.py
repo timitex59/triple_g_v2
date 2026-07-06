@@ -504,14 +504,14 @@ class VivierStateTests(unittest.TestCase):
         self.assertLess(message.index("PROCHE ALIGNEMENT"), message.index("PAIRES FORT/FAIBLE"))
 
     def test_telegram_body_hash_ignores_timestamp_only(self):
-        first = "📊 RENKO FIBO\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 08:16 Paris"
-        second = "📊 RENKO FIBO\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 09:16 Paris"
-        changed = "📊 RENKO FIBO\n\n🟢 EURJPY\n\n⏰ 2026-06-29 09:16 Paris"
+        first = "📊 VIVIER\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 08:16 Paris"
+        second = "📊 VIVIER\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 09:16 Paris"
+        changed = "📊 VIVIER\n\n🟢 EURJPY\n\n⏰ 2026-06-29 09:16 Paris"
 
         self.assertEqual(telegram_body_hash(first), telegram_body_hash(second))
         self.assertNotEqual(telegram_body_hash(first), telegram_body_hash(changed))
 
-    def test_direct_vivier_to_renko_fibo_transition_is_shown_once(self):
+    def test_direct_vivier_transition_is_kept_as_vivier_signal(self):
         renko_row = {
             "pair": "GBPJPY",
             "signal_state": 1,
@@ -531,10 +531,27 @@ class VivierStateTests(unittest.TestCase):
             [renko_row], [], vivier_state={"pairs": {}}, vivier_signals=[signal]
         )
 
-        self.assertIn("🚀 VIVIER → RENKO FIBO", message)
-        self.assertIn("🟢 GBPJPY (+80% | <0.786)", message)
+        self.assertIn("📊 VIVIER", message)
+        self.assertIn("🚨 SIGNAL VIVIER", message)
+        self.assertIn("🟢 GBPJPY · M/W/D alignés · +80%", message)
         self.assertEqual(message.count("GBPJPY"), 1)
-        self.assertNotIn("SIGNAL VIVIER", message)
+        self.assertNotIn("RENKO FIBO", message)
+
+    def test_standalone_renko_fibo_signal_is_silent(self):
+        renko_row = {
+            "pair": "GBPCAD",
+            "signal_state": 1,
+            "weighted_pct": 90.0,
+            "h1_fib": {"position": "ABOVE", "sar_dir": 1},
+            "streak_position": {"counts": {1: 3, -1: 0, 0: 0}},
+            "streak_tag": "🟢3",
+        }
+
+        message = build_telegram_message(
+            [renko_row], [renko_row], vivier_state={"pairs": {}}
+        )
+
+        self.assertIsNone(message)
 
     def test_transition_revalidates_only_entries_created_in_current_month(self):
         current = row("CURRENT", 1, 1, 0, fib_pct=60.0)

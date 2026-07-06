@@ -2615,98 +2615,14 @@ def sar_streak_full(r: dict) -> bool:
     return counts.get(d, 0) == 3
 
 
-TURN_TIERS = {"anticipe": "🌱 anticipe", "amorce": "⏳ amorce", "confirme": "✅ confirmé"}
-TURN_ORDER = {"anticipe": 0, "amorce": 1, "confirme": 2}
-TELEGRAM_TURN_TIERS = {"confirme"}
-
-
-def turn_tier(r: dict, direction: int) -> str | None:
-    """Niveau de retournement dans le sens `direction` (BULL=1 / BEAR=-1), ou None.
-
-    Base: tendance forte M+W = prix au-dessus OU dans la plage du streak
-    (pos in {sens, 0}) ET streak plein (>= 1) sur Monthly ET Weekly.
-    Puis classement selon le Daily, avec confirmation SAR H1:
-      🌱 anticipe : prix replie (<= plage, pos in {0,-sens}) + SAR H1 vient de
-                    flipper dans le sens -> on prend le creux qui tourne (le + tot).
-      ⏳ amorce   : prix > plus-haut (pos==sens), Renko D pas encore aligne
-                    (streak D == 0), SAR H1 aligne -> cassure naissante.
-      ✅ confirme : conditions strictes CONFIRMED + score >= seuil, avec >= 2
-                    briques Renko D dans le sens.
-    """
-    pos = (r.get("streak_position") or {}).get("pos") or {}
-    states = r.get("states") or {}
-    if any(tf not in pos or states.get(tf) is None for tf in ("M", "W", "D")):
-        return None
-    up = 1 if direction > 0 else -1
-
-    def strk(tf: str) -> int:
-        s = states[tf]
-        return s.green_streak if direction > 0 else s.red_streak
-
-    # Tendance forte M + W (au-dessus ou dans la plage, streak plein).
-    if not (pos["M"] in (up, 0) and strk("M") >= 1
-            and pos["W"] in (up, 0) and strk("W") >= 1):
-        return None
-
-    h1 = r.get("h1_fib") or {}
-    sar_dir, sar_flip = h1.get("sar_dir"), h1.get("sar_flipped")
-    gd = strk("D")
-    if pos["D"] == up and gd >= CONFIRMED_MIN_STREAKS["D"]:
-        if strict_confirmed_alignment(states, direction) and score_passes_threshold(r.get("weighted_pct"), direction):
-            return "confirme"
-        return None
-    if pos["D"] == up and gd == 0 and sar_dir == up:
-        return "amorce"
-    if pos["D"] in (0, -up) and gd == 0 and sar_flip and sar_dir == up:
-        return "anticipe"
-    return None
-
-
 def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
                            vivier_state: dict | None = None,
                            vivier_signals: list[dict] | None = None) -> str | None:
-    # Group BULL together and BEAR together (strongest signal_state first),
-    # and within each group rank by conviction — strongest |score| first —
-    # instead of a flat descending sort that buries the strongest BEAR
-    # (-100%) at the bottom, after the weaker BULL signals.
-    all_ordered = sorted(rows, key=lambda r: (-r["signal_state"], -abs(r["weighted_pct"])))
-    # RENKO FIBO ne retient QUE le profil de confluence maximale: prix H1
-    # au-dela des 3 streaks D/W/M (🟢3 / 🔴3) ET SAR H1 aligne avec le biais.
-    all_ordered = [r for r in all_ordered if sar_streak_full(r)]
-    all_ordered_pairs = {r["pair"] for r in all_ordered}
     vivier_signals = vivier_signals or []
-    transitions = [s for s in vivier_signals if s["pair"] in all_ordered_pairs]
-    transition_pairs = {s["pair"] for s in transitions}
-    vivier_signals = [s for s in vivier_signals if s["pair"] not in transition_pairs]
-    # A direct VIVIER -> RENKO FIBO transition is rendered only in its dedicated
-    # section, never duplicated in the regular RENKO FIBO or SIGNAL VIVIER list.
-    ordered = [r for r in all_ordered if r["pair"] not in transition_pairs]
-
-    # Section "RETOURNEMENTS": Telegram ne doit envoyer que les confirmes.
-    # Les niveaux anticipe/amorce restent calculables, mais silencieux.
-    shown = all_ordered_pairs
-    turns: list[tuple[int, str, str]] = []   # (direction, tier, pair)
-    for r in (all_rows if all_rows is not None else rows):
-        if r["pair"] in shown:
-            continue
-        for d in (1, -1):
-            tier = turn_tier(r, d)
-            if tier in TELEGRAM_TURN_TIERS:
-                turns.append((d, tier, r["pair"]))
-                break
-
     vivier_state = vivier_state or {}
     bull_vivier, bear_vivier = vivier_groups(vivier_state)
     near_entries = near_alignment_entries(vivier_state)
     post_signal_entries = post_signal_tracking_entries(vivier_state, all_rows)
-
-    # Aucun signal, retournement ou suivi VIVIER -> aucun message.
-    if (not ordered and not transitions and not turns and not bull_vivier
-            and not bear_vivier and not vivier_signals and not near_entries
-            and not post_signal_entries):
-        return None
-    lines = ["📊 RENKO FIBO", ""]
-    has_content = False
     strength_rows = all_rows if all_rows is not None else rows
     active_vivier_entries = dict(bull_vivier + bear_vivier)
     theoretical_pairs = fibo_theoretical_pairs_lines(
@@ -2714,43 +2630,14 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         vivier_entries=active_vivier_entries,
     )
 
-    for row in ordered:
-        icon = "🟢" if row["signal_state"] == 1 else "🔴"
-        h1_fib = row["h1_fib"]
-        fib_letter = "?"
-        if h1_fib is not None:
-            fib_letter = "A" if h1_fib["position"] == "ABOVE" else ("B" if h1_fib["position"] == "BELOW" else "=")
-        # 🔥 si le Parabolic SAR 1H vient de se retourner dans le sens du signal
-        # (sortie de retracement en faveur de la tendance).
-        flame = ""
-        if (h1_fib is not None and h1_fib.get("sar_flipped")
-                and h1_fib.get("sar_dir") == row["signal_state"]):
-            flame = " 🔥"
-        streak_tag = row.get("streak_tag", "")
-        streak_txt = f" {streak_tag}" if streak_tag else ""
-        lines.append(f"{icon} {row['pair']} ({fib_letter} {row['weighted_pct']:+.0f}%){streak_txt}{flame}")
-    has_content = has_content or bool(ordered)
-    if transitions:
-        if has_content:
-            lines.append("")
-        lines.append("🚀 VIVIER → RENKO FIBO")
-        for signal in transitions:
-            direction = signal["direction"]
-            icon = "🟢" if direction == 1 else "🔴"
-            score = signal.get("weighted_pct")
-            score_txt = f"{score:+.0f}%" if isinstance(score, (int, float)) else "?"
-            fib = signal.get("fib_position", "Fibo ?").removeprefix("Fibo ")
-            lines.append(f"{icon} {signal['pair']} ({score_txt} | {fib})")
-        has_content = True
-
-    if turns:
-        if has_content:
-            lines.append("")
-        lines.append("🔄 RETOURNEMENTS")
-        for d, tier, pair in sorted(turns, key=lambda x: (TURN_ORDER[x[1]], -x[0], x[2])):
-            icon = "🟢" if d == 1 else "🔴"
-            lines.append(f"{icon} {pair} · {TURN_TIERS[tier]}")
-        has_content = True
+    # Telegram is dedicated exclusively to the VIVIER ecosystem. Standalone
+    # RENKO FIBO and reversal signals remain internal and silent.
+    if (not bull_vivier and not bear_vivier and not vivier_signals
+            and not near_entries and not post_signal_entries
+            and not theoretical_pairs):
+        return None
+    lines = ["📊 VIVIER", ""]
+    has_content = False
 
     if vivier_signals:
         if has_content:
@@ -2808,7 +2695,7 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         lines.extend(theoretical_pairs)
         has_content = True
 
-    # Message: RENKO FIBO, retournements, suivi VIVIER et horodatage.
+    # Message: ecosysteme VIVIER et horodatage.
     lines.append("")
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M Paris')}")
     return "\n".join(lines)
@@ -2889,7 +2776,7 @@ def main() -> int:
         vivier_signals=vivier_signals,
     )
     if message is None:
-        print("\nRENKO FIBO vide — aucun message Telegram envoyé.")
+        print("\nVIVIER vide — aucun message Telegram envoyé.")
         return 0
     print("")
     print(message)
