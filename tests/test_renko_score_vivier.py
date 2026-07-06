@@ -28,7 +28,11 @@ from renko_score_29pairs_v16 import (
     sar_cross_event,
     telegram_body_hash,
     update_vivier,
+    update_vivier_pip_tracker,
     update_vivier_performance,
+    vivier_pip_intraday_lines,
+    vivier_pip_period_lines,
+    vivier_pip_size,
     vivier_groups,
 )
 
@@ -79,6 +83,25 @@ def extreme(time_utc, high, low, fib1_before, fib0_before, month_utc="2026-06"):
         "low": low,
         "fib1_before": fib1_before,
         "fib0_before": fib0_before,
+    }
+
+
+def pip_row(pair, price, paris_time):
+    ts = pd.Timestamp(paris_time)
+    if ts.tzinfo is None:
+        ts = ts.tz_localize(PARIS)
+    return {
+        "pair": pair,
+        "h1_fib": {
+            "h1_closed_price": price,
+            "h1_closed_time_utc": ts.tz_convert("UTC").isoformat(),
+            "_closed_h1_bars": [{
+                "time_utc": ts.tz_convert("UTC").isoformat(),
+                "high": price,
+                "low": price,
+                "close": price,
+            }],
+        },
     }
 
 
@@ -552,6 +575,111 @@ class VivierStateTests(unittest.TestCase):
         )
 
         self.assertIsNone(message)
+
+    def test_vivier_pips_track_bull_bear_and_freeze_exits(self):
+        self.assertEqual(vivier_pip_size("EURUSD"), 0.0001)
+        self.assertEqual(vivier_pip_size("USDJPY"), 0.01)
+        self.assertEqual(vivier_pip_size("XAUUSD"), 0.01)
+        active = {"pairs": {
+            "EURUSD": {"direction": 1},
+            "USDJPY": {"direction": -1},
+        }}
+        start = datetime(2026, 7, 6, 7, 17, tzinfo=PARIS)
+        state, report = update_vivier_pip_tracker(
+            {}, active,
+            [
+                pip_row("EURUSD", 1.1000, "2026-07-06 07:00+02:00"),
+                pip_row("USDJPY", 160.00, "2026-07-06 07:00+02:00"),
+            ],
+            now=start,
+        )
+        self.assertAlmostEqual(report["intraday"]["total_pips"], 0.0)
+
+        state, report = update_vivier_pip_tracker(
+            state, active,
+            [
+                pip_row("EURUSD", 1.1015, "2026-07-06 10:00+02:00"),
+                pip_row("USDJPY", 159.80, "2026-07-06 10:00+02:00"),
+            ],
+            now=datetime(2026, 7, 6, 10, 17, tzinfo=PARIS),
+        )
+        self.assertAlmostEqual(report["intraday"]["bull_pips"], 15.0)
+        self.assertAlmostEqual(report["intraday"]["bear_pips"], 20.0)
+        self.assertAlmostEqual(report["intraday"]["total_pips"], 35.0)
+
+        # EURUSD leaves the vivier: its +20 pips are frozen while USDJPY
+        # remains marked to market.
+        state, report = update_vivier_pip_tracker(
+            state, {"pairs": {"USDJPY": {"direction": -1}}},
+            [
+                pip_row("EURUSD", 1.1020, "2026-07-06 12:00+02:00"),
+                pip_row("USDJPY", 159.90, "2026-07-06 12:00+02:00"),
+            ],
+            now=datetime(2026, 7, 6, 12, 17, tzinfo=PARIS),
+        )
+        self.assertNotIn("EURUSD", state["open_segments"])
+        self.assertAlmostEqual(report["intraday"]["bull_pips"], 20.0)
+        self.assertAlmostEqual(report["intraday"]["bear_pips"], 10.0)
+        self.assertAlmostEqual(report["intraday"]["total_pips"], 30.0)
+        lines = vivier_pip_intraday_lines(report)
+        self.assertIn("🟢 BULL : +20.0 pips", lines)
+        self.assertIn("Σ TOTAL : +30.0 pips", lines)
+
+    def test_vivier_pips_first_run_backfills_from_07h(self):
+        current = pip_row("EURUSD", 1.1015, "2026-07-06 10:00+02:00")
+        current["h1_fib"]["_closed_h1_bars"] = [
+            pip_row("EURUSD", 1.1000, "2026-07-06 07:00+02:00")["h1_fib"]["_closed_h1_bars"][0],
+            current["h1_fib"]["_closed_h1_bars"][0],
+        ]
+        active = {"pairs": {"EURUSD": {
+            "direction": 1,
+            "entered_at_paris": "2026-07-05 18:00",
+        }}}
+
+        state, report = update_vivier_pip_tracker(
+            {}, active, [current],
+            now=datetime(2026, 7, 6, 10, 17, tzinfo=PARIS),
+        )
+
+        segment = state["open_segments"]["EURUSD"]
+        self.assertEqual(segment["start_time_paris"][:16], "2026-07-06T07:00")
+        self.assertAlmostEqual(report["intraday"]["bull_pips"], 15.0)
+
+    def test_vivier_pips_build_weekly_and_monthly_reports(self):
+        state = {}
+        active = {"pairs": {"EURUSD": {"direction": 1}}}
+        for offset in range(5):
+            day = pd.Timestamp("2026-07-06", tz=PARIS) + pd.Timedelta(days=offset)
+            start = day + pd.Timedelta(hours=7)
+            end = day + pd.Timedelta(hours=23)
+            state, _ = update_vivier_pip_tracker(
+                state, active, [pip_row("EURUSD", 1.1000, start)],
+                now=start.to_pydatetime(),
+            )
+            state, report = update_vivier_pip_tracker(
+                state, active, [pip_row("EURUSD", 1.1010, end)],
+                now=end.to_pydatetime(),
+            )
+
+        self.assertIsNotNone(report["weekly"])
+        self.assertAlmostEqual(report["weekly"]["total_pips"], 50.0)
+        weekly_lines = vivier_pip_period_lines(report)
+        self.assertIn("📅 BILAN HEBDOMADAIRE", weekly_lines)
+        self.assertIn("TOTAL : +50.0 pips", weekly_lines)
+
+        state, monthly = update_vivier_pip_tracker(
+            state, {"pairs": {}}, [],
+            now=datetime(2026, 8, 1, 7, 17, tzinfo=PARIS),
+        )
+        self.assertIsNotNone(monthly["monthly"])
+        self.assertEqual(monthly["monthly"]["label"], "JUILLET")
+        self.assertEqual(monthly["monthly"]["days"], 5)
+        self.assertAlmostEqual(monthly["monthly"]["total_pips"], 50.0)
+        message = build_telegram_message(
+            [], [], vivier_state={"pairs": {}}, pip_report=monthly
+        )
+        self.assertIn("🗓 BILAN MENSUEL — JUILLET", message)
+        self.assertIn("Σ TOTAL : +50.0 pips", message)
 
     def test_transition_revalidates_only_entries_created_in_current_month(self):
         current = row("CURRENT", 1, 1, 0, fib_pct=60.0)

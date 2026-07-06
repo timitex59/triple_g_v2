@@ -102,6 +102,12 @@ VIVIER_EVENTS_PATH = os.path.join(
 VIVIER_PERFORMANCE_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "renko_vivier_performance.json"
 )
+VIVIER_PIPS_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "renko_vivier_pips.json"
+)
+VIVIER_PIPS_VERSION = 1
+VIVIER_PIPS_START_HOUR_PARIS = 7
+VIVIER_PIPS_END_HOUR_PARIS = 23
 VIVIER_PERFORMANCE_VERSION = 3
 VIVIER_PERFORMANCE_HOURS = (1, 4, 12, 24, 72)
 VIVIER_PERFORMANCE_WINDOW_H1 = max(VIVIER_PERFORMANCE_HOURS)
@@ -150,6 +156,7 @@ def parse_args():
     parser.add_argument("--vivier-state", default=VIVIER_STATE_PATH, help="Path to the persistent VIVIER state file.")
     parser.add_argument("--vivier-events", default=VIVIER_EVENTS_PATH, help="Append-only VIVIER event journal.")
     parser.add_argument("--vivier-performance", default=VIVIER_PERFORMANCE_PATH, help="VIVIER performance tracker.")
+    parser.add_argument("--vivier-pips", default=VIVIER_PIPS_PATH, help="Persistent daily/weekly/monthly VIVIER pip tracker.")
     return parser.parse_args()
 
 
@@ -2113,6 +2120,406 @@ def save_vivier_performance(payload: dict, path: str = VIVIER_PERFORMANCE_PATH) 
             os.remove(tmp_path)
 
 
+def vivier_pip_size(pair: str) -> float:
+    """Standard pip size for the 29-instrument universe."""
+    return 0.01 if pair.endswith("JPY") or pair == "XAUUSD" else 0.0001
+
+
+def load_vivier_pips(path: str = VIVIER_PIPS_PATH) -> dict:
+    try:
+        with open(path, encoding="utf-8") as handle:
+            payload = json.load(handle)
+        if isinstance(payload, dict):
+            return payload
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        pass
+    return {
+        "version": VIVIER_PIPS_VERSION,
+        "open_segments": {},
+        "days": {},
+        "reports_sent": {"weekly": [], "monthly": []},
+    }
+
+
+def save_vivier_pips(payload: dict, path: str = VIVIER_PIPS_PATH) -> None:
+    directory = os.path.dirname(os.path.abspath(path))
+    os.makedirs(directory, exist_ok=True)
+    tmp_path = f"{path}.tmp.{os.getpid()}"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False, indent=2, sort_keys=True)
+            handle.write("\n")
+        os.replace(tmp_path, path)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def _pip_timestamp(value: str | datetime | pd.Timestamp | None) -> pd.Timestamp | None:
+    if value is None:
+        return None
+    try:
+        ts = pd.Timestamp(value)
+    except (TypeError, ValueError):
+        return None
+    if ts.tzinfo is None:
+        ts = ts.tz_localize("UTC")
+    return ts.tz_convert("UTC")
+
+
+def _pip_row_snapshot(row: dict | None) -> tuple[pd.Timestamp, float] | None:
+    if not row:
+        return None
+    h1 = row.get("h1_fib") or {}
+    price = h1.get("h1_closed_price", row.get("h1_price", row.get("live_price")))
+    ts = _pip_timestamp(h1.get("h1_closed_time_utc"))
+    if ts is None or not isinstance(price, (int, float)):
+        return None
+    return ts, float(price)
+
+
+def _pip_historical_snapshot(row: dict | None, cutoff: pd.Timestamp,
+                             start: pd.Timestamp | None = None
+                             ) -> tuple[pd.Timestamp, float] | None:
+    bars = ((row or {}).get("h1_fib") or {}).get("_closed_h1_bars") or []
+    selected = None
+    for bar in bars:
+        ts = _pip_timestamp(bar.get("time_utc"))
+        price = bar.get("close")
+        if ts is None or not isinstance(price, (int, float)) or ts > cutoff:
+            continue
+        if start is not None and ts < start:
+            continue
+        if selected is None or ts > selected[0]:
+            selected = (ts, float(price))
+    return selected
+
+
+def _pip_historical_start_snapshot(row: dict | None, start: pd.Timestamp,
+                                   cutoff: pd.Timestamp
+                                   ) -> tuple[pd.Timestamp, float] | None:
+    bars = ((row or {}).get("h1_fib") or {}).get("_closed_h1_bars") or []
+    selected = None
+    for bar in bars:
+        ts = _pip_timestamp(bar.get("time_utc"))
+        price = bar.get("close")
+        if (ts is None or not isinstance(price, (int, float))
+                or ts < start or ts > cutoff):
+            continue
+        if selected is None or ts < selected[0]:
+            selected = (ts, float(price))
+    return selected
+
+
+def _pip_segment_value(segment: dict, price: float) -> float:
+    start_price = segment.get("start_price")
+    direction = segment.get("direction")
+    pair = str(segment.get("pair") or "")
+    if (not isinstance(start_price, (int, float)) or start_price == 0
+            or direction not in (-1, 1) or not pair):
+        return 0.0
+    return ((float(price) - float(start_price)) / vivier_pip_size(pair)
+            * int(direction))
+
+
+def _pip_day(state: dict, day_key: str) -> dict:
+    return state.setdefault("days", {}).setdefault(day_key, {
+        "date": day_key,
+        "segments": [],
+        "finalized": False,
+    })
+
+
+def _close_pip_segment(state: dict, pair: str, segment: dict,
+                       end_ts: pd.Timestamp, end_price: float,
+                       reason: str) -> None:
+    day = _pip_day(state, str(segment["date"]))
+    closed = dict(segment)
+    closed.update({
+        "end_time_utc": end_ts.isoformat(),
+        "end_time_paris": end_ts.tz_convert(PARIS_TZ).isoformat(),
+        "end_price": float(end_price),
+        "pips": _pip_segment_value(segment, float(end_price)),
+        "close_reason": reason,
+    })
+    closed.pop("last_price", None)
+    closed.pop("last_time_utc", None)
+    closed.pop("current_pips", None)
+    day.setdefault("segments", []).append(closed)
+    state.setdefault("open_segments", {}).pop(pair, None)
+
+
+def _pip_day_totals(state: dict, day_key: str, include_open: bool = True) -> dict:
+    bull = bear = 0.0
+    day = (state.get("days") or {}).get(day_key) or {}
+    for segment in day.get("segments") or []:
+        pips = float(segment.get("pips") or 0.0)
+        if segment.get("direction") == 1:
+            bull += pips
+        elif segment.get("direction") == -1:
+            bear += pips
+    if include_open:
+        for segment in (state.get("open_segments") or {}).values():
+            if segment.get("date") != day_key:
+                continue
+            pips = float(segment.get("current_pips") or 0.0)
+            if segment.get("direction") == 1:
+                bull += pips
+            elif segment.get("direction") == -1:
+                bear += pips
+    return {"bull_pips": bull, "bear_pips": bear, "total_pips": bull + bear}
+
+
+def _weekly_pip_report(state: dict, clock: datetime) -> dict:
+    monday = clock.date() - timedelta(days=clock.weekday())
+    labels = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi")
+    daily = []
+    bull = bear = 0.0
+    for offset, label in enumerate(labels):
+        day_key = (monday + timedelta(days=offset)).isoformat()
+        totals = _pip_day_totals(state, day_key, include_open=False)
+        bull += totals["bull_pips"]
+        bear += totals["bear_pips"]
+        daily.append({"label": label, "date": day_key, **totals})
+    iso = clock.isocalendar()
+    return {
+        "key": f"{iso.year}-W{iso.week:02d}",
+        "daily": daily,
+        "bull_pips": bull,
+        "bear_pips": bear,
+        "total_pips": bull + bear,
+    }
+
+
+def _monthly_pip_report(state: dict, clock: datetime) -> dict | None:
+    current_first = clock.date().replace(day=1)
+    previous_last = current_first - timedelta(days=1)
+    month_key = f"{previous_last.year:04d}-{previous_last.month:02d}"
+    selected = [
+        (day_key, day) for day_key, day in (state.get("days") or {}).items()
+        if day_key.startswith(month_key) and day.get("finalized")
+    ]
+    if not selected:
+        return None
+    bull = bear = 0.0
+    for day_key, _ in selected:
+        totals = _pip_day_totals(state, day_key, include_open=False)
+        bull += totals["bull_pips"]
+        bear += totals["bear_pips"]
+    month_names = (
+        "JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN",
+        "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE",
+    )
+    return {
+        "key": month_key,
+        "label": month_names[previous_last.month - 1],
+        "days": len(selected),
+        "bull_pips": bull,
+        "bear_pips": bear,
+        "total_pips": bull + bear,
+    }
+
+
+def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
+                              rows: list[dict], now: datetime | None = None
+                              ) -> tuple[dict, dict]:
+    """Track every active VIVIER segment between 07:00 and 23:00 Paris."""
+    state = json.loads(json.dumps(previous)) if isinstance(previous, dict) else {}
+    state["version"] = VIVIER_PIPS_VERSION
+    state.setdefault("open_segments", {})
+    state.setdefault("days", {})
+    reports_sent = state.setdefault("reports_sent", {})
+    reports_sent.setdefault("weekly", [])
+    reports_sent.setdefault("monthly", [])
+
+    clock = now or datetime.now(PARIS_TZ)
+    if clock.tzinfo is None:
+        clock = clock.replace(tzinfo=PARIS_TZ)
+    clock = clock.astimezone(PARIS_TZ)
+    today = clock.date().isoformat()
+    rows_by_pair = {str(row.get("pair")): row for row in rows if row.get("pair")}
+    snapshots = {
+        pair: snapshot for pair, row in rows_by_pair.items()
+        if (snapshot := _pip_row_snapshot(row)) is not None
+    }
+
+    # Close segments left open by a missed 23:00 run using the latest H1 close
+    # available at or before the original day's Paris cutoff.
+    for pair, segment in list(state["open_segments"].items()):
+        if segment.get("date") == today:
+            continue
+        segment_date = datetime.fromisoformat(str(segment["date"]))
+        cutoff_local = datetime(
+            segment_date.year, segment_date.month, segment_date.day,
+            VIVIER_PIPS_END_HOUR_PARIS, tzinfo=PARIS_TZ,
+        )
+        cutoff = pd.Timestamp(cutoff_local).tz_convert("UTC")
+        start = _pip_timestamp(segment.get("start_time_utc"))
+        historical = _pip_historical_snapshot(rows_by_pair.get(pair), cutoff, start)
+        if historical is None:
+            historical = (
+                _pip_timestamp(segment.get("last_time_utc")) or cutoff,
+                float(segment.get("last_price", segment.get("start_price", 0.0))),
+            )
+        _close_pip_segment(state, pair, segment, historical[0], historical[1], "DAY_END")
+        old_day = _pip_day(state, str(segment["date"]))
+        old_day["finalized"] = True
+        old_day["finalized_at_paris"] = cutoff_local.isoformat()
+
+    in_window = VIVIER_PIPS_START_HOUR_PARIS <= clock.hour <= VIVIER_PIPS_END_HOUR_PARIS
+    fresh_pairs = {
+        pair for pair, (ts, _) in snapshots.items()
+        if ts.tz_convert(PARIS_TZ).date().isoformat() == today
+        and ts.tz_convert(PARIS_TZ).hour >= VIVIER_PIPS_START_HOUR_PARIS
+    }
+    fresh_market = bool(fresh_pairs)
+    active_entries = (vivier_state or {}).get("pairs") or {}
+
+    if in_window and fresh_market:
+        day = _pip_day(state, today)
+        day["finalized"] = False
+
+        # Freeze pairs that left the pool or switched direction.
+        for pair, segment in list(state["open_segments"].items()):
+            if segment.get("date") != today:
+                continue
+            entry = active_entries.get(pair)
+            same_direction = entry and entry.get("direction") == segment.get("direction")
+            if same_direction:
+                continue
+            ts, price = snapshots.get(pair, (
+                _pip_timestamp(segment.get("last_time_utc")),
+                segment.get("last_price", segment.get("start_price")),
+            ))
+            if ts is not None and isinstance(price, (int, float)):
+                _close_pip_segment(state, pair, segment, ts, float(price), "VIVIER_EXIT")
+
+        # Open new segments (including a same-run opposite re-entry) and mark
+        # all active segments to the latest confirmed H1 close.
+        for pair, entry in active_entries.items():
+            direction = entry.get("direction")
+            snapshot = snapshots.get(pair)
+            if direction not in (-1, 1) or snapshot is None or pair not in fresh_pairs:
+                continue
+            ts, price = snapshot
+            segment = state["open_segments"].get(pair)
+            if segment is None:
+                window_start_local = datetime(
+                    clock.year, clock.month, clock.day,
+                    VIVIER_PIPS_START_HOUR_PARIS, tzinfo=PARIS_TZ,
+                )
+                entry_time = _parse_paris_minute(entry.get("entered_at_paris"))
+                if entry_time is not None and entry_time.date() == clock.date():
+                    entry_time = entry_time.replace(minute=0, second=0, microsecond=0)
+                    window_start_local = max(window_start_local, entry_time)
+                desired_start = pd.Timestamp(window_start_local).tz_convert("UTC")
+                historical_start = _pip_historical_start_snapshot(
+                    rows_by_pair.get(pair), desired_start, ts
+                )
+                start_ts, start_price = historical_start or (ts, price)
+                segment = {
+                    "pair": pair,
+                    "direction": int(direction),
+                    "date": today,
+                    "start_time_utc": start_ts.isoformat(),
+                    "start_time_paris": start_ts.tz_convert(PARIS_TZ).isoformat(),
+                    "start_price": float(start_price),
+                }
+                state["open_segments"][pair] = segment
+            segment["last_time_utc"] = ts.isoformat()
+            segment["last_price"] = float(price)
+            segment["current_pips"] = _pip_segment_value(segment, float(price))
+
+        if clock.hour >= VIVIER_PIPS_END_HOUR_PARIS:
+            for pair, segment in list(state["open_segments"].items()):
+                if segment.get("date") != today:
+                    continue
+                ts, price = snapshots.get(pair, (
+                    _pip_timestamp(segment.get("last_time_utc")),
+                    segment.get("last_price", segment.get("start_price")),
+                ))
+                if ts is not None and isinstance(price, (int, float)):
+                    _close_pip_segment(state, pair, segment, ts, float(price), "DAY_END")
+            day["finalized"] = True
+            day["finalized_at_paris"] = clock.isoformat()
+
+    report: dict = {"intraday": None, "weekly": None, "monthly": None}
+    if in_window and fresh_market:
+        report["intraday"] = {"date": today, **_pip_day_totals(state, today)}
+
+    if clock.weekday() == 4 and clock.hour >= VIVIER_PIPS_END_HOUR_PARIS:
+        weekly = _weekly_pip_report(state, clock)
+        if weekly["key"] not in reports_sent["weekly"]:
+            report["weekly"] = weekly
+
+    if clock.day == 1 and clock.hour >= VIVIER_PIPS_START_HOUR_PARIS:
+        monthly = _monthly_pip_report(state, clock)
+        if monthly and monthly["key"] not in reports_sent["monthly"]:
+            report["monthly"] = monthly
+
+    # Keep slightly more than one year of daily detail.
+    day_keys = sorted(state["days"])
+    for obsolete in day_keys[:-400]:
+        state["days"].pop(obsolete, None)
+    state["updated_at_paris"] = clock.isoformat()
+    return state, report
+
+
+def mark_vivier_pip_reports_sent(state: dict, report: dict | None) -> None:
+    sent = state.setdefault("reports_sent", {"weekly": [], "monthly": []})
+    for kind in ("weekly", "monthly"):
+        item = (report or {}).get(kind)
+        if not item:
+            continue
+        keys = sent.setdefault(kind, [])
+        if item["key"] not in keys:
+            keys.append(item["key"])
+            del keys[:-100]
+
+
+def _format_pips(value: float) -> str:
+    value = float(value)
+    if abs(value) < 0.05:
+        value = 0.0
+    return f"{value:+.1f}"
+
+
+def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
+    item = (report or {}).get("intraday")
+    if not item:
+        return []
+    return [
+        "📈 PIPS GLOBAL DEPUIS 07H",
+        f"🟢 BULL : {_format_pips(item['bull_pips'])} pips",
+        f"🔴 BEAR : {_format_pips(item['bear_pips'])} pips",
+        f"Σ TOTAL : {_format_pips(item['total_pips'])} pips",
+    ]
+
+
+def vivier_pip_period_lines(report: dict | None) -> list[str]:
+    lines: list[str] = []
+    weekly = (report or {}).get("weekly")
+    if weekly:
+        lines.extend(["📅 BILAN HEBDOMADAIRE"])
+        lines.extend(
+            f"{day['label']} : {_format_pips(day['total_pips'])} pips"
+            for day in weekly["daily"]
+        )
+        lines.append(f"TOTAL : {_format_pips(weekly['total_pips'])} pips")
+    monthly = (report or {}).get("monthly")
+    if monthly:
+        if lines:
+            lines.append("")
+        lines.extend([
+            f"🗓 BILAN MENSUEL — {monthly['label']}",
+            f"{monthly['days']} journées suivies",
+            f"🟢 BULL : {_format_pips(monthly['bull_pips'])} pips",
+            f"🔴 BEAR : {_format_pips(monthly['bear_pips'])} pips",
+            f"Σ TOTAL : {_format_pips(monthly['total_pips'])} pips",
+        ])
+    return lines
+
+
 MAJORS = {"AUD", "CAD", "CHF", "EUR", "GBP", "JPY", "NZD", "USD"}
 
 
@@ -2617,7 +3024,8 @@ def sar_streak_full(r: dict) -> bool:
 
 def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
                            vivier_state: dict | None = None,
-                           vivier_signals: list[dict] | None = None) -> str | None:
+                           vivier_signals: list[dict] | None = None,
+                           pip_report: dict | None = None) -> str | None:
     vivier_signals = vivier_signals or []
     vivier_state = vivier_state or {}
     bull_vivier, bear_vivier = vivier_groups(vivier_state)
@@ -2629,12 +3037,15 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         strength_rows,
         vivier_entries=active_vivier_entries,
     )
+    intraday_pip_lines = vivier_pip_intraday_lines(pip_report)
+    period_pip_lines = vivier_pip_period_lines(pip_report)
 
     # Telegram is dedicated exclusively to the VIVIER ecosystem. Standalone
     # RENKO FIBO and reversal signals remain internal and silent.
     if (not bull_vivier and not bear_vivier and not vivier_signals
             and not near_entries and not post_signal_entries
-            and not theoretical_pairs):
+            and not theoretical_pairs and not intraday_pip_lines
+            and not period_pip_lines):
         return None
     lines = ["📊 VIVIER", ""]
     has_content = False
@@ -2689,10 +3100,22 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
             lines.append(f"{icon}{sar_icon} {pair} · {missing} · {score:+.0f}%")
         has_content = True
 
+    if intraday_pip_lines:
+        if has_content:
+            lines.append("")
+        lines.extend(intraday_pip_lines)
+        has_content = True
+
     if theoretical_pairs:
         if has_content:
             lines.append("")
         lines.extend(theoretical_pairs)
+        has_content = True
+
+    if period_pip_lines:
+        if has_content:
+            lines.append("")
+        lines.extend(period_pip_lines)
         has_content = True
 
     # Message: ecosysteme VIVIER et horodatage.
@@ -2721,6 +3144,7 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8")
 
     args = parse_args()
+    run_now = datetime.now(PARIS_TZ)
     rows = []
     for pair in PAIRS_29:
         try:
@@ -2752,6 +3176,13 @@ def main() -> int:
         rows,
     )
     save_vivier_performance(performance, args.vivier_performance)
+    pip_state, pip_report = update_vivier_pip_tracker(
+        load_vivier_pips(args.vivier_pips),
+        vivier_state,
+        rows,
+        now=run_now,
+    )
+    save_vivier_pips(pip_state, args.vivier_pips)
     carry_telegram_metadata(previous_vivier, vivier_state)
     save_vivier_state(vivier_state, args.vivier_state)
     print_vivier_report(vivier_state, vivier_signals)
@@ -2774,6 +3205,7 @@ def main() -> int:
         rows,
         vivier_state=vivier_state,
         vivier_signals=vivier_signals,
+        pip_report=pip_report,
     )
     if message is None:
         print("\nVIVIER vide — aucun message Telegram envoyé.")
@@ -2785,10 +3217,14 @@ def main() -> int:
         print("Telegram: envoi désactivé (--no-telegram).")
     elif not args.force_telegram and message_hash == previous_vivier.get("telegram_last_body_hash"):
         print("Telegram: message inchangé, envoi ignoré.")
+        mark_vivier_pip_reports_sent(pip_state, pip_report)
+        save_vivier_pips(pip_state, args.vivier_pips)
     else:
         send_telegram_message(message)
+        mark_vivier_pip_reports_sent(pip_state, pip_report)
+        save_vivier_pips(pip_state, args.vivier_pips)
         vivier_state["telegram_last_body_hash"] = message_hash
-        vivier_state["telegram_last_sent_at_paris"] = datetime.now(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
+        vivier_state["telegram_last_sent_at_paris"] = run_now.strftime("%Y-%m-%d %H:%M")
         save_vivier_state(vivier_state, args.vivier_state)
     return 0
 
