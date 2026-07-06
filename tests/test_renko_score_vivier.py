@@ -657,6 +657,8 @@ class VivierStateTests(unittest.TestCase):
         )
         self.assertAlmostEqual(report["intraday"]["total_pips"], 10.0)
         self.assertEqual(len(state["days"]["2026-07-06"]["segments"]), 1)
+        lines = vivier_pip_intraday_lines(report)
+        self.assertIn("🟢 JOUR GAGNANT", lines)
 
         state, report = update_vivier_pip_tracker(
             state, active, [pip_row("EURUSD", 1.1020, "2026-07-06 23:00+02:00")],
@@ -670,7 +672,8 @@ class VivierStateTests(unittest.TestCase):
     def test_vivier_pips_build_weekly_and_monthly_reports(self):
         state = {}
         active = {"pairs": {"EURUSD": {"direction": 1}}}
-        for offset in range(5):
+        end_prices = [1.1010, 1.0990, 1.1000, 1.1005, 1.0995]
+        for offset, end_price in enumerate(end_prices):
             day = pd.Timestamp("2026-07-06", tz=PARIS) + pd.Timedelta(days=offset)
             start = day + pd.Timedelta(hours=7)
             end = day + pd.Timedelta(hours=23)
@@ -679,15 +682,19 @@ class VivierStateTests(unittest.TestCase):
                 now=start.to_pydatetime(),
             )
             state, report = update_vivier_pip_tracker(
-                state, active, [pip_row("EURUSD", 1.1010, end)],
+                state, active, [pip_row("EURUSD", end_price, end)],
                 now=end.to_pydatetime(),
             )
 
         self.assertIsNotNone(report["weekly"])
-        self.assertAlmostEqual(report["weekly"]["total_pips"], 50.0)
+        self.assertAlmostEqual(report["weekly"]["total_pips"], 0.0)
+        self.assertEqual(report["weekly"]["winning_days"], 2)
+        self.assertEqual(report["weekly"]["losing_days"], 2)
+        self.assertEqual(report["weekly"]["flat_days"], 1)
         weekly_lines = vivier_pip_period_lines(report)
         self.assertIn("📅 BILAN HEBDOMADAIRE", weekly_lines)
-        self.assertIn("TOTAL : +50.0 pips", weekly_lines)
+        self.assertIn("JOURS : 🟢 2 gagnants / 🔴 2 perdants / ⚪ 1 neutres", weekly_lines)
+        self.assertIn("TOTAL : +0.0 pips", weekly_lines)
 
         state, monthly = update_vivier_pip_tracker(
             state, {"pairs": {}}, [],
@@ -696,12 +703,16 @@ class VivierStateTests(unittest.TestCase):
         self.assertIsNotNone(monthly["monthly"])
         self.assertEqual(monthly["monthly"]["label"], "JUILLET")
         self.assertEqual(monthly["monthly"]["days"], 5)
-        self.assertAlmostEqual(monthly["monthly"]["total_pips"], 50.0)
+        self.assertEqual(monthly["monthly"]["winning_days"], 2)
+        self.assertEqual(monthly["monthly"]["losing_days"], 2)
+        self.assertEqual(monthly["monthly"]["flat_days"], 1)
+        self.assertAlmostEqual(monthly["monthly"]["total_pips"], 0.0)
         message = build_telegram_message(
             [], [], vivier_state={"pairs": {}}, pip_report=monthly
         )
         self.assertIn("🗓 BILAN MENSUEL — JUILLET", message)
-        self.assertIn("Σ TOTAL : +50.0 pips", message)
+        self.assertIn("JOURS : 🟢 2 gagnants / 🔴 2 perdants / ⚪ 1 neutres", message)
+        self.assertIn("Σ TOTAL : +0.0 pips", message)
 
     def test_transition_revalidates_only_entries_created_in_current_month(self):
         current = row("CURRENT", 1, 1, 0, fib_pct=60.0)

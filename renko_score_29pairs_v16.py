@@ -108,6 +108,7 @@ VIVIER_PIPS_PATH = os.path.join(
 VIVIER_PIPS_VERSION = 1
 VIVIER_PIPS_START_HOUR_PARIS = 7
 VIVIER_PIPS_END_HOUR_PARIS = 23
+VIVIER_PIPS_DAY_RESULT_EPSILON = 0.05
 VIVIER_PERFORMANCE_VERSION = 3
 VIVIER_PERFORMANCE_HOURS = (1, 4, 12, 24, 72)
 VIVIER_PERFORMANCE_WINDOW_H1 = max(VIVIER_PERFORMANCE_HOURS)
@@ -2270,6 +2271,38 @@ def _pip_day_totals(state: dict, day_key: str, include_open: bool = True) -> dic
     return {"bull_pips": bull, "bear_pips": bear, "total_pips": bull + bear}
 
 
+def _pip_day_result(total_pips: float) -> str:
+    if total_pips > VIVIER_PIPS_DAY_RESULT_EPSILON:
+        return "WIN"
+    if total_pips < -VIVIER_PIPS_DAY_RESULT_EPSILON:
+        return "LOSS"
+    return "FLAT"
+
+
+def _pip_day_result_counts(state: dict, day_keys: list[str]) -> dict:
+    wins = losses = flats = followed = 0
+    for day_key in day_keys:
+        day = (state.get("days") or {}).get(day_key) or {}
+        if not day.get("finalized"):
+            continue
+        followed += 1
+        result = _pip_day_result(
+            _pip_day_totals(state, day_key, include_open=False)["total_pips"]
+        )
+        if result == "WIN":
+            wins += 1
+        elif result == "LOSS":
+            losses += 1
+        else:
+            flats += 1
+    return {
+        "followed_days": followed,
+        "winning_days": wins,
+        "losing_days": losses,
+        "flat_days": flats,
+    }
+
+
 def _weekly_pip_report(state: dict, clock: datetime) -> dict:
     monday = clock.date() - timedelta(days=clock.weekday())
     labels = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi")
@@ -2282,12 +2315,14 @@ def _weekly_pip_report(state: dict, clock: datetime) -> dict:
         bear += totals["bear_pips"]
         daily.append({"label": label, "date": day_key, **totals})
     iso = clock.isocalendar()
+    day_keys = [(monday + timedelta(days=offset)).isoformat() for offset in range(5)]
     return {
         "key": f"{iso.year}-W{iso.week:02d}",
         "daily": daily,
         "bull_pips": bull,
         "bear_pips": bear,
         "total_pips": bull + bear,
+        **_pip_day_result_counts(state, day_keys),
     }
 
 
@@ -2310,6 +2345,7 @@ def _monthly_pip_report(state: dict, clock: datetime) -> dict | None:
         "JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN",
         "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE",
     )
+    day_keys = [day_key for day_key, _ in selected]
     return {
         "key": month_key,
         "label": month_names[previous_last.month - 1],
@@ -2317,6 +2353,7 @@ def _monthly_pip_report(state: dict, clock: datetime) -> dict | None:
         "bull_pips": bull,
         "bear_pips": bear,
         "total_pips": bull + bear,
+        **_pip_day_result_counts(state, day_keys),
     }
 
 
@@ -2448,7 +2485,16 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
 
     report: dict = {"intraday": None, "weekly": None, "monthly": None}
     if in_window and fresh_market:
-        report["intraday"] = {"date": today, **_pip_day_totals(state, today)}
+        today_totals = _pip_day_totals(state, today)
+        today_finalized = bool(
+            ((state.get("days") or {}).get(today) or {}).get("finalized")
+        )
+        report["intraday"] = {
+            "date": today,
+            **today_totals,
+            "finalized": today_finalized,
+            "day_result": _pip_day_result(today_totals["total_pips"]),
+        }
 
     if clock.weekday() == 4 and clock.hour >= VIVIER_PIPS_END_HOUR_PARIS:
         weekly = _weekly_pip_report(state, clock)
@@ -2491,12 +2537,20 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
     item = (report or {}).get("intraday")
     if not item:
         return []
-    return [
+    lines = [
         "📈 PIPS GLOBAL DEPUIS 07H",
         f"🟢 BULL : {_format_pips(item['bull_pips'])} pips",
         f"🔴 BEAR : {_format_pips(item['bear_pips'])} pips",
         f"Σ TOTAL : {_format_pips(item['total_pips'])} pips",
     ]
+    if item.get("finalized"):
+        label = {
+            "WIN": "🟢 JOUR GAGNANT",
+            "LOSS": "🔴 JOUR PERDANT",
+            "FLAT": "⚪ JOUR NEUTRE",
+        }.get(item.get("day_result"), "⚪ JOUR NEUTRE")
+        lines.append(label)
+    return lines
 
 
 def vivier_pip_period_lines(report: dict | None) -> list[str]:
@@ -2508,6 +2562,12 @@ def vivier_pip_period_lines(report: dict | None) -> list[str]:
             f"{day['label']} : {_format_pips(day['total_pips'])} pips"
             for day in weekly["daily"]
         )
+        lines.append(
+            "JOURS : "
+            f"🟢 {weekly.get('winning_days', 0)} gagnants / "
+            f"🔴 {weekly.get('losing_days', 0)} perdants / "
+            f"⚪ {weekly.get('flat_days', 0)} neutres"
+        )
         lines.append(f"TOTAL : {_format_pips(weekly['total_pips'])} pips")
     monthly = (report or {}).get("monthly")
     if monthly:
@@ -2516,6 +2576,10 @@ def vivier_pip_period_lines(report: dict | None) -> list[str]:
         lines.extend([
             f"🗓 BILAN MENSUEL — {monthly['label']}",
             f"{monthly['days']} journées suivies",
+            "JOURS : "
+            f"🟢 {monthly.get('winning_days', 0)} gagnants / "
+            f"🔴 {monthly.get('losing_days', 0)} perdants / "
+            f"⚪ {monthly.get('flat_days', 0)} neutres",
             f"🟢 BULL : {_format_pips(monthly['bull_pips'])} pips",
             f"🔴 BEAR : {_format_pips(monthly['bear_pips'])} pips",
             f"Σ TOTAL : {_format_pips(monthly['total_pips'])} pips",
