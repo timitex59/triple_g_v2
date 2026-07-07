@@ -35,38 +35,43 @@
     },
     "2026-07-07": {
       "date": "2026-07-07",
-      "finalized": false,
-      "segments": []
+      "finalized": true,
+      "finalized_at_paris": "2026-07-07T23:15:49.725756+02:00",
+      "segments": [
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-07",
+          "direction": 1,
+          "end_price": 0.98392,
+          "end_time_paris": "2026-07-07T23:00:00+02:00",
+          "end_time_utc": "2026-07-07T21:00:00+00:00",
+          "pair": "AUDCAD",
+          "pips": -30.200000000000227,
+          "start_price": 0.98694,
+          "start_time_paris": "2026-07-07T07:00:00+02:00",
+          "start_time_utc": "2026-07-07T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-07",
+          "direction": 1,
+          "end_price": 112.333,
+          "end_time_paris": "2026-07-07T23:00:00+02:00",
+          "end_time_utc": "2026-07-07T21:00:00+00:00",
+          "pair": "AUDJPY",
+          "pips": 1.099999999999568,
+          "start_price": 112.322,
+          "start_time_paris": "2026-07-07T07:00:00+02:00",
+          "start_time_utc": "2026-07-07T05:00:00+00:00"
+        }
+      ]
     }
   },
-  "open_segments": {
-    "AUDCAD": {
-      "current_pips": -27.599999999999845,
-      "date": "2026-07-07",
-      "direction": 1,
-      "last_price": 0.98418,
-      "last_time_utc": "2026-07-07T20:00:00+00:00",
-      "pair": "AUDCAD",
-      "start_price": 0.98694,
-      "start_time_paris": "2026-07-07T07:00:00+02:00",
-      "start_time_utc": "2026-07-07T05:00:00+00:00"
-    },
-    "AUDJPY": {
-      "current_pips": 4.200000000000159,
-      "date": "2026-07-07",
-      "direction": 1,
-      "last_price": 112.364,
-      "last_time_utc": "2026-07-07T20:00:00+00:00",
-      "pair": "AUDJPY",
-      "start_price": 112.322,
-      "start_time_paris": "2026-07-07T07:00:00+02:00",
-      "start_time_utc": "2026-07-07T05:00:00+00:00"
-    }
-  },
+  "open_segments": {},
   "reports_sent": {
     "monthly": [],
     "weekly": []
   },
-  "updated_at_paris": "2026-07-07T22:16:04.367125+02:00",
+  "updated_at_paris": "2026-07-07T23:15:49.725756+02:00",
   "version": 1
 }
