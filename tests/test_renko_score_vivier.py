@@ -624,6 +624,10 @@ class VivierStateTests(unittest.TestCase):
         lines = vivier_pip_intraday_lines(report)
         self.assertIn("🟢 BULL : +20.0 pips", lines)
         self.assertIn("Σ TOTAL : +30.0 pips", lines)
+        self.assertIn("📊 CUMULS EN COURS", lines)
+        self.assertIn("Σ Daily : +30.0 pips", lines)
+        self.assertIn("Σ Weekly : +30.0 pips", lines)
+        self.assertIn("Σ Monthly : +30.0 pips", lines)
 
     def test_vivier_pips_first_run_backfills_from_07h(self):
         current = pip_row("EURUSD", 1.1015, "2026-07-06 10:00+02:00")
@@ -658,6 +662,10 @@ class VivierStateTests(unittest.TestCase):
         self.assertAlmostEqual(report["intraday"]["total_pips"], 10.0)
         self.assertEqual(len(state["days"]["2026-07-06"]["segments"]), 1)
         lines = vivier_pip_intraday_lines(report)
+        self.assertIn("📊 CUMULS FIN DE JOURNÉE", lines)
+        self.assertIn("Σ Daily : +10.0 pips", lines)
+        self.assertIn("Σ Weekly : +10.0 pips", lines)
+        self.assertIn("Σ Monthly : +10.0 pips", lines)
         self.assertIn("🟢 JOUR GAGNANT", lines)
 
         state, report = update_vivier_pip_tracker(
@@ -696,23 +704,36 @@ class VivierStateTests(unittest.TestCase):
         self.assertIn("JOURS : 🟢 2 gagnants / 🔴 2 perdants / ⚪ 1 neutres", weekly_lines)
         self.assertIn("TOTAL : +0.0 pips", weekly_lines)
 
-        state, monthly = update_vivier_pip_tracker(
+        state, monthly_midmonth = update_vivier_pip_tracker(
             state, {"pairs": {}}, [],
             now=datetime(2026, 8, 1, 7, 17, tzinfo=PARIS),
         )
+        self.assertIsNone(monthly_midmonth["monthly"])
+
+        july_last_friday = pd.Timestamp("2026-07-31", tz=PARIS)
+        state, _ = update_vivier_pip_tracker(
+            state, active,
+            [pip_row("EURUSD", 1.1000, july_last_friday + pd.Timedelta(hours=7))],
+            now=(july_last_friday + pd.Timedelta(hours=7)).to_pydatetime(),
+        )
+        state, monthly = update_vivier_pip_tracker(
+            state, active,
+            [pip_row("EURUSD", 1.1007, july_last_friday + pd.Timedelta(hours=23))],
+            now=(july_last_friday + pd.Timedelta(hours=23)).to_pydatetime(),
+        )
         self.assertIsNotNone(monthly["monthly"])
         self.assertEqual(monthly["monthly"]["label"], "JUILLET")
-        self.assertEqual(monthly["monthly"]["days"], 5)
-        self.assertEqual(monthly["monthly"]["winning_days"], 2)
+        self.assertEqual(monthly["monthly"]["days"], 6)
+        self.assertEqual(monthly["monthly"]["winning_days"], 3)
         self.assertEqual(monthly["monthly"]["losing_days"], 2)
         self.assertEqual(monthly["monthly"]["flat_days"], 1)
-        self.assertAlmostEqual(monthly["monthly"]["total_pips"], 0.0)
+        self.assertAlmostEqual(monthly["monthly"]["total_pips"], 7.0)
         message = build_telegram_message(
             [], [], vivier_state={"pairs": {}}, pip_report=monthly
         )
         self.assertIn("🗓 BILAN MENSUEL — JUILLET", message)
-        self.assertIn("JOURS : 🟢 2 gagnants / 🔴 2 perdants / ⚪ 1 neutres", message)
-        self.assertIn("Σ TOTAL : +0.0 pips", message)
+        self.assertIn("JOURS : 🟢 3 gagnants / 🔴 2 perdants / ⚪ 1 neutres", message)
+        self.assertIn("Σ TOTAL : +7.0 pips", message)
 
     def test_transition_revalidates_only_entries_created_in_current_month(self):
         current = row("CURRENT", 1, 1, 0, fib_pct=60.0)

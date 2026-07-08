@@ -2303,6 +2303,54 @@ def _pip_day_result_counts(state: dict, day_keys: list[str]) -> dict:
     }
 
 
+def _last_friday_of_month(year: int, month: int):
+    if month == 12:
+        next_month = datetime(year + 1, 1, 1).date()
+    else:
+        next_month = datetime(year, month + 1, 1).date()
+    last_day = next_month - timedelta(days=1)
+    return last_day - timedelta(days=(last_day.weekday() - 4) % 7)
+
+
+def _date_keys_between(start, end) -> list[str]:
+    keys = []
+    current = start
+    while current <= end:
+        keys.append(current.isoformat())
+        current += timedelta(days=1)
+    return keys
+
+
+def _period_pip_totals(
+    state: dict, day_keys: list[str], live_day_key: str | None = None
+) -> dict:
+    bull = bear = 0.0
+    for day_key in day_keys:
+        day = (state.get("days") or {}).get(day_key) or {}
+        is_live_day = day_key == live_day_key
+        if not day.get("finalized") and not is_live_day:
+            continue
+        totals = _pip_day_totals(
+            state, day_key, include_open=is_live_day and not day.get("finalized")
+        )
+        bull += totals["bull_pips"]
+        bear += totals["bear_pips"]
+    return {"bull_pips": bull, "bear_pips": bear, "total_pips": bull + bear}
+
+
+def _monthly_cycle_start(day):
+    month_close = _last_friday_of_month(day.year, day.month)
+    if day > month_close:
+        previous_close = month_close
+    else:
+        first = day.replace(day=1)
+        previous_last = first - timedelta(days=1)
+        previous_close = _last_friday_of_month(
+            previous_last.year, previous_last.month
+        )
+    return previous_close + timedelta(days=1)
+
+
 def _weekly_pip_report(state: dict, clock: datetime) -> dict:
     monday = clock.date() - timedelta(days=clock.weekday())
     labels = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi")
@@ -2327,12 +2375,13 @@ def _weekly_pip_report(state: dict, clock: datetime) -> dict:
 
 
 def _monthly_pip_report(state: dict, clock: datetime) -> dict | None:
-    current_first = clock.date().replace(day=1)
-    previous_last = current_first - timedelta(days=1)
-    month_key = f"{previous_last.year:04d}-{previous_last.month:02d}"
+    month_close = _last_friday_of_month(clock.year, clock.month)
+    month_start = _monthly_cycle_start(month_close)
+    month_key = f"{month_close.year:04d}-{month_close.month:02d}"
     selected = [
         (day_key, day) for day_key, day in (state.get("days") or {}).items()
-        if day_key.startswith(month_key) and day.get("finalized")
+        if month_start.isoformat() <= day_key <= month_close.isoformat()
+        and day.get("finalized")
     ]
     if not selected:
         return None
@@ -2348,12 +2397,31 @@ def _monthly_pip_report(state: dict, clock: datetime) -> dict | None:
     day_keys = [day_key for day_key, _ in selected]
     return {
         "key": month_key,
-        "label": month_names[previous_last.month - 1],
+        "label": month_names[month_close.month - 1],
         "days": len(selected),
         "bull_pips": bull,
         "bear_pips": bear,
         "total_pips": bull + bear,
         **_pip_day_result_counts(state, day_keys),
+    }
+
+
+def _period_pip_summary_report(state: dict, clock: datetime, day_key: str) -> dict:
+    day = (state.get("days") or {}).get(day_key) or {}
+    day_date = clock.date()
+    week_start = day_date - timedelta(days=day_date.weekday())
+    month_start = _monthly_cycle_start(day_date)
+    finalized = bool(day.get("finalized"))
+    return {
+        "date": day_key,
+        "finalized": finalized,
+        "daily": _pip_day_totals(state, day_key, include_open=not finalized),
+        "weekly": _period_pip_totals(
+            state, _date_keys_between(week_start, day_date), live_day_key=day_key
+        ),
+        "monthly": _period_pip_totals(
+            state, _date_keys_between(month_start, day_date), live_day_key=day_key
+        ),
     }
 
 
@@ -2483,7 +2551,13 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
             day["finalized"] = True
             day["finalized_at_paris"] = clock.isoformat()
 
-    report: dict = {"intraday": None, "weekly": None, "monthly": None}
+    report: dict = {
+        "intraday": None,
+        "eod_summary": None,
+        "period_summary": None,
+        "weekly": None,
+        "monthly": None,
+    }
     if in_window and fresh_market:
         today_totals = _pip_day_totals(state, today)
         today_finalized = bool(
@@ -2495,13 +2569,19 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
             "finalized": today_finalized,
             "day_result": _pip_day_result(today_totals["total_pips"]),
         }
+        summary = _period_pip_summary_report(state, clock, today)
+        report["period_summary"] = summary
+        if today_finalized:
+            report["eod_summary"] = summary
 
     if clock.weekday() == 4 and clock.hour >= VIVIER_PIPS_END_HOUR_PARIS:
         weekly = _weekly_pip_report(state, clock)
         if weekly["key"] not in reports_sent["weekly"]:
             report["weekly"] = weekly
 
-    if clock.day == 1 and clock.hour >= VIVIER_PIPS_START_HOUR_PARIS:
+    month_close = _last_friday_of_month(clock.year, clock.month)
+    if (clock.date() == month_close
+            and clock.hour >= VIVIER_PIPS_END_HOUR_PARIS):
         monthly = _monthly_pip_report(state, clock)
         if monthly and monthly["key"] not in reports_sent["monthly"]:
             report["monthly"] = monthly
@@ -2550,6 +2630,20 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
             "FLAT": "⚪ JOUR NEUTRE",
         }.get(item.get("day_result"), "⚪ JOUR NEUTRE")
         lines.append(label)
+    summary = (report or {}).get("period_summary") or (report or {}).get("eod_summary")
+    if summary:
+        title = (
+            "📊 CUMULS FIN DE JOURNÉE"
+            if item.get("finalized")
+            else "📊 CUMULS EN COURS"
+        )
+        lines.extend([
+            "",
+            title,
+            f"Σ Daily : {_format_pips(summary['daily']['total_pips'])} pips",
+            f"Σ Weekly : {_format_pips(summary['weekly']['total_pips'])} pips",
+            f"Σ Monthly : {_format_pips(summary['monthly']['total_pips'])} pips",
+        ])
     return lines
 
 
