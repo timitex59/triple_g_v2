@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-07-08 17:17",
+  "updated_at_paris": "2026-07-08 18:18",
   "pairs": {
     "AUDCAD": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-07-08 17:17",
+      "last_seen_at_paris": "2026-07-08 18:18",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -19,7 +19,7 @@
       "base_pct": 33.33333333333333,
       "weighted_pct": 0.0,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 27.937591418820112,
+      "fib_pct_of_range": 29.351535836177554,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -41,7 +41,7 @@
     "AUDJPY": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-07-08 17:17",
+      "last_seen_at_paris": "2026-07-08 18:18",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -55,7 +55,7 @@
       "base_pct": 50.0,
       "weighted_pct": 25.0,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 33.387799564270026,
+      "fib_pct_of_range": 33.19716775599141,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -77,7 +77,7 @@
     "CADCHF": {
       "direction": -1,
       "entered_at_paris": "2026-07-08 02:36",
-      "last_seen_at_paris": "2026-07-08 17:17",
+      "last_seen_at_paris": "2026-07-08 18:18",
       "entry_px": {
         "M": -1,
         "W": -1,
@@ -91,7 +91,7 @@
       "base_pct": -33.33333333333333,
       "weighted_pct": -0.0,
       "fib_position": "Fibo >0.786",
-      "fib_pct_of_range": 96.71592775041084,
+      "fib_pct_of_range": 97.91332263242433,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo >0.500",
       "entry_fib_pct_of_range": 52.417582417583006,
@@ -111,29 +111,17 @@
       "sar_record_time_utc": "2026-07-08T13:00:00+00:00"
     }
   },
-  "pending_objectives": {
-    "USDJPY": {
+  "pending_objectives": {},
+  "objective_events": [
+    {
+      "event_type": "POST_ALIGNMENT_OBJECTIVE_REACHED",
+      "pair": "USDJPY",
       "direction": 1,
-      "value": 162.672,
-      "origin_month_utc": "2026-06",
-      "started_time_utc": "2026-07-03T06:00:00+00:00",
-      "signal_time_utc": "2026-07-06T05:00:00+00:00",
-      "signal_price": 161.941,
-      "signal_base_pct": 100.0,
-      "signal_weighted_pct": 90.0,
-      "signal_fib_position": "Fibo <0.786",
-      "signal_px": {
-        "M": 1,
-        "W": 1,
-        "D": 1
-      },
-      "post_alignment_time_utc": "2026-07-06T05:00:00+00:00",
-      "post_alignment_month_utc": "2026-06",
-      "was_carried_before_alignment": false,
-      "source_entered_at_paris": "2026-07-03 08:17"
+      "time_utc": "2026-07-08T16:00:00+00:00",
+      "objective_value": 162.672,
+      "origin_month_utc": "2026-06"
     }
-  },
-  "objective_events": [],
-  "telegram_last_body_hash": "55fbdb73e4148d0cbe230ebd7a4bc5f28f48dc42b9683af6d1d45a2c5995863d",
-  "telegram_last_sent_at_paris": "2026-07-08 17:15"
+  ],
+  "telegram_last_body_hash": "07e29094f9b4c9bc598f4d89e1d62bd46cddee35b8f9e90073e3f9e036decc20",
+  "telegram_last_sent_at_paris": "2026-07-08 18:17"
 }
