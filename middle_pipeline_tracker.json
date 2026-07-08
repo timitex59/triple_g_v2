@@ -1,6 +1,6 @@
 {
-  "updated": "2026-07-07",
-  "prev_update": "2026-07-06",
+  "updated": "2026-07-08",
+  "prev_update": "2026-07-07",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -80,13 +80,13 @@
       "dropped_on": "2026-07-06"
     },
     "SITM": {
-      "streak": 1,
-      "days": 8,
+      "streak": 2,
+      "days": 9,
       "first_seen": "2026-06-24",
-      "last_seen": "2026-07-07",
+      "last_seen": "2026-07-08",
       "last_rank": 5,
       "peak_rank": 3,
-      "last_rel": 50.2,
+      "last_rel": 53.08,
       "active": true
     },
     "SANM": {
@@ -134,33 +134,33 @@
       "dropped_on": "2026-06-30"
     },
     "CVLT": {
-      "streak": 4,
-      "days": 4,
+      "streak": 5,
+      "days": 5,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-07-07",
+      "last_seen": "2026-07-08",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 83.61,
+      "last_rel": 75.89,
       "active": true
     },
     "OKTA": {
-      "streak": 4,
-      "days": 4,
+      "streak": 5,
+      "days": 5,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-07-07",
+      "last_seen": "2026-07-08",
       "last_rank": 2,
       "peak_rank": 2,
-      "last_rel": 75.93,
+      "last_rel": 72.96,
       "active": true
     },
     "QLYS": {
-      "streak": 4,
-      "days": 4,
+      "streak": 5,
+      "days": 5,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-07-07",
+      "last_seen": "2026-07-08",
       "last_rank": 3,
       "peak_rank": 3,
-      "last_rel": 68.09,
+      "last_rel": 63.69,
       "active": true
     },
     "CXT": {
@@ -182,6 +182,17 @@
       "last_rank": 4,
       "peak_rank": 4,
       "last_rel": 53.29,
+      "active": false,
+      "dropped_on": "2026-07-08"
+    },
+    "SYNA": {
+      "streak": 1,
+      "days": 1,
+      "first_seen": "2026-07-08",
+      "last_seen": "2026-07-08",
+      "last_rank": 4,
+      "peak_rank": 4,
+      "last_rel": 56.61,
       "active": true
     }
   },
@@ -189,69 +200,89 @@
     "persistent": [
       [
         "CVLT",
-        4
+        5
       ],
       [
         "OKTA",
-        4
+        5
       ],
       [
         "QLYS",
-        4
-      ],
-      [
-        "TWLO",
-        1
+        5
       ],
       [
         "SITM",
+        2
+      ],
+      [
+        "SYNA",
         1
       ]
     ],
     "new": [
-      "TWLO",
-      "SITM"
+      "SYNA"
     ],
-    "weakening": [],
+    "weakening": [
+      {
+        "ticker": "CVLT",
+        "rank": 1,
+        "prev_rank": 1,
+        "rel": 75.89,
+        "prev_rel": 83.61
+      },
+      {
+        "ticker": "OKTA",
+        "rank": 2,
+        "prev_rank": 2,
+        "rel": 72.96,
+        "prev_rel": 75.93
+      },
+      {
+        "ticker": "QLYS",
+        "rank": 3,
+        "prev_rank": 3,
+        "rel": 63.69,
+        "prev_rel": 68.09
+      }
+    ],
     "dropped": [
-      "CGNX",
-      "CXT"
+      "TWLO"
     ],
     "durable": [
       [
         "CVLT",
-        4,
-        83.61,
-        334.4
+        5,
+        75.89,
+        379.4
       ],
       [
         "OKTA",
-        4,
-        75.93,
-        303.7
+        5,
+        72.96,
+        364.8
       ],
       [
         "QLYS",
-        4,
-        68.09,
-        272.4
-      ],
-      [
-        "TWLO",
-        1,
-        53.29,
-        53.3
+        5,
+        63.69,
+        318.4
       ],
       [
         "SITM",
+        2,
+        53.08,
+        106.2
+      ],
+      [
+        "SYNA",
         1,
-        50.2,
-        50.2
+        56.61,
+        56.6
       ]
     ],
     "switch": null
   },
   "leader_raw": "Logiciels",
-  "leader_raw_days": 1,
+  "leader_raw_days": 2,
   "leader_confirmed": "Semis"
 }
