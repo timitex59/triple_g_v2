@@ -622,12 +622,11 @@ class VivierStateTests(unittest.TestCase):
         self.assertAlmostEqual(report["intraday"]["bear_pips"], 10.0)
         self.assertAlmostEqual(report["intraday"]["total_pips"], 30.0)
         lines = vivier_pip_intraday_lines(report)
-        self.assertIn("🟢 BULL : +20.0 pips", lines)
-        self.assertIn("Σ TOTAL : +30.0 pips", lines)
-        self.assertIn("📊 CUMULS EN COURS", lines)
-        self.assertIn("Σ Daily : +30.0 pips", lines)
-        self.assertIn("Σ Weekly : +30.0 pips", lines)
-        self.assertIn("Σ Monthly : +30.0 pips", lines)
+        self.assertIn("📈 DAILY : +30.0 pips", lines)
+        self.assertIn("🟢 BULL +20.0 | 🔴 BEAR +10.0", lines)
+        self.assertIn("📊 CUMULS", lines)
+        self.assertIn("Weekly : +30.0 pips", lines)
+        self.assertIn("Monthly : +30.0 pips", lines)
 
     def test_vivier_pips_first_run_backfills_from_07h(self):
         current = pip_row("EURUSD", 1.1015, "2026-07-06 10:00+02:00")
@@ -662,10 +661,11 @@ class VivierStateTests(unittest.TestCase):
         self.assertAlmostEqual(report["intraday"]["total_pips"], 10.0)
         self.assertEqual(len(state["days"]["2026-07-06"]["segments"]), 1)
         lines = vivier_pip_intraday_lines(report)
-        self.assertIn("📊 CUMULS FIN DE JOURNÉE", lines)
-        self.assertIn("Σ Daily : +10.0 pips", lines)
-        self.assertIn("Σ Weekly : +10.0 pips", lines)
-        self.assertIn("Σ Monthly : +10.0 pips", lines)
+        self.assertIn("📈 DAILY : +10.0 pips", lines)
+        self.assertIn("🟢 BULL +10.0 | 🔴 BEAR +0.0", lines)
+        self.assertIn("📊 CUMULS", lines)
+        self.assertIn("Weekly : +10.0 pips", lines)
+        self.assertIn("Monthly : +10.0 pips", lines)
         self.assertIn("🟢 JOUR GAGNANT", lines)
 
         state, report = update_vivier_pip_tracker(

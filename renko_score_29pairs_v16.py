@@ -2618,10 +2618,11 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
     if not item:
         return []
     lines = [
-        "📈 PIPS GLOBAL DEPUIS 07H",
-        f"🟢 BULL : {_format_pips(item['bull_pips'])} pips",
-        f"🔴 BEAR : {_format_pips(item['bear_pips'])} pips",
-        f"Σ TOTAL : {_format_pips(item['total_pips'])} pips",
+        f"📈 DAILY : {_format_pips(item['total_pips'])} pips",
+        (
+            f"🟢 BULL {_format_pips(item['bull_pips'])} | "
+            f"🔴 BEAR {_format_pips(item['bear_pips'])}"
+        ),
     ]
     if item.get("finalized"):
         label = {
@@ -2632,17 +2633,11 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
         lines.append(label)
     summary = (report or {}).get("period_summary") or (report or {}).get("eod_summary")
     if summary:
-        title = (
-            "📊 CUMULS FIN DE JOURNÉE"
-            if item.get("finalized")
-            else "📊 CUMULS EN COURS"
-        )
         lines.extend([
             "",
-            title,
-            f"Σ Daily : {_format_pips(summary['daily']['total_pips'])} pips",
-            f"Σ Weekly : {_format_pips(summary['weekly']['total_pips'])} pips",
-            f"Σ Monthly : {_format_pips(summary['monthly']['total_pips'])} pips",
+            "📊 CUMULS",
+            f"Weekly : {_format_pips(summary['weekly']['total_pips'])} pips",
+            f"Monthly : {_format_pips(summary['monthly']['total_pips'])} pips",
         ])
     return lines
 
