@@ -2620,8 +2620,8 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
     lines = [
         f"📈 DAILY : {_format_pips(item['total_pips'])} pips",
         (
-            f"🟢 BULL {_format_pips(item['bull_pips'])} | "
-            f"🔴 BEAR {_format_pips(item['bear_pips'])}"
+            f"🟢 {_format_pips(item['bull_pips'])} | "
+            f"🔴 {_format_pips(item['bear_pips'])}"
         ),
     ]
     if item.get("finalized"):
