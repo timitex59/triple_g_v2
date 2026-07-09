@@ -492,6 +492,29 @@ def sar_cross_event(df: pd.DataFrame, sar_state: dict | None) -> dict | None:
     }
 
 
+def daily_sar_confirmation(df: pd.DataFrame | None, live_price: float | None) -> dict:
+    """Daily SAR state used to confirm the daily CHG% icon.
+
+    dir: +1 when close is above daily SAR, -1 when close is below daily SAR,
+    0 when unavailable or exactly neutral.
+    """
+    if df is None or df.empty or live_price is None:
+        return {"dir": 0, "value": None}
+    sar_state = parabolic_sar(df)
+    sar_values = (sar_state or {}).get("sar") or []
+    if not sar_values:
+        return {"dir": 0, "value": None}
+    sar_value = float(sar_values[-1])
+    close_value = float(live_price)
+    if close_value > sar_value:
+        direction = 1
+    elif close_value < sar_value:
+        direction = -1
+    else:
+        direction = 0
+    return {"dir": direction, "value": sar_value}
+
+
 def monthly_fib_transition_context(df: pd.DataFrame) -> dict | None:
     """Select the stable Fibo range used around an UTC month reset.
 
@@ -763,12 +786,13 @@ def compute_tf_state(pair: str, interval: str, length: int, candles: int, max_st
 def compute_pair_score(pair: str, length: int, candles: int, max_streak: int) -> dict | None:
     # "Daily Live Close": the latest (possibly still-forming) daily close,
     # used as the chart reference price compared against each TF's Renko brick.
-    df_d_live = fetch_tv_ohlc(f"OANDA:{pair}", "D", 2)
+    df_d_live = fetch_tv_ohlc(f"OANDA:{pair}", "D", max(candles, 50))
     if df_d_live is None or df_d_live.empty:
         return None
     live_price = float(df_d_live["close"].iloc[-1])
     prev_close = float(df_d_live["close"].iloc[-2]) if len(df_d_live) >= 2 else None
     daily_chg = ((live_price - prev_close) / prev_close * 100.0) if prev_close and prev_close != 0 else None
+    daily_sar = daily_sar_confirmation(df_d_live, live_price)
 
     states: dict[str, TFState] = {}
     for interval in ("M", "W", "D"):
@@ -813,6 +837,8 @@ def compute_pair_score(pair: str, length: int, candles: int, max_streak: int) ->
         "live_price": live_price,
         "h1_price": h1_price,
         "daily_chg": daily_chg,
+        "daily_sar_dir": daily_sar.get("dir"),
+        "daily_sar_value": daily_sar.get("value"),
         "states": states,
         "px": px,
         "bias": bias,
@@ -1313,6 +1339,8 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 existing["base_pct"] = row.get("base_pct")
                 existing["weighted_pct"] = row.get("weighted_pct")
                 existing["daily_chg"] = row.get("daily_chg")
+                existing["daily_sar_dir"] = row.get("daily_sar_dir")
+                existing["daily_sar_value"] = row.get("daily_sar_value")
                 existing["fib_position"] = fib_directional_label(row.get("h1_fib"), direction)
                 existing["fib_pct_of_range"] = (row.get("h1_fib") or {}).get("pct_of_range")
                 existing["fib_source"] = (row.get("h1_fib") or {}).get(
@@ -1372,6 +1400,8 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 "base_pct": row.get("base_pct"),
                 "weighted_pct": row.get("weighted_pct"),
                 "daily_chg": row.get("daily_chg"),
+                "daily_sar_dir": row.get("daily_sar_dir"),
+                "daily_sar_value": row.get("daily_sar_value"),
                 "fib_position": fib_directional_label(row.get("h1_fib"), direction),
                 "fib_pct_of_range": (row.get("h1_fib") or {}).get("pct_of_range"),
                 "fib_source": (row.get("h1_fib") or {}).get("effective_fib_source"),
@@ -1458,13 +1488,19 @@ def vivier_flame_label(entry: dict) -> str:
     return SAR_FLAME_LABELS.get(entry.get("sar_flame_kind"), "🔥")
 
 
-def daily_chg_icon(value: float | int | None) -> str:
-    """Telegram icon for daily CHG% direction."""
-    if not isinstance(value, (int, float)):
+def daily_chg_sar_icon(daily_chg: float | int | None,
+                       daily_sar_dir: int | None) -> str:
+    """Telegram icon for daily CHG% confirmed by daily SAR.
+
+    Green: CHG% > 0 and close > daily SAR.
+    Red: CHG% < 0 and close < daily SAR.
+    Grey: unavailable, neutral or disagreement.
+    """
+    if not isinstance(daily_chg, (int, float)) or daily_sar_dir not in (-1, 1):
         return "⚪"
-    if value > 0:
+    if daily_chg > 0 and daily_sar_dir == 1:
         return "🟢"
-    if value < 0:
+    if daily_chg < 0 and daily_sar_dir == -1:
         return "🔴"
     return "⚪"
 
@@ -1488,7 +1524,7 @@ def _format_telegram_vivier_entry_line(pair: str, entry: dict) -> str:
     """Compact Telegram line: current score, current Fibo and active flame."""
     direction = int(entry.get("direction", 1))
     icon = "🟢" if direction == 1 else "🔴"
-    chg_icon = daily_chg_icon(entry.get("daily_chg"))
+    chg_icon = daily_chg_sar_icon(entry.get("daily_chg"), entry.get("daily_sar_dir"))
     score = vivier_base_score(entry)
     current_fib = _strip_fibo_prefix(entry.get("fib_position"))
     line = f"{icon}{chg_icon} {pair} ({score:+.0f}% | {current_fib})"
@@ -1565,6 +1601,7 @@ def post_signal_tracking_entries(state: dict, all_rows: list[dict] | None = None
             "signal_weighted_pct": objective.get("signal_weighted_pct"),
             "sar_dir": ((row or {}).get("h1_fib") or {}).get("sar_dir"),
             "daily_chg": (row or {}).get("daily_chg"),
+            "daily_sar_dir": (row or {}).get("daily_sar_dir"),
         })
     return sorted(result, key=lambda item: (
         -abs(item["directional_pct"]) if isinstance(item["directional_pct"], (int, float)) else 0,
@@ -3238,7 +3275,9 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         lines.append("🎯 SUIVI SIGNAL")
         for item in post_signal_entries:
             icon = "🟢" if item["direction"] == 1 else "🔴"
-            chg_icon = daily_chg_icon(item.get("daily_chg"))
+            chg_icon = daily_chg_sar_icon(
+                item.get("daily_chg"), item.get("daily_sar_dir")
+            )
             pct = item.get("directional_pct")
             pct_txt = f" ({pct:+.2f}%)" if isinstance(pct, (int, float)) else ""
             lines.append(f"{icon}{chg_icon} {item['pair']}{pct_txt}")
@@ -3264,7 +3303,9 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         for pair, entry in near_entries:
             direction = int(entry["direction"])
             icon = "🟢" if direction == 1 else "🔴"
-            chg_icon = daily_chg_icon(entry.get("daily_chg"))
+            chg_icon = daily_chg_sar_icon(
+                entry.get("daily_chg"), entry.get("daily_sar_dir")
+            )
             score = vivier_base_score(entry)
             missing = "D restant"
             lines.append(f"{icon}{chg_icon} {pair} · {missing} · {score:+.0f}%")

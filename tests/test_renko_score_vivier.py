@@ -408,6 +408,7 @@ class VivierStateTests(unittest.TestCase):
                     "fib_source": "PREVIOUS",
                     "sar_dir": 1,
                     "daily_chg": -0.12,
+                    "daily_sar_dir": -1,
                 }
             }
         }
@@ -486,6 +487,7 @@ class VivierStateTests(unittest.TestCase):
             "h1_price": 214.065,
             "h1_fib": {"sar_dir": -1},
             "daily_chg": 0.21,
+            "daily_sar_dir": 1,
         }
 
         message = build_telegram_message([], [current], vivier_state=state)
@@ -494,6 +496,31 @@ class VivierStateTests(unittest.TestCase):
         self.assertIn("🟢🟢 GBPJPY (+0.50%)", message)
         self.assertNotIn("depuis signal", message)
         self.assertNotIn("F1 215.614", message)
+
+    def test_telegram_daily_chg_icon_requires_daily_sar_confirmation(self):
+        state = {
+            "pairs": {
+                "GBPJPY": {
+                    "direction": 1,
+                    "last_px": {"M": 1, "W": 1, "D": 0},
+                    "fib_position": "Fibo <0.382",
+                    "daily_chg": 0.12,
+                    "daily_sar_dir": -1,
+                },
+                "CADCHF": {
+                    "direction": -1,
+                    "last_px": {"M": -1, "W": -1, "D": 0},
+                    "fib_position": "Fibo >0.618",
+                    "daily_chg": -0.15,
+                    "daily_sar_dir": -1,
+                },
+            }
+        }
+
+        message = build_telegram_message([], [], vivier_state=state)
+
+        self.assertIn("🟢⚪ GBPJPY (+83% | <0.382)", message)
+        self.assertIn("🔴🔴 CADCHF (-83% | >0.618)", message)
 
     def test_telegram_shows_compact_theoretical_pairs_without_strength_blocks(self):
         state = {
