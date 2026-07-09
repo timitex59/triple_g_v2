@@ -1312,6 +1312,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 existing["last_px"] = px
                 existing["base_pct"] = row.get("base_pct")
                 existing["weighted_pct"] = row.get("weighted_pct")
+                existing["daily_chg"] = row.get("daily_chg")
                 existing["fib_position"] = fib_directional_label(row.get("h1_fib"), direction)
                 existing["fib_pct_of_range"] = (row.get("h1_fib") or {}).get("pct_of_range")
                 existing["fib_source"] = (row.get("h1_fib") or {}).get(
@@ -1370,6 +1371,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 "last_px": px,
                 "base_pct": row.get("base_pct"),
                 "weighted_pct": row.get("weighted_pct"),
+                "daily_chg": row.get("daily_chg"),
                 "fib_position": fib_directional_label(row.get("h1_fib"), direction),
                 "fib_pct_of_range": (row.get("h1_fib") or {}).get("pct_of_range"),
                 "fib_source": (row.get("h1_fib") or {}).get("effective_fib_source"),
@@ -1456,6 +1458,17 @@ def vivier_flame_label(entry: dict) -> str:
     return SAR_FLAME_LABELS.get(entry.get("sar_flame_kind"), "🔥")
 
 
+def daily_chg_icon(value: float | int | None) -> str:
+    """Telegram icon for daily CHG% direction."""
+    if not isinstance(value, (int, float)):
+        return "⚪"
+    if value > 0:
+        return "🟢"
+    if value < 0:
+        return "🔴"
+    return "⚪"
+
+
 def _format_vivier_entry_line(pair: str, entry: dict, now: datetime | None = None) -> str:
     direction = int(entry.get("direction", 1))
     icon = "🟢" if direction == 1 else "🔴"
@@ -1475,10 +1488,10 @@ def _format_telegram_vivier_entry_line(pair: str, entry: dict) -> str:
     """Compact Telegram line: current score, current Fibo and active flame."""
     direction = int(entry.get("direction", 1))
     icon = "🟢" if direction == 1 else "🔴"
-    sar_icon = {1: "🟢", -1: "🔴"}.get(entry.get("sar_dir"), "⚪")
+    chg_icon = daily_chg_icon(entry.get("daily_chg"))
     score = vivier_base_score(entry)
     current_fib = _strip_fibo_prefix(entry.get("fib_position"))
-    line = f"{icon}{sar_icon} {pair} ({score:+.0f}% | {current_fib})"
+    line = f"{icon}{chg_icon} {pair} ({score:+.0f}% | {current_fib})"
     flame = vivier_flame_label(entry)
     return f"{line} {flame}" if flame else line
 
@@ -1551,6 +1564,7 @@ def post_signal_tracking_entries(state: dict, all_rows: list[dict] | None = None
             "directional_pct": directional_pct,
             "signal_weighted_pct": objective.get("signal_weighted_pct"),
             "sar_dir": ((row or {}).get("h1_fib") or {}).get("sar_dir"),
+            "daily_chg": (row or {}).get("daily_chg"),
         })
     return sorted(result, key=lambda item: (
         -abs(item["directional_pct"]) if isinstance(item["directional_pct"], (int, float)) else 0,
@@ -3224,10 +3238,10 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         lines.append("🎯 SUIVI SIGNAL")
         for item in post_signal_entries:
             icon = "🟢" if item["direction"] == 1 else "🔴"
-            sar_icon = {1: "🟢", -1: "🔴"}.get(item.get("sar_dir"), "⚪")
+            chg_icon = daily_chg_icon(item.get("daily_chg"))
             pct = item.get("directional_pct")
             pct_txt = f" ({pct:+.2f}%)" if isinstance(pct, (int, float)) else ""
-            lines.append(f"{icon}{sar_icon} {item['pair']}{pct_txt}")
+            lines.append(f"{icon}{chg_icon} {item['pair']}{pct_txt}")
         has_content = True
 
     for direction, title, entries in (
@@ -3250,10 +3264,10 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         for pair, entry in near_entries:
             direction = int(entry["direction"])
             icon = "🟢" if direction == 1 else "🔴"
-            sar_icon = {1: "🟢", -1: "🔴"}.get(entry.get("sar_dir"), "⚪")
+            chg_icon = daily_chg_icon(entry.get("daily_chg"))
             score = vivier_base_score(entry)
             missing = "D restant"
-            lines.append(f"{icon}{sar_icon} {pair} · {missing} · {score:+.0f}%")
+            lines.append(f"{icon}{chg_icon} {pair} · {missing} · {score:+.0f}%")
         has_content = True
 
     if intraday_pip_lines:

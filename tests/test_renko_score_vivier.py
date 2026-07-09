@@ -406,7 +406,8 @@ class VivierStateTests(unittest.TestCase):
                     "last_px": {"M": 1, "W": 1, "D": 0},
                     "fib_position": "Fibo <0.382",
                     "fib_source": "PREVIOUS",
-                    "sar_dir": -1,
+                    "sar_dir": 1,
+                    "daily_chg": -0.12,
                 }
             }
         }
@@ -483,7 +484,8 @@ class VivierStateTests(unittest.TestCase):
         current = {
             "pair": "GBPJPY",
             "h1_price": 214.065,
-            "h1_fib": {"sar_dir": 1},
+            "h1_fib": {"sar_dir": -1},
+            "daily_chg": 0.21,
         }
 
         message = build_telegram_message([], [current], vivier_state=state)
