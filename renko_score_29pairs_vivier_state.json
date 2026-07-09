@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-07-09 00:18",
+  "updated_at_paris": "2026-07-09 07:17",
   "pairs": {
     "AUDCAD": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-07-09 00:18",
+      "last_seen_at_paris": "2026-07-09 07:17",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -19,7 +19,7 @@
       "base_pct": 33.33333333333333,
       "weighted_pct": 0.0,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 36.616284739151666,
+      "fib_pct_of_range": 37.786445636275104,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -27,7 +27,7 @@
       "fib_objective_value": 0.99516,
       "fib_objective_origin_month_utc": "2026-06",
       "fib_objective_started_time_utc": "2026-06-28T23:00:00+00:00",
-      "sar_last_processed_time_utc": "2026-07-08T13:00:00+00:00",
+      "sar_last_processed_time_utc": "2026-07-09T05:00:00+00:00",
       "sar_record_value": 0.9765,
       "sar_record_time_utc": "2026-06-29T06:00:00+00:00",
       "entry_fib_position": "Fibo <0.236",
@@ -36,12 +36,12 @@
       "fib_objective_carried_since_month_utc": "2026-07",
       "fib_objective_carried_at_time_utc": "2026-07-01T05:00:00+00:00",
       "fib_source": "PREVIOUS",
-      "sar_dir": -1
+      "sar_dir": 1
     },
     "AUDJPY": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-07-09 00:18",
+      "last_seen_at_paris": "2026-07-09 07:17",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -55,7 +55,7 @@
       "base_pct": 83.33333333333334,
       "weighted_pct": 0.0,
       "fib_position": "Fibo <0.500",
-      "fib_pct_of_range": 39.59694989106763,
+      "fib_pct_of_range": 38.698257080610084,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -74,10 +74,41 @@
       "fib_source": "PREVIOUS",
       "sar_dir": 1
     },
+    "AUDNZD": {
+      "direction": 1,
+      "entered_at_paris": "2026-07-09 07:17",
+      "last_seen_at_paris": "2026-07-09 07:17",
+      "entry_px": {
+        "M": 1,
+        "W": 0,
+        "D": -1
+      },
+      "last_px": {
+        "M": 1,
+        "W": 0,
+        "D": -1
+      },
+      "base_pct": 33.33333333333333,
+      "weighted_pct": 0.0,
+      "fib_position": "Fibo <0.500",
+      "fib_pct_of_range": 43.547110055423474,
+      "fib_source": "PREVIOUS",
+      "entry_fib_position": "Fibo <0.500",
+      "entry_fib_pct_of_range": 43.547110055423474,
+      "entry_fib_source": "PREVIOUS",
+      "sar_dir": -1,
+      "fib_context_month_utc": "2026-06",
+      "fib_objective_active": true,
+      "fib_objective_carried": false,
+      "fib_objective_value": 1.22582,
+      "fib_objective_origin_month_utc": "2026-06",
+      "fib_objective_started_time_utc": "2026-07-09T05:00:00+00:00",
+      "sar_flame": false
+    },
     "CADCHF": {
       "direction": -1,
       "entered_at_paris": "2026-07-08 02:36",
-      "last_seen_at_paris": "2026-07-09 00:18",
+      "last_seen_at_paris": "2026-07-09 07:17",
       "entry_px": {
         "M": -1,
         "W": -1,
@@ -85,18 +116,18 @@
       },
       "last_px": {
         "M": -1,
-        "W": 0,
-        "D": 1
+        "W": -1,
+        "D": 0
       },
-      "base_pct": -33.33333333333333,
-      "weighted_pct": -0.0,
-      "fib_position": "Fibo >0.786",
-      "fib_pct_of_range": 85.23274478330598,
+      "base_pct": -83.33333333333334,
+      "weighted_pct": -41.66666666666667,
+      "fib_position": "Fibo >0.618",
+      "fib_pct_of_range": 74.3178170144471,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo >0.500",
       "entry_fib_pct_of_range": 52.417582417583006,
       "entry_fib_source": "PREVIOUS",
-      "sar_dir": 1,
+      "sar_dir": -1,
       "fib_objective_active": true,
       "fib_objective_value": 0.56494,
       "fib_objective_origin_month_utc": "2026-06",
@@ -113,6 +144,6 @@
   },
   "pending_objectives": {},
   "objective_events": [],
-  "telegram_last_body_hash": "38b2cc847d577c2855f64a63fee01500adfc2669304077e031461a2b390baa18",
-  "telegram_last_sent_at_paris": "2026-07-09 00:17"
+  "telegram_last_body_hash": "eabfd6db99281b01e4d4a415dddc9299b8d5f25a214e5d1464cc24247206fb61",
+  "telegram_last_sent_at_paris": "2026-07-09 07:15"
 }
