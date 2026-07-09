@@ -38,6 +38,7 @@ from renko_forex_V2 import fetch_tv_renko_ohlc as fetch_tv_native_renko_ohlc
 PARIS_TZ = ZoneInfo("Europe/Paris")
 SCORE_THRESHOLD = 60.0
 CHG_THRESHOLD = 0.1
+DAILY_CHG_SAR_ICON_THRESHOLD = 0.05
 CONFIRMED_MIN_STREAKS = {"M": 1, "W": 1, "D": 2}
 VIVIER_MIN_ABS_BASE_SCORE = 33.0
 VIVIER_FIB_MIDPOINT_PCT = 50.0
@@ -1492,15 +1493,15 @@ def daily_chg_sar_icon(daily_chg: float | int | None,
                        daily_sar_dir: int | None) -> str:
     """Telegram icon for daily CHG% confirmed by daily SAR.
 
-    Green: CHG% > 0 and close > daily SAR.
-    Red: CHG% < 0 and close < daily SAR.
+    Green: CHG% > +threshold and close > daily SAR.
+    Red: CHG% < -threshold and close < daily SAR.
     Grey: unavailable, neutral or disagreement.
     """
     if not isinstance(daily_chg, (int, float)) or daily_sar_dir not in (-1, 1):
         return "⚪"
-    if daily_chg > 0 and daily_sar_dir == 1:
+    if daily_chg > DAILY_CHG_SAR_ICON_THRESHOLD and daily_sar_dir == 1:
         return "🟢"
-    if daily_chg < 0 and daily_sar_dir == -1:
+    if daily_chg < -DAILY_CHG_SAR_ICON_THRESHOLD and daily_sar_dir == -1:
         return "🔴"
     return "⚪"
 

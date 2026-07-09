@@ -18,6 +18,7 @@ from renko_score_29pairs_v16 import (
     build_telegram_message,
     closed_h1_source,
     collect_vivier_run_events,
+    daily_chg_sar_icon,
     fib_ceiling_label,
     fibo_currency_coefficient,
     fibo_currency_sar_adjusted_coefficient,
@@ -521,6 +522,14 @@ class VivierStateTests(unittest.TestCase):
 
         self.assertIn("🟢⚪ GBPJPY (+83% | <0.382)", message)
         self.assertIn("🔴🔴 CADCHF (-83% | >0.618)", message)
+
+    def test_daily_chg_sar_icon_requires_strict_chg_buffer(self):
+        self.assertEqual(daily_chg_sar_icon(0.0500, 1), "⚪")
+        self.assertEqual(daily_chg_sar_icon(0.0501, 1), "🟢")
+        self.assertEqual(daily_chg_sar_icon(-0.0500, -1), "⚪")
+        self.assertEqual(daily_chg_sar_icon(-0.0501, -1), "🔴")
+        self.assertEqual(daily_chg_sar_icon(0.0600, -1), "⚪")
+        self.assertEqual(daily_chg_sar_icon(-0.0600, 1), "⚪")
 
     def test_telegram_shows_compact_theoretical_pairs_without_strength_blocks(self):
         state = {
