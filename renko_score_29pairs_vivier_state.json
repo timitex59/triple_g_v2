@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-07-09 13:19",
+  "updated_at_paris": "2026-07-09 14:17",
   "pairs": {
     "AUDCAD": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-07-09 13:19",
+      "last_seen_at_paris": "2026-07-09 14:17",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -19,7 +19,7 @@
       "base_pct": 50.0,
       "weighted_pct": 0.0,
       "fib_position": "Fibo <0.500",
-      "fib_pct_of_range": 39.73671379814714,
+      "fib_pct_of_range": 41.0043881033643,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -41,7 +41,7 @@
     "AUDJPY": {
       "direction": 1,
       "entered_at_paris": "2026-06-27 18:38",
-      "last_seen_at_paris": "2026-07-09 13:19",
+      "last_seen_at_paris": "2026-07-09 14:17",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -54,8 +54,8 @@
       },
       "base_pct": 83.33333333333334,
       "weighted_pct": 0.0,
-      "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 37.11873638344214,
+      "fib_position": "Fibo <0.500",
+      "fib_pct_of_range": 39.052287581699545,
       "sar_flame": false,
       "fib_context_month_utc": "2026-06",
       "fib_objective_active": true,
@@ -72,12 +72,12 @@
       "fib_objective_carried_since_month_utc": "2026-07",
       "fib_objective_carried_at_time_utc": "2026-07-01T05:00:00+00:00",
       "fib_source": "PREVIOUS",
-      "sar_dir": -1
+      "sar_dir": 1
     },
     "AUDNZD": {
       "direction": 1,
       "entered_at_paris": "2026-07-09 07:17",
-      "last_seen_at_paris": "2026-07-09 13:19",
+      "last_seen_at_paris": "2026-07-09 14:17",
       "entry_px": {
         "M": 1,
         "W": 0,
@@ -91,7 +91,7 @@
       "base_pct": 33.33333333333333,
       "weighted_pct": 0.0,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 33.531274742676295,
+      "fib_pct_of_range": 30.364212193190394,
       "fib_source": "PREVIOUS",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 43.547110055423474,
@@ -108,7 +108,7 @@
     "CADCHF": {
       "direction": -1,
       "entered_at_paris": "2026-07-08 02:36",
-      "last_seen_at_paris": "2026-07-09 13:19",
+      "last_seen_at_paris": "2026-07-09 14:17",
       "entry_px": {
         "M": -1,
         "W": -1,
@@ -120,10 +120,10 @@
         "D": 0
       },
       "base_pct": -83.33333333333334,
-      "weighted_pct": -41.66666666666667,
-      "fib_position": "Fibo >0.618",
-      "fib_pct_of_range": 72.07062600321066,
-      "fib_source": "CURRENT",
+      "weighted_pct": -50.00000000000001,
+      "fib_position": "Fibo >0.382",
+      "fib_pct_of_range": 48.13186813186871,
+      "fib_source": "PREVIOUS",
       "entry_fib_position": "Fibo >0.500",
       "entry_fib_pct_of_range": 52.417582417583006,
       "entry_fib_source": "PREVIOUS",
@@ -133,7 +133,7 @@
       "fib_objective_origin_month_utc": "2026-06",
       "fib_objective_started_time_utc": "2026-06-28T23:00:00+00:00",
       "fib_objective_carried": true,
-      "fib_context_month_utc": "2026-07",
+      "fib_context_month_utc": "2026-06",
       "fib_objective_reattached_from_post_alignment": true,
       "fib_objective_post_alignment_time_utc": "2026-07-02T13:00:00+00:00",
       "sar_flame": false,
@@ -144,7 +144,7 @@
     "NZDCHF": {
       "direction": -1,
       "entered_at_paris": "2026-07-09 09:17",
-      "last_seen_at_paris": "2026-07-09 13:19",
+      "last_seen_at_paris": "2026-07-09 14:17",
       "entry_px": {
         "M": -1,
         "W": 0,
@@ -158,7 +158,7 @@
       "base_pct": -33.33333333333333,
       "weighted_pct": -0.0,
       "fib_position": "Fibo >0.500",
-      "fib_pct_of_range": 58.61500412201144,
+      "fib_pct_of_range": 59.93404781533373,
       "fib_source": "PREVIOUS",
       "entry_fib_position": "Fibo >0.500",
       "entry_fib_pct_of_range": 50.37098103874682,
@@ -178,6 +178,6 @@
   },
   "pending_objectives": {},
   "objective_events": [],
-  "telegram_last_body_hash": "c9b5b93047853432ac44caf98f13bd163a9c8933d452082b1ebcd9a50c21bb21",
-  "telegram_last_sent_at_paris": "2026-07-09 13:15"
+  "telegram_last_body_hash": "25645aa12d8f3c527b5e81fdafee7c2cecf591668c1739a3f34404b0bda73e84",
+  "telegram_last_sent_at_paris": "2026-07-09 14:15"
 }
