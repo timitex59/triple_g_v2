@@ -106,7 +106,7 @@ VIVIER_PERFORMANCE_PATH = os.path.join(
 VIVIER_PIPS_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "renko_vivier_pips.json"
 )
-VIVIER_PIPS_VERSION = 1
+VIVIER_PIPS_VERSION = 2
 VIVIER_PIPS_START_HOUR_PARIS = 7
 VIVIER_PIPS_END_HOUR_PARIS = 23
 VIVIER_PIPS_DAY_RESULT_EPSILON = 0.05
@@ -2189,6 +2189,7 @@ def load_vivier_pips(path: str = VIVIER_PIPS_PATH) -> dict:
     return {
         "version": VIVIER_PIPS_VERSION,
         "open_segments": {},
+        "open_confirmed_segments": {},
         "days": {},
         "reports_sent": {"weekly": [], "monthly": []},
     }
@@ -2279,13 +2280,22 @@ def _pip_day(state: dict, day_key: str) -> dict:
     return state.setdefault("days", {}).setdefault(day_key, {
         "date": day_key,
         "segments": [],
+        "confirmed_segments": [],
         "finalized": False,
     })
 
 
+def _pip_segments_key(confirmed: bool = False) -> str:
+    return "confirmed_segments" if confirmed else "segments"
+
+
+def _pip_open_segments_key(confirmed: bool = False) -> str:
+    return "open_confirmed_segments" if confirmed else "open_segments"
+
+
 def _close_pip_segment(state: dict, pair: str, segment: dict,
                        end_ts: pd.Timestamp, end_price: float,
-                       reason: str) -> None:
+                       reason: str, confirmed: bool = False) -> None:
     day = _pip_day(state, str(segment["date"]))
     closed = dict(segment)
     closed.update({
@@ -2298,21 +2308,22 @@ def _close_pip_segment(state: dict, pair: str, segment: dict,
     closed.pop("last_price", None)
     closed.pop("last_time_utc", None)
     closed.pop("current_pips", None)
-    day.setdefault("segments", []).append(closed)
-    state.setdefault("open_segments", {}).pop(pair, None)
+    day.setdefault(_pip_segments_key(confirmed), []).append(closed)
+    state.setdefault(_pip_open_segments_key(confirmed), {}).pop(pair, None)
 
 
-def _pip_day_totals(state: dict, day_key: str, include_open: bool = True) -> dict:
+def _pip_day_totals(state: dict, day_key: str, include_open: bool = True,
+                    confirmed: bool = False) -> dict:
     bull = bear = 0.0
     day = (state.get("days") or {}).get(day_key) or {}
-    for segment in day.get("segments") or []:
+    for segment in day.get(_pip_segments_key(confirmed)) or []:
         pips = float(segment.get("pips") or 0.0)
         if segment.get("direction") == 1:
             bull += pips
         elif segment.get("direction") == -1:
             bear += pips
     if include_open:
-        for segment in (state.get("open_segments") or {}).values():
+        for segment in (state.get(_pip_open_segments_key(confirmed)) or {}).values():
             if segment.get("date") != day_key:
                 continue
             pips = float(segment.get("current_pips") or 0.0)
@@ -2374,7 +2385,8 @@ def _date_keys_between(start, end) -> list[str]:
 
 
 def _period_pip_totals(
-    state: dict, day_keys: list[str], live_day_key: str | None = None
+    state: dict, day_keys: list[str], live_day_key: str | None = None,
+    confirmed: bool = False,
 ) -> dict:
     bull = bear = 0.0
     for day_key in day_keys:
@@ -2383,7 +2395,8 @@ def _period_pip_totals(
         if not day.get("finalized") and not is_live_day:
             continue
         totals = _pip_day_totals(
-            state, day_key, include_open=is_live_day and not day.get("finalized")
+            state, day_key, include_open=is_live_day and not day.get("finalized"),
+            confirmed=confirmed,
         )
         bull += totals["bull_pips"]
         bear += totals["bear_pips"]
@@ -2408,12 +2421,23 @@ def _weekly_pip_report(state: dict, clock: datetime) -> dict:
     labels = ("Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi")
     daily = []
     bull = bear = 0.0
+    confirmed_bull = confirmed_bear = 0.0
     for offset, label in enumerate(labels):
         day_key = (monday + timedelta(days=offset)).isoformat()
         totals = _pip_day_totals(state, day_key, include_open=False)
+        confirmed_totals = _pip_day_totals(
+            state, day_key, include_open=False, confirmed=True
+        )
         bull += totals["bull_pips"]
         bear += totals["bear_pips"]
-        daily.append({"label": label, "date": day_key, **totals})
+        confirmed_bull += confirmed_totals["bull_pips"]
+        confirmed_bear += confirmed_totals["bear_pips"]
+        daily.append({
+            "label": label,
+            "date": day_key,
+            **totals,
+            "confirmed": confirmed_totals,
+        })
     iso = clock.isocalendar()
     day_keys = [(monday + timedelta(days=offset)).isoformat() for offset in range(5)]
     return {
@@ -2422,6 +2446,9 @@ def _weekly_pip_report(state: dict, clock: datetime) -> dict:
         "bull_pips": bull,
         "bear_pips": bear,
         "total_pips": bull + bear,
+        "confirmed_bull_pips": confirmed_bull,
+        "confirmed_bear_pips": confirmed_bear,
+        "confirmed_total_pips": confirmed_bull + confirmed_bear,
         **_pip_day_result_counts(state, day_keys),
     }
 
@@ -2438,10 +2465,16 @@ def _monthly_pip_report(state: dict, clock: datetime) -> dict | None:
     if not selected:
         return None
     bull = bear = 0.0
+    confirmed_bull = confirmed_bear = 0.0
     for day_key, _ in selected:
         totals = _pip_day_totals(state, day_key, include_open=False)
+        confirmed_totals = _pip_day_totals(
+            state, day_key, include_open=False, confirmed=True
+        )
         bull += totals["bull_pips"]
         bear += totals["bear_pips"]
+        confirmed_bull += confirmed_totals["bull_pips"]
+        confirmed_bear += confirmed_totals["bear_pips"]
     month_names = (
         "JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN",
         "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE",
@@ -2454,6 +2487,9 @@ def _monthly_pip_report(state: dict, clock: datetime) -> dict | None:
         "bull_pips": bull,
         "bear_pips": bear,
         "total_pips": bull + bear,
+        "confirmed_bull_pips": confirmed_bull,
+        "confirmed_bear_pips": confirmed_bear,
+        "confirmed_total_pips": confirmed_bull + confirmed_bear,
         **_pip_day_result_counts(state, day_keys),
     }
 
@@ -2468,13 +2504,36 @@ def _period_pip_summary_report(state: dict, clock: datetime, day_key: str) -> di
         "date": day_key,
         "finalized": finalized,
         "daily": _pip_day_totals(state, day_key, include_open=not finalized),
+        "daily_confirmed": _pip_day_totals(
+            state, day_key, include_open=not finalized, confirmed=True
+        ),
         "weekly": _period_pip_totals(
             state, _date_keys_between(week_start, day_date), live_day_key=day_key
+        ),
+        "weekly_confirmed": _period_pip_totals(
+            state,
+            _date_keys_between(week_start, day_date),
+            live_day_key=day_key,
+            confirmed=True,
         ),
         "monthly": _period_pip_totals(
             state, _date_keys_between(month_start, day_date), live_day_key=day_key
         ),
+        "monthly_confirmed": _period_pip_totals(
+            state,
+            _date_keys_between(month_start, day_date),
+            live_day_key=day_key,
+            confirmed=True,
+        ),
     }
+
+
+def _vivier_entry_confirmed_for_pips(entry: dict | None) -> bool:
+    if not isinstance(entry, dict):
+        return False
+    direction = entry.get("direction")
+    icon = daily_chg_sar_icon(entry.get("daily_chg"), entry.get("daily_sar_dir"))
+    return (direction == 1 and icon == "🟢") or (direction == -1 and icon == "🔴")
 
 
 def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
@@ -2484,6 +2543,7 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
     state = json.loads(json.dumps(previous)) if isinstance(previous, dict) else {}
     state["version"] = VIVIER_PIPS_VERSION
     state.setdefault("open_segments", {})
+    state.setdefault("open_confirmed_segments", {})
     state.setdefault("days", {})
     reports_sent = state.setdefault("reports_sent", {})
     reports_sent.setdefault("weekly", [])
@@ -2502,26 +2562,31 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
 
     # Close segments left open by a missed 23:00 run using the latest H1 close
     # available at or before the original day's Paris cutoff.
-    for pair, segment in list(state["open_segments"].items()):
-        if segment.get("date") == today:
-            continue
-        segment_date = datetime.fromisoformat(str(segment["date"]))
-        cutoff_local = datetime(
-            segment_date.year, segment_date.month, segment_date.day,
-            VIVIER_PIPS_END_HOUR_PARIS, tzinfo=PARIS_TZ,
-        )
-        cutoff = pd.Timestamp(cutoff_local).tz_convert("UTC")
-        start = _pip_timestamp(segment.get("start_time_utc"))
-        historical = _pip_historical_snapshot(rows_by_pair.get(pair), cutoff, start)
-        if historical is None:
-            historical = (
-                _pip_timestamp(segment.get("last_time_utc")) or cutoff,
-                float(segment.get("last_price", segment.get("start_price", 0.0))),
+    for confirmed in (False, True):
+        open_key = _pip_open_segments_key(confirmed)
+        for pair, segment in list(state.setdefault(open_key, {}).items()):
+            if segment.get("date") == today:
+                continue
+            segment_date = datetime.fromisoformat(str(segment["date"]))
+            cutoff_local = datetime(
+                segment_date.year, segment_date.month, segment_date.day,
+                VIVIER_PIPS_END_HOUR_PARIS, tzinfo=PARIS_TZ,
             )
-        _close_pip_segment(state, pair, segment, historical[0], historical[1], "DAY_END")
-        old_day = _pip_day(state, str(segment["date"]))
-        old_day["finalized"] = True
-        old_day["finalized_at_paris"] = cutoff_local.isoformat()
+            cutoff = pd.Timestamp(cutoff_local).tz_convert("UTC")
+            start = _pip_timestamp(segment.get("start_time_utc"))
+            historical = _pip_historical_snapshot(rows_by_pair.get(pair), cutoff, start)
+            if historical is None:
+                historical = (
+                    _pip_timestamp(segment.get("last_time_utc")) or cutoff,
+                    float(segment.get("last_price", segment.get("start_price", 0.0))),
+                )
+            _close_pip_segment(
+                state, pair, segment, historical[0], historical[1],
+                "DAY_END", confirmed=confirmed,
+            )
+            old_day = _pip_day(state, str(segment["date"]))
+            old_day["finalized"] = True
+            old_day["finalized_at_paris"] = cutoff_local.isoformat()
 
     in_window = VIVIER_PIPS_START_HOUR_PARIS <= clock.hour <= VIVIER_PIPS_END_HOUR_PARIS
     fresh_pairs = {
@@ -2531,6 +2596,10 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
     }
     fresh_market = bool(fresh_pairs)
     active_entries = (vivier_state or {}).get("pairs") or {}
+    confirmed_entries = {
+        pair: entry for pair, entry in active_entries.items()
+        if _vivier_entry_confirmed_for_pips(entry)
+    }
     day_already_finalized = bool(
         ((state.get("days") or {}).get(today) or {}).get("finalized")
     )
@@ -2553,6 +2622,25 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
             ))
             if ts is not None and isinstance(price, (int, float)):
                 _close_pip_segment(state, pair, segment, ts, float(price), "VIVIER_EXIT")
+
+        # Confirmed book: freeze as soon as the pair is no longer fully
+        # confirmed (VIVIER direction + daily CHG/SAR confirmation).
+        for pair, segment in list(state["open_confirmed_segments"].items()):
+            if segment.get("date") != today:
+                continue
+            entry = confirmed_entries.get(pair)
+            same_direction = entry and entry.get("direction") == segment.get("direction")
+            if same_direction:
+                continue
+            ts, price = snapshots.get(pair, (
+                _pip_timestamp(segment.get("last_time_utc")),
+                segment.get("last_price", segment.get("start_price")),
+            ))
+            if ts is not None and isinstance(price, (int, float)):
+                _close_pip_segment(
+                    state, pair, segment, ts, float(price),
+                    "CONFIRMED_EXIT", confirmed=True,
+                )
 
         # Open new segments (including a same-run opposite re-entry) and mark
         # all active segments to the latest confirmed H1 close.
@@ -2590,6 +2678,30 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
             segment["last_price"] = float(price)
             segment["current_pips"] = _pip_segment_value(segment, float(price))
 
+        # Confirmed entries are opened only from the first observed confirmed
+        # run. No 07:00 backfill is used because the confirmation may have
+        # appeared later in the day.
+        for pair, entry in confirmed_entries.items():
+            direction = entry.get("direction")
+            snapshot = snapshots.get(pair)
+            if direction not in (-1, 1) or snapshot is None or pair not in fresh_pairs:
+                continue
+            ts, price = snapshot
+            segment = state["open_confirmed_segments"].get(pair)
+            if segment is None:
+                segment = {
+                    "pair": pair,
+                    "direction": int(direction),
+                    "date": today,
+                    "start_time_utc": ts.isoformat(),
+                    "start_time_paris": ts.tz_convert(PARIS_TZ).isoformat(),
+                    "start_price": float(price),
+                }
+                state["open_confirmed_segments"][pair] = segment
+            segment["last_time_utc"] = ts.isoformat()
+            segment["last_price"] = float(price)
+            segment["current_pips"] = _pip_segment_value(segment, float(price))
+
         if clock.hour >= VIVIER_PIPS_END_HOUR_PARIS:
             for pair, segment in list(state["open_segments"].items()):
                 if segment.get("date") != today:
@@ -2600,6 +2712,18 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
                 ))
                 if ts is not None and isinstance(price, (int, float)):
                     _close_pip_segment(state, pair, segment, ts, float(price), "DAY_END")
+            for pair, segment in list(state["open_confirmed_segments"].items()):
+                if segment.get("date") != today:
+                    continue
+                ts, price = snapshots.get(pair, (
+                    _pip_timestamp(segment.get("last_time_utc")),
+                    segment.get("last_price", segment.get("start_price")),
+                ))
+                if ts is not None and isinstance(price, (int, float)):
+                    _close_pip_segment(
+                        state, pair, segment, ts, float(price),
+                        "DAY_END", confirmed=True,
+                    )
             day["finalized"] = True
             day["finalized_at_paris"] = clock.isoformat()
 
@@ -2612,12 +2736,17 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
     }
     if in_window and fresh_market:
         today_totals = _pip_day_totals(state, today)
+        today_confirmed_totals = _pip_day_totals(state, today, confirmed=True)
         today_finalized = bool(
             ((state.get("days") or {}).get(today) or {}).get("finalized")
         )
         report["intraday"] = {
             "date": today,
             **today_totals,
+            "confirmed": today_confirmed_totals,
+            "confirmed_bull_pips": today_confirmed_totals["bull_pips"],
+            "confirmed_bear_pips": today_confirmed_totals["bear_pips"],
+            "confirmed_total_pips": today_confirmed_totals["total_pips"],
             "finalized": today_finalized,
             "day_result": _pip_day_result(today_totals["total_pips"]),
         }
@@ -2669,11 +2798,19 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
     item = (report or {}).get("intraday")
     if not item:
         return []
+    confirmed = item.get("confirmed") or {}
     lines = [
-        f"📈 DAILY : {_format_pips(item['total_pips'])} pips",
+        (
+            f"📈 DAILY : {_format_pips(item['total_pips'])} pips / "
+            f"{_format_pips(confirmed.get('total_pips', 0.0))} pips"
+        ),
         (
             f"🟢 {_format_pips(item['bull_pips'])} | "
             f"🔴 {_format_pips(item['bear_pips'])}"
+        ),
+        (
+            f"🟢 {_format_pips(confirmed.get('bull_pips', 0.0))} | "
+            f"🔴 {_format_pips(confirmed.get('bear_pips', 0.0))}"
         ),
     ]
     if item.get("finalized"):
@@ -2685,11 +2822,19 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
         lines.append(label)
     summary = (report or {}).get("period_summary") or (report or {}).get("eod_summary")
     if summary:
+        weekly_confirmed = summary.get("weekly_confirmed") or {}
+        monthly_confirmed = summary.get("monthly_confirmed") or {}
         lines.extend([
             "",
             "📊 CUMULS",
-            f"Weekly : {_format_pips(summary['weekly']['total_pips'])} pips",
-            f"Monthly : {_format_pips(summary['monthly']['total_pips'])} pips",
+            (
+                f"Weekly : {_format_pips(summary['weekly']['total_pips'])} pips / "
+                f"{_format_pips(weekly_confirmed.get('total_pips', 0.0))} pips"
+            ),
+            (
+                f"Monthly : {_format_pips(summary['monthly']['total_pips'])} pips / "
+                f"{_format_pips(monthly_confirmed.get('total_pips', 0.0))} pips"
+            ),
         ])
     return lines
 
