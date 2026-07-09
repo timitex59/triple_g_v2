@@ -3382,7 +3382,6 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
     vivier_signals = vivier_signals or []
     vivier_state = vivier_state or {}
     bull_vivier, bear_vivier = vivier_groups(vivier_state)
-    near_entries = near_alignment_entries(vivier_state)
     post_signal_entries = post_signal_tracking_entries(vivier_state, all_rows)
     strength_rows = all_rows if all_rows is not None else rows
     active_vivier_entries = dict(bull_vivier + bear_vivier)
@@ -3396,7 +3395,7 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
     # Telegram is dedicated exclusively to the VIVIER ecosystem. Standalone
     # RENKO FIBO and reversal signals remain internal and silent.
     if (not bull_vivier and not bear_vivier and not vivier_signals
-            and not near_entries and not post_signal_entries
+            and not post_signal_entries
             and not theoretical_pairs and not intraday_pip_lines
             and not period_pip_lines):
         return None
@@ -3440,21 +3439,6 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         lines.append(title)
         for pair, entry in entries:
             lines.append(_format_telegram_vivier_entry_line(pair, entry))
-        has_content = True
-
-    if near_entries:
-        if has_content:
-            lines.append("")
-        lines.append("⏳ PROCHE ALIGNEMENT")
-        for pair, entry in near_entries:
-            direction = int(entry["direction"])
-            icon = "🟢" if direction == 1 else "🔴"
-            chg_icon = daily_chg_sar_icon(
-                entry.get("daily_chg"), entry.get("daily_sar_dir")
-            )
-            score = vivier_base_score(entry)
-            missing = "D restant"
-            lines.append(f"{icon}{chg_icon} {pair} · {missing} · {score:+.0f}%")
         has_content = True
 
     if intraday_pip_lines:

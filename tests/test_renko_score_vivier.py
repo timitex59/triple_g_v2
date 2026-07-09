@@ -456,7 +456,7 @@ class VivierStateTests(unittest.TestCase):
         self.assertNotIn("<0.236→", message)
         self.assertIn("🔥R", message)
 
-    def test_telegram_shows_near_alignment_section(self):
+    def test_telegram_hides_near_alignment_section(self):
         state = {
             "pairs": {
                 "GBPJPY": {
@@ -469,8 +469,10 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("PROCHE ALIGNEMENT", message)
-        self.assertIn("GBPJPY · D restant · +83%", message)
+        self.assertIn("VIVIER BULL", message)
+        self.assertIn("GBPJPY (+83% | <0.500)", message)
+        self.assertNotIn("PROCHE ALIGNEMENT", message)
+        self.assertNotIn("D restant", message)
 
     def test_telegram_shows_post_signal_tracking(self):
         state = {
@@ -561,8 +563,8 @@ class VivierStateTests(unittest.TestCase):
         self.assertIn("🟢 USDCAD 🌱USD/CAD", message)
         self.assertNotIn("GBPCAD", message)
         self.assertNotIn("NZDUSD", message)
-        self.assertLess(message.index("VIVIER BULL"), message.index("PROCHE ALIGNEMENT"))
-        self.assertLess(message.index("PROCHE ALIGNEMENT"), message.index("PAIRES FORT/FAIBLE"))
+        self.assertNotIn("PROCHE ALIGNEMENT", message)
+        self.assertLess(message.index("VIVIER BULL"), message.index("PAIRES FORT/FAIBLE"))
 
     def test_telegram_body_hash_ignores_timestamp_only(self):
         first = "📊 VIVIER\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 08:16 Paris"
