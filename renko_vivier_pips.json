@@ -201,7 +201,8 @@
         }
       ],
       "date": "2026-07-10",
-      "finalized": false,
+      "finalized": true,
+      "finalized_at_paris": "2026-07-10T23:15:40.825935+02:00",
       "segments": [
         {
           "close_reason": "VIVIER_EXIT",
@@ -215,72 +216,83 @@
           "start_price": 0.92075,
           "start_time_paris": "2026-07-10T07:00:00+02:00",
           "start_time_utc": "2026-07-10T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-10",
+          "direction": 1,
+          "end_price": 0.98426,
+          "end_time_paris": "2026-07-10T23:00:00+02:00",
+          "end_time_utc": "2026-07-10T21:00:00+00:00",
+          "pair": "AUDCAD",
+          "pips": -1.7999999999995797,
+          "start_price": 0.98444,
+          "start_time_paris": "2026-07-10T07:00:00+02:00",
+          "start_time_utc": "2026-07-10T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-10",
+          "direction": 1,
+          "end_price": 112.431,
+          "end_time_paris": "2026-07-10T23:00:00+02:00",
+          "end_time_utc": "2026-07-10T21:00:00+00:00",
+          "pair": "AUDJPY",
+          "pips": 2.199999999999136,
+          "start_price": 112.409,
+          "start_time_paris": "2026-07-10T07:00:00+02:00",
+          "start_time_utc": "2026-07-10T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-10",
+          "direction": 1,
+          "end_price": 1.20638,
+          "end_time_paris": "2026-07-10T23:00:00+02:00",
+          "end_time_utc": "2026-07-10T21:00:00+00:00",
+          "pair": "AUDNZD",
+          "pips": 22.200000000001108,
+          "start_price": 1.20416,
+          "start_time_paris": "2026-07-10T07:00:00+02:00",
+          "start_time_utc": "2026-07-10T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-10",
+          "direction": -1,
+          "end_price": 0.57102,
+          "end_time_paris": "2026-07-10T23:00:00+02:00",
+          "end_time_utc": "2026-07-10T21:00:00+00:00",
+          "pair": "CADCHF",
+          "pips": -25.699999999999612,
+          "start_price": 0.56845,
+          "start_time_paris": "2026-07-10T07:00:00+02:00",
+          "start_time_utc": "2026-07-10T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-10",
+          "direction": -1,
+          "end_price": 0.4659,
+          "end_time_paris": "2026-07-10T23:00:00+02:00",
+          "end_time_utc": "2026-07-10T21:00:00+00:00",
+          "pair": "NZDCHF",
+          "pips": -11.799999999999589,
+          "start_price": 0.46472,
+          "start_time_paris": "2026-07-10T07:00:00+02:00",
+          "start_time_utc": "2026-07-10T05:00:00+00:00"
         }
       ]
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {
-    "AUDCAD": {
-      "current_pips": -2.7999999999994696,
-      "date": "2026-07-10",
-      "direction": 1,
-      "last_price": 0.98416,
-      "last_time_utc": "2026-07-10T20:00:00+00:00",
-      "pair": "AUDCAD",
-      "start_price": 0.98444,
-      "start_time_paris": "2026-07-10T07:00:00+02:00",
-      "start_time_utc": "2026-07-10T05:00:00+00:00"
-    },
-    "AUDJPY": {
-      "current_pips": 3.699999999999193,
-      "date": "2026-07-10",
-      "direction": 1,
-      "last_price": 112.446,
-      "last_time_utc": "2026-07-10T20:00:00+00:00",
-      "pair": "AUDJPY",
-      "start_price": 112.409,
-      "start_time_paris": "2026-07-10T07:00:00+02:00",
-      "start_time_utc": "2026-07-10T05:00:00+00:00"
-    },
-    "AUDNZD": {
-      "current_pips": 21.600000000001618,
-      "date": "2026-07-10",
-      "direction": 1,
-      "last_price": 1.20632,
-      "last_time_utc": "2026-07-10T20:00:00+00:00",
-      "pair": "AUDNZD",
-      "start_price": 1.20416,
-      "start_time_paris": "2026-07-10T07:00:00+02:00",
-      "start_time_utc": "2026-07-10T05:00:00+00:00"
-    },
-    "CADCHF": {
-      "current_pips": -27.69999999999939,
-      "date": "2026-07-10",
-      "direction": -1,
-      "last_price": 0.57122,
-      "last_time_utc": "2026-07-10T20:00:00+00:00",
-      "pair": "CADCHF",
-      "start_price": 0.56845,
-      "start_time_paris": "2026-07-10T07:00:00+02:00",
-      "start_time_utc": "2026-07-10T05:00:00+00:00"
-    },
-    "NZDCHF": {
-      "current_pips": -13.199999999999878,
-      "date": "2026-07-10",
-      "direction": -1,
-      "last_price": 0.46604,
-      "last_time_utc": "2026-07-10T20:00:00+00:00",
-      "pair": "NZDCHF",
-      "start_price": 0.46472,
-      "start_time_paris": "2026-07-10T07:00:00+02:00",
-      "start_time_utc": "2026-07-10T05:00:00+00:00"
-    }
-  },
+  "open_segments": {},
   "reports_sent": {
     "monthly": [],
-    "weekly": []
+    "weekly": [
+      "2026-W28"
+    ]
   },
-  "updated_at_paris": "2026-07-10T22:42:46.970755+02:00",
+  "updated_at_paris": "2026-07-10T23:15:40.825935+02:00",
   "version": 2
 }
