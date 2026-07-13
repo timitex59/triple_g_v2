@@ -298,110 +298,114 @@
           "start_price": 112.456,
           "start_time_paris": "2026-07-13T10:00:00+02:00",
           "start_time_utc": "2026-07-13T08:00:00+00:00"
+        },
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-07-13",
+          "direction": 1,
+          "end_price": 112.387,
+          "end_time_paris": "2026-07-13T21:00:00+02:00",
+          "end_time_utc": "2026-07-13T19:00:00+00:00",
+          "pair": "AUDJPY",
+          "pips": -18.999999999999773,
+          "start_price": 112.577,
+          "start_time_paris": "2026-07-13T13:00:00+02:00",
+          "start_time_utc": "2026-07-13T11:00:00+00:00"
         }
       ],
       "date": "2026-07-13",
       "finalized": false,
-      "segments": []
+      "segments": [
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-07-13",
+          "direction": -1,
+          "end_price": 0.57534,
+          "end_time_paris": "2026-07-13T21:00:00+02:00",
+          "end_time_utc": "2026-07-13T19:00:00+00:00",
+          "pair": "CADCHF",
+          "pips": -34.59999999999908,
+          "start_price": 0.57188,
+          "start_time_paris": "2026-07-13T07:00:00+02:00",
+          "start_time_utc": "2026-07-13T05:00:00+00:00"
+        }
+      ]
     }
   },
-  "open_confirmed_segments": {
-    "AUDJPY": {
-      "current_pips": 3.0000000000001137,
-      "date": "2026-07-13",
-      "direction": 1,
-      "last_price": 112.607,
-      "last_time_utc": "2026-07-13T15:00:00+00:00",
-      "pair": "AUDJPY",
-      "start_price": 112.577,
-      "start_time_paris": "2026-07-13T13:00:00+02:00",
-      "start_time_utc": "2026-07-13T11:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
   "open_segments": {
     "AUDCAD": {
-      "current_pips": -2.9000000000001247,
+      "current_pips": -17.300000000000093,
       "date": "2026-07-13",
       "direction": 1,
-      "last_price": 0.9809,
-      "last_time_utc": "2026-07-13T15:00:00+00:00",
+      "last_price": 0.97946,
+      "last_time_utc": "2026-07-13T19:00:00+00:00",
       "pair": "AUDCAD",
       "start_price": 0.98119,
       "start_time_paris": "2026-07-13T07:00:00+02:00",
       "start_time_utc": "2026-07-13T05:00:00+00:00"
     },
     "AUDJPY": {
-      "current_pips": 30.19999999999925,
+      "current_pips": 8.199999999999363,
       "date": "2026-07-13",
       "direction": 1,
-      "last_price": 112.607,
-      "last_time_utc": "2026-07-13T15:00:00+00:00",
+      "last_price": 112.387,
+      "last_time_utc": "2026-07-13T19:00:00+00:00",
       "pair": "AUDJPY",
       "start_price": 112.305,
       "start_time_paris": "2026-07-13T07:00:00+02:00",
       "start_time_utc": "2026-07-13T05:00:00+00:00"
     },
     "AUDNZD": {
-      "current_pips": -23.600000000001398,
+      "current_pips": -10.40000000000152,
       "date": "2026-07-13",
       "direction": 1,
-      "last_price": 1.20162,
-      "last_time_utc": "2026-07-13T15:00:00+00:00",
+      "last_price": 1.20294,
+      "last_time_utc": "2026-07-13T19:00:00+00:00",
       "pair": "AUDNZD",
       "start_price": 1.20398,
       "start_time_paris": "2026-07-13T07:00:00+02:00",
       "start_time_utc": "2026-07-13T05:00:00+00:00"
     },
-    "CADCHF": {
-      "current_pips": -20.999999999999908,
-      "date": "2026-07-13",
-      "direction": -1,
-      "last_price": 0.57398,
-      "last_time_utc": "2026-07-13T15:00:00+00:00",
-      "pair": "CADCHF",
-      "start_price": 0.57188,
-      "start_time_paris": "2026-07-13T07:00:00+02:00",
-      "start_time_utc": "2026-07-13T05:00:00+00:00"
-    },
     "GBPCAD": {
-      "current_pips": -8.500000000000174,
+      "current_pips": -24.399999999999977,
       "date": "2026-07-13",
       "direction": 1,
-      "last_price": 1.89207,
-      "last_time_utc": "2026-07-13T15:00:00+00:00",
+      "last_price": 1.89048,
+      "last_time_utc": "2026-07-13T19:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.89292,
       "start_time_paris": "2026-07-13T13:00:00+02:00",
       "start_time_utc": "2026-07-13T11:00:00+00:00"
     },
     "GBPNZD": {
-      "current_pips": -65.8000000000003,
+      "current_pips": -24.000000000001798,
       "date": "2026-07-13",
       "direction": 1,
-      "last_price": 2.31772,
-      "last_time_utc": "2026-07-13T15:00:00+00:00",
+      "last_price": 2.3219,
+      "last_time_utc": "2026-07-13T19:00:00+00:00",
       "pair": "GBPNZD",
       "start_price": 2.3243,
       "start_time_paris": "2026-07-13T07:00:00+02:00",
       "start_time_utc": "2026-07-13T05:00:00+00:00"
     },
     "NZDCHF": {
-      "current_pips": -25.40000000000042,
+      "current_pips": -23.299999999999986,
       "date": "2026-07-13",
       "direction": -1,
-      "last_price": 0.4686,
-      "last_time_utc": "2026-07-13T15:00:00+00:00",
+      "last_price": 0.46839,
+      "last_time_utc": "2026-07-13T19:00:00+00:00",
       "pair": "NZDCHF",
       "start_price": 0.46606,
       "start_time_paris": "2026-07-13T07:00:00+02:00",
       "start_time_utc": "2026-07-13T05:00:00+00:00"
     },
     "USDCAD": {
-      "current_pips": -11.200000000000099,
+      "current_pips": -3.2999999999994145,
       "date": "2026-07-13",
       "direction": 1,
-      "last_price": 1.41428,
-      "last_time_utc": "2026-07-13T15:00:00+00:00",
+      "last_price": 1.41507,
+      "last_time_utc": "2026-07-13T19:00:00+00:00",
       "pair": "USDCAD",
       "start_price": 1.4154,
       "start_time_paris": "2026-07-13T07:00:00+02:00",
@@ -414,6 +418,6 @@
       "2026-W28"
     ]
   },
-  "updated_at_paris": "2026-07-13T17:15:42.215029+02:00",
+  "updated_at_paris": "2026-07-13T21:15:44.624060+02:00",
   "version": 2
 }
