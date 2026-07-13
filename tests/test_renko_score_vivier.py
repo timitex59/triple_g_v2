@@ -662,12 +662,11 @@ class VivierStateTests(unittest.TestCase):
         self.assertAlmostEqual(report["intraday"]["bear_pips"], 10.0)
         self.assertAlmostEqual(report["intraday"]["total_pips"], 30.0)
         lines = vivier_pip_intraday_lines(report)
-        self.assertIn("📈 DAILY : +30.0 pips / +0.0 pips", lines)
-        self.assertIn("🟢 +20.0 | 🔴 +10.0", lines)
+        self.assertIn("📈 DAILY : +0.0 pips", lines)
         self.assertIn("🟢 +0.0 | 🔴 +0.0", lines)
         self.assertIn("📊 CUMULS", lines)
-        self.assertIn("Weekly : +30.0 pips / +0.0 pips", lines)
-        self.assertIn("Monthly : +30.0 pips / +0.0 pips", lines)
+        self.assertIn("Weekly : +0.0 pips", lines)
+        self.assertIn("Monthly : +0.0 pips", lines)
 
     def test_vivier_pips_track_confirmed_book_separately(self):
         active_confirmed = {"pairs": {
@@ -727,8 +726,7 @@ class VivierStateTests(unittest.TestCase):
         self.assertAlmostEqual(report["intraday"]["total_pips"], 30.0)
         self.assertAlmostEqual(report["intraday"]["confirmed_total_pips"], 25.0)
         lines = vivier_pip_intraday_lines(report)
-        self.assertIn("📈 DAILY : +30.0 pips / +25.0 pips", lines)
-        self.assertIn("🟢 +30.0 | 🔴 +0.0", lines)
+        self.assertIn("📈 DAILY : +25.0 pips", lines)
         self.assertIn("🟢 +25.0 | 🔴 +0.0", lines)
 
     def test_vivier_pips_first_run_backfills_from_07h(self):
@@ -764,13 +762,12 @@ class VivierStateTests(unittest.TestCase):
         self.assertAlmostEqual(report["intraday"]["total_pips"], 10.0)
         self.assertEqual(len(state["days"]["2026-07-06"]["segments"]), 1)
         lines = vivier_pip_intraday_lines(report)
-        self.assertIn("📈 DAILY : +10.0 pips / +0.0 pips", lines)
-        self.assertIn("🟢 +10.0 | 🔴 +0.0", lines)
+        self.assertIn("📈 DAILY : +0.0 pips", lines)
         self.assertIn("🟢 +0.0 | 🔴 +0.0", lines)
         self.assertIn("📊 CUMULS", lines)
-        self.assertIn("Weekly : +10.0 pips / +0.0 pips", lines)
-        self.assertIn("Monthly : +10.0 pips / +0.0 pips", lines)
-        self.assertIn("🟢 JOUR GAGNANT", lines)
+        self.assertIn("Weekly : +0.0 pips", lines)
+        self.assertIn("Monthly : +0.0 pips", lines)
+        self.assertIn("⚪ JOUR NEUTRE", lines)
 
         state, report = update_vivier_pip_tracker(
             state, active, [pip_row("EURUSD", 1.1020, "2026-07-06 23:00+02:00")],
@@ -783,7 +780,11 @@ class VivierStateTests(unittest.TestCase):
 
     def test_vivier_pips_build_weekly_and_monthly_reports(self):
         state = {}
-        active = {"pairs": {"EURUSD": {"direction": 1}}}
+        active = {"pairs": {"EURUSD": {
+            "direction": 1,
+            "daily_chg": 0.10,
+            "daily_sar_dir": 1,
+        }}}
         end_prices = [1.1010, 1.0990, 1.1000, 1.1005, 1.0995]
         for offset, end_price in enumerate(end_prices):
             day = pd.Timestamp("2026-07-06", tz=PARIS) + pd.Timedelta(days=offset)

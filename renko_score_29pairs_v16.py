@@ -2342,7 +2342,8 @@ def _pip_day_result(total_pips: float) -> str:
     return "FLAT"
 
 
-def _pip_day_result_counts(state: dict, day_keys: list[str]) -> dict:
+def _pip_day_result_counts(state: dict, day_keys: list[str],
+                           confirmed: bool = False) -> dict:
     wins = losses = flats = followed = 0
     for day_key in day_keys:
         day = (state.get("days") or {}).get(day_key) or {}
@@ -2350,7 +2351,9 @@ def _pip_day_result_counts(state: dict, day_keys: list[str]) -> dict:
             continue
         followed += 1
         result = _pip_day_result(
-            _pip_day_totals(state, day_key, include_open=False)["total_pips"]
+            _pip_day_totals(
+                state, day_key, include_open=False, confirmed=confirmed
+            )["total_pips"]
         )
         if result == "WIN":
             wins += 1
@@ -2449,7 +2452,7 @@ def _weekly_pip_report(state: dict, clock: datetime) -> dict:
         "confirmed_bull_pips": confirmed_bull,
         "confirmed_bear_pips": confirmed_bear,
         "confirmed_total_pips": confirmed_bull + confirmed_bear,
-        **_pip_day_result_counts(state, day_keys),
+        **_pip_day_result_counts(state, day_keys, confirmed=True),
     }
 
 
@@ -2490,7 +2493,7 @@ def _monthly_pip_report(state: dict, clock: datetime) -> dict | None:
         "confirmed_bull_pips": confirmed_bull,
         "confirmed_bear_pips": confirmed_bear,
         "confirmed_total_pips": confirmed_bull + confirmed_bear,
-        **_pip_day_result_counts(state, day_keys),
+        **_pip_day_result_counts(state, day_keys, confirmed=True),
     }
 
 
@@ -2748,7 +2751,7 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
             "confirmed_bear_pips": today_confirmed_totals["bear_pips"],
             "confirmed_total_pips": today_confirmed_totals["total_pips"],
             "finalized": today_finalized,
-            "day_result": _pip_day_result(today_totals["total_pips"]),
+            "day_result": _pip_day_result(today_confirmed_totals["total_pips"]),
         }
         summary = _period_pip_summary_report(state, clock, today)
         report["period_summary"] = summary
@@ -2800,14 +2803,7 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
         return []
     confirmed = item.get("confirmed") or {}
     lines = [
-        (
-            f"📈 DAILY : {_format_pips(item['total_pips'])} pips / "
-            f"{_format_pips(confirmed.get('total_pips', 0.0))} pips"
-        ),
-        (
-            f"🟢 {_format_pips(item['bull_pips'])} | "
-            f"🔴 {_format_pips(item['bear_pips'])}"
-        ),
+        f"📈 DAILY : {_format_pips(confirmed.get('total_pips', 0.0))} pips",
         (
             f"🟢 {_format_pips(confirmed.get('bull_pips', 0.0))} | "
             f"🔴 {_format_pips(confirmed.get('bear_pips', 0.0))}"
@@ -2827,14 +2823,8 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
         lines.extend([
             "",
             "📊 CUMULS",
-            (
-                f"Weekly : {_format_pips(summary['weekly']['total_pips'])} pips / "
-                f"{_format_pips(weekly_confirmed.get('total_pips', 0.0))} pips"
-            ),
-            (
-                f"Monthly : {_format_pips(summary['monthly']['total_pips'])} pips / "
-                f"{_format_pips(monthly_confirmed.get('total_pips', 0.0))} pips"
-            ),
+            f"Weekly : {_format_pips(weekly_confirmed.get('total_pips', 0.0))} pips",
+            f"Monthly : {_format_pips(monthly_confirmed.get('total_pips', 0.0))} pips",
         ])
     return lines
 
@@ -2845,7 +2835,7 @@ def vivier_pip_period_lines(report: dict | None) -> list[str]:
     if weekly:
         lines.extend(["📅 BILAN HEBDOMADAIRE"])
         lines.extend(
-            f"{day['label']} : {_format_pips(day['total_pips'])} pips"
+            f"{day['label']} : {_format_pips((day.get('confirmed') or {}).get('total_pips', 0.0))} pips"
             for day in weekly["daily"]
         )
         lines.append(
@@ -2854,7 +2844,9 @@ def vivier_pip_period_lines(report: dict | None) -> list[str]:
             f"🔴 {weekly.get('losing_days', 0)} perdants / "
             f"⚪ {weekly.get('flat_days', 0)} neutres"
         )
-        lines.append(f"TOTAL : {_format_pips(weekly['total_pips'])} pips")
+        lines.append(
+            f"TOTAL : {_format_pips(weekly.get('confirmed_total_pips', 0.0))} pips"
+        )
     monthly = (report or {}).get("monthly")
     if monthly:
         if lines:
@@ -2866,9 +2858,9 @@ def vivier_pip_period_lines(report: dict | None) -> list[str]:
             f"🟢 {monthly.get('winning_days', 0)} gagnants / "
             f"🔴 {monthly.get('losing_days', 0)} perdants / "
             f"⚪ {monthly.get('flat_days', 0)} neutres",
-            f"🟢 BULL : {_format_pips(monthly['bull_pips'])} pips",
-            f"🔴 BEAR : {_format_pips(monthly['bear_pips'])} pips",
-            f"Σ TOTAL : {_format_pips(monthly['total_pips'])} pips",
+            f"🟢 BULL : {_format_pips(monthly.get('confirmed_bull_pips', 0.0))} pips",
+            f"🔴 BEAR : {_format_pips(monthly.get('confirmed_bear_pips', 0.0))} pips",
+            f"Σ TOTAL : {_format_pips(monthly.get('confirmed_total_pips', 0.0))} pips",
         ])
     return lines
 
