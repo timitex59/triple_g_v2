@@ -895,8 +895,8 @@ class VivierStateTests(unittest.TestCase):
 
     def test_entry_accepts_opposition_or_aligned_weekly_with_daily_inside(self):
         rows = [
-            row("BULL01", 1, 0, -1),
-            row("BEAR01", -1, 0, 1),
+            row("BULL01", 1, 1, -1),
+            row("BEAR01", -1, -1, 1),
             row("LOWBULL", 1, -1, 0),
             row("LOWBEAR", -1, 1, 0),
             row("READYBULL", 1, 1, 0),
@@ -917,19 +917,29 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(state["pairs"]["READYBEAR"]["direction"], -1)
         self.assertEqual(signals, [])
 
-    def test_tracked_pair_survives_inside_transition(self):
-        state, _ = update_vivier([row("EURUSD", 1, 0, -1)], {}, NOW)
+    def test_tracked_pair_survives_daily_inside_transition(self):
+        state, _ = update_vivier([row("EURUSD", 1, 1, -1)], {}, NOW)
 
         next_state, signals = update_vivier(
-            [row("EURUSD", 1, 0, 0)], state, NOW
+            [row("EURUSD", 1, 1, 0)], state, NOW
         )
 
         self.assertIn("EURUSD", next_state["pairs"])
-        self.assertEqual(next_state["pairs"]["EURUSD"]["last_px"]["W"], 0)
+        self.assertEqual(next_state["pairs"]["EURUSD"]["last_px"]["D"], 0)
+        self.assertEqual(signals, [])
+
+    def test_tracked_pair_exits_when_weekly_becomes_inside(self):
+        state, _ = update_vivier([row("EURUSD", 1, 1, -1)], {}, NOW)
+
+        next_state, signals = update_vivier(
+            [row("EURUSD", 1, 0, -1)], state, NOW
+        )
+
+        self.assertNotIn("EURUSD", next_state["pairs"])
         self.assertEqual(signals, [])
 
     def test_full_price_renko_alignment_emits_once_and_removes_pair(self):
-        state, _ = update_vivier([row("NZDUSD", -1, 0, 1)], {}, NOW)
+        state, _ = update_vivier([row("NZDUSD", -1, -1, 1)], {}, NOW)
 
         next_state, signals = update_vivier(
             [row("NZDUSD", -1, -1, -1, -80.0)], state, NOW
@@ -948,7 +958,7 @@ class VivierStateTests(unittest.TestCase):
         self.assertNotIn("NZDUSD", final_state["pairs"])
 
     def test_monthly_inside_invalidates_existing_entry(self):
-        state, _ = update_vivier([row("GBPJPY", 1, 0, -1)], {}, NOW)
+        state, _ = update_vivier([row("GBPJPY", 1, 1, -1)], {}, NOW)
 
         next_state, signals = update_vivier([row("GBPJPY", 0, 1, -1)], state, NOW)
 
@@ -956,7 +966,7 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(signals, [])
 
     def test_missing_market_row_does_not_erase_tracking(self):
-        state, _ = update_vivier([row("AUDJPY", 1, 0, -1)], {}, NOW)
+        state, _ = update_vivier([row("AUDJPY", 1, 1, -1)], {}, NOW)
 
         next_state, signals = update_vivier([], state, NOW)
 
@@ -965,15 +975,15 @@ class VivierStateTests(unittest.TestCase):
 
     def test_groups_are_ranked_by_absolute_base_score(self):
         initial_rows = [
-            row("BULL67", 1, 0, -1), row("BULL83", 1, 0, -1),
-            row("BULL33", 1, 0, -1), row("BEAR67", -1, 0, 1),
-            row("BEAR83", -1, 0, 1), row("BEAR33", -1, 0, 1),
+            row("BULL67", 1, 1, -1), row("BULL83", 1, 1, -1),
+            row("BULL33", 1, -1, 1), row("BEAR67", -1, -1, 1),
+            row("BEAR83", -1, -1, 1), row("BEAR33", -1, 1, -1),
         ]
         state, _ = update_vivier(initial_rows, {}, NOW)
         current_rows = [
             row("BULL67", 1, 1, -1), row("BULL83", 1, 1, 0),
-            row("BULL33", 1, 0, -1), row("BEAR67", -1, -1, 1),
-            row("BEAR83", -1, -1, 0), row("BEAR33", -1, 0, 1),
+            row("BULL33", 1, -1, 1), row("BEAR67", -1, -1, 1),
+            row("BEAR83", -1, -1, 0), row("BEAR33", -1, 1, -1),
         ]
         state, _ = update_vivier(current_rows, state, NOW)
 
@@ -983,7 +993,7 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual([pair for pair, _ in bear], ["BEAR83", "BEAR67", "BEAR33"])
 
     def test_tracked_pair_is_removed_below_minimum_score(self):
-        state, _ = update_vivier([row("EURGBP", 1, 0, -1)], {}, NOW)
+        state, _ = update_vivier([row("EURGBP", 1, 1, -1)], {}, NOW)
 
         next_state, signals = update_vivier([row("EURGBP", 1, -1, -1)], state, NOW)
 
@@ -992,10 +1002,10 @@ class VivierStateTests(unittest.TestCase):
 
     def test_entry_requires_directional_fibonacci_half(self):
         rows = [
-            row("BULL_OK", 1, 0, -1, fib_pct=50.0),
-            row("BULL_BAD", 1, 0, -1, fib_pct=50.1),
-            row("BEAR_OK", -1, 0, 1, fib_pct=50.0),
-            row("BEAR_BAD", -1, 0, 1, fib_pct=49.9),
+            row("BULL_OK", 1, 1, -1, fib_pct=50.0),
+            row("BULL_BAD", 1, 1, -1, fib_pct=50.1),
+            row("BEAR_OK", -1, -1, 1, fib_pct=50.0),
+            row("BEAR_BAD", -1, -1, 1, fib_pct=49.9),
         ]
 
         state, _ = update_vivier(rows, {}, NOW)
@@ -1004,7 +1014,7 @@ class VivierStateTests(unittest.TestCase):
 
     def test_tracked_pair_is_not_removed_after_crossing_fibonacci_midpoint(self):
         state, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, fib_pct=40.0)], {}, NOW
+            [row("GBPJPY", 1, 1, -1, fib_pct=40.0)], {}, NOW
         )
 
         next_state, signals = update_vivier(
@@ -1017,7 +1027,7 @@ class VivierStateTests(unittest.TestCase):
     def test_bull_sar_flame_requires_new_record_low_below_fib50(self):
         first = event(1, 0.4590, 0.4620, "2026-06-27T10:00:00+00:00")
         state, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, sar_event=first)], {}, NOW
+            [row("GBPJPY", 1, 1, -1, sar_event=first)], {}, NOW
         )
         entry = state["pairs"]["GBPJPY"]
         self.assertTrue(entry["sar_flame"])
@@ -1025,19 +1035,19 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(entry["sar_record_value"], 0.4590)
 
         same_state, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, sar_event=first)], state, NOW
+            [row("GBPJPY", 1, 1, -1, sar_event=first)], state, NOW
         )
         self.assertFalse(same_state["pairs"]["GBPJPY"]["sar_flame"])
 
         higher = event(1, 0.4600, 0.4620, "2026-06-27T11:00:00+00:00")
         higher_state, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, sar_event=higher)], same_state, NOW
+            [row("GBPJPY", 1, 1, -1, sar_event=higher)], same_state, NOW
         )
         self.assertFalse(higher_state["pairs"]["GBPJPY"]["sar_flame"])
 
         lower = event(1, 0.4580, 0.4620, "2026-06-27T12:00:00+00:00")
         lower_state, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, sar_event=lower)], higher_state, NOW
+            [row("GBPJPY", 1, 1, -1, sar_event=lower)], higher_state, NOW
         )
         self.assertTrue(lower_state["pairs"]["GBPJPY"]["sar_flame"])
         self.assertEqual(lower_state["pairs"]["GBPJPY"]["sar_flame_kind"], "RECORD")
@@ -1046,20 +1056,20 @@ class VivierStateTests(unittest.TestCase):
     def test_bear_sar_flame_requires_new_record_high_above_fib50(self):
         first = event(-1, 0.4660, 0.4620, "2026-06-27T10:00:00+00:00")
         state, _ = update_vivier(
-            [row("NZDCHF", -1, 0, 1, sar_event=first)], {}, NOW
+            [row("NZDCHF", -1, -1, 1, sar_event=first)], {}, NOW
         )
         self.assertTrue(state["pairs"]["NZDCHF"]["sar_flame"])
         self.assertEqual(state["pairs"]["NZDCHF"]["sar_flame_kind"], "FIRST")
 
         lower = event(-1, 0.4650, 0.4620, "2026-06-27T11:00:00+00:00")
         lower_state, _ = update_vivier(
-            [row("NZDCHF", -1, 0, 1, sar_event=lower)], state, NOW
+            [row("NZDCHF", -1, -1, 1, sar_event=lower)], state, NOW
         )
         self.assertFalse(lower_state["pairs"]["NZDCHF"]["sar_flame"])
 
         higher = event(-1, 0.4670, 0.4620, "2026-06-27T12:00:00+00:00")
         higher_state, _ = update_vivier(
-            [row("NZDCHF", -1, 0, 1, sar_event=higher)], lower_state, NOW
+            [row("NZDCHF", -1, -1, 1, sar_event=higher)], lower_state, NOW
         )
         self.assertTrue(higher_state["pairs"]["NZDCHF"]["sar_flame"])
         self.assertEqual(higher_state["pairs"]["NZDCHF"]["sar_flame_kind"], "RECORD")
@@ -1069,8 +1079,8 @@ class VivierStateTests(unittest.TestCase):
         bull_above = event(1, 0.4630, 0.4620, "2026-06-27T10:00:00+00:00")
         bear_below = event(-1, 0.4610, 0.4620, "2026-06-27T10:00:00+00:00")
         state, _ = update_vivier([
-            row("BULL", 1, 0, -1, sar_event=bull_above),
-            row("BEAR", -1, 0, 1, sar_event=bear_below),
+            row("BULL", 1, 1, -1, sar_event=bull_above),
+            row("BEAR", -1, -1, 1, sar_event=bear_below),
         ], {}, NOW)
 
         self.assertFalse(state["pairs"]["BULL"]["sar_flame"])
@@ -1081,7 +1091,7 @@ class VivierStateTests(unittest.TestCase):
     def test_bull_fib1_touch_resets_record_and_rearms_first_flame(self):
         first = event(1, 0.4590, 0.4620, "2026-06-27T10:00:00+00:00")
         state, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, sar_event=first)], {}, NOW
+            [row("GBPJPY", 1, 1, -1, sar_event=first)], {}, NOW
         )
         touch = extreme(
             "2026-06-27T11:00:00+00:00", high=1.01, low=0.95,
@@ -1089,7 +1099,7 @@ class VivierStateTests(unittest.TestCase):
         )
         same_bar_cross = event(1, 0.4585, 0.75, "2026-06-27T11:00:00+00:00")
         reset_state, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, sar_event=same_bar_cross,
+            [row("GBPJPY", 1, 1, -1, sar_event=same_bar_cross,
                  closed_extreme=touch)], state, NOW
         )
         entry = reset_state["pairs"]["GBPJPY"]
@@ -1101,7 +1111,7 @@ class VivierStateTests(unittest.TestCase):
         )
 
         repeated, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, sar_event=same_bar_cross,
+            [row("GBPJPY", 1, 1, -1, sar_event=same_bar_cross,
                  closed_extreme=touch)], reset_state, NOW
         )
         self.assertFalse(repeated["pairs"]["GBPJPY"]["sar_flame"])
@@ -1110,7 +1120,7 @@ class VivierStateTests(unittest.TestCase):
         # Higher than the old minimum, but first record of the rearmed cycle.
         next_event = event(1, 0.4600, 0.4620, "2026-06-27T12:00:00+00:00")
         rearmed, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, sar_event=next_event)], repeated, NOW
+            [row("GBPJPY", 1, 1, -1, sar_event=next_event)], repeated, NOW
         )
         self.assertTrue(rearmed["pairs"]["GBPJPY"]["sar_flame"])
         self.assertEqual(rearmed["pairs"]["GBPJPY"]["sar_flame_kind"], "RESET")
@@ -1119,14 +1129,14 @@ class VivierStateTests(unittest.TestCase):
     def test_bear_fib0_touch_resets_record_and_rearms_first_flame(self):
         first = event(-1, 0.4660, 0.4620, "2026-06-27T10:00:00+00:00")
         state, _ = update_vivier(
-            [row("NZDCHF", -1, 0, 1, sar_event=first)], {}, NOW
+            [row("NZDCHF", -1, -1, 1, sar_event=first)], {}, NOW
         )
         touch = extreme(
             "2026-06-27T11:00:00+00:00", high=0.47, low=0.44,
             fib1_before=0.48, fib0_before=0.45,
         )
         reset_state, _ = update_vivier(
-            [row("NZDCHF", -1, 0, 1, sar_event=None, closed_extreme=touch)], state, NOW
+            [row("NZDCHF", -1, -1, 1, sar_event=None, closed_extreme=touch)], state, NOW
         )
         entry = reset_state["pairs"]["NZDCHF"]
         self.assertNotIn("sar_record_value", entry)
@@ -1135,7 +1145,7 @@ class VivierStateTests(unittest.TestCase):
         # Lower than the old maximum, but first record of the rearmed cycle.
         next_event = event(-1, 0.4650, 0.4620, "2026-06-27T12:00:00+00:00")
         rearmed, _ = update_vivier(
-            [row("NZDCHF", -1, 0, 1, sar_event=next_event)], reset_state, NOW
+            [row("NZDCHF", -1, -1, 1, sar_event=next_event)], reset_state, NOW
         )
         self.assertTrue(rearmed["pairs"]["NZDCHF"]["sar_flame"])
         self.assertEqual(rearmed["pairs"]["NZDCHF"]["sar_flame_kind"], "RESET")
@@ -1147,22 +1157,22 @@ class VivierStateTests(unittest.TestCase):
             fib1_before=1.00, fib0_before=0.90,
         )
         state, _ = update_vivier(
-            [row("GBPJPY", 1, 0, -1, closed_extreme=touch)], {}, NOW
+            [row("GBPJPY", 1, 1, -1, closed_extreme=touch)], {}, NOW
         )
 
         self.assertNotIn("sar_last_fib_reset_time_utc", state["pairs"]["GBPJPY"])
 
     def test_unreached_objective_is_carried_across_months(self):
         initial_rows = [
-            row("BULL", 1, 0, -1, month_high=1.0, month_low=0.5),
-            row("BEAR", -1, 0, 1, month_high=1.0, month_low=0.5),
+            row("BULL", 1, 1, -1, month_high=1.0, month_low=0.5),
+            row("BEAR", -1, -1, 1, month_high=1.0, month_low=0.5),
         ]
         state, _ = update_vivier(initial_rows, {}, NOW)
 
         july_rows = [
-            row("BULL", 1, 0, -1, month_high=0.9, month_low=0.7,
+            row("BULL", 1, 1, -1, month_high=0.9, month_low=0.7,
                 month_utc="2026-07", closed_time="2026-07-01T01:00:00+00:00"),
-            row("BEAR", -1, 0, 1, month_high=1.1, month_low=0.6,
+            row("BEAR", -1, -1, 1, month_high=1.1, month_low=0.6,
                 month_utc="2026-07", closed_time="2026-07-01T01:00:00+00:00"),
         ]
         carried, _ = update_vivier(july_rows, state, NOW)
@@ -1176,9 +1186,9 @@ class VivierStateTests(unittest.TestCase):
         self.assertEqual(bull["fib_objective_origin_month_utc"], "2026-06")
 
         august, _ = update_vivier([
-            row("BULL", 1, 0, -1, month_high=0.95, month_low=0.8,
+            row("BULL", 1, 1, -1, month_high=0.95, month_low=0.8,
                 month_utc="2026-08", closed_time="2026-08-03T01:00:00+00:00"),
-            row("BEAR", -1, 0, 1, month_high=1.2, month_low=0.55,
+            row("BEAR", -1, -1, 1, month_high=1.2, month_low=0.55,
                 month_utc="2026-08", closed_time="2026-08-03T01:00:00+00:00"),
         ], carried, NOW)
         self.assertEqual(august["pairs"]["BULL"]["fib_objective_value"], 1.0)
@@ -1191,11 +1201,11 @@ class VivierStateTests(unittest.TestCase):
     def test_carried_objective_touch_rearms_and_next_flame_sets_new_target(self):
         first = event(1, 0.4590, 0.75, "2026-06-27T10:00:00+00:00")
         state, _ = update_vivier([
-            row("GBPJPY", 1, 0, -1, sar_event=first,
+            row("GBPJPY", 1, 1, -1, sar_event=first,
                 month_high=1.0, month_low=0.5),
         ], {}, NOW)
         july_row = row(
-            "GBPJPY", 1, 0, -1, month_high=0.9, month_low=0.7,
+            "GBPJPY", 1, 1, -1, month_high=0.9, month_low=0.7,
             month_utc="2026-07", closed_time="2026-07-01T01:00:00+00:00",
         )
         carried, _ = update_vivier([july_row], state, NOW)
@@ -1206,7 +1216,7 @@ class VivierStateTests(unittest.TestCase):
             fib1_before=0.99, fib0_before=0.70, month_utc="2026-07",
         )
         touch_row = row(
-            "GBPJPY", 1, 0, -1, closed_extreme=touch,
+            "GBPJPY", 1, 1, -1, closed_extreme=touch,
             month_high=1.01, month_low=0.7, month_utc="2026-07",
             closed_time="2026-07-02T11:00:00+00:00",
         )
@@ -1221,7 +1231,7 @@ class VivierStateTests(unittest.TestCase):
 
         next_event = event(1, 0.4600, 0.85, "2026-07-02T12:00:00+00:00")
         rearmed, _ = update_vivier([
-            row("GBPJPY", 1, 0, -1, sar_event=next_event,
+            row("GBPJPY", 1, 1, -1, sar_event=next_event,
                 month_high=1.02, month_low=0.7, month_utc="2026-07",
                 closed_time="2026-07-02T12:00:00+00:00"),
         ], touched, NOW)
@@ -1248,7 +1258,7 @@ class VivierStateTests(unittest.TestCase):
 
     def test_alignment_moves_unreached_objective_to_post_signal_tracking(self):
         state, _ = update_vivier([
-            row("GBPJPY", 1, 0, -1, month_high=1.0, month_low=0.5),
+            row("GBPJPY", 1, 1, -1, month_high=1.0, month_low=0.5),
         ], {}, NOW)
         aligned_row = row(
             "GBPJPY", 1, 1, 1, weighted_pct=80.0,
@@ -1277,7 +1287,7 @@ class VivierStateTests(unittest.TestCase):
 
     def test_post_alignment_objective_is_reached_outside_vivier(self):
         state, _ = update_vivier([
-            row("GBPJPY", 1, 0, -1, month_high=1.0, month_low=0.5),
+            row("GBPJPY", 1, 1, -1, month_high=1.0, month_low=0.5),
         ], {}, NOW)
         aligned, _ = update_vivier([
             row("GBPJPY", 1, 1, 1, month_high=1.0, month_low=0.5),
@@ -1304,7 +1314,7 @@ class VivierStateTests(unittest.TestCase):
 
     def test_same_direction_reentry_reattaches_post_alignment_objective(self):
         state, _ = update_vivier([
-            row("GBPJPY", 1, 0, -1, month_high=1.0, month_low=0.5),
+            row("GBPJPY", 1, 1, -1, month_high=1.0, month_low=0.5),
         ], {}, NOW)
         aligned, _ = update_vivier([
             row("GBPJPY", 1, 1, 1, month_high=1.0, month_low=0.5),
@@ -1326,7 +1336,7 @@ class VivierStateTests(unittest.TestCase):
 
     def test_opposite_monthly_cancels_post_objective_before_new_entry(self):
         state, _ = update_vivier([
-            row("GBPJPY", 1, 0, -1, month_high=1.0, month_low=0.5),
+            row("GBPJPY", 1, 1, -1, month_high=1.0, month_low=0.5),
         ], {}, NOW)
         aligned, _ = update_vivier([
             row("GBPJPY", 1, 1, 1, month_high=1.0, month_low=0.5),
@@ -1529,3 +1539,4 @@ class VivierStateTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+

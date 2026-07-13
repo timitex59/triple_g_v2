@@ -951,13 +951,14 @@ def _base_score_from_px(px: dict) -> float:
 def vivier_entry_direction(row: dict) -> int:
     """Direction of a new VIVIER entry, or 0.
 
-    Monthly must be strictly outside its Renko brick. Entry is allowed after
-    either a strict W/D opposition, or when Weekly is already aligned with
-    Monthly while Daily is Inside. BULL entries must be in the lower half of
-    the monthly H1 Fibonacci range, BEAR entries in the upper half.
+    Monthly and Weekly must be strictly outside their Renko bricks. Entry is
+    allowed after either a strict W/D opposition, or when Weekly is already
+    aligned with Monthly while Daily is Inside. BULL entries must be in the
+    lower half of the monthly H1 Fibonacci range, BEAR entries in the upper
+    half.
     """
     px = _vivier_px(row)
-    if px is None or px["M"] not in (-1, 1):
+    if px is None or px["M"] not in (-1, 1) or px["W"] == 0:
         return 0
     direction = px["M"]
     has_strict_opposition = px["W"] == -direction or px["D"] == -direction
@@ -1250,12 +1251,13 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
     """Advance the persistent VIVIER state and return one-shot alignments.
 
     Entry accepts strict opposition to Monthly, plus an aligned M/W with Daily
-    Inside. Once tracked, a pair remains in the pool while W/D pass through
-    Inside. It leaves when M is no longer in its original strict direction, or
-    emits a one-shot signal when M/W/D become strictly aligned in that
-    direction. One untouched Fibo 1/0 objective is carried across UTC month
-    resets until reached. Missing rows are kept so a data error cannot erase
-    the pool.
+    Inside. Monthly and Weekly must both be directionally outside their Renko
+    bricks. Once tracked, a pair remains in the pool while Daily passes through
+    Inside. It leaves when M is no longer in its original strict direction,
+    when W becomes Inside, or emits a one-shot signal when M/W/D become
+    strictly aligned in that direction. One untouched Fibo 1/0 objective is
+    carried across UTC month resets until reached. Missing rows are kept so a
+    data error cannot erase the pool.
     """
     now = now or datetime.now(PARIS_TZ)
     stamp = now.astimezone(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
@@ -1329,7 +1331,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                 })
                 del tracked[pair]
                 continue
-            if px["M"] == direction:
+            if px["M"] == direction and px["W"] != 0:
                 if abs(_base_score_from_px(px)) < VIVIER_MIN_ABS_BASE_SCORE:
                     del tracked[pair]
                     continue
@@ -1358,7 +1360,7 @@ def update_vivier(rows: list[dict], previous_state: dict | None = None,
                     apply_vivier_sar_record(existing, row, direction)
                 continue
 
-            # Monthly became Inside or reversed: invalidate the old pool.
+            # Monthly became Inside/reversed or Weekly became Inside: invalidate the old pool.
             del tracked[pair]
 
         pending = pending_objectives.get(pair)
