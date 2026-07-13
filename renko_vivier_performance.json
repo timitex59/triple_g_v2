@@ -8068,6 +8068,29 @@
       "sar_value": 0.5721,
       "time_paris": "2026-07-13T09:00:00+02:00",
       "time_utc": "2026-07-13T07:00:00+00:00"
+    },
+    {
+      "base_pct": 83.33333333333334,
+      "complete": false,
+      "direction": 1,
+      "entered_at_paris": "2026-07-13 13:29",
+      "event_id": "7a56e165e686dcfee765",
+      "event_type": "VIVIER_ENTRY",
+      "fib_pct_of_range": 47.65327695560312,
+      "fib_position": "Fibo <0.500",
+      "final_pct": 0.0,
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "objective_value": 1.90441,
+      "pair": "GBPCAD",
+      "price": 1.89292,
+      "px": {
+        "D": 0,
+        "M": 1,
+        "W": 1
+      },
+      "time_paris": "2026-07-13T13:00:00+02:00",
+      "time_utc": "2026-07-13T11:00:00+00:00"
     }
   ],
   "pair_profiles": {
@@ -8680,6 +8703,69 @@
         "profitable_within_4h_pct": 50.0,
         "profitable_within_72h_pct": 100.0,
         "signals": 6,
+        "status": "LEARNING"
+      }
+    },
+    "GBPCAD": {
+      "by_direction": {
+        "BULL": {
+          "break_even_pct": 0.02,
+          "complete_72h": 0,
+          "exit_window_h1": null,
+          "median_adverse_sar_h1": null,
+          "median_first_profitable_h1": null,
+          "median_first_stable_profitable_h1": null,
+          "median_objective_h1": null,
+          "median_peak_h1": null,
+          "minimum_complete_required": 20,
+          "objective_hit_rate_pct": null,
+          "objective_samples": 0,
+          "profitable_within_12h_pct": null,
+          "profitable_within_24h_pct": null,
+          "profitable_within_4h_pct": null,
+          "profitable_within_72h_pct": null,
+          "signals": 1,
+          "status": "LEARNING"
+        }
+      },
+      "by_signal": {
+        "VIVIER_ENTRY": {
+          "break_even_pct": 0.02,
+          "complete_72h": 0,
+          "exit_window_h1": null,
+          "median_adverse_sar_h1": null,
+          "median_first_profitable_h1": null,
+          "median_first_stable_profitable_h1": null,
+          "median_objective_h1": null,
+          "median_peak_h1": null,
+          "minimum_complete_required": 20,
+          "objective_hit_rate_pct": null,
+          "objective_samples": 0,
+          "profitable_within_12h_pct": null,
+          "profitable_within_24h_pct": null,
+          "profitable_within_4h_pct": null,
+          "profitable_within_72h_pct": null,
+          "signals": 1,
+          "status": "LEARNING"
+        }
+      },
+      "overall": {
+        "break_even_pct": 0.02,
+        "complete_72h": 0,
+        "exit_window_h1": null,
+        "median_adverse_sar_h1": null,
+        "median_first_profitable_h1": null,
+        "median_first_stable_profitable_h1": null,
+        "median_objective_h1": null,
+        "median_peak_h1": null,
+        "minimum_complete_required": 20,
+        "objective_hit_rate_pct": null,
+        "objective_samples": 0,
+        "profitable_within_12h_pct": null,
+        "profitable_within_24h_pct": null,
+        "profitable_within_4h_pct": null,
+        "profitable_within_72h_pct": null,
+        "signals": 1,
         "status": "LEARNING"
       }
     },
@@ -9731,7 +9817,7 @@
         "avg_mae_72h_pct": -0.7628526201015073,
         "avg_mfe_72h_pct": 0.2848205868909569,
         "complete": 26,
-        "count": 31,
+        "count": 32,
         "horizons": {
           "12h": {
             "avg_directional_pct": -0.1463885193132543,
@@ -9809,7 +9895,7 @@
       "avg_mae_72h_pct": -0.5630540261765908,
       "avg_mfe_72h_pct": 0.32784658623594143,
       "complete": 98,
-      "count": 116,
+      "count": 117,
       "horizons": {
         "12h": {
           "avg_directional_pct": -0.07721045860776857,
@@ -9843,8 +9929,8 @@
         }
       }
     },
-    "total": 116
+    "total": 117
   },
-  "updated_at_utc": "2026-07-13T11:17:02.231492+00:00",
+  "updated_at_utc": "2026-07-13T11:29:49.154326+00:00",
   "version": 3
 }
