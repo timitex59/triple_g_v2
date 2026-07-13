@@ -124,6 +124,25 @@ class VivierStateTests(unittest.TestCase):
             pine,
         )
 
+    def test_pine_requires_weekly_direction_for_vivier(self):
+        pine = (PROJECT_ROOT / "renko_forex_V17_vivier.pine").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("bool _weeklyValid = _w == 1 or _w == -1", pine)
+        self.assertIn(
+            "_monthlyValid and _weeklyValid and _profileValid "
+            "and _scoreValid and _fibValid",
+            pine,
+        )
+        self.assertIn("bool weeklyStillDirectional = pxW == 1 or pxW == -1", pine)
+        self.assertIn(
+            "pxM == activeDirection and weeklyStillDirectional "
+            "and scoreStillValid",
+            pine,
+        )
+        self.assertIn('"SORTIE: WEEKLY INSIDE"', pine)
+
     def test_pine_fib_midpoint_is_always_emphasized(self):
         pine = (PROJECT_ROOT / "renko_forex_V17_vivier.pine").read_text(
             encoding="utf-8"

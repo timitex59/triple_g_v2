@@ -152,12 +152,13 @@ f_fib_directional_text(_ratio, _direction) =>
 f_entry_direction(_m, _w, _d, _score, _fibPct) =>
     int _direction = _m
     bool _monthlyValid = _direction == 1 or _direction == -1
-    bool _strictOpposition = _monthlyValid and (_w == -_direction or _d == -_direction)
-    bool _alignedWeeklyInsideDaily = _monthlyValid and _w == _direction and _d == 0
+    bool _weeklyValid = _w == 1 or _w == -1
+    bool _strictOpposition = _monthlyValid and _weeklyValid and (_w == -_direction or _d == -_direction)
+    bool _alignedWeeklyInsideDaily = _monthlyValid and _weeklyValid and _w == _direction and _d == 0
     bool _profileValid = _strictOpposition or _alignedWeeklyInsideDaily
     bool _scoreValid = not na(_score) and ((_direction == 1 and _score >= vivierMinScore) or (_direction == -1 and _score <= -vivierMinScore))
     bool _fibValid = not na(_fibPct) and ((_direction == 1 and _fibPct <= fibMidpointPct) or (_direction == -1 and _fibPct >= fibMidpointPct))
-    _monthlyValid and _profileValid and _scoreValid and _fibValid ? _direction : 0
+    _monthlyValid and _weeklyValid and _profileValid and _scoreValid and _fibValid ? _direction : 0
 
 f_new_sar_record(_direction, _crossDirection, _sar, _fib500, _record) =>
     bool _crossValid = _crossDirection == _direction
@@ -353,6 +354,8 @@ float postObjectiveEventLevel = na
 if processBar
     if vivierDirection != 0
         int activeDirection = vivierDirection
+        bool weeklyStillDirectional = pxW == 1 or pxW == -1
+        bool scoreStillValid = (activeDirection == 1 and baseScorePct >= vivierMinScore) or (activeDirection == -1 and baseScorePct <= -vivierMinScore)
         bool fullAlignment = pxM == activeDirection and pxW == activeDirection and pxD == activeDirection
         if fullAlignment
             alignmentEvent := true
@@ -373,7 +376,7 @@ if processBar
                         label.set_text(carriedObjectiveLabel, "OBJECTIF POST-ALIGNEMENT\n" + f_dir_text(activeDirection) + " " + str.tostring(fibObjective, format.mintick) + "\nOrigine " + fibObjectiveOriginMonth)
             vivierDirection := 0
             sarRecord := na
-        else if pxM == activeDirection and ((activeDirection == 1 and baseScorePct >= vivierMinScore) or (activeDirection == -1 and baseScorePct <= -vivierMinScore))
+        else if pxM == activeDirection and weeklyStillDirectional and scoreStillValid
             if effectiveMonthChanged and not na(fibObjective) and not fibObjectiveCarried
                 fibObjectiveCarried := true
                 objectiveCarryEvent := true
@@ -428,7 +431,7 @@ if processBar
         else
             invalidExitEvent := true
             invalidExitDirection := activeDirection
-            lastEvent := pxM != activeDirection ? "SORTIE: MONTHLY INVALIDE" : "SORTIE: SCORE < " + str.tostring(vivierMinScore, "#") + "%"
+            lastEvent := pxM != activeDirection ? "SORTIE: MONTHLY INVALIDE" : not weeklyStillDirectional ? "SORTIE: WEEKLY INSIDE" : "SORTIE: SCORE < " + str.tostring(vivierMinScore, "#") + "%"
             f_finish_carried_line(carriedObjectiveLine, carriedObjectiveLabel, h1Time, "ANNULE", neutralColor)
             carriedObjectiveLine := na
             carriedObjectiveLabel := na
