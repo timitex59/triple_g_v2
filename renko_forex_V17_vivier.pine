@@ -579,8 +579,9 @@ if barstate.islast
 
 var table vivierTable = table.new(f_table_position(tablePosition), 2, 3, border_width=1, frame_color=color.white, border_color=color.gray)
 if barstate.islast
-    string statusText = vivierDirection != 0 ? "VIVIER " + f_dir_text(vivierDirection) : postAlignmentObjective ? "SUIVI POST-ALIGNEMENT " + f_dir_text(fibObjectiveDirection) : "HORS VIVIER"
-    color statusColor = vivierDirection != 0 ? f_dir_color(vivierDirection) : postAlignmentObjective ? carriedObjectiveColor : neutralColor
+    bool pendingWeeklyInsideExit = vivierDirection != 0 and pxW == 0
+    string statusText = pendingWeeklyInsideExit ? "VIVIER " + f_dir_text(vivierDirection) + "\n⚠ W INSIDE" : vivierDirection != 0 ? "VIVIER " + f_dir_text(vivierDirection) : postAlignmentObjective ? "SUIVI POST-ALIGNEMENT " + f_dir_text(fibObjectiveDirection) : "HORS VIVIER"
+    color statusColor = pendingWeeklyInsideExit ? color.new(color.orange, 0) : vivierDirection != 0 ? f_dir_color(vivierDirection) : postAlignmentObjective ? carriedObjectiveColor : neutralColor
     string scoreText = na(baseScorePct) ? "?" : (baseScorePct >= 0.0 ? "+" : "") + str.tostring(baseScorePct, "#.0") + "%"
     string fibText = na(fibPct) ? "?" : fibDirectionalText
 

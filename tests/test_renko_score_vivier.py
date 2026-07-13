@@ -142,6 +142,11 @@ class VivierStateTests(unittest.TestCase):
             pine,
         )
         self.assertIn('"SORTIE: WEEKLY INSIDE"', pine)
+        self.assertIn(
+            "bool pendingWeeklyInsideExit = vivierDirection != 0 and pxW == 0",
+            pine,
+        )
+        self.assertIn('"\\n⚠ W INSIDE"', pine)
 
     def test_pine_fib_midpoint_is_always_emphasized(self):
         pine = (PROJECT_ROOT / "renko_forex_V17_vivier.pine").read_text(
