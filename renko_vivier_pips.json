@@ -129,23 +129,25 @@
           "start_price": 1.41072,
           "start_time_paris": "2026-07-14T13:00:00+02:00",
           "start_time_utc": "2026-07-14T11:00:00+00:00"
+        },
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-07-14",
+          "direction": -1,
+          "end_price": 0.9245,
+          "end_time_paris": "2026-07-14T16:00:00+02:00",
+          "end_time_utc": "2026-07-14T14:00:00+00:00",
+          "pair": "EURCHF",
+          "pips": -0.0,
+          "start_price": 0.9245,
+          "start_time_paris": "2026-07-14T16:00:00+02:00",
+          "start_time_utc": "2026-07-14T14:00:00+00:00"
         }
       ]
     }
   },
   "open_confirmed_segments": {},
   "open_segments": {
-    "EURCHF": {
-      "current_pips": -0.0,
-      "date": "2026-07-14",
-      "direction": -1,
-      "last_price": 0.9245,
-      "last_time_utc": "2026-07-14T14:00:00+00:00",
-      "pair": "EURCHF",
-      "start_price": 0.9245,
-      "start_time_paris": "2026-07-14T16:00:00+02:00",
-      "start_time_utc": "2026-07-14T14:00:00+00:00"
-    },
     "GBPCAD": {
       "current_pips": -2.4999999999986144,
       "date": "2026-07-14",
@@ -173,6 +175,6 @@
     "monthly": [],
     "weekly": []
   },
-  "updated_at_paris": "2026-07-14T16:13:06.511221+02:00",
+  "updated_at_paris": "2026-07-14T16:15:43.598539+02:00",
   "version": 2
 }
