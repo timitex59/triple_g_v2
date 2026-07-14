@@ -102,7 +102,8 @@
     "2026-07-14": {
       "confirmed_segments": [],
       "date": "2026-07-14",
-      "finalized": false,
+      "finalized": true,
+      "finalized_at_paris": "2026-07-14T23:15:03.644255+02:00",
       "segments": [
         {
           "close_reason": "VIVIER_EXIT",
@@ -155,39 +156,55 @@
           "start_price": 0.9243,
           "start_time_paris": "2026-07-14T17:00:00+02:00",
           "start_time_utc": "2026-07-14T15:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-14",
+          "direction": 1,
+          "end_price": 1.8827,
+          "end_time_paris": "2026-07-14T23:00:00+02:00",
+          "end_time_utc": "2026-07-14T21:00:00+00:00",
+          "pair": "GBPCAD",
+          "pips": -51.399999999999224,
+          "start_price": 1.88784,
+          "start_time_paris": "2026-07-14T07:00:00+02:00",
+          "start_time_utc": "2026-07-14T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-14",
+          "direction": 1,
+          "end_price": 0.80936,
+          "end_time_paris": "2026-07-14T23:00:00+02:00",
+          "end_time_utc": "2026-07-14T21:00:00+00:00",
+          "pair": "USDCHF",
+          "pips": 12.699999999999934,
+          "start_price": 0.80809,
+          "start_time_paris": "2026-07-14T15:00:00+02:00",
+          "start_time_utc": "2026-07-14T13:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-14",
+          "direction": -1,
+          "end_price": 0.92418,
+          "end_time_paris": "2026-07-14T23:00:00+02:00",
+          "end_time_utc": "2026-07-14T21:00:00+00:00",
+          "pair": "EURCHF",
+          "pips": -0.0,
+          "start_price": 0.92418,
+          "start_time_paris": "2026-07-14T23:00:00+02:00",
+          "start_time_utc": "2026-07-14T21:00:00+00:00"
         }
       ]
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {
-    "GBPCAD": {
-      "current_pips": -45.999999999999375,
-      "date": "2026-07-14",
-      "direction": 1,
-      "last_price": 1.88324,
-      "last_time_utc": "2026-07-14T20:00:00+00:00",
-      "pair": "GBPCAD",
-      "start_price": 1.88784,
-      "start_time_paris": "2026-07-14T07:00:00+02:00",
-      "start_time_utc": "2026-07-14T05:00:00+00:00"
-    },
-    "USDCHF": {
-      "current_pips": 13.900000000000023,
-      "date": "2026-07-14",
-      "direction": 1,
-      "last_price": 0.80948,
-      "last_time_utc": "2026-07-14T20:00:00+00:00",
-      "pair": "USDCHF",
-      "start_price": 0.80809,
-      "start_time_paris": "2026-07-14T15:00:00+02:00",
-      "start_time_utc": "2026-07-14T13:00:00+00:00"
-    }
-  },
+  "open_segments": {},
   "reports_sent": {
     "monthly": [],
     "weekly": []
   },
-  "updated_at_paris": "2026-07-14T22:15:42.622135+02:00",
+  "updated_at_paris": "2026-07-14T23:15:03.644255+02:00",
   "version": 2
 }
