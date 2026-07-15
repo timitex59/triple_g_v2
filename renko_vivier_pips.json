@@ -197,14 +197,43 @@
           "start_time_utc": "2026-07-14T21:00:00+00:00"
         }
       ]
+    },
+    "2026-07-15": {
+      "confirmed_segments": [],
+      "date": "2026-07-15",
+      "finalized": false,
+      "segments": []
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {},
+  "open_segments": {
+    "GBPCAD": {
+      "current_pips": 0.0,
+      "date": "2026-07-15",
+      "direction": 1,
+      "last_price": 1.88285,
+      "last_time_utc": "2026-07-15T05:00:00+00:00",
+      "pair": "GBPCAD",
+      "start_price": 1.88285,
+      "start_time_paris": "2026-07-15T07:00:00+02:00",
+      "start_time_utc": "2026-07-15T05:00:00+00:00"
+    },
+    "USDCHF": {
+      "current_pips": 0.0,
+      "date": "2026-07-15",
+      "direction": 1,
+      "last_price": 0.80924,
+      "last_time_utc": "2026-07-15T05:00:00+00:00",
+      "pair": "USDCHF",
+      "start_price": 0.80924,
+      "start_time_paris": "2026-07-15T07:00:00+02:00",
+      "start_time_utc": "2026-07-15T05:00:00+00:00"
+    }
+  },
   "reports_sent": {
     "monthly": [],
     "weekly": []
   },
-  "updated_at_paris": "2026-07-15T00:16:26.781848+02:00",
+  "updated_at_paris": "2026-07-15T07:15:43.816803+02:00",
   "version": 2
 }
