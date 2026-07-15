@@ -279,14 +279,8 @@ def format_full_alignment_message(rows: list[dict], now: datetime | None = None)
         for row in rows:
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
-            score = float(row["raw_alignment_score"])
-            fib = str(row.get("fib_directional_label") or "Fibo ?").removeprefix("Fibo ")
-            price = row.get("h1_price") or row.get("live_price")
-            price_txt = f" | {float(price):.5f}" if isinstance(price, (int, float)) else ""
             name = str(row["pair"])
-            lines.append(
-                f"{icon} {name} ({score:+.0f}% | {fib} | {_format_px(row)}{price_txt})"
-            )
+            lines.append(f"{icon} {name}")
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 

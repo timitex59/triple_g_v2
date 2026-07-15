@@ -81,7 +81,9 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
 
         self.assertIn("📊 FULL ALIGNMENT M/W/D", message)
-        self.assertIn("🟢 GBPJPY (+100% | <1 | M+/W+/D+", message)
+        self.assertIn("🟢 GBPJPY", message)
+        self.assertNotIn("+100%", message)
+        self.assertNotIn("M+/W+/D+", message)
         self.assertIn("2026-07-16 10:00 Paris", message)
 
 
