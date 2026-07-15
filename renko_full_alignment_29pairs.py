@@ -205,9 +205,10 @@ def select_full_alignment_rows(rows: list[dict]) -> list[dict]:
         enriched["raw_alignment_score"] = raw_alignment_score(row)
         selected.append(enriched)
 
-    def sort_key(row: dict) -> tuple[int, str]:
+    def sort_key(row: dict) -> tuple[int, int, str]:
+        asset_rank = 1 if row.get("asset_type") == "INDEX" else 0
         direction = int(row["full_alignment_direction"])
-        return (0 if direction == 1 else 1, row["pair"])
+        return (asset_rank, 0 if direction == 1 else 1, row["pair"])
 
     return sorted(selected, key=sort_key)
 
@@ -224,7 +225,17 @@ def format_full_alignment_message(rows: list[dict], now: datetime | None = None)
     if not rows:
         lines.append("Aucune paire en alignement strict.")
     else:
-        for row in rows:
+        pair_rows = [row for row in rows if row.get("asset_type") != "INDEX"]
+        index_rows = [row for row in rows if row.get("asset_type") == "INDEX"]
+
+        for row in pair_rows:
+            direction = int(row["full_alignment_direction"])
+            icon = "🟢" if direction == 1 else "🔴"
+            name = str(row["pair"])
+            lines.append(f"{icon} {name}")
+        if pair_rows and index_rows:
+            lines.append("")
+        for row in index_rows:
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = str(row["pair"])

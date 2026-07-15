@@ -19,8 +19,15 @@ def row(pair, m, w, d):
     return {
         "pair": pair,
         "px": {"M": m, "W": w, "D": d},
+        "asset_type": "PAIR",
         "h1_price": 1.23456,
     }
+
+
+def index_row(pair, m, w, d):
+    item = row(pair, m, w, d)
+    item["asset_type"] = "INDEX"
+    return item
 
 
 class FullAlignmentScannerTests(unittest.TestCase):
@@ -61,11 +68,13 @@ class FullAlignmentScannerTests(unittest.TestCase):
             row("AUDJPY", 1, 0, 1),
             row("CADCHF", -1, -1, -1),
             row("EURJPY", 1, 1, 1),
+            index_row("BXY", 1, 1, 1),
+            index_row("JXY", -1, -1, -1),
         ])
 
         self.assertEqual(
             [item["pair"] for item in selected],
-            ["EURJPY", "GBPJPY", "CADCHF"],
+            ["EURJPY", "GBPJPY", "CADCHF", "BXY", "JXY"],
         )
 
     def test_message_is_compact(self):
@@ -80,6 +89,23 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("+100%", message)
         self.assertNotIn("M+/W+/D+", message)
         self.assertIn("2026-07-16 10:00 Paris", message)
+
+    def test_message_groups_pairs_before_indices(self):
+        selected = select_full_alignment_rows([
+            index_row("BXY", 1, 1, 1),
+            row("GBPJPY", 1, 1, 1),
+            index_row("JXY", -1, -1, -1),
+            row("EURJPY", 1, 1, 1),
+        ])
+        message = format_full_alignment_message(
+            selected,
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+        )
+
+        self.assertIn(
+            "🟢 EURJPY\n🟢 GBPJPY\n\n🟢 BXY\n🔴 JXY",
+            message,
+        )
 
 
 if __name__ == "__main__":
