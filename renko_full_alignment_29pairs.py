@@ -1,4 +1,4 @@
-"""Scanner dedicated to strict M/W/D Renko full alignment on the 29 FX pairs.
+"""Scanner dedicated to strict M/W/D Renko full alignment on FX assets.
 
 This is intentionally separate from the VIVIER state machine. It only detects
 pairs where price is strictly outside Monthly, Weekly and Daily Renko bricks in
@@ -20,18 +20,50 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from ichimoku_v4 import PAIRS_29, send_telegram_message
-from renko_score_29pairs_v16 import compute_pair_score, fib_directional_label
+from renko_score_29pairs_v16 import (
+    TFState,
+    f_effective_bias,
+    f_px_state,
+    fetch_tv_native_renko_ohlc,
+    fetch_tv_ohlc,
+    fib_directional_label,
+    monthly_fib_transition_context,
+    streak_range_from_bricks,
+    streaks_from_bricks,
+)
 
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
+
+FOREX_INDEX_ASSETS: list[dict] = [
+    {"pair": "DXY", "tv_symbol": "TVC:DXY", "asset_type": "INDEX", "currency": "USD"},
+    {"pair": "EXY", "tv_symbol": "TVC:EXY", "asset_type": "INDEX", "currency": "EUR"},
+    {"pair": "BXY", "tv_symbol": "TVC:BXY", "asset_type": "INDEX", "currency": "GBP"},
+    {"pair": "JXY", "tv_symbol": "TVC:JXY", "asset_type": "INDEX", "currency": "JPY"},
+    {"pair": "SXY", "tv_symbol": "TVC:SXY", "asset_type": "INDEX", "currency": "CHF"},
+    {"pair": "CXY", "tv_symbol": "TVC:CXY", "asset_type": "INDEX", "currency": "CAD"},
+    {"pair": "AXY", "tv_symbol": "TVC:AXY", "asset_type": "INDEX", "currency": "AUD"},
+    {"pair": "ZXY", "tv_symbol": "TVC:ZXY", "asset_type": "INDEX", "currency": "NZD"},
+]
+
+FOREX_PAIR_ASSETS: list[dict] = [
+    {"pair": pair, "tv_symbol": f"OANDA:{pair}", "asset_type": "PAIR"}
+    for pair in PAIRS_29
+]
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Scan the 29 OANDA FX pairs for strict Monthly/Weekly/Daily "
+            "Scan the 29 OANDA FX pairs and/or currency indices for strict Monthly/Weekly/Daily "
             "Renko full alignment."
         )
+    )
+    parser.add_argument(
+        "--assets",
+        choices=("all", "pairs", "indices"),
+        default="all",
+        help="Asset universe to scan. Default: all = 29 pairs + 8 forex indices.",
     )
     parser.add_argument("--length", type=int, default=14, help="ATR Renko length.")
     parser.add_argument(
@@ -66,6 +98,102 @@ def parse_args() -> argparse.Namespace:
         help="Send the scanner result to Telegram. By default it only prints.",
     )
     return parser.parse_args()
+
+
+def assets_for_scope(scope: str) -> list[dict]:
+    if scope == "pairs":
+        return list(FOREX_PAIR_ASSETS)
+    if scope == "indices":
+        return list(FOREX_INDEX_ASSETS)
+    return [*FOREX_PAIR_ASSETS, *FOREX_INDEX_ASSETS]
+
+
+def compute_tf_state_for_symbol(
+    tv_symbol: str,
+    interval: str,
+    length: int,
+    candles: int,
+    max_streak: int,
+    live_price: float,
+) -> TFState | None:
+    native_bricks = fetch_tv_native_renko_ohlc(
+        tv_symbol,
+        interval,
+        atr_length=length,
+        n_bricks=max(candles, max_streak + 1),
+    )
+    if not native_bricks:
+        return None
+
+    bricks: list[tuple[float, float, int]] = []
+    for brick in native_bricks:
+        renko_open = float(brick["open"])
+        renko_close = float(brick["close"])
+        direction = 1 if renko_close > renko_open else (-1 if renko_close < renko_open else 0)
+        if direction:
+            bricks.append((renko_open, renko_close, direction))
+    if not bricks:
+        return None
+
+    renko_open, renko_close, direction = bricks[-1]
+    green_streak, red_streak = streaks_from_bricks(bricks, max_streak)
+    streak_count, streak_low, streak_high = streak_range_from_bricks(bricks)
+    px_state = f_px_state(renko_open, renko_close, live_price)
+    bias = f_effective_bias(px_state, green_streak, red_streak)
+
+    return TFState(
+        px_state=px_state,
+        bias=bias,
+        direction=direction,
+        green_streak=green_streak,
+        red_streak=red_streak,
+        renko_open=renko_open,
+        renko_close=renko_close,
+        streak_count=streak_count,
+        streak_low=streak_low,
+        streak_high=streak_high,
+    )
+
+
+def compute_h1_month_fib_for_symbol(tv_symbol: str, h1_candles: int = 800) -> dict | None:
+    df = fetch_tv_ohlc(tv_symbol, "60", h1_candles)
+    return monthly_fib_transition_context(df)
+
+
+def compute_asset_score(asset: dict, length: int, candles: int, max_streak: int) -> dict | None:
+    tv_symbol = str(asset["tv_symbol"])
+    df_d_live = fetch_tv_ohlc(tv_symbol, "D", max(candles, 50))
+    if df_d_live is None or df_d_live.empty:
+        return None
+    live_price = float(df_d_live["close"].iloc[-1])
+
+    states: dict[str, TFState] = {}
+    for interval in ("M", "W", "D"):
+        state = compute_tf_state_for_symbol(
+            tv_symbol,
+            interval,
+            length,
+            candles,
+            max_streak,
+            live_price,
+        )
+        if state is None:
+            return None
+        states[interval] = state
+
+    h1_fib = compute_h1_month_fib_for_symbol(tv_symbol)
+    return {
+        "pair": asset["pair"],
+        "tv_symbol": tv_symbol,
+        "asset_type": asset.get("asset_type", "PAIR"),
+        "currency": asset.get("currency"),
+        "live_price": live_price,
+        "h1_price": (h1_fib or {}).get("live_price"),
+        "states": states,
+        "px": {tf: states[tf].px_state for tf in ("M", "W", "D")},
+        "bias": {tf: states[tf].bias for tf in ("M", "W", "D")},
+        "h1_fib": h1_fib,
+    }
 
 
 def _px(row: dict) -> dict[str, int] | None:
@@ -155,29 +283,35 @@ def format_full_alignment_message(rows: list[dict], now: datetime | None = None)
             fib = str(row.get("fib_directional_label") or "Fibo ?").removeprefix("Fibo ")
             price = row.get("h1_price") or row.get("live_price")
             price_txt = f" | {float(price):.5f}" if isinstance(price, (int, float)) else ""
+            name = str(row["pair"])
             lines.append(
-                f"{icon} {row['pair']} ({score:+.0f}% | {fib} | {_format_px(row)}{price_txt})"
+                f"{icon} {name} ({score:+.0f}% | {fib} | {_format_px(row)}{price_txt})"
             )
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
 
-def scan_pairs(length: int, candles: int, max_streak: int) -> list[dict]:
+def scan_assets(assets: list[dict], length: int, candles: int, max_streak: int) -> list[dict]:
     rows: list[dict] = []
-    for pair in PAIRS_29:
+    for asset in assets:
+        label = str(asset["pair"])
         try:
-            row = compute_pair_score(pair, length, candles, max_streak)
+            row = compute_asset_score(asset, length, candles, max_streak)
         except Exception as exc:  # keep the scanner usable if one pair fails
-            print(f"{pair}: erreur {exc}")
+            print(f"{label}: erreur {exc}")
             continue
         if row is not None:
             rows.append(row)
     return rows
 
 
+def scan_pairs(length: int, candles: int, max_streak: int) -> list[dict]:
+    return scan_assets(FOREX_PAIR_ASSETS, length, candles, max_streak)
+
+
 def main() -> int:
     args = parse_args()
-    rows = scan_pairs(args.length, args.candles, args.max_streak)
+    rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
     selected = select_full_alignment_rows(
         rows,
         require_fib_extreme=not args.no_fib_extreme_filter,

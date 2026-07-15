@@ -3,6 +3,8 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from renko_full_alignment_29pairs import (
+    FOREX_INDEX_ASSETS,
+    assets_for_scope,
     fib_extreme_ok,
     format_full_alignment_message,
     full_alignment_direction,
@@ -24,6 +26,27 @@ def row(pair, m, w, d, fib_pct):
 
 
 class FullAlignmentScannerTests(unittest.TestCase):
+    def test_default_universe_includes_forex_indices(self):
+        index_symbols = {asset["tv_symbol"] for asset in FOREX_INDEX_ASSETS}
+
+        self.assertEqual(index_symbols, {
+            "TVC:DXY",
+            "TVC:EXY",
+            "TVC:BXY",
+            "TVC:JXY",
+            "TVC:SXY",
+            "TVC:CXY",
+            "TVC:AXY",
+            "TVC:ZXY",
+        })
+        self.assertTrue(index_symbols.issubset({
+            asset["tv_symbol"] for asset in assets_for_scope("all")
+        }))
+        self.assertEqual(
+            {asset["pair"] for asset in assets_for_scope("indices")},
+            {"DXY", "EXY", "BXY", "JXY", "SXY", "CXY", "AXY", "ZXY"},
+        )
+
     def test_detects_strict_bull_and_bear_alignment(self):
         self.assertEqual(full_alignment_direction(row("GBPJPY", 1, 1, 1, 90.0)), 1)
         self.assertEqual(full_alignment_direction(row("CADCHF", -1, -1, -1, 10.0)), -1)
