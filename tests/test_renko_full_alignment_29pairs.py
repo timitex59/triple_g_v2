@@ -5,7 +5,6 @@ from zoneinfo import ZoneInfo
 from renko_full_alignment_29pairs import (
     FOREX_INDEX_ASSETS,
     assets_for_scope,
-    fib_extreme_ok,
     format_full_alignment_message,
     full_alignment_direction,
     raw_alignment_score,
@@ -16,11 +15,10 @@ from renko_full_alignment_29pairs import (
 PARIS = ZoneInfo("Europe/Paris")
 
 
-def row(pair, m, w, d, fib_pct):
+def row(pair, m, w, d):
     return {
         "pair": pair,
         "px": {"M": m, "W": w, "D": d},
-        "h1_fib": {"pct_of_range": fib_pct},
         "h1_price": 1.23456,
     }
 
@@ -48,33 +46,30 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
 
     def test_detects_strict_bull_and_bear_alignment(self):
-        self.assertEqual(full_alignment_direction(row("GBPJPY", 1, 1, 1, 90.0)), 1)
-        self.assertEqual(full_alignment_direction(row("CADCHF", -1, -1, -1, 10.0)), -1)
-        self.assertEqual(raw_alignment_score(row("GBPJPY", 1, 1, 1, 90.0)), 100.0)
-        self.assertEqual(raw_alignment_score(row("CADCHF", -1, -1, -1, 10.0)), -100.0)
+        self.assertEqual(full_alignment_direction(row("GBPJPY", 1, 1, 1)), 1)
+        self.assertEqual(full_alignment_direction(row("CADCHF", -1, -1, -1)), -1)
+        self.assertEqual(raw_alignment_score(row("GBPJPY", 1, 1, 1)), 100.0)
+        self.assertEqual(raw_alignment_score(row("CADCHF", -1, -1, -1)), -100.0)
 
     def test_rejects_inside_or_mixed_alignment(self):
-        self.assertEqual(full_alignment_direction(row("AUDJPY", 1, 0, 1, 90.0)), 0)
-        self.assertEqual(full_alignment_direction(row("EURJPY", 1, 1, -1, 90.0)), 0)
-
-    def test_fib_extreme_filter_matches_continuation_zone(self):
-        self.assertTrue(fib_extreme_ok(row("GBPJPY", 1, 1, 1, 90.0), 1))
-        self.assertFalse(fib_extreme_ok(row("GBPJPY", 1, 1, 1, 70.0), 1))
-        self.assertTrue(fib_extreme_ok(row("CADCHF", -1, -1, -1, 10.0), -1))
-        self.assertFalse(fib_extreme_ok(row("CADCHF", -1, -1, -1, 30.0), -1))
+        self.assertEqual(full_alignment_direction(row("AUDJPY", 1, 0, 1)), 0)
+        self.assertEqual(full_alignment_direction(row("EURJPY", 1, 1, -1)), 0)
 
     def test_selects_only_full_alignment_rows(self):
         selected = select_full_alignment_rows([
-            row("GBPJPY", 1, 1, 1, 90.0),
-            row("AUDJPY", 1, 0, 1, 90.0),
-            row("CADCHF", -1, -1, -1, 10.0),
-            row("EURJPY", 1, 1, 1, 70.0),
+            row("GBPJPY", 1, 1, 1),
+            row("AUDJPY", 1, 0, 1),
+            row("CADCHF", -1, -1, -1),
+            row("EURJPY", 1, 1, 1),
         ])
 
-        self.assertEqual([item["pair"] for item in selected], ["GBPJPY", "CADCHF"])
+        self.assertEqual(
+            [item["pair"] for item in selected],
+            ["EURJPY", "GBPJPY", "CADCHF"],
+        )
 
     def test_message_is_compact(self):
-        selected = select_full_alignment_rows([row("GBPJPY", 1, 1, 1, 90.0)])
+        selected = select_full_alignment_rows([row("GBPJPY", 1, 1, 1)])
         message = format_full_alignment_message(
             selected,
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),

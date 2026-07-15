@@ -6,11 +6,6 @@ the same direction:
 
 - BULL: M+/W+/D+ => raw score +100%
 - BEAR: M-/W-/D- => raw score -100%
-
-Optional default fibo filter keeps only the extreme continuation area:
-
-- BULL: price at or above 0.786 of the effective monthly H1 range
-- BEAR: price at or below 0.214 of the effective monthly H1 range
 """
 
 from __future__ import annotations
@@ -26,8 +21,6 @@ from renko_score_29pairs_v16 import (
     f_px_state,
     fetch_tv_native_renko_ohlc,
     fetch_tv_ohlc,
-    fib_directional_label,
-    monthly_fib_transition_context,
     streak_range_from_bricks,
     streaks_from_bricks,
 )
@@ -77,20 +70,6 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=50,
         help="Cap on consecutive green/red Renko brick streak count.",
-    )
-    parser.add_argument(
-        "--no-fib-extreme-filter",
-        action="store_true",
-        help="Keep every +/-100% M/W/D alignment, regardless of fibo position.",
-    )
-    parser.add_argument(
-        "--fib-extreme",
-        type=float,
-        default=78.6,
-        help=(
-            "Extreme fibo threshold in percent. Default 78.6 means BULL >= "
-            "78.6%% and BEAR <= 21.4%%."
-        ),
     )
     parser.add_argument(
         "--telegram",
@@ -155,11 +134,6 @@ def compute_tf_state_for_symbol(
     )
 
 
-def compute_h1_month_fib_for_symbol(tv_symbol: str, h1_candles: int = 800) -> dict | None:
-    df = fetch_tv_ohlc(tv_symbol, "60", h1_candles)
-    return monthly_fib_transition_context(df)
-
-
 def compute_asset_score(asset: dict, length: int, candles: int, max_streak: int) -> dict | None:
     tv_symbol = str(asset["tv_symbol"])
     df_d_live = fetch_tv_ohlc(tv_symbol, "D", max(candles, 50))
@@ -181,18 +155,15 @@ def compute_asset_score(asset: dict, length: int, candles: int, max_streak: int)
             return None
         states[interval] = state
 
-    h1_fib = compute_h1_month_fib_for_symbol(tv_symbol)
     return {
         "pair": asset["pair"],
         "tv_symbol": tv_symbol,
         "asset_type": asset.get("asset_type", "PAIR"),
         "currency": asset.get("currency"),
         "live_price": live_price,
-        "h1_price": (h1_fib or {}).get("live_price"),
         "states": states,
         "px": {tf: states[tf].px_state for tf in ("M", "W", "D")},
         "bias": {tf: states[tf].bias for tf in ("M", "W", "D")},
-        "h1_fib": h1_fib,
     }
 
 
@@ -223,43 +194,20 @@ def raw_alignment_score(row: dict) -> float:
     return (px["M"] * 3.0 + px["W"] * 2.0 + px["D"] * 1.0) / 6.0 * 100.0
 
 
-def fib_extreme_ok(row: dict, direction: int, extreme_pct: float = 78.6) -> bool:
-    """Keep BULL near F1 and BEAR near F0 of the effective monthly H1 fibo."""
-    fib_pct = (row.get("h1_fib") or {}).get("pct_of_range")
-    if not isinstance(fib_pct, (int, float)):
-        return False
-    lower_extreme = 100.0 - float(extreme_pct)
-    if direction == 1:
-        return float(fib_pct) >= float(extreme_pct)
-    if direction == -1:
-        return float(fib_pct) <= lower_extreme
-    return False
-
-
-def select_full_alignment_rows(
-    rows: list[dict],
-    *,
-    require_fib_extreme: bool = True,
-    fib_extreme_pct: float = 78.6,
-) -> list[dict]:
+def select_full_alignment_rows(rows: list[dict]) -> list[dict]:
     selected: list[dict] = []
     for row in rows:
         direction = full_alignment_direction(row)
         if direction == 0:
             continue
-        if require_fib_extreme and not fib_extreme_ok(row, direction, fib_extreme_pct):
-            continue
         enriched = dict(row)
         enriched["full_alignment_direction"] = direction
         enriched["raw_alignment_score"] = raw_alignment_score(row)
-        enriched["fib_directional_label"] = fib_directional_label(row.get("h1_fib"), direction)
         selected.append(enriched)
 
-    def sort_key(row: dict) -> tuple[int, float, str]:
+    def sort_key(row: dict) -> tuple[int, str]:
         direction = int(row["full_alignment_direction"])
-        fib_pct = float((row.get("h1_fib") or {}).get("pct_of_range") or 0.0)
-        # BULL: highest fib first. BEAR: lowest fib first.
-        return (0 if direction == 1 else 1, -fib_pct if direction == 1 else fib_pct, row["pair"])
+        return (0 if direction == 1 else 1, row["pair"])
 
     return sorted(selected, key=sort_key)
 
@@ -306,11 +254,7 @@ def scan_pairs(length: int, candles: int, max_streak: int) -> list[dict]:
 def main() -> int:
     args = parse_args()
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
-    selected = select_full_alignment_rows(
-        rows,
-        require_fib_extreme=not args.no_fib_extreme_filter,
-        fib_extreme_pct=args.fib_extreme,
-    )
+    selected = select_full_alignment_rows(rows)
     message = format_full_alignment_message(selected)
     print(message)
     if args.telegram:
