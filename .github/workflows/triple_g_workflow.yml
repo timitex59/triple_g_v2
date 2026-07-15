@@ -73,6 +73,7 @@ jobs:
           ENABLE_TELEGRAM_RENKO_FOREX_V1: "false"
           ENABLE_TELEGRAM_RENKO_FOREX_V2: "false"
           ENABLE_TELEGRAM_RENKO_SCORE_29: "true"
+          ENABLE_TELEGRAM_FULL_ALIGNMENT: "true"
           ENABLE_TELEGRAM_DCA: "true"
           ENABLE_TELEGRAM_RENKO_FOREX_V4: "false"
           ENABLE_TELEGRAM_TRACKER: "false"
@@ -140,6 +141,7 @@ jobs:
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V1" renko_forex_V1.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V2" renko_forex_V2.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_SCORE_29" renko_score_29pairs_v16.py
+          run_with_telegram "$ENABLE_TELEGRAM_FULL_ALIGNMENT" renko_full_alignment_29pairs.py --telegram
           # DCA Euronext: ne tourne (et n'envoie) qu'a partir de 20:00 Paris;
           # le script lui-meme dedoublonne pour n'envoyer qu'une fois par jour.
           if [ "$HOUR_MIN_PARIS" -ge 2000 ]; then
