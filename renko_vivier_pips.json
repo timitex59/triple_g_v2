@@ -275,39 +275,44 @@
     "2026-07-16": {
       "confirmed_segments": [],
       "date": "2026-07-16",
-      "finalized": false,
-      "segments": []
+      "finalized": true,
+      "finalized_at_paris": "2026-07-16T23:15:41.450405+02:00",
+      "segments": [
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-16",
+          "direction": 1,
+          "end_price": 1.89258,
+          "end_time_paris": "2026-07-16T23:00:00+02:00",
+          "end_time_utc": "2026-07-16T21:00:00+00:00",
+          "pair": "GBPCAD",
+          "pips": 4.199999999998649,
+          "start_price": 1.89216,
+          "start_time_paris": "2026-07-16T21:00:00+02:00",
+          "start_time_utc": "2026-07-16T19:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-07-16",
+          "direction": 1,
+          "end_price": 0.8087,
+          "end_time_paris": "2026-07-16T23:00:00+02:00",
+          "end_time_utc": "2026-07-16T21:00:00+00:00",
+          "pair": "USDCHF",
+          "pips": 26.199999999999555,
+          "start_price": 0.80608,
+          "start_time_paris": "2026-07-16T07:00:00+02:00",
+          "start_time_utc": "2026-07-16T05:00:00+00:00"
+        }
+      ]
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {
-    "GBPCAD": {
-      "current_pips": 6.099999999999994,
-      "date": "2026-07-16",
-      "direction": 1,
-      "last_price": 1.89277,
-      "last_time_utc": "2026-07-16T20:00:00+00:00",
-      "pair": "GBPCAD",
-      "start_price": 1.89216,
-      "start_time_paris": "2026-07-16T21:00:00+02:00",
-      "start_time_utc": "2026-07-16T19:00:00+00:00"
-    },
-    "USDCHF": {
-      "current_pips": 27.69999999999939,
-      "date": "2026-07-16",
-      "direction": 1,
-      "last_price": 0.80885,
-      "last_time_utc": "2026-07-16T20:00:00+00:00",
-      "pair": "USDCHF",
-      "start_price": 0.80608,
-      "start_time_paris": "2026-07-16T07:00:00+02:00",
-      "start_time_utc": "2026-07-16T05:00:00+00:00"
-    }
-  },
+  "open_segments": {},
   "reports_sent": {
     "monthly": [],
     "weekly": []
   },
-  "updated_at_paris": "2026-07-16T22:15:45.233785+02:00",
+  "updated_at_paris": "2026-07-16T23:15:41.450405+02:00",
   "version": 2
 }
