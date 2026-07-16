@@ -271,14 +271,32 @@
           "start_time_utc": "2026-07-15T15:00:00+00:00"
         }
       ]
+    },
+    "2026-07-16": {
+      "confirmed_segments": [],
+      "date": "2026-07-16",
+      "finalized": false,
+      "segments": []
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {},
+  "open_segments": {
+    "USDCHF": {
+      "current_pips": 0.0,
+      "date": "2026-07-16",
+      "direction": 1,
+      "last_price": 0.80608,
+      "last_time_utc": "2026-07-16T05:00:00+00:00",
+      "pair": "USDCHF",
+      "start_price": 0.80608,
+      "start_time_paris": "2026-07-16T07:00:00+02:00",
+      "start_time_utc": "2026-07-16T05:00:00+00:00"
+    }
+  },
   "reports_sent": {
     "monthly": [],
     "weekly": []
   },
-  "updated_at_paris": "2026-07-16T02:01:40.632400+02:00",
+  "updated_at_paris": "2026-07-16T07:15:44.645740+02:00",
   "version": 2
 }
