@@ -238,7 +238,7 @@ def format_full_alignment_message(rows: list[dict], now: datetime | None = None)
         for row in index_rows:
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
-            name = str(row["pair"])
+            name = str(row.get("currency") or row["pair"])
             lines.append(f"{icon} {name}")
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)

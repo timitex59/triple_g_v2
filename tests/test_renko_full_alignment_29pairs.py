@@ -27,6 +27,7 @@ def row(pair, m, w, d):
 def index_row(pair, m, w, d):
     item = row(pair, m, w, d)
     item["asset_type"] = "INDEX"
+    item["currency"] = {"BXY": "GBP", "JXY": "JPY"}.get(pair)
     return item
 
 
@@ -103,9 +104,11 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
 
         self.assertIn(
-            "🟢 EURJPY\n🟢 GBPJPY\n\n🟢 BXY\n🔴 JXY",
+            "🟢 EURJPY\n🟢 GBPJPY\n\n🟢 GBP\n🔴 JPY",
             message,
         )
+        self.assertNotIn("🟢 BXY", message)
+        self.assertNotIn("🔴 JXY", message)
 
 
 if __name__ == "__main__":
