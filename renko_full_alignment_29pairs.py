@@ -176,11 +176,15 @@ def compute_asset_score(asset: dict, length: int, candles: int, max_streak: int)
 
 
 def imp_state_from_close_sar(closes: list[float], sar_values: list[float]) -> dict:
-    """Mirror only the Pine IMP Bull/Bear state machine.
+    """Mirror Pine IMP levels and detect their later breaks.
 
-    Bull/Bear SAR cross levels are tracked. A Bear IMP fires when price closes
-    below the last bull SAR level after a bear cross exists. A Bull IMP fires
-    when price closes above the last bear SAR level after a bull cross exists.
+    Formation:
+    - Bear IMP: price closes below the last Bull SAR level.
+    - Bull IMP: price closes above the last Bear SAR level.
+
+    Break:
+    - Bull IMP broken down: price crosses below the active Bull IMP level.
+    - Bear IMP broken up: price crosses above the active Bear IMP level.
     """
     last_bull_level = None
     last_bear_level = None
@@ -189,6 +193,11 @@ def imp_state_from_close_sar(closes: list[float], sar_values: list[float]) -> di
     tracked_bull_important = False
     tracked_bear_important = False
     events: list[dict] = []
+    break_events: list[dict] = []
+    active_bull_imp_level = None
+    active_bear_imp_level = None
+    active_bull_imp_broken = False
+    active_bear_imp_broken = False
 
     count = min(len(closes), len(sar_values))
     for index in range(1, count):
@@ -224,34 +233,95 @@ def imp_state_from_close_sar(closes: list[float], sar_values: list[float]) -> di
 
         if bear_imp:
             tracked_bear_important = True
-            events.append({"index": index, "direction": -1, "level": tracked_bear_level})
+            active_bear_imp_level = tracked_bear_level
+            active_bear_imp_broken = False
+            events.append({
+                "index": index,
+                "direction": -1,
+                "level": tracked_bear_level,
+                "kind": "IMP BEAR",
+            })
         if bull_imp:
             tracked_bull_important = True
-            events.append({"index": index, "direction": 1, "level": tracked_bull_level})
+            active_bull_imp_level = tracked_bull_level
+            active_bull_imp_broken = False
+            events.append({
+                "index": index,
+                "direction": 1,
+                "level": tracked_bull_level,
+                "kind": "IMP BULL",
+            })
+
+        bear_imp_break_up = (
+            active_bear_imp_level is not None
+            and not active_bear_imp_broken
+            and prev_close <= active_bear_imp_level
+            and close > active_bear_imp_level
+        )
+        bull_imp_break_down = (
+            active_bull_imp_level is not None
+            and not active_bull_imp_broken
+            and prev_close >= active_bull_imp_level
+            and close < active_bull_imp_level
+        )
+
+        if bear_imp_break_up:
+            active_bear_imp_broken = True
+            break_events.append({
+                "index": index,
+                "direction": 1,
+                "level": active_bear_imp_level,
+                "kind": "IMP BEAR CASSÉ HAUSSE",
+            })
+        if bull_imp_break_down:
+            active_bull_imp_broken = True
+            break_events.append({
+                "index": index,
+                "direction": -1,
+                "level": active_bull_imp_level,
+                "kind": "IMP BULL CASSÉ BAISSE",
+            })
 
     last_event = events[-1] if events else None
+    last_break_event = break_events[-1] if break_events else None
     last_bar_index = count - 1
-    last_bar_direction = (
+    last_bar_imp_direction = (
         int(last_event["direction"])
         if last_event is not None and int(last_event["index"]) == last_bar_index
         else 0
     )
+    last_bar_break_direction = (
+        int(last_break_event["direction"])
+        if last_break_event is not None and int(last_break_event["index"]) == last_bar_index
+        else 0
+    )
     return {
-        "last_bar_imp_direction": last_bar_direction,
+        "last_bar_imp_direction": last_bar_imp_direction,
         "last_imp_direction": int(last_event["direction"]) if last_event else 0,
         "last_imp_level": float(last_event["level"]) if last_event else None,
+        "last_bar_break_direction": last_bar_break_direction,
+        "last_bar_break_kind": (
+            str(last_break_event["kind"])
+            if last_break_event is not None and int(last_break_event["index"]) == last_bar_index
+            else ""
+        ),
+        "last_break_direction": int(last_break_event["direction"]) if last_break_event else 0,
+        "last_break_level": float(last_break_event["level"]) if last_break_event else None,
         "events": events,
+        "break_events": break_events,
     }
 
 
 def compute_imp_state_for_symbol(tv_symbol: str, h1_candles: int = 400) -> dict:
     df = fetch_tv_ohlc(tv_symbol, "60", h1_candles)
     if df is None or df.empty:
-        return {"last_bar_imp_direction": 0, "last_imp_direction": 0}
+        return {"last_bar_imp_direction": 0, "last_imp_direction": 0,
+                "last_bar_break_direction": 0, "last_break_direction": 0}
     closed_df = closed_h1_source(df)
     sar_state = parabolic_sar(closed_df)
     if not sar_state:
-        return {"last_bar_imp_direction": 0, "last_imp_direction": 0}
+        return {"last_bar_imp_direction": 0, "last_imp_direction": 0,
+                "last_bar_break_direction": 0, "last_break_direction": 0}
     sar_values = sar_state.get("sar") or []
     closes = [float(value) for value in closed_df["close"].tolist()]
     return imp_state_from_close_sar(closes, sar_values)
@@ -318,11 +388,12 @@ def _format_px(row: dict) -> str:
 
 
 def _imp_suffix(row: dict) -> str:
-    imp_direction = int((row.get("imp") or {}).get("last_bar_imp_direction") or 0)
-    if imp_direction == 1:
-        return " · IMP BULL"
-    if imp_direction == -1:
-        return " · IMP BEAR"
+    imp = row.get("imp") or {}
+    break_kind = str(imp.get("last_bar_break_kind") or "")
+    if break_kind == "IMP BULL CASSÉ BAISSE":
+        return " · IMP BULL cassé ↓"
+    if break_kind == "IMP BEAR CASSÉ HAUSSE":
+        return " · IMP BEAR cassé ↑"
     return ""
 
 
