@@ -7,6 +7,7 @@ from renko_full_alignment_29pairs import (
     assets_for_scope,
     format_full_alignment_message,
     full_alignment_direction,
+    imp_state_from_close_sar,
     raw_alignment_score,
     select_full_alignment_rows,
 )
@@ -63,6 +64,19 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertEqual(full_alignment_direction(row("AUDJPY", 1, 0, 1)), 0)
         self.assertEqual(full_alignment_direction(row("EURJPY", 1, 1, -1)), 0)
 
+    def test_imp_state_detects_bear_and_bull_imp(self):
+        state = imp_state_from_close_sar(
+            closes=[9.0, 11.0, 11.0, 8.0, 8.0, 13.0],
+            sar_values=[10.0, 10.0, 9.0, 12.0, 11.0, 7.0],
+        )
+
+        self.assertEqual(
+            [(event["direction"], event["index"]) for event in state["events"]],
+            [(-1, 3), (1, 5)],
+        )
+        self.assertEqual(state["last_imp_direction"], 1)
+        self.assertEqual(state["last_bar_imp_direction"], 1)
+
     def test_selects_only_full_alignment_rows(self):
         selected = select_full_alignment_rows([
             row("GBPJPY", 1, 1, 1),
@@ -90,6 +104,21 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("+100%", message)
         self.assertNotIn("M+/W+/D+", message)
         self.assertIn("2026-07-16 10:00 Paris", message)
+
+    def test_message_marks_imp_events_only(self):
+        selected = select_full_alignment_rows([
+            row("GBPJPY", 1, 1, 1),
+            index_row("JXY", -1, -1, -1),
+        ])
+        selected[0]["imp"] = {"last_bar_imp_direction": 1}
+        selected[1]["imp"] = {"last_bar_imp_direction": -1}
+        message = format_full_alignment_message(
+            selected,
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+        )
+
+        self.assertIn("🟢 GBPJPY · IMP BULL", message)
+        self.assertIn("🔴 JPY · IMP BEAR", message)
 
     def test_message_groups_pairs_before_indices(self):
         selected = select_full_alignment_rows([

@@ -17,10 +17,12 @@ from zoneinfo import ZoneInfo
 from ichimoku_v4 import PAIRS_29, send_telegram_message
 from renko_score_29pairs_v16 import (
     TFState,
+    closed_h1_source,
     f_effective_bias,
     f_px_state,
     fetch_tv_native_renko_ohlc,
     fetch_tv_ohlc,
+    parabolic_sar,
     streak_range_from_bricks,
     streaks_from_bricks,
 )
@@ -70,6 +72,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=50,
         help="Cap on consecutive green/red Renko brick streak count.",
+    )
+    parser.add_argument(
+        "--imp-candles",
+        type=int,
+        default=400,
+        help="Number of H1 candles used to detect Bull/Bear IMP events.",
     )
     parser.add_argument(
         "--telegram",
@@ -167,6 +175,88 @@ def compute_asset_score(asset: dict, length: int, candles: int, max_streak: int)
     }
 
 
+def imp_state_from_close_sar(closes: list[float], sar_values: list[float]) -> dict:
+    """Mirror only the Pine IMP Bull/Bear state machine.
+
+    Bull/Bear SAR cross levels are tracked. A Bear IMP fires when price closes
+    below the last bull SAR level after a bear cross exists. A Bull IMP fires
+    when price closes above the last bear SAR level after a bull cross exists.
+    """
+    last_bull_level = None
+    last_bear_level = None
+    tracked_bull_level = None
+    tracked_bear_level = None
+    tracked_bull_important = False
+    tracked_bear_important = False
+    events: list[dict] = []
+
+    count = min(len(closes), len(sar_values))
+    for index in range(1, count):
+        close = float(closes[index])
+        prev_close = float(closes[index - 1])
+        sar = float(sar_values[index])
+        prev_sar = float(sar_values[index - 1])
+
+        bull = close > sar and prev_close <= prev_sar
+        bear = close < sar and prev_close >= prev_sar
+
+        if bull:
+            last_bull_level = sar
+            tracked_bull_level = sar
+            tracked_bull_important = False
+        if bear:
+            last_bear_level = sar
+            tracked_bear_level = sar
+            tracked_bear_important = False
+
+        bear_imp = (
+            not tracked_bear_important
+            and tracked_bear_level is not None
+            and last_bull_level is not None
+            and close < last_bull_level
+        )
+        bull_imp = (
+            not tracked_bull_important
+            and tracked_bull_level is not None
+            and last_bear_level is not None
+            and close > last_bear_level
+        )
+
+        if bear_imp:
+            tracked_bear_important = True
+            events.append({"index": index, "direction": -1, "level": tracked_bear_level})
+        if bull_imp:
+            tracked_bull_important = True
+            events.append({"index": index, "direction": 1, "level": tracked_bull_level})
+
+    last_event = events[-1] if events else None
+    last_bar_index = count - 1
+    last_bar_direction = (
+        int(last_event["direction"])
+        if last_event is not None and int(last_event["index"]) == last_bar_index
+        else 0
+    )
+    return {
+        "last_bar_imp_direction": last_bar_direction,
+        "last_imp_direction": int(last_event["direction"]) if last_event else 0,
+        "last_imp_level": float(last_event["level"]) if last_event else None,
+        "events": events,
+    }
+
+
+def compute_imp_state_for_symbol(tv_symbol: str, h1_candles: int = 400) -> dict:
+    df = fetch_tv_ohlc(tv_symbol, "60", h1_candles)
+    if df is None or df.empty:
+        return {"last_bar_imp_direction": 0, "last_imp_direction": 0}
+    closed_df = closed_h1_source(df)
+    sar_state = parabolic_sar(closed_df)
+    if not sar_state:
+        return {"last_bar_imp_direction": 0, "last_imp_direction": 0}
+    sar_values = sar_state.get("sar") or []
+    closes = [float(value) for value in closed_df["close"].tolist()]
+    return imp_state_from_close_sar(closes, sar_values)
+
+
 def _px(row: dict) -> dict[str, int] | None:
     px = row.get("px") or {}
     if any(px.get(tf) not in (-1, 0, 1) for tf in ("M", "W", "D")):
@@ -213,10 +303,27 @@ def select_full_alignment_rows(rows: list[dict]) -> list[dict]:
     return sorted(selected, key=sort_key)
 
 
+def attach_imp_states(rows: list[dict], h1_candles: int = 400) -> list[dict]:
+    for row in rows:
+        tv_symbol = row.get("tv_symbol")
+        if isinstance(tv_symbol, str) and tv_symbol:
+            row["imp"] = compute_imp_state_for_symbol(tv_symbol, h1_candles)
+    return rows
+
+
 def _format_px(row: dict) -> str:
     px = _px(row) or {}
     symbol = {1: "+", 0: "0", -1: "-"}
     return "/".join(f"{tf}{symbol.get(px.get(tf), '?')}" for tf in ("M", "W", "D"))
+
+
+def _imp_suffix(row: dict) -> str:
+    imp_direction = int((row.get("imp") or {}).get("last_bar_imp_direction") or 0)
+    if imp_direction == 1:
+        return " · IMP BULL"
+    if imp_direction == -1:
+        return " · IMP BEAR"
+    return ""
 
 
 def format_full_alignment_message(rows: list[dict], now: datetime | None = None) -> str:
@@ -232,14 +339,14 @@ def format_full_alignment_message(rows: list[dict], now: datetime | None = None)
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = str(row["pair"])
-            lines.append(f"{icon} {name}")
+            lines.append(f"{icon} {name}{_imp_suffix(row)}")
         if pair_rows and index_rows:
             lines.append("")
         for row in index_rows:
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = str(row.get("currency") or row["pair"])
-            lines.append(f"{icon} {name}")
+            lines.append(f"{icon} {name}{_imp_suffix(row)}")
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
@@ -266,6 +373,7 @@ def main() -> int:
     args = parse_args()
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
     selected = select_full_alignment_rows(rows)
+    attach_imp_states(selected, args.imp_candles)
     message = format_full_alignment_message(selected)
     print(message)
     if args.telegram:
