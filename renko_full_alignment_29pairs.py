@@ -373,6 +373,59 @@ def select_full_alignment_rows(rows: list[dict]) -> list[dict]:
     return sorted(selected, key=sort_key)
 
 
+def mid_alignment_candidate(row: dict) -> tuple[int, str]:
+    """Return (+/-1, pair label) when exactly a non-full row has 2 aligned TFs."""
+    if full_alignment_direction(row) != 0:
+        return 0, ""
+    px = _px(row)
+    if px is None:
+        return 0, ""
+
+    for first, second in (("D", "M"), ("D", "W"), ("W", "M")):
+        first_value = px[first]
+        second_value = px[second]
+        if first_value != 0 and first_value == second_value:
+            return first_value, f"{first}/{second}"
+    return 0, ""
+
+
+def select_mid_alignment_candidates(rows: list[dict]) -> list[dict]:
+    candidates: list[dict] = []
+    for row in rows:
+        direction, tf_pair = mid_alignment_candidate(row)
+        if direction == 0:
+            continue
+        enriched = dict(row)
+        enriched["mid_alignment_direction"] = direction
+        enriched["mid_alignment_pair"] = tf_pair
+        enriched["raw_alignment_score"] = raw_alignment_score(row)
+        candidates.append(enriched)
+
+    def sort_key(row: dict) -> tuple[int, int, str]:
+        asset_rank = 1 if row.get("asset_type") == "INDEX" else 0
+        direction = int(row["mid_alignment_direction"])
+        return (asset_rank, 0 if direction == 1 else 1, row["pair"])
+
+    return sorted(candidates, key=sort_key)
+
+
+def is_directional_imp_break(row: dict, direction: int) -> bool:
+    imp = row.get("imp") or {}
+    break_kind = str(imp.get("last_bar_break_kind") or "")
+    if direction == 1:
+        return break_kind == "IMP BEAR CASSÉ HAUSSE"
+    if direction == -1:
+        return break_kind == "IMP BULL CASSÉ BAISSE"
+    return False
+
+
+def select_mid_cassure_rows(rows: list[dict]) -> list[dict]:
+    return [
+        row for row in rows
+        if is_directional_imp_break(row, int(row.get("mid_alignment_direction") or 0))
+    ]
+
+
 def attach_imp_states(rows: list[dict], h1_candles: int = 400) -> list[dict]:
     for row in rows:
         tv_symbol = row.get("tv_symbol")
@@ -388,17 +441,23 @@ def _format_px(row: dict) -> str:
 
 
 def _imp_suffix(row: dict) -> str:
-    imp = row.get("imp") or {}
     alignment_direction = int(row.get("full_alignment_direction") or 0)
-    break_kind = str(imp.get("last_bar_break_kind") or "")
-    if alignment_direction == 1 and break_kind == "IMP BEAR CASSÉ HAUSSE":
-        return " 🔥"
-    if alignment_direction == -1 and break_kind == "IMP BULL CASSÉ BAISSE":
+    if is_directional_imp_break(row, alignment_direction):
         return " 🔥"
     return ""
 
 
-def format_full_alignment_message(rows: list[dict], now: datetime | None = None) -> str:
+def _asset_display_name(row: dict) -> str:
+    if row.get("asset_type") == "INDEX":
+        return str(row.get("currency") or row["pair"])
+    return str(row["pair"])
+
+
+def format_full_alignment_message(
+    rows: list[dict],
+    mid_cassure_rows: list[dict] | None = None,
+    now: datetime | None = None,
+) -> str:
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
     lines = ["📊 FULL ALIGNMENT M/W/D", ""]
     if not rows:
@@ -410,15 +469,34 @@ def format_full_alignment_message(rows: list[dict], now: datetime | None = None)
         for row in pair_rows:
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
-            name = str(row["pair"])
+            name = _asset_display_name(row)
             lines.append(f"{icon} {name}{_imp_suffix(row)}")
         if pair_rows and index_rows:
             lines.append("")
         for row in index_rows:
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
-            name = str(row.get("currency") or row["pair"])
+            name = _asset_display_name(row)
             lines.append(f"{icon} {name}{_imp_suffix(row)}")
+
+    if mid_cassure_rows:
+        lines.extend(["", "⚡ MID-CASSURE"])
+        pair_rows = [row for row in mid_cassure_rows if row.get("asset_type") != "INDEX"]
+        index_rows = [row for row in mid_cassure_rows if row.get("asset_type") == "INDEX"]
+        for row in pair_rows:
+            direction = int(row["mid_alignment_direction"])
+            icon = "🟢" if direction == 1 else "🔴"
+            name = _asset_display_name(row)
+            tf_pair = str(row.get("mid_alignment_pair") or "")
+            lines.append(f"{icon} {name} 🔥 {tf_pair}")
+        if pair_rows and index_rows:
+            lines.append("")
+        for row in index_rows:
+            direction = int(row["mid_alignment_direction"])
+            icon = "🟢" if direction == 1 else "🔴"
+            name = _asset_display_name(row)
+            tf_pair = str(row.get("mid_alignment_pair") or "")
+            lines.append(f"{icon} {name} 🔥 {tf_pair}")
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
@@ -445,8 +523,10 @@ def main() -> int:
     args = parse_args()
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
     selected = select_full_alignment_rows(rows)
-    attach_imp_states(selected, args.imp_candles)
-    message = format_full_alignment_message(selected)
+    mid_candidates = select_mid_alignment_candidates(rows)
+    attach_imp_states([*selected, *mid_candidates], args.imp_candles)
+    mid_cassures = select_mid_cassure_rows(mid_candidates)
+    message = format_full_alignment_message(selected, mid_cassures)
     print(message)
     if args.telegram:
         send_telegram_message(message)
