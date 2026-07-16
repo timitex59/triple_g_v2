@@ -11,7 +11,9 @@ the same direction:
 from __future__ import annotations
 
 import argparse
+import json
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from ichimoku_v4 import PAIRS_29, send_telegram_message
@@ -29,6 +31,9 @@ from renko_score_29pairs_v16 import (
 
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
+MID_CASSURE_STATE_FILE = Path("renko_full_alignment_mid_cassure_state.json")
+MID_CASSURE_WINDOW_START_HOUR = 7
+MID_CASSURE_WINDOW_END_HOUR = 23
 
 FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "DXY", "tv_symbol": "TVC:DXY", "asset_type": "INDEX", "currency": "USD"},
@@ -83,6 +88,11 @@ def parse_args() -> argparse.Namespace:
         "--telegram",
         action="store_true",
         help="Send the scanner result to Telegram. By default it only prints.",
+    )
+    parser.add_argument(
+        "--mid-state-file",
+        default=str(MID_CASSURE_STATE_FILE),
+        help="JSON state file used to persist MID-CASSURE detections between 07:00 and 23:00 Paris.",
     )
     return parser.parse_args()
 
@@ -426,6 +436,119 @@ def select_mid_cassure_rows(rows: list[dict]) -> list[dict]:
     ]
 
 
+def default_mid_cassure_history_state() -> dict:
+    return {"version": 1, "days": {}}
+
+
+def load_mid_cassure_history_state(path: str | Path) -> dict:
+    state_path = Path(path)
+    if not state_path.exists():
+        return default_mid_cassure_history_state()
+    try:
+        loaded = json.loads(state_path.read_text(encoding="utf-8"))
+    except Exception:
+        return default_mid_cassure_history_state()
+    if not isinstance(loaded, dict):
+        return default_mid_cassure_history_state()
+    loaded.setdefault("version", 1)
+    if not isinstance(loaded.get("days"), dict):
+        loaded["days"] = {}
+    return loaded
+
+
+def save_mid_cassure_history_state(path: str | Path, state: dict) -> None:
+    state_path = Path(path)
+    if state_path.parent != Path("."):
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _is_mid_cassure_tracking_window(now: datetime) -> bool:
+    paris_now = now.astimezone(PARIS_TZ)
+    return MID_CASSURE_WINDOW_START_HOUR <= paris_now.hour <= MID_CASSURE_WINDOW_END_HOUR
+
+
+def _prune_mid_cassure_history_state(state: dict, keep_days: int = 45) -> None:
+    days = state.setdefault("days", {})
+    if not isinstance(days, dict):
+        state["days"] = {}
+        return
+    for day_key in sorted(days)[:-keep_days]:
+        days.pop(day_key, None)
+
+
+def update_mid_cassure_history(
+    state: dict,
+    mid_cassure_rows: list[dict],
+    now: datetime,
+) -> tuple[dict, dict]:
+    paris_now = now.astimezone(PARIS_TZ)
+    day_key = f"{paris_now:%Y-%m-%d}"
+    state.setdefault("version", 1)
+    days = state.setdefault("days", {})
+    if not isinstance(days, dict):
+        days = {}
+        state["days"] = days
+    day_state = days.setdefault(day_key, {"events": []})
+    events = day_state.setdefault("events", [])
+    if not isinstance(events, list):
+        events = []
+        day_state["events"] = events
+
+    if not _is_mid_cassure_tracking_window(paris_now):
+        _prune_mid_cassure_history_state(state)
+        return state, day_state
+
+    by_key = {
+        str(event.get("key")): event
+        for event in events
+        if isinstance(event, dict) and event.get("key")
+    }
+    timestamp = paris_now.isoformat(timespec="minutes")
+    for row in mid_cassure_rows:
+        pair = str(row["pair"])
+        direction = int(row.get("mid_alignment_direction") or 0)
+        if direction == 0:
+            continue
+        key = f"{pair}|{direction}"
+        event = by_key.get(key)
+        if event is None:
+            event = {
+                "key": key,
+                "pair": pair,
+                "asset_type": row.get("asset_type", "PAIR"),
+                "currency": row.get("currency"),
+                "direction": direction,
+                "tf_pairs": [],
+                "first_seen": timestamp,
+                "last_seen": timestamp,
+                "count": 0,
+            }
+            events.append(event)
+            by_key[key] = event
+
+        tf_pair = str(row.get("mid_alignment_pair") or "")
+        tf_pairs = event.setdefault("tf_pairs", [])
+        if tf_pair and tf_pair not in tf_pairs:
+            tf_pairs.append(tf_pair)
+        event["last_seen"] = timestamp
+        event["count"] = int(event.get("count") or 0) + 1
+
+    day_state["events"] = sorted(
+        [event for event in events if isinstance(event, dict)],
+        key=lambda event: (
+            1 if event.get("asset_type") == "INDEX" else 0,
+            0 if int(event.get("direction") or 0) == 1 else 1,
+            str(event.get("pair") or ""),
+        ),
+    )
+    _prune_mid_cassure_history_state(state)
+    return state, day_state
+
+
 def attach_imp_states(rows: list[dict], h1_candles: int = 400) -> list[dict]:
     for row in rows:
         tv_symbol = row.get("tv_symbol")
@@ -453,9 +576,39 @@ def _asset_display_name(row: dict) -> str:
     return str(row["pair"])
 
 
+def _history_asset_display_name(event: dict) -> str:
+    if event.get("asset_type") == "INDEX":
+        return str(event.get("currency") or event.get("pair") or "")
+    return str(event.get("pair") or "")
+
+
+def _format_history_time_range(event: dict) -> str:
+    first_seen = str(event.get("first_seen") or "")
+    last_seen = str(event.get("last_seen") or "")
+    first_hm = first_seen[11:16] if len(first_seen) >= 16 else ""
+    last_hm = last_seen[11:16] if len(last_seen) >= 16 else ""
+    if first_hm and last_hm and first_hm != last_hm:
+        return f"{first_hm}→{last_hm}"
+    return first_hm or last_hm
+
+
+def _format_mid_history_event(event: dict) -> str:
+    direction = int(event.get("direction") or 0)
+    icon = "🟢" if direction == 1 else "🔴"
+    name = _history_asset_display_name(event)
+    tf_pairs = event.get("tf_pairs") or []
+    if not isinstance(tf_pairs, list):
+        tf_pairs = []
+    tf_label = "+".join(str(tf_pair) for tf_pair in tf_pairs if tf_pair) or "2TF"
+    time_label = _format_history_time_range(event)
+    suffix = f" {time_label}" if time_label else ""
+    return f"{icon} {name} 🔥 {tf_label}{suffix}"
+
+
 def format_full_alignment_message(
     rows: list[dict],
     mid_cassure_rows: list[dict] | None = None,
+    mid_cassure_history: dict | None = None,
     now: datetime | None = None,
 ) -> str:
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
@@ -497,6 +650,15 @@ def format_full_alignment_message(
             name = _asset_display_name(row)
             tf_pair = str(row.get("mid_alignment_pair") or "")
             lines.append(f"{icon} {name} 🔥 {tf_pair}")
+    history_events = []
+    if isinstance(mid_cassure_history, dict):
+        raw_events = mid_cassure_history.get("events") or []
+        if isinstance(raw_events, list):
+            history_events = [event for event in raw_events if isinstance(event, dict)]
+    if history_events:
+        lines.extend(["", "📋 MID-CASSURE 07H-23H"])
+        for event in history_events:
+            lines.append(_format_mid_history_event(event))
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
@@ -521,12 +683,16 @@ def scan_pairs(length: int, candles: int, max_streak: int) -> list[dict]:
 
 def main() -> int:
     args = parse_args()
+    now = datetime.now(PARIS_TZ)
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
     selected = select_full_alignment_rows(rows)
     mid_candidates = select_mid_alignment_candidates(rows)
     attach_imp_states([*selected, *mid_candidates], args.imp_candles)
     mid_cassures = select_mid_cassure_rows(mid_candidates)
-    message = format_full_alignment_message(selected, mid_cassures)
+    history_state = load_mid_cassure_history_state(args.mid_state_file)
+    history_state, today_history = update_mid_cassure_history(history_state, mid_cassures, now)
+    save_mid_cassure_history_state(args.mid_state_file, history_state)
+    message = format_full_alignment_message(selected, mid_cassures, today_history, now=now)
     print(message)
     if args.telegram:
         send_telegram_message(message)
