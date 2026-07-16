@@ -389,11 +389,12 @@ def _format_px(row: dict) -> str:
 
 def _imp_suffix(row: dict) -> str:
     imp = row.get("imp") or {}
+    alignment_direction = int(row.get("full_alignment_direction") or 0)
     break_kind = str(imp.get("last_bar_break_kind") or "")
-    if break_kind == "IMP BULL CASSÉ BAISSE":
-        return " · IMP BULL cassé ↓"
-    if break_kind == "IMP BEAR CASSÉ HAUSSE":
-        return " · IMP BEAR cassé ↑"
+    if alignment_direction == 1 and break_kind == "IMP BEAR CASSÉ HAUSSE":
+        return " 🔥"
+    if alignment_direction == -1 and break_kind == "IMP BULL CASSÉ BAISSE":
+        return " 🔥"
     return ""
 
 

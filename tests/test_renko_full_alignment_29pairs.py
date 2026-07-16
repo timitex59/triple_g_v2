@@ -111,20 +111,30 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("M+/W+/D+", message)
         self.assertIn("2026-07-16 10:00 Paris", message)
 
-    def test_message_marks_imp_breaks_only(self):
+    def test_message_marks_only_directional_imp_breaks_with_flame(self):
         selected = select_full_alignment_rows([
             row("GBPJPY", 1, 1, 1),
+            row("EURJPY", 1, 1, 1),
+            index_row("BXY", 1, 1, 1),
             index_row("JXY", -1, -1, -1),
         ])
-        selected[0]["imp"] = {"last_bar_break_kind": "IMP BULL CASSÉ BAISSE"}
-        selected[1]["imp"] = {"last_bar_break_kind": "IMP BEAR CASSÉ HAUSSE"}
+        by_pair = {item["pair"]: item for item in selected}
+        by_pair["GBPJPY"]["imp"] = {"last_bar_break_kind": "IMP BEAR CASSÉ HAUSSE"}
+        by_pair["EURJPY"]["imp"] = {"last_bar_break_kind": "IMP BULL CASSÉ BAISSE"}
+        by_pair["BXY"]["imp"] = {"last_bar_break_kind": "IMP BEAR CASSÉ HAUSSE"}
+        by_pair["JXY"]["imp"] = {"last_bar_break_kind": "IMP BULL CASSÉ BAISSE"}
         message = format_full_alignment_message(
             selected,
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
-        self.assertIn("🟢 GBPJPY · IMP BULL cassé ↓", message)
-        self.assertIn("🔴 JPY · IMP BEAR cassé ↑", message)
+        self.assertIn("🟢 GBPJPY 🔥", message)
+        self.assertIn("🟢 GBP 🔥", message)
+        self.assertIn("🔴 JPY 🔥", message)
+        self.assertIn("🟢 EURJPY", message)
+        self.assertNotIn("🟢 EURJPY 🔥", message)
+        self.assertNotIn("IMP BULL", message)
+        self.assertNotIn("IMP BEAR", message)
 
     def test_message_groups_pairs_before_indices(self):
         selected = select_full_alignment_rows([
