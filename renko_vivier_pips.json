@@ -354,7 +354,21 @@
       ]
     },
     "2026-07-20": {
-      "confirmed_segments": [],
+      "confirmed_segments": [
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-07-20",
+          "direction": 1,
+          "end_price": 1.88914,
+          "end_time_paris": "2026-07-20T17:00:00+02:00",
+          "end_time_utc": "2026-07-20T15:00:00+00:00",
+          "pair": "GBPCAD",
+          "pips": 5.399999999999849,
+          "start_price": 1.8886,
+          "start_time_paris": "2026-07-20T10:00:00+02:00",
+          "start_time_utc": "2026-07-20T08:00:00+00:00"
+        }
+      ],
       "date": "2026-07-20",
       "finalized": false,
       "segments": [
@@ -374,37 +388,25 @@
       ]
     }
   },
-  "open_confirmed_segments": {
-    "GBPCAD": {
-      "current_pips": 3.8999999999989043,
-      "date": "2026-07-20",
-      "direction": 1,
-      "last_price": 1.88899,
-      "last_time_utc": "2026-07-20T14:00:00+00:00",
-      "pair": "GBPCAD",
-      "start_price": 1.8886,
-      "start_time_paris": "2026-07-20T10:00:00+02:00",
-      "start_time_utc": "2026-07-20T08:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
   "open_segments": {
     "GBPCAD": {
-      "current_pips": 30.69999999999906,
+      "current_pips": 32.2,
       "date": "2026-07-20",
       "direction": 1,
-      "last_price": 1.88899,
-      "last_time_utc": "2026-07-20T14:00:00+00:00",
+      "last_price": 1.88914,
+      "last_time_utc": "2026-07-20T15:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.88592,
       "start_time_paris": "2026-07-20T07:00:00+02:00",
       "start_time_utc": "2026-07-20T05:00:00+00:00"
     },
     "USDCHF": {
-      "current_pips": 24.699999999999722,
+      "current_pips": 33.29999999999944,
       "date": "2026-07-20",
       "direction": 1,
-      "last_price": 0.8095,
-      "last_time_utc": "2026-07-20T14:00:00+00:00",
+      "last_price": 0.81036,
+      "last_time_utc": "2026-07-20T15:00:00+00:00",
       "pair": "USDCHF",
       "start_price": 0.80703,
       "start_time_paris": "2026-07-20T07:00:00+02:00",
@@ -417,6 +419,6 @@
       "2026-W29"
     ]
   },
-  "updated_at_paris": "2026-07-20T16:15:44.676708+02:00",
+  "updated_at_paris": "2026-07-20T17:15:45.798838+02:00",
   "version": 2
 }
