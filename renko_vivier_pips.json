@@ -448,25 +448,37 @@
       "segments": []
     }
   },
-  "open_confirmed_segments": {},
-  "open_segments": {
-    "GBPCAD": {
-      "current_pips": -67.20000000000059,
+  "open_confirmed_segments": {
+    "USDCHF": {
+      "current_pips": 0.0,
       "date": "2026-07-21",
       "direction": 1,
-      "last_price": 1.88448,
-      "last_time_utc": "2026-07-21T13:00:00+00:00",
+      "last_price": 0.81156,
+      "last_time_utc": "2026-07-21T14:00:00+00:00",
+      "pair": "USDCHF",
+      "start_price": 0.81156,
+      "start_time_paris": "2026-07-21T16:00:00+02:00",
+      "start_time_utc": "2026-07-21T14:00:00+00:00"
+    }
+  },
+  "open_segments": {
+    "GBPCAD": {
+      "current_pips": -60.00000000000005,
+      "date": "2026-07-21",
+      "direction": 1,
+      "last_price": 1.8852,
+      "last_time_utc": "2026-07-21T14:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.8912,
       "start_time_paris": "2026-07-21T07:00:00+02:00",
       "start_time_utc": "2026-07-21T05:00:00+00:00"
     },
     "USDCHF": {
-      "current_pips": 5.599999999998939,
+      "current_pips": 13.399999999998968,
       "date": "2026-07-21",
       "direction": 1,
-      "last_price": 0.81078,
-      "last_time_utc": "2026-07-21T13:00:00+00:00",
+      "last_price": 0.81156,
+      "last_time_utc": "2026-07-21T14:00:00+00:00",
       "pair": "USDCHF",
       "start_price": 0.81022,
       "start_time_paris": "2026-07-21T07:00:00+02:00",
@@ -479,6 +491,6 @@
       "2026-W29"
     ]
   },
-  "updated_at_paris": "2026-07-21T15:15:46.367169+02:00",
+  "updated_at_paris": "2026-07-21T16:15:51.262508+02:00",
   "version": 2
 }
