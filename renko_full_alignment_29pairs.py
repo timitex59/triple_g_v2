@@ -372,6 +372,77 @@ def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None
     )
 
 
+def _index_rows_by_currency(rows: list[dict]) -> dict[str, dict]:
+    return {
+        str(row.get("currency")): row
+        for row in rows
+        if row.get("asset_type") == "INDEX" and row.get("currency")
+    }
+
+
+def _pair_currencies(pair: str) -> tuple[str, str] | None:
+    pair = pair.upper()
+    if len(pair) != 6:
+        return None
+    base, quote = pair[:3], pair[3:]
+    known_currencies = {str(asset["currency"]) for asset in FOREX_INDEX_ASSETS}
+    if base not in known_currencies or quote not in known_currencies:
+        return None
+    return base, quote
+
+
+def is_premium_currency_profile(row: dict, index_by_currency: dict[str, dict]) -> bool:
+    """Premium profile: full pair alignment + daily CHG not opposed + strong/weak currency indexes."""
+    if row.get("asset_type") == "INDEX":
+        return False
+    direction = int(row.get("full_alignment_direction") or 0)
+    if direction == 0:
+        return False
+
+    pair_chg = row.get("daily_chg")
+    if not isinstance(pair_chg, (int, float)) or pair_chg * direction < 0:
+        return False
+
+    currencies = _pair_currencies(str(row.get("pair") or ""))
+    if currencies is None:
+        return False
+    base, quote = currencies
+    base_index = index_by_currency.get(base)
+    quote_index = index_by_currency.get(quote)
+    if base_index is None or quote_index is None:
+        return False
+
+    base_chg = base_index.get("daily_chg")
+    quote_chg = quote_index.get("daily_chg")
+    if not isinstance(base_chg, (int, float)) or not isinstance(quote_chg, (int, float)):
+        return False
+
+    base_index_direction = full_alignment_direction(base_index)
+    quote_index_direction = full_alignment_direction(quote_index)
+
+    if direction == 1:
+        return (
+            base_chg > 0
+            and quote_chg < 0
+            and (base_index_direction == 1 or quote_index_direction == -1)
+        )
+    return (
+        base_chg < 0
+        and quote_chg > 0
+        and (base_index_direction == -1 or quote_index_direction == 1)
+    )
+
+
+def attach_premium_currency_profiles(rows: list[dict], all_rows: list[dict]) -> list[dict]:
+    index_by_currency = _index_rows_by_currency(all_rows)
+    enriched_rows: list[dict] = []
+    for row in rows:
+        enriched = dict(row)
+        enriched["premium_currency_profile"] = is_premium_currency_profile(enriched, index_by_currency)
+        enriched_rows.append(enriched)
+    return enriched_rows
+
+
 def default_mid_sar_history_state() -> dict:
     return {"version": 1, "days": {}}
 
@@ -532,6 +603,10 @@ def _daily_chg_warning_suffix(row: dict, direction: int) -> str:
     return " ⚠️" if daily_chg * direction < 0 else ""
 
 
+def _premium_currency_profile_suffix(row: dict) -> str:
+    return " 🌸🌸" if row.get("premium_currency_profile") else ""
+
+
 def _daily_chg_icon(value: object) -> str:
     if not isinstance(value, (int, float)):
         return "⚪"
@@ -591,7 +666,8 @@ def format_full_alignment_message(
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
             warning = _daily_chg_warning_suffix(row, direction)
-            lines.append(f"{icon} {name}{_daily_chg_suffix(row)}{warning}")
+            profile = _premium_currency_profile_suffix(row)
+            lines.append(f"{icon} {name}{_daily_chg_suffix(row)}{warning}{profile}")
         if pair_rows and index_rows:
             lines.append("")
         for row in index_rows:
@@ -660,6 +736,7 @@ def main() -> int:
     now = datetime.now(PARIS_TZ)
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
     selected = select_full_alignment_rows(rows)
+    selected = attach_premium_currency_profiles(selected, rows)
     mid_candidates = select_mid_alignment_candidates(rows)
     attach_sar_break_states(mid_candidates, args.sar_candles)
     mid_sar_rows = select_mid_sar_rows(mid_candidates)

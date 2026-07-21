@@ -4,6 +4,7 @@ from zoneinfo import ZoneInfo
 
 from renko_full_alignment_29pairs import (
     FOREX_INDEX_ASSETS,
+    attach_premium_currency_profiles,
     assets_for_scope,
     format_full_alignment_message,
     full_alignment_direction,
@@ -134,6 +135,24 @@ class FullAlignmentScannerTests(unittest.TestCase):
             ["EURJPY", "AUDJPY", "USDJPY", "NZDJPY", "DXY", "JXY"],
         )
 
+    def test_premium_currency_profile_marks_strong_weak_full_alignment_pairs(self):
+        rows = [
+            row("USDJPY", 1, 1, 1, daily_chg=0.01),
+            row("USDCAD", 1, 1, 1, daily_chg=0.01),
+            row("NZDJPY", 1, 1, 1, daily_chg=-0.03),
+            index_row("DXY", 1, -1, 1, daily_chg=0.20),
+            index_row("JXY", -1, -1, -1, daily_chg=-0.41),
+            index_row("CXY", -1, 1, -1, daily_chg=-0.20),
+            index_row("ZXY", -1, 1, -1, daily_chg=-0.37),
+        ]
+        selected = attach_premium_currency_profiles(select_full_alignment_rows(rows), rows)
+        by_pair = {item["pair"]: item for item in selected}
+
+        self.assertTrue(by_pair["USDJPY"]["premium_currency_profile"])
+        self.assertFalse(by_pair["USDCAD"]["premium_currency_profile"])
+        self.assertFalse(by_pair["NZDJPY"]["premium_currency_profile"])
+        self.assertFalse(by_pair["JXY"]["premium_currency_profile"])
+
     def test_detects_mid_alignment_candidates_with_at_least_two_timeframes(self):
         self.assertEqual(mid_alignment_candidate(row("EURUSD", 1, -1, 1)), (1, "D/M"))
         self.assertEqual(mid_alignment_candidate(row("CADCHF", -1, 1, -1)), (-1, "D/M"))
@@ -239,13 +258,14 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("🔥", message)
 
     def test_message_adds_daily_chg_to_full_alignment_rows_and_lists_other_indices(self):
-        selected = select_full_alignment_rows([
+        rows = [
             row("AUDJPY", 1, 1, 1, daily_chg=0.88),
             row("NZDJPY", 1, 1, 1, daily_chg=-0.03),
             row("USDCAD", 1, 1, 1, daily_chg=-0.01),
             row("USDJPY", 1, 1, 1, daily_chg=-0.001),
             index_row("JXY", -1, -1, -1, daily_chg=-0.44),
-        ])
+        ]
+        selected = attach_premium_currency_profiles(select_full_alignment_rows(rows), rows)
         other_indices = select_index_daily_chg_rows([
             index_row("DXY", 1, -1, 1, daily_chg=0.12),
             index_row("EXY", 1, 1, -1, daily_chg=-0.05),
@@ -263,11 +283,31 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("🟢 NZDJPY (-0.03%) ⚠️", message)
         self.assertIn("🟢 USDCAD (-0.01%) ⚠️", message)
         self.assertIn("🟢 USDJPY (-0.00%) ⚠️", message)
+        self.assertNotIn("🌸🌸", message)
         self.assertIn("🔴 JPY (-0.44%)", message)
         self.assertIn("💱 AUTRES INDEX CHG%D", message)
         self.assertIn("🟢 USD +0.12%", message)
         self.assertIn("🔴 EUR -0.05%", message)
         self.assertNotIn("JPY -0.44%", message)
+
+    def test_message_marks_premium_currency_profile_with_double_flower(self):
+        rows = [
+            row("USDJPY", 1, 1, 1, daily_chg=0.01),
+            row("USDCAD", 1, 1, 1, daily_chg=0.01),
+            index_row("DXY", 1, -1, 1, daily_chg=0.20),
+            index_row("JXY", -1, -1, -1, daily_chg=-0.41),
+            index_row("CXY", -1, 1, -1, daily_chg=-0.20),
+        ]
+        selected = attach_premium_currency_profiles(select_full_alignment_rows(rows), rows)
+
+        message = format_full_alignment_message(
+            selected,
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+        )
+
+        self.assertIn("🟢 USDJPY (+0.01%) 🌸🌸", message)
+        self.assertNotIn("🟢 USDCAD (+0.01%) 🌸🌸", message)
+        self.assertIn("🔴 JPY (-0.41%)", message)
 
     def test_message_adds_mid_sar_section(self):
         full_rows = select_full_alignment_rows([
