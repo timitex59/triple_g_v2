@@ -10,6 +10,7 @@ from renko_full_alignment_29pairs import (
     mid_alignment_candidate,
     raw_alignment_score,
     select_full_alignment_rows,
+    select_index_daily_chg_rows,
     sar_break_state_from_close_sar,
     select_mid_alignment_candidates,
     select_mid_sar_rows,
@@ -20,19 +21,29 @@ from renko_full_alignment_29pairs import (
 PARIS = ZoneInfo("Europe/Paris")
 
 
-def row(pair, m, w, d):
+def row(pair, m, w, d, daily_chg=None):
     return {
         "pair": pair,
         "px": {"M": m, "W": w, "D": d},
         "asset_type": "PAIR",
         "h1_price": 1.23456,
+        "daily_chg": daily_chg,
     }
 
 
-def index_row(pair, m, w, d):
-    item = row(pair, m, w, d)
+def index_row(pair, m, w, d, daily_chg=None):
+    item = row(pair, m, w, d, daily_chg=daily_chg)
     item["asset_type"] = "INDEX"
-    item["currency"] = {"BXY": "GBP", "JXY": "JPY"}.get(pair)
+    item["currency"] = {
+        "DXY": "USD",
+        "EXY": "EUR",
+        "BXY": "GBP",
+        "JXY": "JPY",
+        "SXY": "CHF",
+        "CXY": "CAD",
+        "AXY": "AUD",
+        "ZXY": "NZD",
+    }.get(pair)
     return item
 
 
@@ -97,6 +108,16 @@ class FullAlignmentScannerTests(unittest.TestCase):
             [item["pair"] for item in selected],
             ["EURJPY", "GBPJPY", "CADCHF", "BXY", "JXY"],
         )
+
+    def test_selects_index_daily_chg_rows_in_currency_index_order(self):
+        selected = select_index_daily_chg_rows([
+            row("GBPJPY", 1, 1, 1),
+            index_row("JXY", -1, -1, -1, daily_chg=-0.44),
+            index_row("DXY", 1, -1, 1, daily_chg=0.12),
+            index_row("BXY", 1, 1, 1, daily_chg=0.31),
+        ], exclude_pairs={"JXY"})
+
+        self.assertEqual([item["pair"] for item in selected], ["DXY", "BXY"])
 
     def test_detects_mid_alignment_candidates_with_at_least_two_timeframes(self):
         self.assertEqual(mid_alignment_candidate(row("EURUSD", 1, -1, 1)), (1, "D/M"))
@@ -201,6 +222,31 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("🟢 GBP", message)
         self.assertIn("🔴 JPY", message)
         self.assertNotIn("🔥", message)
+
+    def test_message_adds_daily_chg_only_to_indices_and_lists_other_indices(self):
+        selected = select_full_alignment_rows([
+            row("AUDJPY", 1, 1, 1, daily_chg=0.88),
+            index_row("JXY", -1, -1, -1, daily_chg=-0.44),
+        ])
+        other_indices = select_index_daily_chg_rows([
+            index_row("DXY", 1, -1, 1, daily_chg=0.12),
+            index_row("EXY", 1, 1, -1, daily_chg=-0.05),
+            index_row("JXY", -1, -1, -1, daily_chg=-0.44),
+        ], exclude_pairs={"JXY"})
+
+        message = format_full_alignment_message(
+            selected,
+            index_daily_chg_rows=other_indices,
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+        )
+
+        self.assertIn("🟢 AUDJPY", message)
+        self.assertNotIn("AUDJPY (+0.88%)", message)
+        self.assertIn("🔴 JPY (-0.44%)", message)
+        self.assertIn("💱 AUTRES INDEX CHG%D", message)
+        self.assertIn("🟢 USD +0.12%", message)
+        self.assertIn("🔴 EUR -0.05%", message)
+        self.assertNotIn("JPY -0.44%", message)
 
     def test_message_adds_mid_sar_section(self):
         full_rows = select_full_alignment_rows([

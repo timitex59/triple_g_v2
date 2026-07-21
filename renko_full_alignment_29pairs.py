@@ -48,6 +48,7 @@ FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "AXY", "tv_symbol": "TVC:AXY", "asset_type": "INDEX", "currency": "AUD"},
     {"pair": "ZXY", "tv_symbol": "TVC:ZXY", "asset_type": "INDEX", "currency": "NZD"},
 ]
+FOREX_INDEX_ORDER = {str(asset["pair"]): index for index, asset in enumerate(FOREX_INDEX_ASSETS)}
 
 FOREX_PAIR_ASSETS: list[dict] = [
     {"pair": pair, "tv_symbol": f"OANDA:{pair}", "asset_type": "PAIR"}
@@ -161,6 +162,12 @@ def compute_asset_score(asset: dict, length: int, candles: int, max_streak: int)
     if df_d_live is None or df_d_live.empty:
         return None
     live_price = float(df_d_live["close"].iloc[-1])
+    prev_close = float(df_d_live["close"].iloc[-2]) if len(df_d_live) >= 2 else None
+    daily_chg = (
+        ((live_price - prev_close) / prev_close * 100.0)
+        if prev_close is not None and prev_close != 0
+        else None
+    )
 
     states: dict[str, TFState] = {}
     for interval in ("M", "W", "D"):
@@ -182,6 +189,7 @@ def compute_asset_score(asset: dict, length: int, candles: int, max_streak: int)
         "asset_type": asset.get("asset_type", "PAIR"),
         "currency": asset.get("currency"),
         "live_price": live_price,
+        "daily_chg": daily_chg,
         "states": states,
         "px": {tf: states[tf].px_state for tf in ("M", "W", "D")},
         "bias": {tf: states[tf].bias for tf in ("M", "W", "D")},
@@ -348,6 +356,19 @@ def select_mid_sar_rows(rows: list[dict]) -> list[dict]:
     ]
 
 
+def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None = None) -> list[dict]:
+    excluded = exclude_pairs or set()
+    index_rows = [
+        row
+        for row in rows
+        if row.get("asset_type") == "INDEX" and str(row.get("pair") or "") not in excluded
+    ]
+    return sorted(
+        index_rows,
+        key=lambda row: FOREX_INDEX_ORDER.get(str(row.get("pair") or ""), 999),
+    )
+
+
 def default_mid_sar_history_state() -> dict:
     return {"version": 1, "days": {}}
 
@@ -481,6 +502,31 @@ def _asset_display_name(row: dict) -> str:
     return str(row["pair"])
 
 
+def _format_signed_pct(value: object) -> str:
+    if isinstance(value, (int, float)):
+        return f"{value:+.2f}%"
+    return "n/a"
+
+
+def _index_daily_chg_suffix(row: dict) -> str:
+    if row.get("asset_type") != "INDEX":
+        return ""
+    daily_chg = row.get("daily_chg")
+    if not isinstance(daily_chg, (int, float)):
+        return ""
+    return f" ({_format_signed_pct(daily_chg)})"
+
+
+def _daily_chg_icon(value: object) -> str:
+    if not isinstance(value, (int, float)):
+        return "⚪"
+    if value > 0:
+        return "🟢"
+    if value < 0:
+        return "🔴"
+    return "⚪"
+
+
 def _history_asset_display_name(event: dict) -> str:
     if event.get("asset_type") == "INDEX":
         return str(event.get("currency") or event.get("pair") or "")
@@ -514,6 +560,7 @@ def format_full_alignment_message(
     rows: list[dict],
     mid_sar_rows: list[dict] | None = None,
     mid_sar_history: dict | None = None,
+    index_daily_chg_rows: list[dict] | None = None,
     now: datetime | None = None,
 ) -> str:
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
@@ -535,7 +582,7 @@ def format_full_alignment_message(
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
-            lines.append(f"{icon} {name}")
+            lines.append(f"{icon} {name}{_index_daily_chg_suffix(row)}")
 
     if mid_sar_rows:
         lines.extend(["", "⚡ MID SAR"])
@@ -554,7 +601,13 @@ def format_full_alignment_message(
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
             tf_pair = str(row.get("mid_alignment_pair") or "")
-            lines.append(f"{icon} {name} 🔥 {tf_pair}")
+            lines.append(f"{icon} {name}{_index_daily_chg_suffix(row)} 🔥 {tf_pair}")
+    if index_daily_chg_rows:
+        lines.extend(["", "💱 AUTRES INDEX CHG%D"])
+        for row in index_daily_chg_rows:
+            icon = _daily_chg_icon(row.get("daily_chg"))
+            name = _asset_display_name(row)
+            lines.append(f"{icon} {name} {_format_signed_pct(row.get('daily_chg'))}")
     history_events = []
     if isinstance(mid_sar_history, dict):
         raw_events = mid_sar_history.get("events") or []
@@ -594,10 +647,22 @@ def main() -> int:
     mid_candidates = select_mid_alignment_candidates(rows)
     attach_sar_break_states(mid_candidates, args.sar_candles)
     mid_sar_rows = select_mid_sar_rows(mid_candidates)
+    selected_index_pairs = {
+        str(row.get("pair") or "")
+        for row in selected
+        if row.get("asset_type") == "INDEX"
+    }
+    index_daily_chg_rows = select_index_daily_chg_rows(rows, selected_index_pairs)
     history_state = load_mid_sar_history_state(args.mid_sar_state_file)
     history_state, today_history = update_mid_sar_history(history_state, mid_sar_rows, now)
     save_mid_sar_history_state(args.mid_sar_state_file, history_state)
-    message = format_full_alignment_message(selected, mid_sar_rows, today_history, now=now)
+    message = format_full_alignment_message(
+        selected,
+        mid_sar_rows,
+        today_history,
+        index_daily_chg_rows,
+        now=now,
+    )
     print(message)
     if args.telegram:
         send_telegram_message(message)
