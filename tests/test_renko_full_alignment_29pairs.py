@@ -8,12 +8,10 @@ from renko_full_alignment_29pairs import (
     format_full_alignment_message,
     full_alignment_direction,
     imp_state_from_close_sar,
-    mid_alignment_candidate,
     raw_alignment_score,
     select_full_alignment_rows,
-    select_mid_alignment_candidates,
-    select_mid_cassure_rows,
-    update_mid_cassure_history,
+    select_full_cassure_rows,
+    update_full_cassure_history,
 )
 
 
@@ -102,74 +100,64 @@ class FullAlignmentScannerTests(unittest.TestCase):
             ["EURJPY", "GBPJPY", "CADCHF", "BXY", "JXY"],
         )
 
-    def test_detects_mid_alignment_candidates_without_full_alignment(self):
-        self.assertEqual(mid_alignment_candidate(row("EURUSD", 1, -1, 1)), (1, "D/M"))
-        self.assertEqual(mid_alignment_candidate(row("CADCHF", -1, 1, -1)), (-1, "D/M"))
-        self.assertEqual(mid_alignment_candidate(row("AUDJPY", -1, 1, 1)), (1, "D/W"))
-        self.assertEqual(mid_alignment_candidate(row("NZDCHF", 1, -1, -1)), (-1, "D/W"))
-        self.assertEqual(mid_alignment_candidate(row("GBPUSD", 1, 1, -1)), (1, "W/M"))
-        self.assertEqual(mid_alignment_candidate(row("USDCHF", -1, -1, 1)), (-1, "W/M"))
-        self.assertEqual(mid_alignment_candidate(row("GBPJPY", 1, 1, 1)), (0, ""))
-        self.assertEqual(mid_alignment_candidate(row("EURJPY", 1, 0, -1)), (0, ""))
-
-    def test_mid_cassure_keeps_only_directional_imp_breaks(self):
-        candidates = select_mid_alignment_candidates([
-            row("EURUSD", 1, -1, 1),
-            row("CADCHF", -1, 1, -1),
-            row("AUDJPY", 1, 0, 1),
+    def test_full_cassure_keeps_only_full_alignment_directional_imp_breaks(self):
+        selected = select_full_alignment_rows([
             row("GBPJPY", 1, 1, 1),
-            index_row("JXY", 1, -1, -1),
+            row("EURJPY", 1, 1, 1),
+            row("AUDJPY", 1, 0, 1),
+            row("CADCHF", -1, -1, -1),
+            index_row("JXY", -1, -1, -1),
         ])
-        by_pair = {item["pair"]: item for item in candidates}
-        by_pair["EURUSD"]["imp"] = {"last_bar_break_kind": "IMP BEAR CASSÉ HAUSSE"}
+        by_pair = {item["pair"]: item for item in selected}
+        by_pair["GBPJPY"]["imp"] = {"last_bar_break_kind": "IMP BEAR CASSÉ HAUSSE"}
+        by_pair["EURJPY"]["imp"] = {"last_bar_break_kind": "IMP BULL CASSÉ BAISSE"}
         by_pair["CADCHF"]["imp"] = {"last_bar_break_kind": "IMP BULL CASSÉ BAISSE"}
-        by_pair["AUDJPY"]["imp"] = {"last_bar_break_kind": "IMP BULL CASSÉ BAISSE"}
         by_pair["JXY"]["imp"] = {"last_bar_break_kind": "IMP BULL CASSÉ BAISSE"}
 
-        selected = select_mid_cassure_rows(candidates)
+        full_cassures = select_full_cassure_rows(selected)
 
-        self.assertEqual([item["pair"] for item in selected], ["EURUSD", "CADCHF", "JXY"])
+        self.assertEqual([item["pair"] for item in full_cassures], ["GBPJPY", "CADCHF", "JXY"])
 
-    def test_mid_cassure_history_tracks_daily_window_without_duplicates(self):
-        candidates = select_mid_alignment_candidates([
-            row("EURUSD", 1, -1, 1),
-            index_row("JXY", 1, -1, -1),
+    def test_full_cassure_history_tracks_daily_window_without_duplicates(self):
+        selected = select_full_alignment_rows([
+            row("GBPJPY", 1, 1, 1),
+            index_row("JXY", -1, -1, -1),
         ])
-        for item in candidates:
+        for item in selected:
             item["imp"] = {
                 "last_bar_break_kind": (
                     "IMP BEAR CASSÉ HAUSSE"
-                    if item["pair"] == "EURUSD"
+                    if item["pair"] == "GBPJPY"
                     else "IMP BULL CASSÉ BAISSE"
                 )
             }
-        mid_rows = select_mid_cassure_rows(candidates)
+        full_cassures = select_full_cassure_rows(selected)
 
-        state, today = update_mid_cassure_history(
+        state, today = update_full_cassure_history(
             {},
-            mid_rows,
+            full_cassures,
             datetime(2026, 7, 16, 8, 0, tzinfo=PARIS),
         )
-        state, today = update_mid_cassure_history(
+        state, today = update_full_cassure_history(
             state,
-            mid_rows,
+            full_cassures,
             datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
         self.assertEqual(len(today["events"]), 2)
         by_pair = {event["pair"]: event for event in today["events"]}
-        self.assertEqual(by_pair["EURUSD"]["count"], 2)
-        self.assertEqual(by_pair["EURUSD"]["first_seen"], "2026-07-16T08:00+02:00")
-        self.assertEqual(by_pair["EURUSD"]["last_seen"], "2026-07-16T10:00+02:00")
+        self.assertEqual(by_pair["GBPJPY"]["count"], 2)
+        self.assertEqual(by_pair["GBPJPY"]["first_seen"], "2026-07-16T08:00+02:00")
+        self.assertEqual(by_pair["GBPJPY"]["last_seen"], "2026-07-16T10:00+02:00")
         self.assertEqual(by_pair["JXY"]["currency"], "JPY")
 
-        state, unchanged = update_mid_cassure_history(
+        state, unchanged = update_full_cassure_history(
             state,
-            mid_rows,
+            full_cassures,
             datetime(2026, 7, 16, 1, 0, tzinfo=PARIS),
         )
         self.assertEqual(len(unchanged["events"]), 2)
-        self.assertEqual(by_pair["EURUSD"]["count"], 2)
+        self.assertEqual(by_pair["GBPJPY"]["count"], 2)
 
     def test_message_is_compact(self):
         selected = select_full_alignment_rows([row("GBPJPY", 1, 1, 1)])
@@ -209,38 +197,37 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("IMP BULL", message)
         self.assertNotIn("IMP BEAR", message)
 
-    def test_message_adds_mid_cassure_section(self):
-        full_rows = select_full_alignment_rows([row("GBPJPY", 1, 1, 1)])
-        mid_rows = select_mid_alignment_candidates([
-            row("EURUSD", 1, -1, 1),
-            index_row("JXY", 1, -1, -1),
+    def test_message_adds_full_cassure_section(self):
+        full_rows = select_full_alignment_rows([
+            row("GBPJPY", 1, 1, 1),
+            index_row("JXY", -1, -1, -1),
         ])
-        by_pair = {item["pair"]: item for item in mid_rows}
-        by_pair["EURUSD"]["imp"] = {"last_bar_break_kind": "IMP BEAR CASSÉ HAUSSE"}
+        by_pair = {item["pair"]: item for item in full_rows}
+        by_pair["GBPJPY"]["imp"] = {"last_bar_break_kind": "IMP BEAR CASSÉ HAUSSE"}
         by_pair["JXY"]["imp"] = {"last_bar_break_kind": "IMP BULL CASSÉ BAISSE"}
-        mid_rows = select_mid_cassure_rows(mid_rows)
+        full_cassures = select_full_cassure_rows(full_rows)
 
         message = format_full_alignment_message(
             full_rows,
-            mid_rows,
+            full_cassures,
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
-        self.assertIn("⚡ MID-CASSURE", message)
-        self.assertIn("🟢 EURUSD 🔥 D/M", message)
-        self.assertIn("🔴 JPY 🔥 D/W", message)
+        self.assertIn("⚡ FULL-CASSURE", message)
+        self.assertIn("🟢 GBPJPY 🔥", message)
+        self.assertIn("🔴 JPY 🔥", message)
+        self.assertNotIn("MID-CASSURE", message)
 
-    def test_message_adds_mid_cassure_daily_history(self):
+    def test_message_adds_full_cassure_daily_history(self):
         message = format_full_alignment_message(
             [],
             [],
             {
                 "events": [
                     {
-                        "pair": "EURUSD",
+                        "pair": "GBPJPY",
                         "asset_type": "PAIR",
                         "direction": 1,
-                        "tf_pairs": ["D/M"],
                         "first_seen": "2026-07-16T08:00+02:00",
                         "last_seen": "2026-07-16T10:00+02:00",
                     },
@@ -249,7 +236,6 @@ class FullAlignmentScannerTests(unittest.TestCase):
                         "asset_type": "INDEX",
                         "currency": "JPY",
                         "direction": -1,
-                        "tf_pairs": ["D/W"],
                         "first_seen": "2026-07-16T11:00+02:00",
                         "last_seen": "2026-07-16T11:00+02:00",
                     },
@@ -258,9 +244,10 @@ class FullAlignmentScannerTests(unittest.TestCase):
             now=datetime(2026, 7, 16, 12, 0, tzinfo=PARIS),
         )
 
-        self.assertIn("📋 MID-CASSURE 07H-23H", message)
-        self.assertIn("🟢 EURUSD 🔥 D/M 08:00→10:00", message)
-        self.assertIn("🔴 JPY 🔥 D/W 11:00", message)
+        self.assertIn("📋 FULL-CASSURE 07H-23H", message)
+        self.assertIn("🟢 GBPJPY 🔥 08:00→10:00", message)
+        self.assertIn("🔴 JPY 🔥 11:00", message)
+        self.assertNotIn("MID-CASSURE", message)
 
     def test_message_groups_pairs_before_indices(self):
         selected = select_full_alignment_rows([

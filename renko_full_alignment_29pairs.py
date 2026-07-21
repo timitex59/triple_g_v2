@@ -31,9 +31,9 @@ from renko_score_29pairs_v16 import (
 
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
-MID_CASSURE_STATE_FILE = Path("renko_full_alignment_mid_cassure_state.json")
-MID_CASSURE_WINDOW_START_HOUR = 7
-MID_CASSURE_WINDOW_END_HOUR = 23
+FULL_CASSURE_STATE_FILE = Path("renko_full_alignment_full_cassure_state.json")
+FULL_CASSURE_WINDOW_START_HOUR = 7
+FULL_CASSURE_WINDOW_END_HOUR = 23
 
 FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "DXY", "tv_symbol": "TVC:DXY", "asset_type": "INDEX", "currency": "USD"},
@@ -90,9 +90,9 @@ def parse_args() -> argparse.Namespace:
         help="Send the scanner result to Telegram. By default it only prints.",
     )
     parser.add_argument(
-        "--mid-state-file",
-        default=str(MID_CASSURE_STATE_FILE),
-        help="JSON state file used to persist MID-CASSURE detections between 07:00 and 23:00 Paris.",
+        "--full-cassure-state-file",
+        default=str(FULL_CASSURE_STATE_FILE),
+        help="JSON state file used to persist FULL-CASSURE detections between 07:00 and 23:00 Paris.",
     )
     return parser.parse_args()
 
@@ -383,42 +383,6 @@ def select_full_alignment_rows(rows: list[dict]) -> list[dict]:
     return sorted(selected, key=sort_key)
 
 
-def mid_alignment_candidate(row: dict) -> tuple[int, str]:
-    """Return (+/-1, pair label) when exactly a non-full row has 2 aligned TFs."""
-    if full_alignment_direction(row) != 0:
-        return 0, ""
-    px = _px(row)
-    if px is None:
-        return 0, ""
-
-    for first, second in (("D", "M"), ("D", "W"), ("W", "M")):
-        first_value = px[first]
-        second_value = px[second]
-        if first_value != 0 and first_value == second_value:
-            return first_value, f"{first}/{second}"
-    return 0, ""
-
-
-def select_mid_alignment_candidates(rows: list[dict]) -> list[dict]:
-    candidates: list[dict] = []
-    for row in rows:
-        direction, tf_pair = mid_alignment_candidate(row)
-        if direction == 0:
-            continue
-        enriched = dict(row)
-        enriched["mid_alignment_direction"] = direction
-        enriched["mid_alignment_pair"] = tf_pair
-        enriched["raw_alignment_score"] = raw_alignment_score(row)
-        candidates.append(enriched)
-
-    def sort_key(row: dict) -> tuple[int, int, str]:
-        asset_rank = 1 if row.get("asset_type") == "INDEX" else 0
-        direction = int(row["mid_alignment_direction"])
-        return (asset_rank, 0 if direction == 1 else 1, row["pair"])
-
-    return sorted(candidates, key=sort_key)
-
-
 def is_directional_imp_break(row: dict, direction: int) -> bool:
     imp = row.get("imp") or {}
     break_kind = str(imp.get("last_bar_break_kind") or "")
@@ -429,34 +393,34 @@ def is_directional_imp_break(row: dict, direction: int) -> bool:
     return False
 
 
-def select_mid_cassure_rows(rows: list[dict]) -> list[dict]:
+def select_full_cassure_rows(rows: list[dict]) -> list[dict]:
     return [
         row for row in rows
-        if is_directional_imp_break(row, int(row.get("mid_alignment_direction") or 0))
+        if is_directional_imp_break(row, int(row.get("full_alignment_direction") or 0))
     ]
 
 
-def default_mid_cassure_history_state() -> dict:
+def default_full_cassure_history_state() -> dict:
     return {"version": 1, "days": {}}
 
 
-def load_mid_cassure_history_state(path: str | Path) -> dict:
+def load_full_cassure_history_state(path: str | Path) -> dict:
     state_path = Path(path)
     if not state_path.exists():
-        return default_mid_cassure_history_state()
+        return default_full_cassure_history_state()
     try:
         loaded = json.loads(state_path.read_text(encoding="utf-8"))
     except Exception:
-        return default_mid_cassure_history_state()
+        return default_full_cassure_history_state()
     if not isinstance(loaded, dict):
-        return default_mid_cassure_history_state()
+        return default_full_cassure_history_state()
     loaded.setdefault("version", 1)
     if not isinstance(loaded.get("days"), dict):
         loaded["days"] = {}
     return loaded
 
 
-def save_mid_cassure_history_state(path: str | Path, state: dict) -> None:
+def save_full_cassure_history_state(path: str | Path, state: dict) -> None:
     state_path = Path(path)
     if state_path.parent != Path("."):
         state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -466,12 +430,12 @@ def save_mid_cassure_history_state(path: str | Path, state: dict) -> None:
     )
 
 
-def _is_mid_cassure_tracking_window(now: datetime) -> bool:
+def _is_full_cassure_tracking_window(now: datetime) -> bool:
     paris_now = now.astimezone(PARIS_TZ)
-    return MID_CASSURE_WINDOW_START_HOUR <= paris_now.hour <= MID_CASSURE_WINDOW_END_HOUR
+    return FULL_CASSURE_WINDOW_START_HOUR <= paris_now.hour <= FULL_CASSURE_WINDOW_END_HOUR
 
 
-def _prune_mid_cassure_history_state(state: dict, keep_days: int = 45) -> None:
+def _prune_full_cassure_history_state(state: dict, keep_days: int = 45) -> None:
     days = state.setdefault("days", {})
     if not isinstance(days, dict):
         state["days"] = {}
@@ -480,9 +444,9 @@ def _prune_mid_cassure_history_state(state: dict, keep_days: int = 45) -> None:
         days.pop(day_key, None)
 
 
-def update_mid_cassure_history(
+def update_full_cassure_history(
     state: dict,
-    mid_cassure_rows: list[dict],
+    full_cassure_rows: list[dict],
     now: datetime,
 ) -> tuple[dict, dict]:
     paris_now = now.astimezone(PARIS_TZ)
@@ -498,8 +462,8 @@ def update_mid_cassure_history(
         events = []
         day_state["events"] = events
 
-    if not _is_mid_cassure_tracking_window(paris_now):
-        _prune_mid_cassure_history_state(state)
+    if not _is_full_cassure_tracking_window(paris_now):
+        _prune_full_cassure_history_state(state)
         return state, day_state
 
     by_key = {
@@ -508,9 +472,9 @@ def update_mid_cassure_history(
         if isinstance(event, dict) and event.get("key")
     }
     timestamp = paris_now.isoformat(timespec="minutes")
-    for row in mid_cassure_rows:
+    for row in full_cassure_rows:
         pair = str(row["pair"])
-        direction = int(row.get("mid_alignment_direction") or 0)
+        direction = int(row.get("full_alignment_direction") or 0)
         if direction == 0:
             continue
         key = f"{pair}|{direction}"
@@ -522,7 +486,6 @@ def update_mid_cassure_history(
                 "asset_type": row.get("asset_type", "PAIR"),
                 "currency": row.get("currency"),
                 "direction": direction,
-                "tf_pairs": [],
                 "first_seen": timestamp,
                 "last_seen": timestamp,
                 "count": 0,
@@ -530,10 +493,6 @@ def update_mid_cassure_history(
             events.append(event)
             by_key[key] = event
 
-        tf_pair = str(row.get("mid_alignment_pair") or "")
-        tf_pairs = event.setdefault("tf_pairs", [])
-        if tf_pair and tf_pair not in tf_pairs:
-            tf_pairs.append(tf_pair)
         event["last_seen"] = timestamp
         event["count"] = int(event.get("count") or 0) + 1
 
@@ -545,7 +504,7 @@ def update_mid_cassure_history(
             str(event.get("pair") or ""),
         ),
     )
-    _prune_mid_cassure_history_state(state)
+    _prune_full_cassure_history_state(state)
     return state, day_state
 
 
@@ -592,23 +551,19 @@ def _format_history_time_range(event: dict) -> str:
     return first_hm or last_hm
 
 
-def _format_mid_history_event(event: dict) -> str:
+def _format_full_history_event(event: dict) -> str:
     direction = int(event.get("direction") or 0)
     icon = "🟢" if direction == 1 else "🔴"
     name = _history_asset_display_name(event)
-    tf_pairs = event.get("tf_pairs") or []
-    if not isinstance(tf_pairs, list):
-        tf_pairs = []
-    tf_label = "+".join(str(tf_pair) for tf_pair in tf_pairs if tf_pair) or "2TF"
     time_label = _format_history_time_range(event)
     suffix = f" {time_label}" if time_label else ""
-    return f"{icon} {name} 🔥 {tf_label}{suffix}"
+    return f"{icon} {name} 🔥{suffix}"
 
 
 def format_full_alignment_message(
     rows: list[dict],
-    mid_cassure_rows: list[dict] | None = None,
-    mid_cassure_history: dict | None = None,
+    full_cassure_rows: list[dict] | None = None,
+    full_cassure_history: dict | None = None,
     now: datetime | None = None,
 ) -> str:
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
@@ -632,33 +587,31 @@ def format_full_alignment_message(
             name = _asset_display_name(row)
             lines.append(f"{icon} {name}{_imp_suffix(row)}")
 
-    if mid_cassure_rows:
-        lines.extend(["", "⚡ MID-CASSURE"])
-        pair_rows = [row for row in mid_cassure_rows if row.get("asset_type") != "INDEX"]
-        index_rows = [row for row in mid_cassure_rows if row.get("asset_type") == "INDEX"]
+    if full_cassure_rows:
+        lines.extend(["", "⚡ FULL-CASSURE"])
+        pair_rows = [row for row in full_cassure_rows if row.get("asset_type") != "INDEX"]
+        index_rows = [row for row in full_cassure_rows if row.get("asset_type") == "INDEX"]
         for row in pair_rows:
-            direction = int(row["mid_alignment_direction"])
+            direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
-            tf_pair = str(row.get("mid_alignment_pair") or "")
-            lines.append(f"{icon} {name} 🔥 {tf_pair}")
+            lines.append(f"{icon} {name} 🔥")
         if pair_rows and index_rows:
             lines.append("")
         for row in index_rows:
-            direction = int(row["mid_alignment_direction"])
+            direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
-            tf_pair = str(row.get("mid_alignment_pair") or "")
-            lines.append(f"{icon} {name} 🔥 {tf_pair}")
+            lines.append(f"{icon} {name} 🔥")
     history_events = []
-    if isinstance(mid_cassure_history, dict):
-        raw_events = mid_cassure_history.get("events") or []
+    if isinstance(full_cassure_history, dict):
+        raw_events = full_cassure_history.get("events") or []
         if isinstance(raw_events, list):
             history_events = [event for event in raw_events if isinstance(event, dict)]
     if history_events:
-        lines.extend(["", "📋 MID-CASSURE 07H-23H"])
+        lines.extend(["", "📋 FULL-CASSURE 07H-23H"])
         for event in history_events:
-            lines.append(_format_mid_history_event(event))
+            lines.append(_format_full_history_event(event))
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
@@ -686,13 +639,12 @@ def main() -> int:
     now = datetime.now(PARIS_TZ)
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
     selected = select_full_alignment_rows(rows)
-    mid_candidates = select_mid_alignment_candidates(rows)
-    attach_imp_states([*selected, *mid_candidates], args.imp_candles)
-    mid_cassures = select_mid_cassure_rows(mid_candidates)
-    history_state = load_mid_cassure_history_state(args.mid_state_file)
-    history_state, today_history = update_mid_cassure_history(history_state, mid_cassures, now)
-    save_mid_cassure_history_state(args.mid_state_file, history_state)
-    message = format_full_alignment_message(selected, mid_cassures, today_history, now=now)
+    attach_imp_states(selected, args.imp_candles)
+    full_cassures = select_full_cassure_rows(selected)
+    history_state = load_full_cassure_history_state(args.full_cassure_state_file)
+    history_state, today_history = update_full_cassure_history(history_state, full_cassures, now)
+    save_full_cassure_history_state(args.full_cassure_state_file, history_state)
+    message = format_full_alignment_message(selected, full_cassures, today_history, now=now)
     print(message)
     if args.telegram:
         send_telegram_message(message)
