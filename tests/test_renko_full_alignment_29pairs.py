@@ -109,7 +109,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
             ["EURJPY", "GBPJPY", "CADCHF", "BXY", "JXY"],
         )
 
-    def test_selects_index_daily_chg_rows_in_currency_index_order(self):
+    def test_selects_index_daily_chg_rows_by_daily_chg_descending(self):
         selected = select_index_daily_chg_rows([
             row("GBPJPY", 1, 1, 1),
             index_row("JXY", -1, -1, -1, daily_chg=-0.44),
@@ -117,7 +117,22 @@ class FullAlignmentScannerTests(unittest.TestCase):
             index_row("BXY", 1, 1, 1, daily_chg=0.31),
         ], exclude_pairs={"JXY"})
 
-        self.assertEqual([item["pair"] for item in selected], ["DXY", "BXY"])
+        self.assertEqual([item["pair"] for item in selected], ["BXY", "DXY"])
+
+    def test_full_alignment_rows_are_sorted_by_daily_chg_descending(self):
+        selected = select_full_alignment_rows([
+            row("USDJPY", 1, 1, 1, daily_chg=-0.01),
+            row("AUDJPY", 1, 1, 1, daily_chg=0.01),
+            row("EURJPY", 1, 1, 1, daily_chg=0.02),
+            row("NZDJPY", 1, 1, 1, daily_chg=-0.02),
+            index_row("JXY", -1, -1, -1, daily_chg=-0.41),
+            index_row("DXY", 1, 1, 1, daily_chg=0.20),
+        ])
+
+        self.assertEqual(
+            [item["pair"] for item in selected],
+            ["EURJPY", "AUDJPY", "USDJPY", "NZDJPY", "DXY", "JXY"],
+        )
 
     def test_detects_mid_alignment_candidates_with_at_least_two_timeframes(self):
         self.assertEqual(mid_alignment_candidate(row("EURUSD", 1, -1, 1)), (1, "D/M"))

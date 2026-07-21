@@ -48,8 +48,6 @@ FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "AXY", "tv_symbol": "TVC:AXY", "asset_type": "INDEX", "currency": "AUD"},
     {"pair": "ZXY", "tv_symbol": "TVC:ZXY", "asset_type": "INDEX", "currency": "NZD"},
 ]
-FOREX_INDEX_ORDER = {str(asset["pair"]): index for index, asset in enumerate(FOREX_INDEX_ASSETS)}
-
 FOREX_PAIR_ASSETS: list[dict] = [
     {"pair": pair, "tv_symbol": f"OANDA:{pair}", "asset_type": "PAIR"}
     for pair in PAIRS_29
@@ -297,10 +295,15 @@ def select_full_alignment_rows(rows: list[dict]) -> list[dict]:
         enriched["raw_alignment_score"] = raw_alignment_score(row)
         selected.append(enriched)
 
-    def sort_key(row: dict) -> tuple[int, int, str]:
+    def sort_key(row: dict) -> tuple[int, tuple[int, float], int, str]:
         asset_rank = 1 if row.get("asset_type") == "INDEX" else 0
         direction = int(row["full_alignment_direction"])
-        return (asset_rank, 0 if direction == 1 else 1, row["pair"])
+        return (
+            asset_rank,
+            _daily_chg_sort_key(row),
+            0 if direction == 1 else 1,
+            str(row["pair"]),
+        )
 
     return sorted(selected, key=sort_key)
 
@@ -365,7 +368,7 @@ def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None
     ]
     return sorted(
         index_rows,
-        key=lambda row: FOREX_INDEX_ORDER.get(str(row.get("pair") or ""), 999),
+        key=lambda row: (*_daily_chg_sort_key(row), str(row.get("pair") or "")),
     )
 
 
@@ -506,6 +509,13 @@ def _format_signed_pct(value: object) -> str:
     if isinstance(value, (int, float)):
         return f"{value:+.2f}%"
     return "n/a"
+
+
+def _daily_chg_sort_key(row: dict) -> tuple[int, float]:
+    value = row.get("daily_chg")
+    if isinstance(value, (int, float)):
+        return (0, -float(value))
+    return (1, 0.0)
 
 
 def _daily_chg_suffix(row: dict) -> str:
