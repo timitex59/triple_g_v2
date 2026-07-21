@@ -525,6 +525,13 @@ def _daily_chg_suffix(row: dict) -> str:
     return f" ({_format_signed_pct(daily_chg)})"
 
 
+def _daily_chg_warning_suffix(row: dict, direction: int) -> str:
+    daily_chg = row.get("daily_chg")
+    if not isinstance(daily_chg, (int, float)) or direction == 0:
+        return ""
+    return " ⚠️" if daily_chg * direction < 0 else ""
+
+
 def _daily_chg_icon(value: object) -> str:
     if not isinstance(value, (int, float)):
         return "⚪"
@@ -583,7 +590,8 @@ def format_full_alignment_message(
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
-            lines.append(f"{icon} {name}{_daily_chg_suffix(row)}")
+            warning = _daily_chg_warning_suffix(row, direction)
+            lines.append(f"{icon} {name}{_daily_chg_suffix(row)}{warning}")
         if pair_rows and index_rows:
             lines.append("")
         for row in index_rows:

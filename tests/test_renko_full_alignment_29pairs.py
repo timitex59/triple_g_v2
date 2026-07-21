@@ -241,6 +241,9 @@ class FullAlignmentScannerTests(unittest.TestCase):
     def test_message_adds_daily_chg_to_full_alignment_rows_and_lists_other_indices(self):
         selected = select_full_alignment_rows([
             row("AUDJPY", 1, 1, 1, daily_chg=0.88),
+            row("NZDJPY", 1, 1, 1, daily_chg=-0.03),
+            row("USDCAD", 1, 1, 1, daily_chg=-0.01),
+            row("USDJPY", 1, 1, 1, daily_chg=-0.001),
             index_row("JXY", -1, -1, -1, daily_chg=-0.44),
         ])
         other_indices = select_index_daily_chg_rows([
@@ -256,6 +259,10 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
 
         self.assertIn("🟢 AUDJPY (+0.88%)", message)
+        self.assertNotIn("🟢 AUDJPY (+0.88%) ⚠️", message)
+        self.assertIn("🟢 NZDJPY (-0.03%) ⚠️", message)
+        self.assertIn("🟢 USDCAD (-0.01%) ⚠️", message)
+        self.assertIn("🟢 USDJPY (-0.00%) ⚠️", message)
         self.assertIn("🔴 JPY (-0.44%)", message)
         self.assertIn("💱 AUTRES INDEX CHG%D", message)
         self.assertIn("🟢 USD +0.12%", message)
