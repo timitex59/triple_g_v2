@@ -6,6 +6,8 @@ the same direction:
 
 - BULL: M+/W+/D+ => raw score +100%
 - BEAR: M-/W-/D- => raw score -100%
+
+It also flags H1 SAR breaks in the same direction as the full alignment.
 """
 
 from __future__ import annotations
@@ -31,9 +33,9 @@ from renko_score_29pairs_v16 import (
 
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
-FULL_CASSURE_STATE_FILE = Path("renko_full_alignment_full_cassure_state.json")
-FULL_CASSURE_WINDOW_START_HOUR = 7
-FULL_CASSURE_WINDOW_END_HOUR = 23
+FULL_SAR_STATE_FILE = Path("renko_full_alignment_full_sar_state.json")
+FULL_SAR_WINDOW_START_HOUR = 7
+FULL_SAR_WINDOW_END_HOUR = 23
 
 FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "DXY", "tv_symbol": "TVC:DXY", "asset_type": "INDEX", "currency": "USD"},
@@ -79,10 +81,10 @@ def parse_args() -> argparse.Namespace:
         help="Cap on consecutive green/red Renko brick streak count.",
     )
     parser.add_argument(
-        "--imp-candles",
+        "--sar-candles",
         type=int,
         default=400,
-        help="Number of H1 candles used to detect Bull/Bear IMP events.",
+        help="Number of H1 candles used to detect SAR breaks.",
     )
     parser.add_argument(
         "--telegram",
@@ -90,9 +92,9 @@ def parse_args() -> argparse.Namespace:
         help="Send the scanner result to Telegram. By default it only prints.",
     )
     parser.add_argument(
-        "--full-cassure-state-file",
-        default=str(FULL_CASSURE_STATE_FILE),
-        help="JSON state file used to persist FULL-CASSURE detections between 07:00 and 23:00 Paris.",
+        "--full-sar-state-file",
+        default=str(FULL_SAR_STATE_FILE),
+        help="JSON state file used to persist FULL SAR detections between 07:00 and 23:00 Paris.",
     )
     return parser.parse_args()
 
@@ -185,30 +187,13 @@ def compute_asset_score(asset: dict, length: int, candles: int, max_streak: int)
     }
 
 
-def imp_state_from_close_sar(closes: list[float], sar_values: list[float]) -> dict:
-    """Mirror Pine IMP levels and detect their later breaks.
+def sar_break_state_from_close_sar(closes: list[float], sar_values: list[float]) -> dict:
+    """Detect SAR crosses on closed H1 candles.
 
-    Formation:
-    - Bear IMP: price closes below the last Bull SAR level.
-    - Bull IMP: price closes above the last Bear SAR level.
-
-    Break:
-    - Bull IMP broken down: price crosses below the active Bull IMP level.
-    - Bear IMP broken up: price crosses above the active Bear IMP level.
+    BULL SAR break: previous close <= previous SAR and current close > current SAR.
+    BEAR SAR break: previous close >= previous SAR and current close < current SAR.
     """
-    last_bull_level = None
-    last_bear_level = None
-    tracked_bull_level = None
-    tracked_bear_level = None
-    tracked_bull_important = False
-    tracked_bear_important = False
     events: list[dict] = []
-    break_events: list[dict] = []
-    active_bull_imp_level = None
-    active_bear_imp_level = None
-    active_bull_imp_broken = False
-    active_bear_imp_broken = False
-
     count = min(len(closes), len(sar_values))
     for index in range(1, count):
         close = float(closes[index])
@@ -216,125 +201,53 @@ def imp_state_from_close_sar(closes: list[float], sar_values: list[float]) -> di
         sar = float(sar_values[index])
         prev_sar = float(sar_values[index - 1])
 
-        bull = close > sar and prev_close <= prev_sar
-        bear = close < sar and prev_close >= prev_sar
-
-        if bull:
-            last_bull_level = sar
-            tracked_bull_level = sar
-            tracked_bull_important = False
-        if bear:
-            last_bear_level = sar
-            tracked_bear_level = sar
-            tracked_bear_important = False
-
-        bear_imp = (
-            not tracked_bear_important
-            and tracked_bear_level is not None
-            and last_bull_level is not None
-            and close < last_bull_level
-        )
-        bull_imp = (
-            not tracked_bull_important
-            and tracked_bull_level is not None
-            and last_bear_level is not None
-            and close > last_bear_level
-        )
-
-        if bear_imp:
-            tracked_bear_important = True
-            active_bear_imp_level = tracked_bear_level
-            active_bear_imp_broken = False
-            events.append({
-                "index": index,
-                "direction": -1,
-                "level": tracked_bear_level,
-                "kind": "IMP BEAR",
-            })
-        if bull_imp:
-            tracked_bull_important = True
-            active_bull_imp_level = tracked_bull_level
-            active_bull_imp_broken = False
+        if prev_close <= prev_sar and close > sar:
             events.append({
                 "index": index,
                 "direction": 1,
-                "level": tracked_bull_level,
-                "kind": "IMP BULL",
+                "level": sar,
+                "kind": "SAR BULL",
             })
-
-        bear_imp_break_up = (
-            active_bear_imp_level is not None
-            and not active_bear_imp_broken
-            and prev_close <= active_bear_imp_level
-            and close > active_bear_imp_level
-        )
-        bull_imp_break_down = (
-            active_bull_imp_level is not None
-            and not active_bull_imp_broken
-            and prev_close >= active_bull_imp_level
-            and close < active_bull_imp_level
-        )
-
-        if bear_imp_break_up:
-            active_bear_imp_broken = True
-            break_events.append({
-                "index": index,
-                "direction": 1,
-                "level": active_bear_imp_level,
-                "kind": "IMP BEAR CASSÉ HAUSSE",
-            })
-        if bull_imp_break_down:
-            active_bull_imp_broken = True
-            break_events.append({
+        elif prev_close >= prev_sar and close < sar:
+            events.append({
                 "index": index,
                 "direction": -1,
-                "level": active_bull_imp_level,
-                "kind": "IMP BULL CASSÉ BAISSE",
+                "level": sar,
+                "kind": "SAR BEAR",
             })
 
     last_event = events[-1] if events else None
-    last_break_event = break_events[-1] if break_events else None
     last_bar_index = count - 1
-    last_bar_imp_direction = (
+    last_bar_direction = (
         int(last_event["direction"])
         if last_event is not None and int(last_event["index"]) == last_bar_index
         else 0
     )
-    last_bar_break_direction = (
-        int(last_break_event["direction"])
-        if last_break_event is not None and int(last_break_event["index"]) == last_bar_index
-        else 0
-    )
     return {
-        "last_bar_imp_direction": last_bar_imp_direction,
-        "last_imp_direction": int(last_event["direction"]) if last_event else 0,
-        "last_imp_level": float(last_event["level"]) if last_event else None,
-        "last_bar_break_direction": last_bar_break_direction,
-        "last_bar_break_kind": (
-            str(last_break_event["kind"])
-            if last_break_event is not None and int(last_break_event["index"]) == last_bar_index
+        "last_bar_sar_break_direction": last_bar_direction,
+        "last_bar_sar_break_kind": (
+            str(last_event["kind"])
+            if last_event is not None and int(last_event["index"]) == last_bar_index
             else ""
         ),
-        "last_break_direction": int(last_break_event["direction"]) if last_break_event else 0,
-        "last_break_level": float(last_break_event["level"]) if last_break_event else None,
+        "last_sar_break_direction": int(last_event["direction"]) if last_event else 0,
+        "last_sar_break_kind": str(last_event["kind"]) if last_event else "",
+        "last_sar_break_level": float(last_event["level"]) if last_event else None,
         "events": events,
-        "break_events": break_events,
     }
 
 
-def compute_imp_state_for_symbol(tv_symbol: str, h1_candles: int = 400) -> dict:
+def compute_sar_break_state_for_symbol(tv_symbol: str, h1_candles: int = 400) -> dict:
     df = fetch_tv_ohlc(tv_symbol, "60", h1_candles)
     if df is None or df.empty:
-        return {"last_bar_imp_direction": 0, "last_imp_direction": 0,
-                "last_bar_break_direction": 0, "last_break_direction": 0}
+        return {"last_bar_sar_break_direction": 0, "last_sar_break_direction": 0}
     closed_df = closed_h1_source(df)
     sar_state = parabolic_sar(closed_df)
     if not sar_state:
-        return {"last_bar_imp_direction": 0, "last_imp_direction": 0,
-                "last_bar_break_direction": 0, "last_break_direction": 0}
+        return {"last_bar_sar_break_direction": 0, "last_sar_break_direction": 0}
     sar_values = sar_state.get("sar") or []
     closes = [float(value) for value in closed_df["close"].tolist()]
-    return imp_state_from_close_sar(closes, sar_values)
+    return sar_break_state_from_close_sar(closes, sar_values)
 
 
 def _px(row: dict) -> dict[str, int] | None:
@@ -383,44 +296,39 @@ def select_full_alignment_rows(rows: list[dict]) -> list[dict]:
     return sorted(selected, key=sort_key)
 
 
-def is_directional_imp_break(row: dict, direction: int) -> bool:
-    imp = row.get("imp") or {}
-    break_kind = str(imp.get("last_bar_break_kind") or "")
-    if direction == 1:
-        return break_kind == "IMP BEAR CASSÉ HAUSSE"
-    if direction == -1:
-        return break_kind == "IMP BULL CASSÉ BAISSE"
-    return False
+def is_directional_sar_break(row: dict, direction: int) -> bool:
+    sar_break = row.get("sar_break") or {}
+    return int(sar_break.get("last_bar_sar_break_direction") or 0) == direction
 
 
-def select_full_cassure_rows(rows: list[dict]) -> list[dict]:
+def select_full_sar_rows(rows: list[dict]) -> list[dict]:
     return [
         row for row in rows
-        if is_directional_imp_break(row, int(row.get("full_alignment_direction") or 0))
+        if is_directional_sar_break(row, int(row.get("full_alignment_direction") or 0))
     ]
 
 
-def default_full_cassure_history_state() -> dict:
+def default_full_sar_history_state() -> dict:
     return {"version": 1, "days": {}}
 
 
-def load_full_cassure_history_state(path: str | Path) -> dict:
+def load_full_sar_history_state(path: str | Path) -> dict:
     state_path = Path(path)
     if not state_path.exists():
-        return default_full_cassure_history_state()
+        return default_full_sar_history_state()
     try:
         loaded = json.loads(state_path.read_text(encoding="utf-8"))
     except Exception:
-        return default_full_cassure_history_state()
+        return default_full_sar_history_state()
     if not isinstance(loaded, dict):
-        return default_full_cassure_history_state()
+        return default_full_sar_history_state()
     loaded.setdefault("version", 1)
     if not isinstance(loaded.get("days"), dict):
         loaded["days"] = {}
     return loaded
 
 
-def save_full_cassure_history_state(path: str | Path, state: dict) -> None:
+def save_full_sar_history_state(path: str | Path, state: dict) -> None:
     state_path = Path(path)
     if state_path.parent != Path("."):
         state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -430,12 +338,12 @@ def save_full_cassure_history_state(path: str | Path, state: dict) -> None:
     )
 
 
-def _is_full_cassure_tracking_window(now: datetime) -> bool:
+def _is_full_sar_tracking_window(now: datetime) -> bool:
     paris_now = now.astimezone(PARIS_TZ)
-    return FULL_CASSURE_WINDOW_START_HOUR <= paris_now.hour <= FULL_CASSURE_WINDOW_END_HOUR
+    return FULL_SAR_WINDOW_START_HOUR <= paris_now.hour <= FULL_SAR_WINDOW_END_HOUR
 
 
-def _prune_full_cassure_history_state(state: dict, keep_days: int = 45) -> None:
+def _prune_full_sar_history_state(state: dict, keep_days: int = 45) -> None:
     days = state.setdefault("days", {})
     if not isinstance(days, dict):
         state["days"] = {}
@@ -444,9 +352,9 @@ def _prune_full_cassure_history_state(state: dict, keep_days: int = 45) -> None:
         days.pop(day_key, None)
 
 
-def update_full_cassure_history(
+def update_full_sar_history(
     state: dict,
-    full_cassure_rows: list[dict],
+    full_sar_rows: list[dict],
     now: datetime,
 ) -> tuple[dict, dict]:
     paris_now = now.astimezone(PARIS_TZ)
@@ -462,8 +370,8 @@ def update_full_cassure_history(
         events = []
         day_state["events"] = events
 
-    if not _is_full_cassure_tracking_window(paris_now):
-        _prune_full_cassure_history_state(state)
+    if not _is_full_sar_tracking_window(paris_now):
+        _prune_full_sar_history_state(state)
         return state, day_state
 
     by_key = {
@@ -472,7 +380,7 @@ def update_full_cassure_history(
         if isinstance(event, dict) and event.get("key")
     }
     timestamp = paris_now.isoformat(timespec="minutes")
-    for row in full_cassure_rows:
+    for row in full_sar_rows:
         pair = str(row["pair"])
         direction = int(row.get("full_alignment_direction") or 0)
         if direction == 0:
@@ -504,15 +412,15 @@ def update_full_cassure_history(
             str(event.get("pair") or ""),
         ),
     )
-    _prune_full_cassure_history_state(state)
+    _prune_full_sar_history_state(state)
     return state, day_state
 
 
-def attach_imp_states(rows: list[dict], h1_candles: int = 400) -> list[dict]:
+def attach_sar_break_states(rows: list[dict], h1_candles: int = 400) -> list[dict]:
     for row in rows:
         tv_symbol = row.get("tv_symbol")
         if isinstance(tv_symbol, str) and tv_symbol:
-            row["imp"] = compute_imp_state_for_symbol(tv_symbol, h1_candles)
+            row["sar_break"] = compute_sar_break_state_for_symbol(tv_symbol, h1_candles)
     return rows
 
 
@@ -522,9 +430,9 @@ def _format_px(row: dict) -> str:
     return "/".join(f"{tf}{symbol.get(px.get(tf), '?')}" for tf in ("M", "W", "D"))
 
 
-def _imp_suffix(row: dict) -> str:
+def _sar_suffix(row: dict) -> str:
     alignment_direction = int(row.get("full_alignment_direction") or 0)
-    if is_directional_imp_break(row, alignment_direction):
+    if is_directional_sar_break(row, alignment_direction):
         return " 🔥"
     return ""
 
@@ -551,7 +459,7 @@ def _format_history_time_range(event: dict) -> str:
     return first_hm or last_hm
 
 
-def _format_full_history_event(event: dict) -> str:
+def _format_full_sar_history_event(event: dict) -> str:
     direction = int(event.get("direction") or 0)
     icon = "🟢" if direction == 1 else "🔴"
     name = _history_asset_display_name(event)
@@ -562,8 +470,8 @@ def _format_full_history_event(event: dict) -> str:
 
 def format_full_alignment_message(
     rows: list[dict],
-    full_cassure_rows: list[dict] | None = None,
-    full_cassure_history: dict | None = None,
+    full_sar_rows: list[dict] | None = None,
+    full_sar_history: dict | None = None,
     now: datetime | None = None,
 ) -> str:
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
@@ -578,19 +486,19 @@ def format_full_alignment_message(
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
-            lines.append(f"{icon} {name}{_imp_suffix(row)}")
+            lines.append(f"{icon} {name}{_sar_suffix(row)}")
         if pair_rows and index_rows:
             lines.append("")
         for row in index_rows:
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
-            lines.append(f"{icon} {name}{_imp_suffix(row)}")
+            lines.append(f"{icon} {name}{_sar_suffix(row)}")
 
-    if full_cassure_rows:
-        lines.extend(["", "⚡ FULL-CASSURE"])
-        pair_rows = [row for row in full_cassure_rows if row.get("asset_type") != "INDEX"]
-        index_rows = [row for row in full_cassure_rows if row.get("asset_type") == "INDEX"]
+    if full_sar_rows:
+        lines.extend(["", "⚡ FULL SAR"])
+        pair_rows = [row for row in full_sar_rows if row.get("asset_type") != "INDEX"]
+        index_rows = [row for row in full_sar_rows if row.get("asset_type") == "INDEX"]
         for row in pair_rows:
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
@@ -604,14 +512,14 @@ def format_full_alignment_message(
             name = _asset_display_name(row)
             lines.append(f"{icon} {name} 🔥")
     history_events = []
-    if isinstance(full_cassure_history, dict):
-        raw_events = full_cassure_history.get("events") or []
+    if isinstance(full_sar_history, dict):
+        raw_events = full_sar_history.get("events") or []
         if isinstance(raw_events, list):
             history_events = [event for event in raw_events if isinstance(event, dict)]
     if history_events:
-        lines.extend(["", "📋 FULL-CASSURE 07H-23H"])
+        lines.extend(["", "📋 FULL SAR 07H-23H"])
         for event in history_events:
-            lines.append(_format_full_history_event(event))
+            lines.append(_format_full_sar_history_event(event))
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
@@ -639,12 +547,12 @@ def main() -> int:
     now = datetime.now(PARIS_TZ)
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
     selected = select_full_alignment_rows(rows)
-    attach_imp_states(selected, args.imp_candles)
-    full_cassures = select_full_cassure_rows(selected)
-    history_state = load_full_cassure_history_state(args.full_cassure_state_file)
-    history_state, today_history = update_full_cassure_history(history_state, full_cassures, now)
-    save_full_cassure_history_state(args.full_cassure_state_file, history_state)
-    message = format_full_alignment_message(selected, full_cassures, today_history, now=now)
+    attach_sar_break_states(selected, args.sar_candles)
+    full_sar_rows = select_full_sar_rows(selected)
+    history_state = load_full_sar_history_state(args.full_sar_state_file)
+    history_state, today_history = update_full_sar_history(history_state, full_sar_rows, now)
+    save_full_sar_history_state(args.full_sar_state_file, history_state)
+    message = format_full_alignment_message(selected, full_sar_rows, today_history, now=now)
     print(message)
     if args.telegram:
         send_telegram_message(message)
