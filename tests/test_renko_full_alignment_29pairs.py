@@ -223,7 +223,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("🔴 JPY", message)
         self.assertNotIn("🔥", message)
 
-    def test_message_adds_daily_chg_only_to_indices_and_lists_other_indices(self):
+    def test_message_adds_daily_chg_to_full_alignment_rows_and_lists_other_indices(self):
         selected = select_full_alignment_rows([
             row("AUDJPY", 1, 1, 1, daily_chg=0.88),
             index_row("JXY", -1, -1, -1, daily_chg=-0.44),
@@ -240,8 +240,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
-        self.assertIn("🟢 AUDJPY", message)
-        self.assertNotIn("AUDJPY (+0.88%)", message)
+        self.assertIn("🟢 AUDJPY (+0.88%)", message)
         self.assertIn("🔴 JPY (-0.44%)", message)
         self.assertIn("💱 AUTRES INDEX CHG%D", message)
         self.assertIn("🟢 USD +0.12%", message)

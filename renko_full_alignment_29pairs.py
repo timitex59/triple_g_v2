@@ -508,9 +508,7 @@ def _format_signed_pct(value: object) -> str:
     return "n/a"
 
 
-def _index_daily_chg_suffix(row: dict) -> str:
-    if row.get("asset_type") != "INDEX":
-        return ""
+def _daily_chg_suffix(row: dict) -> str:
     daily_chg = row.get("daily_chg")
     if not isinstance(daily_chg, (int, float)):
         return ""
@@ -575,14 +573,14 @@ def format_full_alignment_message(
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
-            lines.append(f"{icon} {name}")
+            lines.append(f"{icon} {name}{_daily_chg_suffix(row)}")
         if pair_rows and index_rows:
             lines.append("")
         for row in index_rows:
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
-            lines.append(f"{icon} {name}{_index_daily_chg_suffix(row)}")
+            lines.append(f"{icon} {name}{_daily_chg_suffix(row)}")
 
     if mid_sar_rows:
         lines.extend(["", "⚡ MID SAR"])
@@ -601,7 +599,7 @@ def format_full_alignment_message(
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
             tf_pair = str(row.get("mid_alignment_pair") or "")
-            lines.append(f"{icon} {name}{_index_daily_chg_suffix(row)} 🔥 {tf_pair}")
+            lines.append(f"{icon} {name}{_daily_chg_suffix(row)} 🔥 {tf_pair}")
     if index_daily_chg_rows:
         lines.extend(["", "💱 AUTRES INDEX CHG%D"])
         for row in index_daily_chg_rows:
