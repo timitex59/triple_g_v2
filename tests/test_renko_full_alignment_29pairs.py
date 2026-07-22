@@ -309,6 +309,21 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("🟢 USDCAD (+0.01%) 🌸🌸", message)
         self.assertIn("🔴 JPY (-0.41%)", message)
 
+    def test_message_warns_on_full_alignment_index_daily_chg_divergence(self):
+        selected = select_full_alignment_rows([
+            index_row("JXY", -1, -1, -1, daily_chg=0.02),
+            index_row("DXY", 1, 1, 1, daily_chg=0.20),
+        ])
+
+        message = format_full_alignment_message(
+            selected,
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+        )
+
+        self.assertIn("🟢 USD (+0.20%)", message)
+        self.assertNotIn("🟢 USD (+0.20%) ⚠️", message)
+        self.assertIn("🔴 JPY (+0.02%) ⚠️", message)
+
     def test_message_adds_mid_sar_section(self):
         full_rows = select_full_alignment_rows([
             row("GBPJPY", 1, 1, 1),

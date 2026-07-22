@@ -674,7 +674,8 @@ def format_full_alignment_message(
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
-            lines.append(f"{icon} {name}{_daily_chg_suffix(row)}")
+            warning = _daily_chg_warning_suffix(row, direction)
+            lines.append(f"{icon} {name}{_daily_chg_suffix(row)}{warning}")
 
     if mid_sar_rows:
         lines.extend(["", "⚡ MID SAR"])
