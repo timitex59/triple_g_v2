@@ -7,8 +7,8 @@ the same direction:
 - BULL: M+/W+/D+ => raw score +100%
 - BEAR: M-/W-/D- => raw score -100%
 
-It also flags H1 SAR breaks in the same direction when at least two timeframes
-are aligned: D/M, D/W, W/M, or the stronger M/W/D case.
+It also flags H1 SAR breaks in the same direction for W/M alignment, or the
+stronger M/W/D case.
 """
 
 from __future__ import annotations
@@ -37,6 +37,7 @@ PARIS_TZ = ZoneInfo("Europe/Paris")
 MID_SAR_STATE_FILE = Path("renko_full_alignment_mid_sar_state.json")
 MID_SAR_WINDOW_START_HOUR = 7
 MID_SAR_WINDOW_END_HOUR = 23
+MID_SAR_ALLOWED_TF_PAIRS = {"M/W/D", "W/M"}
 
 FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "DXY", "tv_symbol": "TVC:DXY", "asset_type": "INDEX", "currency": "USD"},
@@ -355,7 +356,8 @@ def is_directional_sar_break(row: dict, direction: int) -> bool:
 def select_mid_sar_rows(rows: list[dict]) -> list[dict]:
     return [
         row for row in rows
-        if is_directional_sar_break(row, int(row.get("mid_alignment_direction") or 0))
+        if row.get("mid_alignment_pair") in MID_SAR_ALLOWED_TF_PAIRS
+        and is_directional_sar_break(row, int(row.get("mid_alignment_direction") or 0))
     ]
 
 
@@ -633,14 +635,22 @@ def _format_history_time_range(event: dict) -> str:
     return first_hm or last_hm
 
 
+def _allowed_mid_sar_tf_pairs(tf_pairs: object) -> list[str]:
+    if not isinstance(tf_pairs, list):
+        return []
+    return [
+        str(tf_pair)
+        for tf_pair in tf_pairs
+        if str(tf_pair) in MID_SAR_ALLOWED_TF_PAIRS
+    ]
+
+
 def _format_mid_sar_history_event(event: dict) -> str:
     direction = int(event.get("direction") or 0)
     icon = "🟢" if direction == 1 else "🔴"
     name = _history_asset_display_name(event)
-    tf_pairs = event.get("tf_pairs") or []
-    if not isinstance(tf_pairs, list):
-        tf_pairs = []
-    tf_label = "+".join(str(tf_pair) for tf_pair in tf_pairs if tf_pair) or "2TF"
+    tf_pairs = _allowed_mid_sar_tf_pairs(event.get("tf_pairs") or [])
+    tf_label = "+".join(tf_pairs) or "2TF"
     time_label = _format_history_time_range(event)
     suffix = f" {time_label}" if time_label else ""
     return f"{icon} {name} 🔥 {tf_label}{suffix}"
@@ -705,7 +715,12 @@ def format_full_alignment_message(
     if isinstance(mid_sar_history, dict):
         raw_events = mid_sar_history.get("events") or []
         if isinstance(raw_events, list):
-            history_events = [event for event in raw_events if isinstance(event, dict)]
+            history_events = [
+                event
+                for event in raw_events
+                if isinstance(event, dict)
+                and _allowed_mid_sar_tf_pairs(event.get("tf_pairs") or [])
+            ]
     if history_events:
         lines.extend(["", "📋 MID SAR 07H-23H"])
         for event in history_events:

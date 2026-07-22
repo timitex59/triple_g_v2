@@ -167,6 +167,8 @@ class FullAlignmentScannerTests(unittest.TestCase):
     def test_mid_sar_keeps_only_mid_alignment_directional_sar_breaks(self):
         candidates = select_mid_alignment_candidates([
             row("GBPJPY", 1, 1, 1),
+            row("GBPUSD", 1, 1, -1),
+            row("USDCHF", -1, -1, 1),
             row("EURUSD", 1, -1, 1),
             row("EURJPY", 1, -1, 1),
             row("CADCHF", -1, 1, -1),
@@ -174,6 +176,8 @@ class FullAlignmentScannerTests(unittest.TestCase):
         ])
         by_pair = {item["pair"]: item for item in candidates}
         by_pair["GBPJPY"]["sar_break"] = {"last_bar_sar_break_direction": 1}
+        by_pair["GBPUSD"]["sar_break"] = {"last_bar_sar_break_direction": 1}
+        by_pair["USDCHF"]["sar_break"] = {"last_bar_sar_break_direction": -1}
         by_pair["EURUSD"]["sar_break"] = {"last_bar_sar_break_direction": 1}
         by_pair["EURJPY"]["sar_break"] = {"last_bar_sar_break_direction": -1}
         by_pair["CADCHF"]["sar_break"] = {"last_bar_sar_break_direction": -1}
@@ -181,16 +185,18 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         mid_sar_rows = select_mid_sar_rows(candidates)
 
-        self.assertEqual([item["pair"] for item in mid_sar_rows], ["GBPJPY", "EURUSD", "CADCHF", "JXY"])
+        self.assertEqual([item["pair"] for item in mid_sar_rows], ["GBPJPY", "GBPUSD", "USDCHF"])
 
     def test_mid_sar_history_tracks_daily_window_without_duplicates(self):
         candidates = select_mid_alignment_candidates([
+            row("GBPUSD", 1, 1, -1),
             row("EURUSD", 1, -1, 1),
-            index_row("JXY", 1, -1, -1),
+            index_row("JXY", -1, -1, 1),
+            index_row("SXY", 1, -1, -1),
         ])
         for item in candidates:
             item["sar_break"] = {
-                "last_bar_sar_break_direction": 1 if item["pair"] == "EURUSD" else -1
+                "last_bar_sar_break_direction": 1 if item["pair"] in ("GBPUSD", "EURUSD") else -1
             }
         mid_sar_rows = select_mid_sar_rows(candidates)
 
@@ -207,12 +213,12 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         self.assertEqual(len(today["events"]), 2)
         by_pair = {event["pair"]: event for event in today["events"]}
-        self.assertEqual(by_pair["EURUSD"]["count"], 2)
-        self.assertEqual(by_pair["EURUSD"]["first_seen"], "2026-07-16T08:00+02:00")
-        self.assertEqual(by_pair["EURUSD"]["last_seen"], "2026-07-16T10:00+02:00")
-        self.assertEqual(by_pair["EURUSD"]["tf_pairs"], ["D/M"])
+        self.assertEqual(by_pair["GBPUSD"]["count"], 2)
+        self.assertEqual(by_pair["GBPUSD"]["first_seen"], "2026-07-16T08:00+02:00")
+        self.assertEqual(by_pair["GBPUSD"]["last_seen"], "2026-07-16T10:00+02:00")
+        self.assertEqual(by_pair["GBPUSD"]["tf_pairs"], ["W/M"])
         self.assertEqual(by_pair["JXY"]["currency"], "JPY")
-        self.assertEqual(by_pair["JXY"]["tf_pairs"], ["D/W"])
+        self.assertEqual(by_pair["JXY"]["tf_pairs"], ["W/M"])
 
         state, unchanged = update_mid_sar_history(
             state,
@@ -220,7 +226,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
             datetime(2026, 7, 16, 1, 0, tzinfo=PARIS),
         )
         self.assertEqual(len(unchanged["events"]), 2)
-        self.assertEqual(by_pair["EURUSD"]["count"], 2)
+        self.assertEqual(by_pair["GBPUSD"]["count"], 2)
 
     def test_message_is_compact(self):
         selected = select_full_alignment_rows([row("GBPJPY", 1, 1, 1)])
@@ -331,13 +337,17 @@ class FullAlignmentScannerTests(unittest.TestCase):
         ])
         mid_rows = select_mid_alignment_candidates([
             row("GBPJPY", 1, 1, 1),
+            row("GBPUSD", 1, 1, -1),
             row("EURUSD", 1, -1, 1),
-            index_row("JXY", 1, -1, -1),
+            index_row("JXY", -1, -1, 1),
+            index_row("SXY", 1, -1, -1),
         ])
         by_pair = {item["pair"]: item for item in mid_rows}
         by_pair["GBPJPY"]["sar_break"] = {"last_bar_sar_break_direction": 1}
+        by_pair["GBPUSD"]["sar_break"] = {"last_bar_sar_break_direction": 1}
         by_pair["EURUSD"]["sar_break"] = {"last_bar_sar_break_direction": 1}
         by_pair["JXY"]["sar_break"] = {"last_bar_sar_break_direction": -1}
+        by_pair["SXY"]["sar_break"] = {"last_bar_sar_break_direction": -1}
         mid_sar_rows = select_mid_sar_rows(mid_rows)
 
         message = format_full_alignment_message(
@@ -348,8 +358,10 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         self.assertIn("⚡ MID SAR", message)
         self.assertIn("🟢 GBPJPY 🔥 M/W/D", message)
-        self.assertIn("🟢 EURUSD 🔥 D/M", message)
-        self.assertIn("🔴 JPY 🔥 D/W", message)
+        self.assertIn("🟢 GBPUSD 🔥 W/M", message)
+        self.assertIn("🔴 JPY 🔥 W/M", message)
+        self.assertNotIn("🟢 EURUSD 🔥 D/M", message)
+        self.assertNotIn("🔴 CHF 🔥 D/W", message)
 
     def test_message_adds_mid_sar_daily_history(self):
         message = format_full_alignment_message(
@@ -358,21 +370,38 @@ class FullAlignmentScannerTests(unittest.TestCase):
             {
                 "events": [
                     {
+                        "pair": "GBPUSD",
+                        "asset_type": "PAIR",
+                        "direction": 1,
+                        "tf_pairs": ["W/M"],
+                        "first_seen": "2026-07-16T08:00+02:00",
+                        "last_seen": "2026-07-16T10:00+02:00",
+                    },
+                    {
                         "pair": "EURUSD",
                         "asset_type": "PAIR",
                         "direction": 1,
                         "tf_pairs": ["D/M"],
-                        "first_seen": "2026-07-16T08:00+02:00",
-                        "last_seen": "2026-07-16T10:00+02:00",
+                        "first_seen": "2026-07-16T09:00+02:00",
+                        "last_seen": "2026-07-16T09:00+02:00",
                     },
                     {
                         "pair": "JXY",
                         "asset_type": "INDEX",
                         "currency": "JPY",
                         "direction": -1,
-                        "tf_pairs": ["D/W"],
+                        "tf_pairs": ["M/W/D", "D/W"],
                         "first_seen": "2026-07-16T11:00+02:00",
                         "last_seen": "2026-07-16T11:00+02:00",
+                    },
+                    {
+                        "pair": "SXY",
+                        "asset_type": "INDEX",
+                        "currency": "CHF",
+                        "direction": -1,
+                        "tf_pairs": ["D/W"],
+                        "first_seen": "2026-07-16T12:00+02:00",
+                        "last_seen": "2026-07-16T12:00+02:00",
                     },
                 ]
             },
@@ -380,8 +409,10 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
 
         self.assertIn("📋 MID SAR 07H-23H", message)
-        self.assertIn("🟢 EURUSD 🔥 D/M 08:00→10:00", message)
-        self.assertIn("🔴 JPY 🔥 D/W 11:00", message)
+        self.assertIn("🟢 GBPUSD 🔥 W/M 08:00→10:00", message)
+        self.assertIn("🔴 JPY 🔥 M/W/D 11:00", message)
+        self.assertNotIn("🟢 EURUSD 🔥 D/M", message)
+        self.assertNotIn("🔴 CHF 🔥 D/W", message)
 
     def test_message_groups_pairs_before_indices(self):
         selected = select_full_alignment_rows([
