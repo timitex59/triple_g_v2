@@ -489,45 +489,50 @@
       ]
     },
     "2026-07-22": {
-      "confirmed_segments": [],
+      "confirmed_segments": [
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-07-22",
+          "direction": 1,
+          "end_price": 0.81464,
+          "end_time_paris": "2026-07-22T21:00:00+02:00",
+          "end_time_utc": "2026-07-22T19:00:00+00:00",
+          "pair": "USDCHF",
+          "pips": 10.000000000000009,
+          "start_price": 0.81364,
+          "start_time_paris": "2026-07-22T17:00:00+02:00",
+          "start_time_utc": "2026-07-22T15:00:00+00:00"
+        }
+      ],
       "date": "2026-07-22",
       "finalized": false,
-      "segments": []
+      "segments": [
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-07-22",
+          "direction": 1,
+          "end_price": 0.81464,
+          "end_time_paris": "2026-07-22T21:00:00+02:00",
+          "end_time_utc": "2026-07-22T19:00:00+00:00",
+          "pair": "USDCHF",
+          "pips": 17.000000000000348,
+          "start_price": 0.81294,
+          "start_time_paris": "2026-07-22T07:00:00+02:00",
+          "start_time_utc": "2026-07-22T05:00:00+00:00"
+        }
+      ]
     }
   },
-  "open_confirmed_segments": {
-    "USDCHF": {
-      "current_pips": 0.0,
-      "date": "2026-07-22",
-      "direction": 1,
-      "last_price": 0.81364,
-      "last_time_utc": "2026-07-22T15:00:00+00:00",
-      "pair": "USDCHF",
-      "start_price": 0.81364,
-      "start_time_paris": "2026-07-22T17:00:00+02:00",
-      "start_time_utc": "2026-07-22T15:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
   "open_segments": {
     "GBPCAD": {
-      "current_pips": -41.29999999999967,
+      "current_pips": -40.40000000000043,
       "date": "2026-07-22",
       "direction": 1,
-      "last_price": 1.88361,
-      "last_time_utc": "2026-07-22T15:00:00+00:00",
+      "last_price": 1.8837,
+      "last_time_utc": "2026-07-22T19:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.88774,
-      "start_time_paris": "2026-07-22T07:00:00+02:00",
-      "start_time_utc": "2026-07-22T05:00:00+00:00"
-    },
-    "USDCHF": {
-      "current_pips": 7.000000000000339,
-      "date": "2026-07-22",
-      "direction": 1,
-      "last_price": 0.81364,
-      "last_time_utc": "2026-07-22T15:00:00+00:00",
-      "pair": "USDCHF",
-      "start_price": 0.81294,
       "start_time_paris": "2026-07-22T07:00:00+02:00",
       "start_time_utc": "2026-07-22T05:00:00+00:00"
     }
@@ -538,6 +543,6 @@
       "2026-W29"
     ]
   },
-  "updated_at_paris": "2026-07-22T17:15:49.755123+02:00",
+  "updated_at_paris": "2026-07-22T21:12:08.001228+02:00",
   "version": 2
 }
