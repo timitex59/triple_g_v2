@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-07-23 09:17",
+  "updated_at_paris": "2026-07-23 10:17",
   "pairs": {
     "GBPCAD": {
       "direction": 1,
       "entered_at_paris": "2026-07-16 21:19",
-      "last_seen_at_paris": "2026-07-23 09:17",
+      "last_seen_at_paris": "2026-07-23 10:17",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -18,11 +18,11 @@
       },
       "base_pct": 66.66666666666666,
       "weighted_pct": 0.0,
-      "daily_chg": -0.19371822225052443,
+      "daily_chg": -0.13374518358117887,
       "daily_sar_dir": -1,
       "daily_sar_value": 1.8981851,
       "fib_position": "Fibo <0.236",
-      "fib_pct_of_range": 2.85597715218337,
+      "fib_pct_of_range": 6.895144838842062,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 47.56871035940806,
@@ -42,29 +42,17 @@
       "sar_record_time_utc": "2026-07-21T15:00:00+00:00"
     }
   },
-  "pending_objectives": {
-    "USDCHF": {
+  "pending_objectives": {},
+  "objective_events": [
+    {
+      "event_type": "POST_ALIGNMENT_OBJECTIVE_REACHED",
+      "pair": "USDCHF",
       "direction": 1,
-      "value": 0.81518,
-      "origin_month_utc": "2026-07",
-      "started_time_utc": "2026-07-16T05:00:00+00:00",
-      "signal_time_utc": "2026-07-22T19:00:00+00:00",
-      "signal_price": 0.81464,
-      "signal_base_pct": 100.0,
-      "signal_weighted_pct": 80.0,
-      "signal_fib_position": "Fibo <1",
-      "signal_px": {
-        "M": 1,
-        "W": 1,
-        "D": 1
-      },
-      "post_alignment_time_utc": "2026-07-22T19:00:00+00:00",
-      "post_alignment_month_utc": "2026-07",
-      "was_carried_before_alignment": false,
-      "source_entered_at_paris": "2026-07-16 07:17"
+      "time_utc": "2026-07-23T08:00:00+00:00",
+      "objective_value": 0.81518,
+      "origin_month_utc": "2026-07"
     }
-  },
-  "objective_events": [],
-  "telegram_last_body_hash": "b49ebb10e1dde8189f99249717555a94dbc53e3c602550329caabf9af5728c9c",
-  "telegram_last_sent_at_paris": "2026-07-23 09:15"
+  ],
+  "telegram_last_body_hash": "f80c39f50af48a32c167a37b71702015c916936b9684304a22706f9f6d4e84fb",
+  "telegram_last_sent_at_paris": "2026-07-23 10:15"
 }
