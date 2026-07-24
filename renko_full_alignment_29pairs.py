@@ -797,27 +797,6 @@ def format_full_alignment_message(
             name = _asset_display_name(row)
             px_str = _format_px(row)
             lines.append(f"{icon} {name} {_format_signed_pct(row.get('daily_chg'))} ({px_str})")
-    history_events = []
-    if isinstance(mid_sar_history, dict):
-        raw_events = mid_sar_history.get("events") or []
-        if isinstance(raw_events, list):
-            history_events = []
-            for event in raw_events:
-                if not isinstance(event, dict):
-                    continue
-                if not _allowed_mid_sar_tf_pairs(event.get("tf_pairs") or []):
-                    continue
-                if index_by_currency and not has_opposite_currency_colors(event, index_by_currency):
-                    continue
-                if rows_by_pair:
-                    pair_row = rows_by_pair.get(str(event.get("pair") or ""))
-                    if pair_row and not is_daily_chg_aligned(pair_row):
-                        continue
-                history_events.append(event)
-    if history_events:
-        lines.extend(["", "📋 MID SAR 07H-23H"])
-        for event in history_events:
-            lines.append(_format_mid_sar_history_event(event))
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
