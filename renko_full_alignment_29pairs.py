@@ -772,24 +772,7 @@ def format_full_alignment_message(
             warning = _daily_chg_warning_suffix(row, direction)
             lines.append(f"{icon} {name}{_daily_chg_suffix(row)}{warning}")
 
-    if mid_sar_rows:
-        lines.extend(["", "⚡ MID SAR"])
-        pair_rows = [row for row in mid_sar_rows if row.get("asset_type") != "INDEX"]
-        index_rows = [row for row in mid_sar_rows if row.get("asset_type") == "INDEX"]
-        for row in pair_rows:
-            direction = int(row["mid_alignment_direction"])
-            icon = "🟢" if direction == 1 else "🔴"
-            name = _asset_display_name(row)
-            tf_pair = str(row.get("mid_alignment_pair") or "")
-            lines.append(f"{icon} {name} 🔥 {tf_pair}")
-        if pair_rows and index_rows:
-            lines.append("")
-        for row in index_rows:
-            direction = int(row["mid_alignment_direction"])
-            icon = "🟢" if direction == 1 else "🔴"
-            name = _asset_display_name(row)
-            tf_pair = str(row.get("mid_alignment_pair") or "")
-            lines.append(f"{icon} {name}{_daily_chg_suffix(row)} 🔥 {tf_pair}")
+
     if index_daily_chg_rows:
         lines.extend(["", "💱 INDEX CHG%D"])
         for row in index_daily_chg_rows:
