@@ -663,7 +663,7 @@ def attach_sar_break_states(rows: list[dict], h1_candles: int = 400) -> list[dic
 def _format_px(row: dict) -> str:
     px = _px(row) or {}
     symbol = {1: "+", 0: "0", -1: "-"}
-    return "/".join(f"{tf}{symbol.get(px.get(tf), '?')}" for tf in ("M", "W", "D"))
+    return " ".join(f"{tf}{symbol.get(px.get(tf), '?')}" for tf in ("M", "W", "D"))
 
 
 def _asset_display_name(row: dict) -> str:
