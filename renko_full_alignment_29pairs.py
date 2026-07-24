@@ -361,12 +361,30 @@ def select_mid_sar_rows(rows: list[dict]) -> list[dict]:
     ]
 
 
+def has_consecutive_same_sign_tfs(row: dict) -> bool:
+    """Return True if the asset has 2 consecutive timeframes with the same non-zero sign (+ or -).
+
+    Consecutive timeframe pairs checked: (Monthly, Weekly) and (Weekly, Daily).
+    """
+    px = _px(row)
+    if px is None:
+        return False
+    m, w, d = px["M"], px["W"], px["D"]
+    if m != 0 and m == w:
+        return True
+    if w != 0 and w == d:
+        return True
+    return False
+
+
 def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None = None) -> list[dict]:
     excluded = exclude_pairs or set()
     index_rows = [
         row
         for row in rows
-        if row.get("asset_type") == "INDEX" and str(row.get("pair") or "") not in excluded
+        if row.get("asset_type") == "INDEX"
+        and str(row.get("pair") or "") not in excluded
+        and has_consecutive_same_sign_tfs(row)
     ]
     return sorted(
         index_rows,
