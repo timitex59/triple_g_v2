@@ -11735,6 +11735,53 @@
       "reason": "MONTHLY_OR_SCORE_INVALID",
       "time_paris": "2026-07-24T07:00:00+02:00",
       "time_utc": "2026-07-24T05:00:00+00:00"
+    },
+    {
+      "base_pct": 66.66666666666666,
+      "complete": false,
+      "direction": 1,
+      "event_id": "89b66671dfce4d265c67",
+      "event_type": "SAR_FLAME",
+      "fib_pct_of_range": 4.6305418719209115,
+      "fib_position": "Fibo <0.236",
+      "final_pct": 0.0,
+      "flame_kind": "FIRST",
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "objective_value": 1.90441,
+      "pair": "GBPCAD",
+      "price": 1.87425,
+      "px": {
+        "D": -1,
+        "M": 1,
+        "W": 1
+      },
+      "sar_value": 1.87396,
+      "time_paris": "2026-07-24T08:00:00+02:00",
+      "time_utc": "2026-07-24T06:00:00+00:00"
+    },
+    {
+      "base_pct": 66.66666666666666,
+      "complete": false,
+      "direction": 1,
+      "entered_at_paris": "2026-07-24 08:40",
+      "event_id": "fa6da404b666c0460348",
+      "event_type": "VIVIER_ENTRY",
+      "fib_pct_of_range": 4.6305418719209115,
+      "fib_position": "Fibo <0.236",
+      "final_pct": 0.0,
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "objective_value": 1.90441,
+      "pair": "GBPCAD",
+      "price": 1.87425,
+      "px": {
+        "D": -1,
+        "M": 1,
+        "W": 1
+      },
+      "time_paris": "2026-07-24T08:00:00+02:00",
+      "time_utc": "2026-07-24T06:00:00+00:00"
     }
   ],
   "pair_profiles": {
@@ -12368,7 +12415,7 @@
           "profitable_within_24h_pct": 50.0,
           "profitable_within_4h_pct": 30.0,
           "profitable_within_72h_pct": 80.0,
-          "signals": 13,
+          "signals": 15,
           "status": "LEARNING"
         }
       },
@@ -12389,7 +12436,7 @@
           "profitable_within_24h_pct": 42.857142857142854,
           "profitable_within_4h_pct": 14.285714285714285,
           "profitable_within_72h_pct": 85.71428571428571,
-          "signals": 9,
+          "signals": 10,
           "status": "LEARNING"
         },
         "VIVIER_ENTRY": {
@@ -12408,7 +12455,7 @@
           "profitable_within_24h_pct": 100.0,
           "profitable_within_4h_pct": 100.0,
           "profitable_within_72h_pct": 100.0,
-          "signals": 3,
+          "signals": 4,
           "status": "LEARNING"
         },
         "VIVIER_TO_RENKO_FIBO": {
@@ -12447,7 +12494,7 @@
         "profitable_within_24h_pct": 50.0,
         "profitable_within_4h_pct": 30.0,
         "profitable_within_72h_pct": 80.0,
-        "signals": 13,
+        "signals": 15,
         "status": "LEARNING"
       }
     },
@@ -13385,7 +13432,7 @@
         "avg_mae_72h_pct": -0.5657119000756211,
         "avg_mfe_72h_pct": 0.3694754522558822,
         "complete": 47,
-        "count": 49,
+        "count": 50,
         "horizons": {
           "12h": {
             "avg_directional_pct": -0.14363389956056105,
@@ -13499,7 +13546,7 @@
         "avg_mae_72h_pct": -0.7102963983257149,
         "avg_mfe_72h_pct": 0.28510024110721266,
         "complete": 42,
-        "count": 43,
+        "count": 44,
         "horizons": {
           "12h": {
             "avg_directional_pct": -0.11209731272670825,
@@ -13615,7 +13662,7 @@
       "avg_mae_72h_pct": -0.590326586600724,
       "avg_mfe_72h_pct": 0.3182498039132618,
       "complete": 158,
-      "count": 166,
+      "count": 168,
       "horizons": {
         "12h": {
           "avg_directional_pct": -0.09692025427145859,
@@ -13649,8 +13696,8 @@
         }
       }
     },
-    "total": 166
+    "total": 168
   },
-  "updated_at_utc": "2026-07-24T06:17:10.458809+00:00",
+  "updated_at_utc": "2026-07-24T06:40:40.944955+00:00",
   "version": 3
 }
