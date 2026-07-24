@@ -528,6 +528,17 @@ def is_daily_chg_aligned(row: dict) -> bool:
     return True
 
 
+def has_at_least_one_valid_index_currency(row: dict, valid_index_currencies: set[str]) -> bool:
+    """Return True if asset is INDEX, or if at least one of its constituent currencies is in valid_index_currencies."""
+    if row.get("asset_type") == "INDEX":
+        return True
+    currencies = _pair_currencies(str(row.get("pair") or ""))
+    if currencies is None:
+        return False
+    base, quote = currencies
+    return base in valid_index_currencies or quote in valid_index_currencies
+
+
 def default_mid_sar_history_state() -> dict:
     return {"version": 1, "days": {}}
 
@@ -809,22 +820,29 @@ def main() -> int:
     index_by_currency = _index_rows_by_currency(rows)
     rows_by_pair = {str(row.get("pair")): row for row in rows}
 
+    index_daily_chg_rows = select_index_daily_chg_rows(rows)
+    valid_index_currencies = {
+        str(r.get("currency") or r.get("pair")) for r in index_daily_chg_rows
+    }
+
     selected = select_full_alignment_rows(rows)
     selected = [
         row for row in selected
-        if is_daily_chg_aligned(row) and has_opposite_currency_colors(row, index_by_currency)
+        if is_daily_chg_aligned(row)
+        and has_opposite_currency_colors(row, index_by_currency)
+        and has_at_least_one_valid_index_currency(row, valid_index_currencies)
     ]
     selected = attach_premium_currency_profiles(selected, rows)
 
     mid_candidates = select_mid_alignment_candidates(rows)
     mid_candidates = [
         row for row in mid_candidates
-        if is_daily_chg_aligned(row) and has_opposite_currency_colors(row, index_by_currency)
+        if is_daily_chg_aligned(row)
+        and has_opposite_currency_colors(row, index_by_currency)
+        and has_at_least_one_valid_index_currency(row, valid_index_currencies)
     ]
     attach_sar_break_states(mid_candidates, args.sar_candles)
     mid_sar_rows = select_mid_sar_rows(mid_candidates)
-
-    index_daily_chg_rows = select_index_daily_chg_rows(rows)
     history_state = load_mid_sar_history_state(args.mid_sar_state_file)
     history_state, today_history = update_mid_sar_history(history_state, mid_sar_rows, now)
     save_mid_sar_history_state(args.mid_sar_state_file, history_state)
