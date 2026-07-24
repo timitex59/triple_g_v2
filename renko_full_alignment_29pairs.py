@@ -488,6 +488,28 @@ def has_opposite_currency_colors(row: dict, index_by_currency: dict[str, dict]) 
     return False
 
 
+def is_daily_chg_aligned(row: dict) -> bool:
+    """Return True if daily_chg is not opposed to the signal direction.
+
+    - BULL (direction == 1, green 🟢): daily_chg must be >= 0.
+    - BEAR (direction == -1, red 🔴): daily_chg must be <= 0.
+    """
+    direction = int(
+        row.get("full_alignment_direction")
+        or row.get("mid_alignment_direction")
+        or row.get("direction")
+        or 0
+    )
+    if direction == 0:
+        return False
+
+    daily_chg = row.get("daily_chg")
+    if isinstance(daily_chg, (int, float)):
+        return daily_chg * direction >= 0
+
+    return True
+
+
 def default_mid_sar_history_state() -> dict:
     return {"version": 1, "days": {}}
 
@@ -706,6 +728,7 @@ def format_full_alignment_message(
     index_daily_chg_rows: list[dict] | None = None,
     now: datetime | None = None,
     index_by_currency: dict[str, dict] | None = None,
+    rows_by_pair: dict[str, dict] | None = None,
 ) -> str:
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
     lines = ["📊 FULL ALIGNMENT M/W/D", ""]
@@ -767,6 +790,10 @@ def format_full_alignment_message(
                     continue
                 if index_by_currency and not has_opposite_currency_colors(event, index_by_currency):
                     continue
+                if rows_by_pair:
+                    pair_row = rows_by_pair.get(str(event.get("pair") or ""))
+                    if pair_row and not is_daily_chg_aligned(pair_row):
+                        continue
                 history_events.append(event)
     if history_events:
         lines.extend(["", "📋 MID SAR 07H-23H"])
@@ -799,13 +826,20 @@ def main() -> int:
     now = datetime.now(PARIS_TZ)
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
     index_by_currency = _index_rows_by_currency(rows)
+    rows_by_pair = {str(row.get("pair")): row for row in rows}
 
     selected = select_full_alignment_rows(rows)
-    selected = [row for row in selected if has_opposite_currency_colors(row, index_by_currency)]
+    selected = [
+        row for row in selected
+        if is_daily_chg_aligned(row) and has_opposite_currency_colors(row, index_by_currency)
+    ]
     selected = attach_premium_currency_profiles(selected, rows)
 
     mid_candidates = select_mid_alignment_candidates(rows)
-    mid_candidates = [row for row in mid_candidates if has_opposite_currency_colors(row, index_by_currency)]
+    mid_candidates = [
+        row for row in mid_candidates
+        if is_daily_chg_aligned(row) and has_opposite_currency_colors(row, index_by_currency)
+    ]
     attach_sar_break_states(mid_candidates, args.sar_candles)
     mid_sar_rows = select_mid_sar_rows(mid_candidates)
 
@@ -825,6 +859,7 @@ def main() -> int:
         index_daily_chg_rows,
         now=now,
         index_by_currency=index_by_currency,
+        rows_by_pair=rows_by_pair,
     )
     print(message)
     if args.telegram:
