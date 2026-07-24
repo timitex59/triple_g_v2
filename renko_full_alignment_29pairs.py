@@ -777,7 +777,8 @@ def format_full_alignment_message(
         for row in index_daily_chg_rows:
             icon = _daily_chg_icon(row.get("daily_chg"))
             name = _asset_display_name(row)
-            lines.append(f"{icon} {name} {_format_signed_pct(row.get('daily_chg'))}")
+            px_str = _format_px(row)
+            lines.append(f"{icon} {name} {_format_signed_pct(row.get('daily_chg'))} ({px_str})")
     history_events = []
     if isinstance(mid_sar_history, dict):
         raw_events = mid_sar_history.get("events") or []
