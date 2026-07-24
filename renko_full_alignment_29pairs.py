@@ -773,7 +773,7 @@ def format_full_alignment_message(
             tf_pair = str(row.get("mid_alignment_pair") or "")
             lines.append(f"{icon} {name}{_daily_chg_suffix(row)} 🔥 {tf_pair}")
     if index_daily_chg_rows:
-        lines.extend(["", "💱 AUTRES INDEX CHG%D"])
+        lines.extend(["", "💱 INDEX CHG%D"])
         for row in index_daily_chg_rows:
             icon = _daily_chg_icon(row.get("daily_chg"))
             name = _asset_display_name(row)
@@ -844,12 +844,7 @@ def main() -> int:
     attach_sar_break_states(mid_candidates, args.sar_candles)
     mid_sar_rows = select_mid_sar_rows(mid_candidates)
 
-    selected_index_pairs = {
-        str(row.get("pair") or "")
-        for row in selected
-        if row.get("asset_type") == "INDEX"
-    }
-    index_daily_chg_rows = select_index_daily_chg_rows(rows, selected_index_pairs)
+    index_daily_chg_rows = select_index_daily_chg_rows(rows)
     history_state = load_mid_sar_history_state(args.mid_sar_state_file)
     history_state, today_history = update_mid_sar_history(history_state, mid_sar_rows, now)
     save_mid_sar_history_state(args.mid_sar_state_file, history_state)
