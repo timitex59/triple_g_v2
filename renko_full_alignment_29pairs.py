@@ -37,7 +37,7 @@ PARIS_TZ = ZoneInfo("Europe/Paris")
 MID_SAR_STATE_FILE = Path("renko_full_alignment_mid_sar_state.json")
 MID_SAR_WINDOW_START_HOUR = 7
 MID_SAR_WINDOW_END_HOUR = 23
-MID_SAR_ALLOWED_TF_PAIRS = {"M/W/D", "W/M"}
+MID_SAR_ALLOWED_TF_PAIRS = {"M/W/D"}
 
 FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "DXY", "tv_symbol": "TVC:DXY", "asset_type": "INDEX", "currency": "USD"},
@@ -445,6 +445,49 @@ def attach_premium_currency_profiles(rows: list[dict], all_rows: list[dict]) -> 
     return enriched_rows
 
 
+def has_opposite_currency_colors(row: dict, index_by_currency: dict[str, dict]) -> bool:
+    """Return True if base and quote currencies have opposite index daily_chg colors.
+
+    For INDEX assets, returns True (no constituent currency pair filtering).
+    For PAIR assets:
+    - BULL (direction == 1): base index daily_chg > 0 (GREEN) and quote index daily_chg < 0 (RED).
+    - BEAR (direction == -1): base index daily_chg < 0 (RED) and quote index daily_chg > 0 (GREEN).
+    """
+    if row.get("asset_type") == "INDEX":
+        return True
+
+    direction = int(
+        row.get("full_alignment_direction")
+        or row.get("mid_alignment_direction")
+        or row.get("direction")
+        or 0
+    )
+    if direction == 0:
+        return False
+
+    currencies = _pair_currencies(str(row.get("pair") or ""))
+    if currencies is None:
+        return False
+
+    base, quote = currencies
+    base_index = index_by_currency.get(base)
+    quote_index = index_by_currency.get(quote)
+    if base_index is None or quote_index is None:
+        return False
+
+    base_chg = base_index.get("daily_chg")
+    quote_chg = quote_index.get("daily_chg")
+    if not isinstance(base_chg, (int, float)) or not isinstance(quote_chg, (int, float)):
+        return False
+
+    if direction == 1:
+        return base_chg > 0 and quote_chg < 0
+    if direction == -1:
+        return base_chg < 0 and quote_chg > 0
+
+    return False
+
+
 def default_mid_sar_history_state() -> dict:
     return {"version": 1, "days": {}}
 
@@ -662,6 +705,7 @@ def format_full_alignment_message(
     mid_sar_history: dict | None = None,
     index_daily_chg_rows: list[dict] | None = None,
     now: datetime | None = None,
+    index_by_currency: dict[str, dict] | None = None,
 ) -> str:
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
     lines = ["📊 FULL ALIGNMENT M/W/D", ""]
@@ -715,12 +759,15 @@ def format_full_alignment_message(
     if isinstance(mid_sar_history, dict):
         raw_events = mid_sar_history.get("events") or []
         if isinstance(raw_events, list):
-            history_events = [
-                event
-                for event in raw_events
-                if isinstance(event, dict)
-                and _allowed_mid_sar_tf_pairs(event.get("tf_pairs") or [])
-            ]
+            history_events = []
+            for event in raw_events:
+                if not isinstance(event, dict):
+                    continue
+                if not _allowed_mid_sar_tf_pairs(event.get("tf_pairs") or []):
+                    continue
+                if index_by_currency and not has_opposite_currency_colors(event, index_by_currency):
+                    continue
+                history_events.append(event)
     if history_events:
         lines.extend(["", "📋 MID SAR 07H-23H"])
         for event in history_events:
@@ -751,11 +798,17 @@ def main() -> int:
     args = parse_args()
     now = datetime.now(PARIS_TZ)
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
+    index_by_currency = _index_rows_by_currency(rows)
+
     selected = select_full_alignment_rows(rows)
+    selected = [row for row in selected if has_opposite_currency_colors(row, index_by_currency)]
     selected = attach_premium_currency_profiles(selected, rows)
+
     mid_candidates = select_mid_alignment_candidates(rows)
+    mid_candidates = [row for row in mid_candidates if has_opposite_currency_colors(row, index_by_currency)]
     attach_sar_break_states(mid_candidates, args.sar_candles)
     mid_sar_rows = select_mid_sar_rows(mid_candidates)
+
     selected_index_pairs = {
         str(row.get("pair") or "")
         for row in selected
@@ -771,6 +824,7 @@ def main() -> int:
         today_history,
         index_daily_chg_rows,
         now=now,
+        index_by_currency=index_by_currency,
     )
     print(message)
     if args.telegram:
