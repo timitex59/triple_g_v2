@@ -377,6 +377,27 @@ def has_consecutive_same_sign_tfs(row: dict) -> bool:
     return False
 
 
+def has_consistent_tf_counts(row: dict) -> bool:
+    """Return False if positive daily_chg has count(-) > count(+) or negative daily_chg has count(+) > count(-)."""
+    px = _px(row)
+    if px is None:
+        return False
+
+    daily_chg = row.get("daily_chg")
+    if not isinstance(daily_chg, (int, float)):
+        return True
+
+    pos_count = sum(1 for tf_val in px.values() if tf_val == 1)
+    neg_count = sum(1 for tf_val in px.values() if tf_val == -1)
+
+    if daily_chg > 0 and neg_count > pos_count:
+        return False
+    if daily_chg < 0 and pos_count > neg_count:
+        return False
+
+    return True
+
+
 def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None = None) -> list[dict]:
     excluded = exclude_pairs or set()
     index_rows = [
@@ -387,6 +408,7 @@ def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None
         and isinstance(row.get("daily_chg"), (int, float))
         and abs(float(row["daily_chg"])) >= 0.005
         and has_consecutive_same_sign_tfs(row)
+        and has_consistent_tf_counts(row)
     ]
     return sorted(
         index_rows,
@@ -527,9 +549,10 @@ def is_daily_chg_aligned(row: dict) -> bool:
     if isinstance(daily_chg, (int, float)):
         if abs(daily_chg) < 0.005:
             return False
-        return daily_chg * direction > 0
+        if daily_chg * direction <= 0:
+            return False
 
-    return False
+    return has_consistent_tf_counts(row)
 
 
 def has_at_least_one_valid_index_currency(row: dict, valid_index_currencies: set[str]) -> bool:
