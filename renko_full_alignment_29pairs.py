@@ -384,6 +384,8 @@ def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None
         for row in rows
         if row.get("asset_type") == "INDEX"
         and str(row.get("pair") or "") not in excluded
+        and isinstance(row.get("daily_chg"), (int, float))
+        and abs(float(row["daily_chg"])) >= 0.005
         and has_consecutive_same_sign_tfs(row)
     ]
     return sorted(
@@ -507,10 +509,10 @@ def has_opposite_currency_colors(row: dict, index_by_currency: dict[str, dict]) 
 
 
 def is_daily_chg_aligned(row: dict) -> bool:
-    """Return True if daily_chg is not opposed to the signal direction.
+    """Return True if daily_chg is strictly aligned with the signal direction and non-zero (> 0.00%).
 
-    - BULL (direction == 1, green 🟢): daily_chg must be >= 0.
-    - BEAR (direction == -1, red 🔴): daily_chg must be <= 0.
+    - BULL (direction == 1, green 🟢): daily_chg must be strictly positive (>= +0.005%).
+    - BEAR (direction == -1, red 🔴): daily_chg must be strictly negative (<= -0.005%).
     """
     direction = int(
         row.get("full_alignment_direction")
@@ -523,9 +525,11 @@ def is_daily_chg_aligned(row: dict) -> bool:
 
     daily_chg = row.get("daily_chg")
     if isinstance(daily_chg, (int, float)):
-        return daily_chg * direction >= 0
+        if abs(daily_chg) < 0.005:
+            return False
+        return daily_chg * direction > 0
 
-    return True
+    return False
 
 
 def has_at_least_one_valid_index_currency(row: dict, valid_index_currencies: set[str]) -> bool:
@@ -846,6 +850,7 @@ def main() -> int:
     history_state = load_mid_sar_history_state(args.mid_sar_state_file)
     history_state, today_history = update_mid_sar_history(history_state, mid_sar_rows, now)
     save_mid_sar_history_state(args.mid_sar_state_file, history_state)
+    pair_rows = [row for row in selected if row.get("asset_type") != "INDEX"]
     message = format_full_alignment_message(
         selected,
         mid_sar_rows,
@@ -857,7 +862,10 @@ def main() -> int:
     )
     print(message)
     if args.telegram:
-        send_telegram_message(message)
+        if not pair_rows:
+            print("Aucune paire en alignement strict valide : message Telegram ignoré.")
+        else:
+            send_telegram_message(message)
     return 0
 
 
