@@ -566,6 +566,52 @@ def has_at_least_one_valid_index_currency(row: dict, valid_index_currencies: set
     return base in valid_index_currencies or quote in valid_index_currencies
 
 
+def filter_conflicting_currency_pairs(rows: list[dict]) -> list[dict]:
+    """Option C: Strictly eliminate all pairs involving any currency that has contradictory directional biases (+1 and -1)."""
+    currency_biases: dict[str, set[int]] = {}
+
+    for row in rows:
+        if row.get("asset_type") == "INDEX":
+            continue
+        direction = int(
+            row.get("full_alignment_direction")
+            or row.get("mid_alignment_direction")
+            or row.get("direction")
+            or 0
+        )
+        if direction == 0:
+            continue
+        currencies = _pair_currencies(str(row.get("pair") or ""))
+        if currencies is None:
+            continue
+        base, quote = currencies
+        currency_biases.setdefault(base, set()).add(direction)
+        currency_biases.setdefault(quote, set()).add(-direction)
+
+    conflicted_currencies = {
+        curr for curr, biases in currency_biases.items()
+        if 1 in biases and -1 in biases
+    }
+
+    if not conflicted_currencies:
+        return rows
+
+    clean_rows: list[dict] = []
+    for row in rows:
+        if row.get("asset_type") == "INDEX":
+            clean_rows.append(row)
+            continue
+        currencies = _pair_currencies(str(row.get("pair") or ""))
+        if currencies is None:
+            continue
+        base, quote = currencies
+        if base in conflicted_currencies or quote in conflicted_currencies:
+            continue
+        clean_rows.append(row)
+
+    return clean_rows
+
+
 def default_mid_sar_history_state() -> dict:
     return {"version": 1, "days": {}}
 
@@ -859,6 +905,7 @@ def main() -> int:
         and has_opposite_currency_colors(row, index_by_currency)
         and has_at_least_one_valid_index_currency(row, valid_index_currencies)
     ]
+    selected = filter_conflicting_currency_pairs(selected)
     selected = attach_premium_currency_profiles(selected, rows)
 
     mid_candidates = select_mid_alignment_candidates(rows)
@@ -868,6 +915,7 @@ def main() -> int:
         and has_opposite_currency_colors(row, index_by_currency)
         and has_at_least_one_valid_index_currency(row, valid_index_currencies)
     ]
+    mid_candidates = filter_conflicting_currency_pairs(mid_candidates)
     attach_sar_break_states(mid_candidates, args.sar_candles)
     mid_sar_rows = select_mid_sar_rows(mid_candidates)
     history_state = load_mid_sar_history_state(args.mid_sar_state_file)
