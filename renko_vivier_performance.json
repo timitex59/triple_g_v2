@@ -12472,6 +12472,28 @@
       },
       "time_paris": "2026-07-28T22:00:00+02:00",
       "time_utc": "2026-07-28T20:00:00+00:00"
+    },
+    {
+      "base_pct": 33.33333333333333,
+      "complete": false,
+      "direction": 1,
+      "event_id": "649a3815b3076edd7420",
+      "event_type": "VIVIER_EXIT_INVALID",
+      "fib_pct_of_range": 6.706361642118579,
+      "fib_position": "Fibo <0.236",
+      "final_pct": 0.0,
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "pair": "GBPCAD",
+      "price": 1.87494,
+      "px": {
+        "D": -1,
+        "M": 1,
+        "W": 0
+      },
+      "reason": "MONTHLY_OR_SCORE_INVALID",
+      "time_paris": "2026-07-28T22:00:00+02:00",
+      "time_utc": "2026-07-28T20:00:00+00:00"
     }
   ],
   "pair_profiles": {
@@ -14274,7 +14296,7 @@
         "avg_mae_72h_pct": -0.48584265682918565,
         "avg_mfe_72h_pct": 0.3605932721291558,
         "complete": 29,
-        "count": 34,
+        "count": 35,
         "horizons": {
           "12h": {
             "avg_directional_pct": -0.07965306030564667,
@@ -14352,7 +14374,7 @@
       "avg_mae_72h_pct": -0.5653176084401288,
       "avg_mfe_72h_pct": 0.32763478647141775,
       "complete": 165,
-      "count": 177,
+      "count": 178,
       "horizons": {
         "12h": {
           "avg_directional_pct": -0.08125611104299572,
@@ -14386,8 +14408,8 @@
         }
       }
     },
-    "total": 177
+    "total": 178
   },
-  "updated_at_utc": "2026-07-28T20:17:16.756498+00:00",
+  "updated_at_utc": "2026-07-28T20:35:40.476871+00:00",
   "version": 3
 }
