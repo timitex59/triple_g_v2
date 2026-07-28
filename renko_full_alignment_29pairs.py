@@ -531,10 +531,12 @@ def has_opposite_currency_colors(row: dict, index_by_currency: dict[str, dict]) 
 
 
 def is_daily_chg_aligned(row: dict) -> bool:
-    """Return True if daily_chg is strictly aligned with the signal direction and non-zero (> 0.00%).
+    """Return True if daily_chg is strictly aligned with the signal direction and meets minimum magnitude.
 
-    - BULL (direction == 1, green 🟢): daily_chg must be strictly positive (>= +0.005%).
-    - BEAR (direction == -1, red 🔴): daily_chg must be strictly negative (<= -0.005%).
+    - For PAIR assets: abs(daily_chg) must be >= 0.05% (>= 0.045% unrounded).
+    - For INDEX assets: abs(daily_chg) must be >= 0.005%.
+    - BULL (direction == 1, green 🟢): daily_chg must be strictly positive (> 0).
+    - BEAR (direction == -1, red 🔴): daily_chg must be strictly negative (< 0).
     """
     direction = int(
         row.get("full_alignment_direction")
@@ -547,7 +549,8 @@ def is_daily_chg_aligned(row: dict) -> bool:
 
     daily_chg = row.get("daily_chg")
     if isinstance(daily_chg, (int, float)):
-        if abs(daily_chg) < 0.005:
+        min_threshold = 0.045 if row.get("asset_type") != "INDEX" else 0.005
+        if abs(daily_chg) < min_threshold:
             return False
         if daily_chg * direction <= 0:
             return False
@@ -934,7 +937,7 @@ def main() -> int:
     print(message)
     if args.telegram:
         if not pair_rows:
-            print("Aucune paire en alignement strict valide : message Telegram ignoré.")
+            print("Aucune paire en alignement strict valide (>= 0.05%) : message Telegram ignoré.")
         else:
             send_telegram_message(message)
     return 0
