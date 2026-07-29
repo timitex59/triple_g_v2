@@ -3372,7 +3372,8 @@ def sar_streak_full(r: dict) -> bool:
 def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
                            vivier_state: dict | None = None,
                            vivier_signals: list[dict] | None = None,
-                           pip_report: dict | None = None) -> str | None:
+                           pip_report: dict | None = None,
+                           pip_state: dict | None = None) -> str | None:
     vivier_signals = vivier_signals or []
     vivier_state = vivier_state or {}
     bull_vivier, bear_vivier = vivier_groups(vivier_state)
@@ -3386,12 +3387,14 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
     intraday_pip_lines = vivier_pip_intraday_lines(pip_report)
     period_pip_lines = vivier_pip_period_lines(pip_report)
 
-    # Telegram is dedicated exclusively to the VIVIER ecosystem. Standalone
-    # RENKO FIBO and reversal signals remain internal and silent.
-    if (not bull_vivier and not bear_vivier and not vivier_signals
-            and not post_signal_entries
-            and not theoretical_pairs and not intraday_pip_lines
-            and not period_pip_lines):
+    has_vivier_pairs = bool(bull_vivier or bear_vivier or vivier_signals or post_signal_entries or theoretical_pairs)
+    has_period_results = False
+    if pip_report and isinstance(pip_report.get("weekly"), dict):
+        has_period_results = abs(float(pip_report["weekly"].get("total_pips", 0.0))) > 0.0
+    if pip_report and isinstance(pip_report.get("monthly"), dict):
+        has_period_results = has_period_results or abs(float(pip_report["monthly"].get("total_pips", 0.0))) > 0.0
+
+    if not has_vivier_pairs and not has_period_results:
         return None
     lines = ["📊 VIVIER", ""]
     has_content = False
@@ -3541,9 +3544,10 @@ def main() -> int:
         vivier_state=vivier_state,
         vivier_signals=vivier_signals,
         pip_report=pip_report,
+        pip_state=pip_state,
     )
     if message is None:
-        print("\nVIVIER vide — aucun message Telegram envoyé.")
+        print("\nVIVIER vide ou aucune prise de position : aucun message Telegram envoyé.")
         return 0
     print("")
     print(message)
