@@ -3387,38 +3387,35 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
     intraday_pip_lines = vivier_pip_intraday_lines(pip_report)
     period_pip_lines = vivier_pip_period_lines(pip_report)
 
-    # Condition: A Telegram message is sent ONLY if there is actual trading action or confirmation:
-    # 1. Active Vivier entry that is CONFIRMED (_vivier_entry_confirmed_for_pips: chg_icon 🟢 for BULL, 🔴 for BEAR)
-    # 2. Active SAR flame record in entry
-    # 3. Active open pip segment in pip_state
-    # 4. Non-zero daily/weekly/monthly pip results
-    # 5. New SIGNAL_VIVIER, SUIVI_SIGNAL, or REVERSAL/FIBO theoretical pair
     has_confirmed_position = any(
-        _vivier_entry_confirmed_for_pips(entry)
+        _vivier_entry_confirmed_for_pips(entry) or "daily_sar_dir" not in entry
+        for _, entry in (bull_vivier + bear_vivier)
+    )
+    all_entries_explicit_unconfirmed = bool(bull_vivier or bear_vivier) and all(
+        "daily_sar_dir" in entry and not _vivier_entry_confirmed_for_pips(entry)
         for _, entry in (bull_vivier + bear_vivier)
     )
     has_flame = any(
         entry.get("sar_flame") or entry.get("flame")
         for _, entry in (bull_vivier + bear_vivier)
     )
-    has_open_segments = bool(
-        (pip_state or {}).get("open_segments")
-        or (pip_state or {}).get("open_confirmed_segments")
+    has_open_confirmed_segments = bool(
+        (pip_state or {}).get("open_confirmed_segments")
     )
     has_signals = bool(vivier_signals or post_signal_entries or theoretical_pairs)
 
     has_pip_activity = False
     if pip_report:
-        for key in ("daily", "daily_confirmed", "weekly", "monthly"):
+        for key in ("daily_confirmed", "daily", "weekly", "monthly"):
             rep = pip_report.get(key)
             if isinstance(rep, dict) and abs(float(rep.get("total_pips", 0.0))) > 0.0:
                 has_pip_activity = True
                 break
 
     has_trade_action = (
-        has_confirmed_position
+        (has_confirmed_position and not all_entries_explicit_unconfirmed)
         or has_flame
-        or has_open_segments
+        or has_open_confirmed_segments
         or has_signals
         or has_pip_activity
     )
