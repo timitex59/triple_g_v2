@@ -434,6 +434,7 @@ class VivierStateTests(unittest.TestCase):
                     "sar_dir": 1,
                     "daily_chg": -0.12,
                     "daily_sar_dir": -1,
+                    "sar_flame": True,
                 }
             }
         }
@@ -487,6 +488,7 @@ class VivierStateTests(unittest.TestCase):
                     "direction": 1,
                     "last_px": {"M": 1, "W": 1, "D": 0},
                     "fib_position": "Fibo <0.500",
+                    "sar_flame": True,
                 }
             }
         }
