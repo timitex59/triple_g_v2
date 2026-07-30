@@ -319,32 +319,142 @@ class RenkoConfirmation:
     reason: str
 
 
+HARDCODED_NASDAQ_100 = [
+    {"name": "Apple Inc.", "ticker": "AAPL"},
+    {"name": "Microsoft Corporation", "ticker": "MSFT"},
+    {"name": "NVIDIA Corporation", "ticker": "NVDA"},
+    {"name": "Amazon.com Inc.", "ticker": "AMZN"},
+    {"name": "Meta Platforms Inc.", "ticker": "META"},
+    {"name": "Alphabet Inc. Class A", "ticker": "GOOGL"},
+    {"name": "Alphabet Inc. Class C", "ticker": "GOOG"},
+    {"name": "Tesla Inc.", "ticker": "TSLA"},
+    {"name": "Broadcom Inc.", "ticker": "AVGO"},
+    {"name": "Costco Wholesale Corporation", "ticker": "COST"},
+    {"name": "Netflix Inc.", "ticker": "NFLX"},
+    {"name": "ASML Holding N.V.", "ticker": "ASML"},
+    {"name": "Advanced Micro Devices Inc.", "ticker": "AMD"},
+    {"name": "T-Mobile US Inc.", "ticker": "TMUS"},
+    {"name": "Linde plc", "ticker": "LIN"},
+    {"name": "Intuitive Surgical Inc.", "ticker": "ISRG"},
+    {"name": "Cisco Systems Inc.", "ticker": "CSCO"},
+    {"name": "Intuit Inc.", "ticker": "INTU"},
+    {"name": "PepsiCo Inc.", "ticker": "PEP"},
+    {"name": "Adobe Inc.", "ticker": "ADBE"},
+    {"name": "QUALCOMM Incorporated", "ticker": "QCOM"},
+    {"name": "Texas Instruments Incorporated", "ticker": "TXN"},
+    {"name": "Amgen Inc.", "ticker": "AMGN"},
+    {"name": "Honeywell International Inc.", "ticker": "HON"},
+    {"name": "Applied Materials Inc.", "ticker": "AMAT"},
+    {"name": "Booking Holdings Inc.", "ticker": "BKNG"},
+    {"name": "Vertex Pharmaceuticals Incorporated", "ticker": "VRTX"},
+    {"name": "Palo Alto Networks Inc.", "ticker": "PANW"},
+    {"name": "Analog Devices Inc.", "ticker": "ADI"},
+    {"name": "Gilead Sciences Inc.", "ticker": "GILD"},
+    {"name": "Starbucks Corporation", "ticker": "SBUX"},
+    {"name": "Automatic Data Processing Inc.", "ticker": "ADP"},
+    {"name": "Regeneron Pharmaceuticals Inc.", "ticker": "REGN"},
+    {"name": "Lam Research Corporation", "ticker": "LRCX"},
+    {"name": "Micron Technology Inc.", "ticker": "MU"},
+    {"name": "KLA Corporation", "ticker": "KLAC"},
+    {"name": "Mondelez International Inc.", "ticker": "MDLZ"},
+    {"name": "MercadoLibre Inc.", "ticker": "MELI"},
+    {"name": "Synopsys Inc.", "ticker": "SNPS"},
+    {"name": "Cadence Design Systems Inc.", "ticker": "CDNS"},
+    {"name": "Cintas Corporation", "ticker": "CTAS"},
+    {"name": "O'Reilly Automotive Inc.", "ticker": "ORLY"},
+    {"name": "Airbnb Inc.", "ticker": "ABNB"},
+    {"name": "Constellation Energy Corporation", "ticker": "CEG"},
+    {"name": "Fortinet Inc.", "ticker": "FTNT"},
+    {"name": "CSX Corporation", "ticker": "CSX"},
+    {"name": "PayPal Holdings Inc.", "ticker": "PYPL"},
+    {"name": "Marvell Technology Inc.", "ticker": "MRVL"},
+    {"name": "Workday Inc.", "ticker": "WDAY"},
+    {"name": "PACCAR Inc", "ticker": "PCAR"},
+    {"name": "NXP Semiconductors N.V.", "ticker": "NXPI"},
+    {"name": "DexCom Inc.", "ticker": "DXCM"},
+    {"name": "Paychex Inc.", "ticker": "PAYX"},
+    {"name": "CrowdStrike Holdings Inc.", "ticker": "CRWD"},
+    {"name": "Keurig Dr Pepper Inc.", "ticker": "KDP"},
+    {"name": "Fastenal Company", "ticker": "FAST"},
+    {"name": "Old Dominion Freight Line Inc.", "ticker": "ODFL"},
+    {"name": "Ross Stores Inc.", "ticker": "ROST"},
+    {"name": "Copart Inc.", "ticker": "CPRT"},
+    {"name": "IDEXX Laboratories Inc.", "ticker": "IDXX"},
+    {"name": "Atlassian Corporation", "ticker": "TEAM"},
+    {"name": "Electronic Arts Inc.", "ticker": "EA"},
+    {"name": "Zscaler Inc.", "ticker": "ZS"},
+    {"name": "Verisk Analytics Inc.", "ticker": "VRSK"},
+    {"name": "Diamondback Energy Inc.", "ticker": "FANG"},
+    {"name": "Baker Hughes Company", "ticker": "BKR"},
+    {"name": "GE HealthCare Technologies Inc.", "ticker": "GEHC"},
+    {"name": "Take-Two Interactive Software Inc.", "ticker": "TTWO"},
+    {"name": "Datadog Inc.", "ticker": "DDOG"},
+    {"name": "Coca-Cola Europacific Partners plc", "ticker": "CCEP"},
+    {"name": "Arm Holdings plc", "ticker": "ARM"},
+    {"name": "Palantir Technologies Inc.", "ticker": "PLTR"},
+    {"name": "Microchip Technology Incorporated", "ticker": "MCHP"},
+    {"name": "Exelon Corporation", "ticker": "EXC"},
+    {"name": "Xcel Energy Inc.", "ticker": "XEL"},
+    {"name": "CoStar Group Inc.", "ticker": "CSGP"},
+    {"name": "The Kraft Heinz Company", "ticker": "KHC"},
+    {"name": "Warner Bros. Discovery Inc.", "ticker": "WBD"},
+    {"name": "Roper Technologies Inc.", "ticker": "ROP"},
+    {"name": "Monster Beverage Corporation", "ticker": "MNST"},
+    {"name": "Charter Communications Inc.", "ticker": "CHTR"},
+    {"name": "Cognizant Technology Solutions Corporation", "ticker": "CTSH"},
+    {"name": "Comcast Corporation", "ticker": "CMCSA"},
+    {"name": "AppLovin Corporation", "ticker": "APP"},
+    {"name": "Autodesk Inc.", "ticker": "ADSK"},
+    {"name": "Axon Enterprise Inc.", "ticker": "AXON"},
+    {"name": "DoorDash Inc.", "ticker": "DASH"},
+    {"name": "Ferrovial SE", "ticker": "FER"},
+    {"name": "Insmed Incorporated", "ticker": "INSM"},
+    {"name": "Intel Corporation", "ticker": "INTC"},
+    {"name": "Marriott International Inc.", "ticker": "MAR"},
+    {"name": "MicroStrategy Incorporated", "ticker": "MSTR"},
+    {"name": "Monolithic Power Systems Inc.", "ticker": "MPWR"},
+    {"name": "PDD Holdings Inc.", "ticker": "PDD"},
+    {"name": "Seagate Technology Holdings plc", "ticker": "STX"},
+    {"name": "Shopify Inc.", "ticker": "SHOP"},
+    {"name": "Thomson Reuters Corporation", "ticker": "TRI"},
+    {"name": "Walmart Inc.", "ticker": "WMT"},
+    {"name": "Western Digital Corporation", "ticker": "WDC"},
+    {"name": "Alnylam Pharmaceuticals Inc.", "ticker": "ALNY"},
+    {"name": "American Electric Power Company Inc.", "ticker": "AEP"},
+]
+
+
 def fetch_nasdaq_100() -> pd.DataFrame:
-    resp = requests.get(WIKI_URL, timeout=20, headers={"User-Agent": USER_AGENT})
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-    for table in soup.select("table.wikitable"):
-        rows = table.find_all("tr")
-        if not rows:
-            continue
-        headers = [cell.get_text(" ", strip=True) for cell in rows[0].find_all(["th", "td"])]
-        lowered = [h.lower() for h in headers]
-        if "ticker" not in lowered:
-            continue
-        ticker_col = lowered.index("ticker")
-        name_col = lowered.index("company") if "company" in lowered else 0
-        parsed = []
-        for row in rows[1:]:
-            cells = [cell.get_text(" ", strip=True) for cell in row.find_all(["th", "td"])]
-            if len(cells) <= max(ticker_col, name_col):
+    try:
+        resp = requests.get(WIKI_URL, timeout=10, headers={"User-Agent": USER_AGENT})
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for table in soup.select("table.wikitable"):
+            rows = table.find_all("tr")
+            if not rows:
                 continue
-            ticker = cells[ticker_col].replace(".", "-").strip()
-            name = cells[name_col].strip()
-            if re.match(r"^[A-Z][A-Z0-9-]{0,6}$", ticker):
-                parsed.append({"name": name, "ticker": ticker})
-        if len(parsed) >= 90:
-            return pd.DataFrame(parsed).drop_duplicates("ticker").reset_index(drop=True)
-    raise RuntimeError("Could not find Nasdaq-100 components table on Wikipedia")
+            headers = [cell.get_text(" ", strip=True) for cell in rows[0].find_all(["th", "td"])]
+            lowered = [h.lower() for h in headers]
+            if "ticker" not in lowered and "symbol" not in lowered:
+                continue
+            ticker_col = lowered.index("ticker") if "ticker" in lowered else lowered.index("symbol")
+            name_col = lowered.index("company") if "company" in lowered else 0
+            parsed = []
+            for row in rows[1:]:
+                cells = [cell.get_text(" ", strip=True) for cell in row.find_all(["th", "td"])]
+                if len(cells) <= max(ticker_col, name_col):
+                    continue
+                ticker = cells[ticker_col].replace(".", "-").strip()
+                name = cells[name_col].strip()
+                if re.match(r"^[A-Z][A-Z0-9-]{0,6}$", ticker):
+                    parsed.append({"name": name, "ticker": ticker})
+            if len(parsed) >= 90:
+                return pd.DataFrame(parsed).drop_duplicates("ticker").reset_index(drop=True)
+    except Exception as exc:
+        print(f"Warning: Failed to fetch Nasdaq-100 from Wikipedia ({exc}), using fallback list.")
+
+    print("Utilisation de la liste fallback des composants Nasdaq-100.")
+    return pd.DataFrame(HARDCODED_NASDAQ_100).drop_duplicates("ticker").reset_index(drop=True)
 
 
 def stock_tv_symbol(ticker: str) -> str:

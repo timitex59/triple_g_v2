@@ -167,40 +167,97 @@ def fetch_from_ishares_csv(path: str) -> tuple[pd.DataFrame, dict[str, str]]:
     return out, ex_map
 
 
+HARDCODED_SP400_TECH = [
+    {'ticker': 'AEIS', 'name': 'Advanced Energy', 'sub_industry': 'Semiconductor Materials & Equipment'},
+    {'ticker': 'ALGM', 'name': 'Allegro MicroSystems', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'AMKR', 'name': 'Amkor Technology', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'APPF', 'name': 'AppFolio', 'sub_industry': 'Application Software'},
+    {'ticker': 'ARW', 'name': 'Arrow Electronics', 'sub_industry': 'Technology Distributors'},
+    {'ticker': 'AVT', 'name': 'Avnet', 'sub_industry': 'Technology Distributors'},
+    {'ticker': 'BDC', 'name': 'Belden Inc.', 'sub_industry': 'Electronic Components'},
+    {'ticker': 'BILL', 'name': 'Bill Holdings', 'sub_industry': 'Application Software'},
+    {'ticker': 'BSY', 'name': 'Bentley Systems', 'sub_industry': 'Application Software'},
+    {'ticker': 'CGNX', 'name': 'Cognex', 'sub_industry': 'Electronic Equipment & Instruments'},
+    {'ticker': 'CRUS', 'name': 'Cirrus Logic', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'CVLT', 'name': 'CommVault Systems', 'sub_industry': 'Systems Software'},
+    {'ticker': 'CXT', 'name': 'Crane NXT', 'sub_industry': 'Electronic Equipment & Instruments'},
+    {'ticker': 'DBX', 'name': 'Dropbox', 'sub_industry': 'Application Software'},
+    {'ticker': 'DLB', 'name': 'Dolby', 'sub_industry': 'Application Software'},
+    {'ticker': 'DOCN', 'name': 'DigitalOcean', 'sub_industry': 'Internet Services & Infrastructure'},
+    {'ticker': 'DOCU', 'name': 'Docusign', 'sub_industry': 'Application Software'},
+    {'ticker': 'DT', 'name': 'Dynatrace', 'sub_industry': 'Application Software'},
+    {'ticker': 'ENTG', 'name': 'Entegris', 'sub_industry': 'Semiconductor Materials & Equipment'},
+    {'ticker': 'FN', 'name': 'Fabrinet', 'sub_industry': 'Electronic Manufacturing Services'},
+    {'ticker': 'GWRE', 'name': 'Guidewire Software', 'sub_industry': 'Application Software'},
+    {'ticker': 'IDCC', 'name': 'InterDigital', 'sub_industry': 'Communications Equipment'},
+    {'ticker': 'IPGP', 'name': 'IPG Photonics', 'sub_industry': 'Electronic Manufacturing Services'},
+    {'ticker': 'KD', 'name': 'Kyndryl', 'sub_industry': 'IT Consulting & Other Services'},
+    {'ticker': 'LFUS', 'name': 'Littelfuse', 'sub_industry': 'Electronic Components'},
+    {'ticker': 'LSCC', 'name': 'Lattice Semiconductor', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'MANH', 'name': 'Manhattan Associates', 'sub_industry': 'Application Software'},
+    {'ticker': 'MKSI', 'name': 'MKS Instruments', 'sub_industry': 'Semiconductor Materials & Equipment'},
+    {'ticker': 'MTSI', 'name': 'MACOM Technology Solutions', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'NOVT', 'name': 'Novanta', 'sub_industry': 'Electronic Equipment & Instruments'},
+    {'ticker': 'NTNX', 'name': 'Nutanix', 'sub_industry': 'Systems Software'},
+    {'ticker': 'OKTA', 'name': 'Okta, Inc.', 'sub_industry': 'Application Software'},
+    {'ticker': 'OLED', 'name': 'Universal Display', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'ONTO', 'name': 'Onto Innovation', 'sub_industry': 'Semiconductor Materials & Equipment'},
+    {'ticker': 'PATH', 'name': 'UiPath', 'sub_industry': 'Systems Software'},
+    {'ticker': 'PEGA', 'name': 'Pegasystems', 'sub_industry': 'Application Software'},
+    {'ticker': 'QLYS', 'name': 'Qualys', 'sub_industry': 'Systems Software'},
+    {'ticker': 'RMBS', 'name': 'Rambus', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'SANM', 'name': 'Sanmina Corporation', 'sub_industry': 'Electronic Manufacturing Services'},
+    {'ticker': 'SITM', 'name': 'SiTime', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'SLAB', 'name': 'Silicon Labs', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'SMTC', 'name': 'Semtech', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'SNX', 'name': 'TD Synnex', 'sub_industry': 'Technology Distributors'},
+    {'ticker': 'SYNA', 'name': 'Synaptics', 'sub_industry': 'Semiconductors'},
+    {'ticker': 'TTMI', 'name': 'TTM Technologies', 'sub_industry': 'Electronic Manufacturing Services'},
+    {'ticker': 'TWLO', 'name': 'Twilio', 'sub_industry': 'Systems Software'},
+    {'ticker': 'VIAV', 'name': 'Viavi Solutions', 'sub_industry': 'Communications Equipment'},
+    {'ticker': 'VNT', 'name': 'Vontier', 'sub_industry': 'Electronic Equipment & Instruments'},
+]
+
+
 def fetch_sp400_tech() -> pd.DataFrame:
     """Composants S&P MidCap 400 (Wikipedia), filtres GICS Sector = Info Tech."""
-    resp = requests.get(SP400_URL, timeout=30, headers={"User-Agent": USER_AGENT})
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
-    for table in soup.select("table.wikitable"):
-        rows = table.find_all("tr")
-        if not rows:
-            continue
-        headers = [c.get_text(" ", strip=True).lower() for c in rows[0].find_all(["th", "td"])]
-        if "symbol" not in headers or not any("sector" in h for h in headers):
-            continue
-        sym_col = headers.index("symbol")
-        sec_col = next(i for i, h in enumerate(headers) if "sector" in h)
-        sub_col = next((i for i, h in enumerate(headers) if "sub-industry" in h), None)
-        name_col = next((i for i, h in enumerate(headers) if "security" in h or "company" in h), 1)
-        parsed = []
-        for row in rows[1:]:
-            cells = [c.get_text(" ", strip=True) for c in row.find_all(["th", "td"])]
-            if len(cells) <= max(sym_col, sec_col, name_col):
+    try:
+        resp = requests.get(SP400_URL, timeout=15, headers={"User-Agent": USER_AGENT})
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for table in soup.select("table.wikitable"):
+            rows = table.find_all("tr")
+            if not rows:
                 continue
-            if cells[sec_col].strip().lower() != "information technology":
+            headers = [c.get_text(" ", strip=True).lower() for c in rows[0].find_all(["th", "td"])]
+            if "symbol" not in headers or not any("sector" in h for h in headers):
                 continue
-            ticker = cells[sym_col].replace(".", "-").strip()
-            if not re.match(r"^[A-Z][A-Z0-9-]{0,6}$", ticker):
-                continue
-            parsed.append({
-                "ticker": ticker,
-                "name": cells[name_col].strip(),
-                "sub_industry": cells[sub_col].strip() if sub_col is not None and len(cells) > sub_col else "",
-            })
-        if parsed:
-            return pd.DataFrame(parsed).drop_duplicates("ticker").reset_index(drop=True)
-    raise RuntimeError("Table S&P MidCap 400 introuvable sur Wikipedia")
+            sym_col = headers.index("symbol")
+            sec_col = next(i for i, h in enumerate(headers) if "sector" in h)
+            sub_col = next((i for i, h in enumerate(headers) if "sub-industry" in h), None)
+            name_col = next((i for i, h in enumerate(headers) if "security" in h or "company" in h), 1)
+            parsed = []
+            for row in rows[1:]:
+                cells = [c.get_text(" ", strip=True) for c in row.find_all(["th", "td"])]
+                if len(cells) <= max(sym_col, sec_col, name_col):
+                    continue
+                if cells[sec_col].strip().lower() != "information technology":
+                    continue
+                ticker = cells[sym_col].replace(".", "-").strip()
+                if not re.match(r"^[A-Z][A-Z0-9-]{0,6}$", ticker):
+                    continue
+                parsed.append({
+                    "ticker": ticker,
+                    "name": cells[name_col].strip(),
+                    "sub_industry": cells[sub_col].strip() if sub_col is not None and len(cells) > sub_col else "",
+                })
+            if parsed:
+                return pd.DataFrame(parsed).drop_duplicates("ticker").reset_index(drop=True)
+    except Exception as exc:
+        print(f"Warning: Failed to fetch S&P 400 from Wikipedia ({exc}), using fallback list.")
+
+    print("Utilisation de la liste fallback S&P 400 Tech.")
+    return pd.DataFrame(HARDCODED_SP400_TECH).drop_duplicates("ticker").reset_index(drop=True)
 
 
 def fetch_profiles_ex(tickers: list[str], max_workers: int = 12) -> dict[str, dict[str, str]]:
