@@ -746,7 +746,21 @@
       ]
     },
     "2026-07-30": {
-      "confirmed_segments": [],
+      "confirmed_segments": [
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-07-30",
+          "direction": 1,
+          "end_price": 1.87916,
+          "end_time_paris": "2026-07-30T15:00:00+02:00",
+          "end_time_utc": "2026-07-30T13:00:00+00:00",
+          "pair": "GBPCAD",
+          "pips": -10.900000000000354,
+          "start_price": 1.88025,
+          "start_time_paris": "2026-07-30T13:00:00+02:00",
+          "start_time_utc": "2026-07-30T11:00:00+00:00"
+        }
+      ],
       "date": "2026-07-30",
       "finalized": false,
       "segments": [
@@ -766,26 +780,14 @@
       ]
     }
   },
-  "open_confirmed_segments": {
-    "GBPCAD": {
-      "current_pips": -4.699999999999704,
-      "date": "2026-07-30",
-      "direction": 1,
-      "last_price": 1.87978,
-      "last_time_utc": "2026-07-30T12:00:00+00:00",
-      "pair": "GBPCAD",
-      "start_price": 1.88025,
-      "start_time_paris": "2026-07-30T13:00:00+02:00",
-      "start_time_utc": "2026-07-30T11:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
   "open_segments": {
     "GBPCAD": {
-      "current_pips": 48.6999999999993,
+      "current_pips": 42.49999999999865,
       "date": "2026-07-30",
       "direction": 1,
-      "last_price": 1.87978,
-      "last_time_utc": "2026-07-30T12:00:00+00:00",
+      "last_price": 1.87916,
+      "last_time_utc": "2026-07-30T13:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.87491,
       "start_time_paris": "2026-07-30T09:00:00+02:00",
@@ -799,6 +801,6 @@
       "2026-W30"
     ]
   },
-  "updated_at_paris": "2026-07-30T14:15:48.119898+02:00",
+  "updated_at_paris": "2026-07-30T15:15:44.854994+02:00",
   "version": 2
 }
