@@ -849,33 +849,47 @@
           "start_price": 112.443,
           "start_time_paris": "2026-07-31T14:00:00+02:00",
           "start_time_utc": "2026-07-31T12:00:00+00:00"
+        },
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-07-31",
+          "direction": 1,
+          "end_price": 0.80901,
+          "end_time_paris": "2026-07-31T17:00:00+02:00",
+          "end_time_utc": "2026-07-31T15:00:00+00:00",
+          "pair": "USDCHF",
+          "pips": -7.899999999999574,
+          "start_price": 0.8098,
+          "start_time_paris": "2026-07-31T14:00:00+02:00",
+          "start_time_utc": "2026-07-31T12:00:00+00:00"
         }
       ]
     }
   },
-  "open_confirmed_segments": {},
-  "open_segments": {
+  "open_confirmed_segments": {
     "GBPCAD": {
-      "current_pips": -24.799999999998157,
+      "current_pips": 0.0,
       "date": "2026-07-31",
       "direction": 1,
-      "last_price": 1.88254,
-      "last_time_utc": "2026-07-31T14:00:00+00:00",
+      "last_price": 1.888,
+      "last_time_utc": "2026-07-31T15:00:00+00:00",
+      "pair": "GBPCAD",
+      "start_price": 1.888,
+      "start_time_paris": "2026-07-31T17:00:00+02:00",
+      "start_time_utc": "2026-07-31T15:00:00+00:00"
+    }
+  },
+  "open_segments": {
+    "GBPCAD": {
+      "current_pips": 29.799999999999827,
+      "date": "2026-07-31",
+      "direction": 1,
+      "last_price": 1.888,
+      "last_time_utc": "2026-07-31T15:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.88502,
       "start_time_paris": "2026-07-31T07:00:00+02:00",
       "start_time_utc": "2026-07-31T05:00:00+00:00"
-    },
-    "USDCHF": {
-      "current_pips": 29.000000000000135,
-      "date": "2026-07-31",
-      "direction": 1,
-      "last_price": 0.8127,
-      "last_time_utc": "2026-07-31T14:00:00+00:00",
-      "pair": "USDCHF",
-      "start_price": 0.8098,
-      "start_time_paris": "2026-07-31T14:00:00+02:00",
-      "start_time_utc": "2026-07-31T12:00:00+00:00"
     }
   },
   "reports_sent": {
@@ -885,6 +899,6 @@
       "2026-W30"
     ]
   },
-  "updated_at_paris": "2026-07-31T16:15:50.986107+02:00",
+  "updated_at_paris": "2026-07-31T17:15:55.871240+02:00",
   "version": 2
 }
