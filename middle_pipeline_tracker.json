@@ -1,6 +1,6 @@
 {
-  "updated": "2026-07-09",
-  "prev_update": "2026-07-08",
+  "updated": "2026-07-31",
+  "prev_update": "2026-07-09",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -58,13 +58,13 @@
       "dropped_on": "2026-07-01"
     },
     "AVT": {
-      "streak": 1,
-      "days": 3,
+      "streak": 2,
+      "days": 4,
       "first_seen": "2026-06-23",
-      "last_seen": "2026-07-09",
-      "last_rank": 4,
+      "last_seen": "2026-07-31",
+      "last_rank": 3,
       "peak_rank": 3,
-      "last_rel": 24.72,
+      "last_rel": 2.05,
       "active": true
     },
     "SMTC": {
@@ -141,26 +141,27 @@
       "last_rank": 2,
       "peak_rank": 1,
       "last_rel": 80.61,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-07-31"
     },
     "OKTA": {
-      "streak": 6,
-      "days": 6,
+      "streak": 7,
+      "days": 7,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-07-09",
-      "last_rank": 1,
+      "last_seen": "2026-07-31",
+      "last_rank": 4,
       "peak_rank": 1,
-      "last_rel": 84.62,
+      "last_rel": 86.26,
       "active": true
     },
     "QLYS": {
-      "streak": 6,
-      "days": 6,
+      "streak": 7,
+      "days": 7,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-07-09",
-      "last_rank": 3,
+      "last_seen": "2026-07-31",
+      "last_rank": 5,
       "peak_rank": 3,
-      "last_rel": 69.3,
+      "last_rel": 59.94,
       "active": true
     },
     "CXT": {
@@ -197,13 +198,23 @@
       "dropped_on": "2026-07-09"
     },
     "ARW": {
+      "streak": 2,
+      "days": 2,
+      "first_seen": "2026-07-09",
+      "last_seen": "2026-07-31",
+      "last_rank": 2,
+      "peak_rank": 2,
+      "last_rel": 9.51,
+      "active": true
+    },
+    "MANH": {
       "streak": 1,
       "days": 1,
-      "first_seen": "2026-07-09",
-      "last_seen": "2026-07-09",
-      "last_rank": 5,
-      "peak_rank": 5,
-      "last_rel": 26.3,
+      "first_seen": "2026-07-31",
+      "last_seen": "2026-07-31",
+      "last_rank": 1,
+      "peak_rank": 1,
+      "last_rel": 32.68,
       "active": true
     }
   },
@@ -211,77 +222,96 @@
     "persistent": [
       [
         "OKTA",
-        6
-      ],
-      [
-        "CVLT",
-        6
+        7
       ],
       [
         "QLYS",
-        6
-      ],
-      [
-        "AVT",
-        1
+        7
       ],
       [
         "ARW",
+        2
+      ],
+      [
+        "AVT",
+        2
+      ],
+      [
+        "MANH",
         1
       ]
     ],
     "new": [
-      "AVT",
-      "ARW"
+      "MANH"
     ],
     "weakening": [
       {
-        "ticker": "CVLT",
+        "ticker": "ARW",
         "rank": 2,
+        "prev_rank": 5,
+        "rel": 9.51,
+        "prev_rel": 26.3
+      },
+      {
+        "ticker": "AVT",
+        "rank": 3,
+        "prev_rank": 4,
+        "rel": 2.05,
+        "prev_rel": 24.72
+      },
+      {
+        "ticker": "OKTA",
+        "rank": 4,
         "prev_rank": 1,
-        "rel": 80.61,
-        "prev_rel": 75.89
+        "rel": 86.26,
+        "prev_rel": 84.62
+      },
+      {
+        "ticker": "QLYS",
+        "rank": 5,
+        "prev_rank": 3,
+        "rel": 59.94,
+        "prev_rel": 69.3
       }
     ],
     "dropped": [
-      "SYNA",
-      "SITM"
+      "CVLT"
     ],
     "durable": [
       [
         "OKTA",
-        6,
-        84.62,
-        507.7
-      ],
-      [
-        "CVLT",
-        6,
-        80.61,
-        483.7
+        7,
+        86.26,
+        603.8
       ],
       [
         "QLYS",
-        6,
-        69.3,
-        415.8
+        7,
+        59.94,
+        419.6
+      ],
+      [
+        "MANH",
+        1,
+        32.68,
+        32.7
       ],
       [
         "ARW",
-        1,
-        26.3,
-        26.3
+        2,
+        9.51,
+        19.0
       ],
       [
         "AVT",
-        1,
-        24.72,
-        24.7
+        2,
+        2.05,
+        4.1
       ]
     ],
     "switch": null
   },
-  "leader_raw": "Semis",
+  "leader_raw": "Logiciels",
   "leader_raw_days": 1,
   "leader_confirmed": "Semis"
 }

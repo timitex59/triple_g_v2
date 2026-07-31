@@ -1,12 +1,12 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-07-09T18:17:58.999706+00:00",
-  "paris_date": "2026-07-09",
+  "generated_at": "2026-07-31T17:18:17.944346+00:00",
+  "paris_date": "2026-07-31",
   "source": "combo_pipeline.py",
-  "history_days": 12,
+  "history_days": 13,
   "first_history_date": "2026-06-24",
-  "last_history_date": "2026-07-09",
-  "count": 25,
+  "last_history_date": "2026-07-31",
+  "count": 30,
   "tickers": [
     "FTNT",
     "PANW",
@@ -32,7 +32,12 @@
     "QLYS",
     "WCBR",
     "TTWO",
-    "AEP"
+    "AEP",
+    "DDOG",
+    "MNST",
+    "MANH",
+    "ARW",
+    "AVT"
   ],
   "assets": [
     {
@@ -44,7 +49,7 @@
         "large_cap"
       ],
       "first_seen_date": "2026-06-24",
-      "last_seen_date": "2026-07-09",
+      "last_seen_date": "2026-07-31",
       "selection_dates": [
         "2026-06-24",
         "2026-06-25",
@@ -55,7 +60,8 @@
         "2026-07-06",
         "2026-07-07",
         "2026-07-08",
-        "2026-07-09"
+        "2026-07-09",
+        "2026-07-31"
       ],
       "appearances": [
         {
@@ -147,19 +153,28 @@
           "rank": 1,
           "relative_strength_63d_pct": 75.7808,
           "benchmark": "QQQ"
+        },
+        {
+          "date": "2026-07-31",
+          "section": "large_cap",
+          "label": "LARGE CAP",
+          "asset_type": "stock",
+          "rank": 2,
+          "relative_strength_63d_pct": 86.9602,
+          "benchmark": "QQQ"
         }
       ],
-      "days_selected": 10,
-      "total_appearances": 10,
+      "days_selected": 11,
+      "total_appearances": 11,
       "best_rank": 1,
-      "average_rank": 1.9,
+      "average_rank": 1.9091,
       "section_stats": {
         "large_cap": {
-          "days_selected": 10,
+          "days_selected": 11,
           "best_rank": 1,
-          "average_rank": 1.9,
-          "last_rank": 1,
-          "last_relative_strength_63d_pct": 75.7808
+          "average_rank": 1.9091,
+          "last_rank": 2,
+          "last_relative_strength_63d_pct": 86.9602
         }
       }
     },
@@ -754,7 +769,7 @@
         "etf_ucits"
       ],
       "first_seen_date": "2026-06-24",
-      "last_seen_date": "2026-07-09",
+      "last_seen_date": "2026-07-31",
       "selection_dates": [
         "2026-06-24",
         "2026-06-25",
@@ -762,7 +777,8 @@
         "2026-06-29",
         "2026-06-30",
         "2026-07-01",
-        "2026-07-09"
+        "2026-07-09",
+        "2026-07-31"
       ],
       "appearances": [
         {
@@ -827,22 +843,31 @@
           "rank": 2,
           "relative_strength_63d_pct": 42.8894,
           "benchmark": "QQQ"
+        },
+        {
+          "date": "2026-07-31",
+          "section": "etf_ucits",
+          "label": "ETF UCITS",
+          "asset_type": "etf",
+          "rank": 2,
+          "relative_strength_63d_pct": 26.5163,
+          "benchmark": "QQQ"
         }
       ],
       "yahoo": "ISPY.AS",
       "tv": "EURONEXT:ISPY",
       "isin": "IE00BYPLS672",
-      "days_selected": 7,
-      "total_appearances": 7,
+      "days_selected": 8,
+      "total_appearances": 8,
       "best_rank": 2,
-      "average_rank": 2.8571,
+      "average_rank": 2.75,
       "section_stats": {
         "etf_ucits": {
-          "days_selected": 7,
+          "days_selected": 8,
           "best_rank": 2,
-          "average_rank": 2.8571,
+          "average_rank": 2.75,
           "last_rank": 2,
-          "last_relative_strength_63d_pct": 42.8894
+          "last_relative_strength_63d_pct": 26.5163
         }
       }
     },
@@ -1689,14 +1714,15 @@
         "etf_ucits"
       ],
       "first_seen_date": "2026-07-02",
-      "last_seen_date": "2026-07-09",
+      "last_seen_date": "2026-07-31",
       "selection_dates": [
         "2026-07-02",
         "2026-07-03",
         "2026-07-06",
         "2026-07-07",
         "2026-07-08",
-        "2026-07-09"
+        "2026-07-09",
+        "2026-07-31"
       ],
       "appearances": [
         {
@@ -1752,22 +1778,31 @@
           "rank": 1,
           "relative_strength_63d_pct": 57.1684,
           "benchmark": "QQQ"
+        },
+        {
+          "date": "2026-07-31",
+          "section": "etf_ucits",
+          "label": "ETF UCITS",
+          "asset_type": "etf",
+          "rank": 1,
+          "relative_strength_63d_pct": 30.8959,
+          "benchmark": "QQQ"
         }
       ],
       "yahoo": "WCBR.PA",
       "tv": "EURONEXT:WCBR",
       "isin": "IE00BLPK3577",
-      "days_selected": 6,
-      "total_appearances": 6,
+      "days_selected": 7,
+      "total_appearances": 7,
       "best_rank": 1,
-      "average_rank": 2.1667,
+      "average_rank": 2.0,
       "section_stats": {
         "etf_ucits": {
-          "days_selected": 6,
+          "days_selected": 7,
           "best_rank": 1,
-          "average_rank": 2.1667,
+          "average_rank": 2.0,
           "last_rank": 1,
-          "last_relative_strength_63d_pct": 57.1684
+          "last_relative_strength_63d_pct": 30.8959
         }
       }
     },
@@ -1846,26 +1881,234 @@
           "last_relative_strength_63d_pct": -17.3255
         }
       }
+    },
+    {
+      "ticker": "DDOG",
+      "asset_types": [
+        "stock"
+      ],
+      "sections": [
+        "large_cap"
+      ],
+      "first_seen_date": "2026-07-31",
+      "last_seen_date": "2026-07-31",
+      "selection_dates": [
+        "2026-07-31"
+      ],
+      "appearances": [
+        {
+          "date": "2026-07-31",
+          "section": "large_cap",
+          "label": "LARGE CAP",
+          "asset_type": "stock",
+          "rank": 1,
+          "relative_strength_63d_pct": 102.7059,
+          "benchmark": "QQQ"
+        }
+      ],
+      "days_selected": 1,
+      "total_appearances": 1,
+      "best_rank": 1,
+      "average_rank": 1.0,
+      "section_stats": {
+        "large_cap": {
+          "days_selected": 1,
+          "best_rank": 1,
+          "average_rank": 1.0,
+          "last_rank": 1,
+          "last_relative_strength_63d_pct": 102.7059
+        }
+      }
+    },
+    {
+      "ticker": "MNST",
+      "asset_types": [
+        "stock"
+      ],
+      "sections": [
+        "large_cap"
+      ],
+      "first_seen_date": "2026-07-31",
+      "last_seen_date": "2026-07-31",
+      "selection_dates": [
+        "2026-07-31"
+      ],
+      "appearances": [
+        {
+          "date": "2026-07-31",
+          "section": "large_cap",
+          "label": "LARGE CAP",
+          "asset_type": "stock",
+          "rank": 3,
+          "relative_strength_63d_pct": 21.8725,
+          "benchmark": "QQQ"
+        }
+      ],
+      "days_selected": 1,
+      "total_appearances": 1,
+      "best_rank": 3,
+      "average_rank": 3.0,
+      "section_stats": {
+        "large_cap": {
+          "days_selected": 1,
+          "best_rank": 3,
+          "average_rank": 3.0,
+          "last_rank": 3,
+          "last_relative_strength_63d_pct": 21.8725
+        }
+      }
+    },
+    {
+      "ticker": "MANH",
+      "asset_types": [
+        "stock"
+      ],
+      "sections": [
+        "mid_cap_tech"
+      ],
+      "first_seen_date": "2026-07-31",
+      "last_seen_date": "2026-07-31",
+      "selection_dates": [
+        "2026-07-31"
+      ],
+      "appearances": [
+        {
+          "date": "2026-07-31",
+          "section": "mid_cap_tech",
+          "label": "MID-CAP TECH",
+          "asset_type": "stock",
+          "rank": 1,
+          "relative_strength_63d_pct": 32.684,
+          "benchmark": "IWR"
+        }
+      ],
+      "days_selected": 1,
+      "total_appearances": 1,
+      "best_rank": 1,
+      "average_rank": 1.0,
+      "section_stats": {
+        "mid_cap_tech": {
+          "days_selected": 1,
+          "best_rank": 1,
+          "average_rank": 1.0,
+          "last_rank": 1,
+          "last_relative_strength_63d_pct": 32.684
+        }
+      }
+    },
+    {
+      "ticker": "ARW",
+      "asset_types": [
+        "stock"
+      ],
+      "sections": [
+        "mid_cap_tech"
+      ],
+      "first_seen_date": "2026-07-31",
+      "last_seen_date": "2026-07-31",
+      "selection_dates": [
+        "2026-07-31"
+      ],
+      "appearances": [
+        {
+          "date": "2026-07-31",
+          "section": "mid_cap_tech",
+          "label": "MID-CAP TECH",
+          "asset_type": "stock",
+          "rank": 2,
+          "relative_strength_63d_pct": 9.5115,
+          "benchmark": "IWR"
+        }
+      ],
+      "days_selected": 1,
+      "total_appearances": 1,
+      "best_rank": 2,
+      "average_rank": 2.0,
+      "section_stats": {
+        "mid_cap_tech": {
+          "days_selected": 1,
+          "best_rank": 2,
+          "average_rank": 2.0,
+          "last_rank": 2,
+          "last_relative_strength_63d_pct": 9.5115
+        }
+      }
+    },
+    {
+      "ticker": "AVT",
+      "asset_types": [
+        "stock"
+      ],
+      "sections": [
+        "mid_cap_tech"
+      ],
+      "first_seen_date": "2026-07-31",
+      "last_seen_date": "2026-07-31",
+      "selection_dates": [
+        "2026-07-31"
+      ],
+      "appearances": [
+        {
+          "date": "2026-07-31",
+          "section": "mid_cap_tech",
+          "label": "MID-CAP TECH",
+          "asset_type": "stock",
+          "rank": 3,
+          "relative_strength_63d_pct": 2.0478,
+          "benchmark": "IWR"
+        }
+      ],
+      "days_selected": 1,
+      "total_appearances": 1,
+      "best_rank": 3,
+      "average_rank": 3.0,
+      "section_stats": {
+        "mid_cap_tech": {
+          "days_selected": 1,
+          "best_rank": 3,
+          "average_rank": 3.0,
+          "last_rank": 3,
+          "last_relative_strength_63d_pct": 2.0478
+        }
+      }
     }
   ],
   "current": {
-    "generated_at": "2026-07-09T18:17:58.999706+00:00",
-    "paris_date": "2026-07-09",
+    "generated_at": "2026-07-31T17:18:17.944346+00:00",
+    "paris_date": "2026-07-31",
     "source": "combo_pipeline.py",
-    "complete": true,
-    "count": 9,
+    "complete": false,
+    "count": 8,
     "tickers": [
+      "DDOG",
       "FTNT",
-      "CRWD",
-      "ALAB",
-      "OKTA",
-      "CVLT",
-      "QLYS",
+      "MNST",
+      "MANH",
+      "ARW",
+      "AVT",
       "WCBR",
-      "ISPY",
-      "SMH"
+      "ISPY"
     ],
     "assets": [
+      {
+        "ticker": "DDOG",
+        "asset_types": [
+          "stock"
+        ],
+        "sections": [
+          "large_cap"
+        ],
+        "appearances": [
+          {
+            "section": "large_cap",
+            "label": "LARGE CAP",
+            "asset_type": "stock",
+            "rank": 1,
+            "relative_strength_63d_pct": 102.7059,
+            "benchmark": "QQQ"
+          }
+        ]
+      },
       {
         "ticker": "FTNT",
         "asset_types": [
@@ -1879,33 +2122,14 @@
             "section": "large_cap",
             "label": "LARGE CAP",
             "asset_type": "stock",
-            "rank": 1,
-            "relative_strength_63d_pct": 75.7808,
-            "benchmark": "QQQ"
-          }
-        ]
-      },
-      {
-        "ticker": "CRWD",
-        "asset_types": [
-          "stock"
-        ],
-        "sections": [
-          "large_cap"
-        ],
-        "appearances": [
-          {
-            "section": "large_cap",
-            "label": "LARGE CAP",
-            "asset_type": "stock",
             "rank": 2,
-            "relative_strength_63d_pct": 65.479,
+            "relative_strength_63d_pct": 86.9602,
             "benchmark": "QQQ"
           }
         ]
       },
       {
-        "ticker": "ALAB",
+        "ticker": "MNST",
         "asset_types": [
           "stock"
         ],
@@ -1918,13 +2142,13 @@
             "label": "LARGE CAP",
             "asset_type": "stock",
             "rank": 3,
-            "relative_strength_63d_pct": 219.5131,
+            "relative_strength_63d_pct": 21.8725,
             "benchmark": "QQQ"
           }
         ]
       },
       {
-        "ticker": "OKTA",
+        "ticker": "MANH",
         "asset_types": [
           "stock"
         ],
@@ -1937,13 +2161,13 @@
             "label": "MID-CAP TECH",
             "asset_type": "stock",
             "rank": 1,
-            "relative_strength_63d_pct": 86.3277,
+            "relative_strength_63d_pct": 32.684,
             "benchmark": "IWR"
           }
         ]
       },
       {
-        "ticker": "CVLT",
+        "ticker": "ARW",
         "asset_types": [
           "stock"
         ],
@@ -1956,13 +2180,13 @@
             "label": "MID-CAP TECH",
             "asset_type": "stock",
             "rank": 2,
-            "relative_strength_63d_pct": 82.537,
+            "relative_strength_63d_pct": 9.5115,
             "benchmark": "IWR"
           }
         ]
       },
       {
-        "ticker": "QLYS",
+        "ticker": "AVT",
         "asset_types": [
           "stock"
         ],
@@ -1975,7 +2199,7 @@
             "label": "MID-CAP TECH",
             "asset_type": "stock",
             "rank": 3,
-            "relative_strength_63d_pct": 70.5948,
+            "relative_strength_63d_pct": 2.0478,
             "benchmark": "IWR"
           }
         ]
@@ -1994,7 +2218,7 @@
             "label": "ETF UCITS",
             "asset_type": "etf",
             "rank": 1,
-            "relative_strength_63d_pct": 57.1684,
+            "relative_strength_63d_pct": 30.8959,
             "benchmark": "QQQ"
           }
         ],
@@ -2016,93 +2240,71 @@
             "label": "ETF UCITS",
             "asset_type": "etf",
             "rank": 2,
-            "relative_strength_63d_pct": 42.8894,
+            "relative_strength_63d_pct": 26.5163,
             "benchmark": "QQQ"
           }
         ],
         "yahoo": "ISPY.AS",
         "tv": "EURONEXT:ISPY",
         "isin": "IE00BYPLS672"
-      },
-      {
-        "ticker": "SMH",
-        "asset_types": [
-          "etf"
-        ],
-        "sections": [
-          "etf_ucits"
-        ],
-        "appearances": [
-          {
-            "section": "etf_ucits",
-            "label": "ETF UCITS",
-            "asset_type": "etf",
-            "rank": 3,
-            "relative_strength_63d_pct": 36.7125,
-            "benchmark": "QQQ"
-          }
-        ],
-        "yahoo": "SMH.PA",
-        "tv": "EURONEXT:SMH",
-        "isin": "IE00BMC38736"
       }
     ],
     "sections": {
       "large_cap": [
         {
-          "ticker": "FTNT",
+          "ticker": "DDOG",
           "section": "large_cap",
           "label": "LARGE CAP",
           "asset_type": "stock",
           "rank": 1,
-          "relative_strength_63d_pct": 75.7808,
+          "relative_strength_63d_pct": 102.7059,
           "benchmark": "QQQ"
         },
         {
-          "ticker": "CRWD",
+          "ticker": "FTNT",
           "section": "large_cap",
           "label": "LARGE CAP",
           "asset_type": "stock",
           "rank": 2,
-          "relative_strength_63d_pct": 65.479,
+          "relative_strength_63d_pct": 86.9602,
           "benchmark": "QQQ"
         },
         {
-          "ticker": "ALAB",
+          "ticker": "MNST",
           "section": "large_cap",
           "label": "LARGE CAP",
           "asset_type": "stock",
           "rank": 3,
-          "relative_strength_63d_pct": 219.5131,
+          "relative_strength_63d_pct": 21.8725,
           "benchmark": "QQQ"
         }
       ],
       "mid_cap_tech": [
         {
-          "ticker": "OKTA",
+          "ticker": "MANH",
           "section": "mid_cap_tech",
           "label": "MID-CAP TECH",
           "asset_type": "stock",
           "rank": 1,
-          "relative_strength_63d_pct": 86.3277,
+          "relative_strength_63d_pct": 32.684,
           "benchmark": "IWR"
         },
         {
-          "ticker": "CVLT",
+          "ticker": "ARW",
           "section": "mid_cap_tech",
           "label": "MID-CAP TECH",
           "asset_type": "stock",
           "rank": 2,
-          "relative_strength_63d_pct": 82.537,
+          "relative_strength_63d_pct": 9.5115,
           "benchmark": "IWR"
         },
         {
-          "ticker": "QLYS",
+          "ticker": "AVT",
           "section": "mid_cap_tech",
           "label": "MID-CAP TECH",
           "asset_type": "stock",
           "rank": 3,
-          "relative_strength_63d_pct": 70.5948,
+          "relative_strength_63d_pct": 2.0478,
           "benchmark": "IWR"
         }
       ],
@@ -2113,7 +2315,7 @@
           "label": "ETF UCITS",
           "asset_type": "etf",
           "rank": 1,
-          "relative_strength_63d_pct": 57.1684,
+          "relative_strength_63d_pct": 30.8959,
           "benchmark": "QQQ"
         },
         {
@@ -2122,23 +2324,14 @@
           "label": "ETF UCITS",
           "asset_type": "etf",
           "rank": 2,
-          "relative_strength_63d_pct": 42.8894,
-          "benchmark": "QQQ"
-        },
-        {
-          "ticker": "SMH",
-          "section": "etf_ucits",
-          "label": "ETF UCITS",
-          "asset_type": "etf",
-          "rank": 3,
-          "relative_strength_63d_pct": 36.7125,
+          "relative_strength_63d_pct": 26.5163,
           "benchmark": "QQQ"
         }
       ]
     },
     "source_reports": {
-      "nasdaq_generated_at": "2026-07-09T18:17:17.810159+00:00",
-      "mid_cap_generated_at": "2026-07-09T18:17:58.346087+00:00"
+      "nasdaq_generated_at": "2026-07-31T17:17:35.800091+00:00",
+      "mid_cap_generated_at": "2026-07-31T17:18:17.282135+00:00"
     }
   },
   "history": [
@@ -5656,6 +5849,267 @@
       "source_reports": {
         "nasdaq_generated_at": "2026-07-09T18:17:17.810159+00:00",
         "mid_cap_generated_at": "2026-07-09T18:17:58.346087+00:00"
+      }
+    },
+    {
+      "generated_at": "2026-07-31T17:18:17.944346+00:00",
+      "paris_date": "2026-07-31",
+      "source": "combo_pipeline.py",
+      "complete": false,
+      "count": 8,
+      "tickers": [
+        "DDOG",
+        "FTNT",
+        "MNST",
+        "MANH",
+        "ARW",
+        "AVT",
+        "WCBR",
+        "ISPY"
+      ],
+      "assets": [
+        {
+          "ticker": "DDOG",
+          "asset_types": [
+            "stock"
+          ],
+          "sections": [
+            "large_cap"
+          ],
+          "appearances": [
+            {
+              "section": "large_cap",
+              "label": "LARGE CAP",
+              "asset_type": "stock",
+              "rank": 1,
+              "relative_strength_63d_pct": 102.7059,
+              "benchmark": "QQQ"
+            }
+          ]
+        },
+        {
+          "ticker": "FTNT",
+          "asset_types": [
+            "stock"
+          ],
+          "sections": [
+            "large_cap"
+          ],
+          "appearances": [
+            {
+              "section": "large_cap",
+              "label": "LARGE CAP",
+              "asset_type": "stock",
+              "rank": 2,
+              "relative_strength_63d_pct": 86.9602,
+              "benchmark": "QQQ"
+            }
+          ]
+        },
+        {
+          "ticker": "MNST",
+          "asset_types": [
+            "stock"
+          ],
+          "sections": [
+            "large_cap"
+          ],
+          "appearances": [
+            {
+              "section": "large_cap",
+              "label": "LARGE CAP",
+              "asset_type": "stock",
+              "rank": 3,
+              "relative_strength_63d_pct": 21.8725,
+              "benchmark": "QQQ"
+            }
+          ]
+        },
+        {
+          "ticker": "MANH",
+          "asset_types": [
+            "stock"
+          ],
+          "sections": [
+            "mid_cap_tech"
+          ],
+          "appearances": [
+            {
+              "section": "mid_cap_tech",
+              "label": "MID-CAP TECH",
+              "asset_type": "stock",
+              "rank": 1,
+              "relative_strength_63d_pct": 32.684,
+              "benchmark": "IWR"
+            }
+          ]
+        },
+        {
+          "ticker": "ARW",
+          "asset_types": [
+            "stock"
+          ],
+          "sections": [
+            "mid_cap_tech"
+          ],
+          "appearances": [
+            {
+              "section": "mid_cap_tech",
+              "label": "MID-CAP TECH",
+              "asset_type": "stock",
+              "rank": 2,
+              "relative_strength_63d_pct": 9.5115,
+              "benchmark": "IWR"
+            }
+          ]
+        },
+        {
+          "ticker": "AVT",
+          "asset_types": [
+            "stock"
+          ],
+          "sections": [
+            "mid_cap_tech"
+          ],
+          "appearances": [
+            {
+              "section": "mid_cap_tech",
+              "label": "MID-CAP TECH",
+              "asset_type": "stock",
+              "rank": 3,
+              "relative_strength_63d_pct": 2.0478,
+              "benchmark": "IWR"
+            }
+          ]
+        },
+        {
+          "ticker": "WCBR",
+          "asset_types": [
+            "etf"
+          ],
+          "sections": [
+            "etf_ucits"
+          ],
+          "appearances": [
+            {
+              "section": "etf_ucits",
+              "label": "ETF UCITS",
+              "asset_type": "etf",
+              "rank": 1,
+              "relative_strength_63d_pct": 30.8959,
+              "benchmark": "QQQ"
+            }
+          ],
+          "yahoo": "WCBR.PA",
+          "tv": "EURONEXT:WCBR",
+          "isin": "IE00BLPK3577"
+        },
+        {
+          "ticker": "ISPY",
+          "asset_types": [
+            "etf"
+          ],
+          "sections": [
+            "etf_ucits"
+          ],
+          "appearances": [
+            {
+              "section": "etf_ucits",
+              "label": "ETF UCITS",
+              "asset_type": "etf",
+              "rank": 2,
+              "relative_strength_63d_pct": 26.5163,
+              "benchmark": "QQQ"
+            }
+          ],
+          "yahoo": "ISPY.AS",
+          "tv": "EURONEXT:ISPY",
+          "isin": "IE00BYPLS672"
+        }
+      ],
+      "sections": {
+        "large_cap": [
+          {
+            "ticker": "DDOG",
+            "section": "large_cap",
+            "label": "LARGE CAP",
+            "asset_type": "stock",
+            "rank": 1,
+            "relative_strength_63d_pct": 102.7059,
+            "benchmark": "QQQ"
+          },
+          {
+            "ticker": "FTNT",
+            "section": "large_cap",
+            "label": "LARGE CAP",
+            "asset_type": "stock",
+            "rank": 2,
+            "relative_strength_63d_pct": 86.9602,
+            "benchmark": "QQQ"
+          },
+          {
+            "ticker": "MNST",
+            "section": "large_cap",
+            "label": "LARGE CAP",
+            "asset_type": "stock",
+            "rank": 3,
+            "relative_strength_63d_pct": 21.8725,
+            "benchmark": "QQQ"
+          }
+        ],
+        "mid_cap_tech": [
+          {
+            "ticker": "MANH",
+            "section": "mid_cap_tech",
+            "label": "MID-CAP TECH",
+            "asset_type": "stock",
+            "rank": 1,
+            "relative_strength_63d_pct": 32.684,
+            "benchmark": "IWR"
+          },
+          {
+            "ticker": "ARW",
+            "section": "mid_cap_tech",
+            "label": "MID-CAP TECH",
+            "asset_type": "stock",
+            "rank": 2,
+            "relative_strength_63d_pct": 9.5115,
+            "benchmark": "IWR"
+          },
+          {
+            "ticker": "AVT",
+            "section": "mid_cap_tech",
+            "label": "MID-CAP TECH",
+            "asset_type": "stock",
+            "rank": 3,
+            "relative_strength_63d_pct": 2.0478,
+            "benchmark": "IWR"
+          }
+        ],
+        "etf_ucits": [
+          {
+            "ticker": "WCBR",
+            "section": "etf_ucits",
+            "label": "ETF UCITS",
+            "asset_type": "etf",
+            "rank": 1,
+            "relative_strength_63d_pct": 30.8959,
+            "benchmark": "QQQ"
+          },
+          {
+            "ticker": "ISPY",
+            "section": "etf_ucits",
+            "label": "ETF UCITS",
+            "asset_type": "etf",
+            "rank": 2,
+            "relative_strength_63d_pct": 26.5163,
+            "benchmark": "QQQ"
+          }
+        ]
+      },
+      "source_reports": {
+        "nasdaq_generated_at": "2026-07-31T17:17:35.800091+00:00",
+        "mid_cap_generated_at": "2026-07-31T17:18:17.282135+00:00"
       }
     }
   ]

@@ -1,92 +1,88 @@
 MID-CAP TECH PIPELINE (S&P MidCap 400 — Information Technology)
-Generated: 2026-07-09 20:17 CEST
+Generated: 2026-07-31 19:18 CEST
 Universe: 49 mid-cap tech stocks | Benchmark: IWR | News window: 14 days
 
 DOMINANT SUB-THEMES
 | Theme        |   Score |   N | 21D    | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
 |--------------|---------|-----|--------|---------|----------------|----------|------------|
-| Semis        |   56.22 |  16 | -0.50% | +32.23% | +22.94%        | 44%      | 12/9       |
-| Logiciels    |   54.7  |  18 | +6.28% | +15.29% | +6.00%         | 72%      | 12/11      |
-| Distributors |   50.52 |   3 | -4.92% | +33.88% | +24.59%        | 67%      | 3/1        |
+| Logiciels    |   68.1  |  18 | +9.10% | +20.66% | +15.11%        | 78%      | 12/8       |
+| Distributors |   49.59 |   3 | +1.34% | +12.33% | +6.77%         | 67%      | 0/0        |
+| Hardware     |   45.75 |  11 | -7.99% | +8.19%  | +2.63%         | 54%      | 12/10      |
 
 SUIVI DE PERSISTANCE (vivier TOP)
-Durables (streak x force): OKTA [6j, Rel +85%, score 508], CVLT [6j, Rel +81%, score 484], QLYS [6j, Rel +69%, score 416], ARW [1j, Rel +26%, score 26], AVT [1j, Rel +25%, score 25]
-Entrants: AVT, ARW
-Faiblissent: CVLT (rang 1→2, Rel +76→+81)
-Sortis du TOP: SYNA, SITM
+Durables (streak x force): OKTA [7j, Rel +86%, score 604], QLYS [7j, Rel +60%, score 420], MANH [1j, Rel +33%, score 33], ARW [2j, Rel +10%, score 19], AVT [2j, Rel +2%, score 4]
+Entrants: MANH
+Faiblissent: ARW (rang 5→2, Rel +26→+10), AVT (rang 4→3, Rel +25→+2), OKTA (rang 1→4, Rel +85→+86), QLYS (rang 3→5, Rel +69→+60)
+Sortis du TOP: CVLT
 
 TOP STOCKS BY SUB-THEME
 
-Semis
-| Ticker   | Name                 | Theme   |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|----------------------|---------|---------|---------|---------|---------|-------|----------|
-| ALGM     | Allegro MicroSystems | Semis   |   100   | +19.96% | +61.17% | +51.87% |  53.2 | Y        |
-| SYNA     | Synaptics            | Semis   |   100   | -1.98%  | +75.55% | +66.25% |  49.9 | Y        |
-| MKSI     | MKS Instruments      | Semis   |    94.5 | +20.86% | +47.34% | +38.05% |  50.9 | Y        |
-
 Logiciels
-| Ticker   | Name              | Theme     |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|-------------------|-----------|---------|---------|---------|---------|-------|----------|
-| CVLT     | CommVault Systems | Logiciels |     100 | +24.24% | +91.83% | +82.54% |  73.3 | Y        |
-| OKTA     | Okta, Inc.        | Logiciels |     100 | +27.30% | +95.62% | +86.33% |  91.4 | Y        |
-| QLYS     | Qualys            | Logiciels |     100 | +42.46% | +79.89% | +70.59% |  86.4 | Y        |
+| Ticker   | Name                 | Theme     |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|----------------------|-----------|---------|---------|---------|---------|-------|----------|
+| MANH     | Manhattan Associates | Logiciels |     100 | +30.20% | +38.24% | +32.68% |  66.3 | Y        |
+| NTNX     | Nutanix              | Logiciels |     100 | +15.25% | +44.31% | +38.76% |  64.4 | Y        |
+| OKTA     | Okta, Inc.           | Logiciels |     100 | +0.58%  | +91.82% | +86.26% |  51.9 | Y        |
 
 Distributors
 | Ticker   | Name              | Theme        |   Score | 21D    | 63D     | Rel63   |   RSI | >SMA50   |
 |----------|-------------------|--------------|---------|--------|---------|---------|-------|----------|
-| AVT      | Avnet             | Distributors |   65.72 | +1.50% | +33.88% | +24.59% |  47.7 | Y        |
-| ARW      | Arrow Electronics | Distributors |   56.11 | -4.92% | +34.75% | +25.46% |  38.4 | N        |
-| SNX      | TD Synnex         | Distributors |   53.24 | -6.46% | +27.27% | +17.98% |  33.5 | Y        |
+| ARW      | Arrow Electronics | Distributors |   75.43 | +3.11% | +15.07% | +9.51%  |  64.1 | Y        |
+| AVT      | Avnet             | Distributors |   65.81 | +1.34% | +7.60%  | +2.05%  |  58   | Y        |
+| SNX      | TD Synnex         | Distributors |   57.61 | -1.93% | +12.33% | +6.77%  |  54.8 | N        |
+
+Hardware
+| Ticker   | Name        | Theme    |   Score | 21D    | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|-------------|----------|---------|--------|---------|---------|-------|----------|
+| CGNX     | Cognex      | Hardware |   73.21 | -7.99% | +18.36% | +12.81% |  54.4 | Y        |
+| BDC      | Belden Inc. | Hardware |   65.35 | +5.69% | +9.85%  | +4.30%  |  73.5 | Y        |
+| LFUS     | Littelfuse  | Hardware |   62.34 | +1.39% | +10.66% | +5.11%  |  65.8 | Y        |
 
 FINAL SELECTION - RENKO VALIDATED
 | Final     | Type   | Ticker   | Theme        | Renko          | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL    |
 |-----------|--------|----------|--------------|----------------|--------|----------|---------|---------|--------|
-| VALIDATED | STOCK  | AVT      | Distributors | BULL CONFIRMED | BULL   | 1/1/1    | +42.80% | +34.29% | +0.00% |
-| VALIDATED | STOCK  | CVLT     | Logiciels    | BULL CONFIRMED | BULL   | 1/1/1    | +89.59% | +72.93% | +0.00% |
-| VALIDATED | STOCK  | OKTA     | Logiciels    | BULL CONFIRMED | BULL   | 1/1/1    | +85.35% | +70.33% | +0.00% |
-| VALIDATED | STOCK  | QLYS     | Logiciels    | BULL CONFIRMED | BULL   | 1/1/1    | +77.87% | +49.81% | +0.00% |
+| VALIDATED | STOCK  | ARW      | Distributors | BULL CONFIRMED | BULL   | 1/1/1    | +15.57% | +56.22% | +0.00% |
+| VALIDATED | STOCK  | AVT      | Distributors | BULL CONFIRMED | BULL   | 1/1/1    | +12.50% | +47.34% | +0.00% |
+| VALIDATED | STOCK  | MANH     | Logiciels    | BULL CONFIRMED | BULL   | 1/1/1    | +33.68% | +24.82% | +0.00% |
 
 GLOBAL RANKING - RETAINED STOCKS
 |   # | Ticker   | Type   | Theme        |   Rank |   Score | 63D     | Rel63   | R14     | R21     | PnL Renko   |
 |-----|----------|--------|--------------|--------|---------|---------|---------|---------|---------|-------------|
-|   1 | OKTA     | STOCK  | Logiciels    |  82.26 |  100    | +95.62% | +86.33% | +85.35% | +70.33% | +0.00%      |
-|   2 | CVLT     | STOCK  | Logiciels    |  81.93 |  100    | +91.83% | +82.54% | +89.59% | +72.93% | +0.00%      |
-|   3 | QLYS     | STOCK  | Logiciels    |  72.99 |  100    | +79.89% | +70.59% | +77.87% | +49.81% | +0.00%      |
-|   4 | AVT      | STOCK  | Distributors |  39.98 |   65.72 | +33.88% | +24.59% | +42.80% | +34.29% | +0.00%      |
+|   1 | MANH     | STOCK  | Logiciels    |  49.97 |  100    | +38.24% | +32.68% | +33.68% | +24.82% | +0.00%      |
+|   2 | ARW      | STOCK  | Distributors |  36.58 |   75.43 | +15.07% | +9.51%  | +15.57% | +56.22% | +0.00%      |
+|   3 | AVT      | STOCK  | Distributors |  29.48 |   65.81 | +7.60%  | +2.05%  | +12.50% | +47.34% | +0.00%      |
 
 ANALYTIC CLASSIFICATION
 | Theme        | Bucket          | Type   | Ticker   |   Score | 63D     | Rel63   | R14     | R21     | Role                        | Use                                               |
 |--------------|-----------------|--------|----------|---------|---------|---------|---------|---------|-----------------------------|---------------------------------------------------|
-| Distributors | SATELLITE STOCK | STOCK  | AVT      |   65.72 | +33.88% | +24.59% | +42.80% | +34.29% | Confirmed but less dominant | Use after stronger leaders or for diversification |
-| Logiciels    | LEADER STOCK    | STOCK  | CVLT     |  100    | +91.83% | +82.54% | +89.59% | +72.93% | Primary momentum leader     | Best single-name expression of the theme          |
-| Logiciels    | LEADER STOCK    | STOCK  | OKTA     |  100    | +95.62% | +86.33% | +85.35% | +70.33% | Primary momentum leader     | Best single-name expression of the theme          |
-| Logiciels    | TACTICAL STOCK  | STOCK  | QLYS     |  100    | +79.89% | +70.59% | +77.87% | +49.81% | Strong single-name momentum | Actionable, but monitor extension and volatility  |
+| Distributors | SATELLITE STOCK | STOCK  | ARW      |   75.43 | +15.07% | +9.51%  | +15.57% | +56.22% | Confirmed but less dominant | Use after stronger leaders or for diversification |
+| Distributors | SATELLITE STOCK | STOCK  | AVT      |   65.81 | +7.60%  | +2.05%  | +12.50% | +47.34% | Confirmed but less dominant | Use after stronger leaders or for diversification |
+| Logiciels    | TACTICAL STOCK  | STOCK  | MANH     |  100    | +38.24% | +32.68% | +33.68% | +24.82% | Strong single-name momentum | Actionable, but monitor extension and volatility  |
 
 WATCHLIST - GOOD THEME, WAITING FOR RENKO
-| Final     | Type   | Ticker   | Theme        | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL   |
-|-----------|--------|----------|--------------|---------|--------|----------|---------|---------|-------|
-| WATCHLIST | STOCK  | ARW      | Distributors | MIXED   | MIXED  | 1/0/1    | +43.11% | +33.64% | ---   |
-| WATCHLIST | STOCK  | SNX      | Distributors | MIXED   | MIXED  | 0/0/0    | +36.02% | +57.39% | ---   |
-| WATCHLIST | STOCK  | ALGM     | Semis        | MIXED   | MIXED  | 0/-1/1   | +77.24% | +36.34% | ---   |
-| WATCHLIST | STOCK  | MKSI     | Semis        | MIXED   | MIXED  | -1/-1/0  | +60.74% | +44.67% | ---   |
-| WATCHLIST | STOCK  | SYNA     | Semis        | MIXED   | MIXED  | 0/1/1    | +79.77% | +46.79% | ---   |
+| Final     | Type   | Ticker   | Theme        | Renko         | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL    |
+|-----------|--------|----------|--------------|---------------|--------|----------|---------|---------|--------|
+| WATCHLIST | STOCK  | SNX      | Distributors | MIXED         | MIXED  | 0/1/0    | +12.41% | +63.69% | ---    |
+| WATCHLIST | STOCK  | BDC      | Hardware     | BULL WEAK ROC | BULL   | 1/1/1    | -7.97%  | +1.28%  | +0.00% |
+| WATCHLIST | STOCK  | CGNX     | Hardware     | MIXED         | MIXED  | 1/0/0    | +20.94% | +32.70% | ---    |
+| WATCHLIST | STOCK  | LFUS     | Hardware     | MIXED         | MIXED  | 1/0/1    | +9.79%  | +47.88% | ---    |
+| WATCHLIST | STOCK  | NTNX     | Logiciels    | MIXED         | MIXED  | 0/1/1    | +45.49% | +48.15% | ---    |
+| WATCHLIST | STOCK  | OKTA     | Logiciels    | MIXED         | MIXED  | 1/1/0    | +85.85% | +74.94% | ---    |
 
 REJECTED BY RENKO
 None.
 
 NEWS VALIDATION
 
-Semis: score=100.0 hits=12 sources=9
-- 2026-07-09 | Yahoo Finance | MU, WDC, INTC: Why Are Chip Stocks Rebounding In Premarket Trading Today? - Yahoo Finance
-- 2026-07-09 | Investor's Business Daily | Sandisk, Micron Lead Chip Stocks Rally - Investor's Business Daily
+Logiciels: score=100.0 hits=12 sources=8
+- 2026-07-31 | Yahoo Finance | 2 Software Stocks to Target This Week and 1 We Question - Yahoo Finance
+- 2026-07-29 | cnbc.com | Jim Cramer says software's comeback could be the blueprint for AI stocks' next rally - cnbc.com
 
-Logiciels: score=100.0 hits=12 sources=11
-- 2026-07-09 | Yahoo Finance | Software stocks slide as Starbucks builds AI tools to replace vendor software - Yahoo Finance
-- 2026-07-09 | StockStory | Sales Software Stocks Q1 Teardown: Salesforce (NYSE:CRM) Vs The Rest - StockStory
+Distributors: score=0.0 hits=0 sources=0
 
-Distributors: score=21.0 hits=3 sources=1
-- 2026-07-07 | Yahoo Finance | Specialty Equipment Distributors Stocks Q1 In Review: United Rentals (NYSE:URI) Vs Peers - Yahoo Finance
-- 2026-07-02 | Yahoo Finance | Specialty Equipment Distributors Stocks Q1 Teardown: Karat Packaging (NASDAQ:KRT) Vs The Rest - Yahoo Finance
+Hardware: score=100.0 hits=12 sources=10
+- 2026-07-31 | Moomoo | AI hardware stocks surge sharply! Is this a market bottom or just a temporary bounce? What the options market suggests for the next move - Moomoo
+- 2026-07-30 | cnbc.com | More tech capex is why hardware stocks are trending higher, says Stifel's Thomas Carroll - cnbc.com
 
 METHOD
 Univers = actions MID-CAP (S&P 400) du seul secteur Information Technology.
