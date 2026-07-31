@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-07-31 13:17",
+  "updated_at_paris": "2026-07-31 14:17",
   "pairs": {
     "GBPCAD": {
       "direction": 1,
       "entered_at_paris": "2026-07-30 09:17",
-      "last_seen_at_paris": "2026-07-31 13:17",
+      "last_seen_at_paris": "2026-07-31 14:17",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -22,7 +22,7 @@
       "daily_sar_dir": 1,
       "daily_sar_value": 1.87128,
       "fib_position": "Fibo <0.500",
-      "fib_pct_of_range": 39.571385451252645,
+      "fib_pct_of_range": 39.26954421974045,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.236",
       "entry_fib_pct_of_range": 14.548747358889417,
@@ -38,6 +38,40 @@
       "sar_last_processed_time_utc": "2026-07-31T07:00:00+00:00",
       "sar_record_value": 1.87396,
       "sar_record_time_utc": "2026-07-30T08:00:00+00:00"
+    },
+    "USDCHF": {
+      "direction": 1,
+      "entered_at_paris": "2026-07-31 14:17",
+      "last_seen_at_paris": "2026-07-31 14:17",
+      "entry_px": {
+        "M": 1,
+        "W": 1,
+        "D": 0
+      },
+      "last_px": {
+        "M": 1,
+        "W": 1,
+        "D": 0
+      },
+      "base_pct": 83.33333333333334,
+      "weighted_pct": 83.33333333333334,
+      "daily_chg": 0.6235250279468282,
+      "daily_sar_dir": -1,
+      "daily_sar_value": 0.8207,
+      "fib_position": "Fibo <0.500",
+      "fib_pct_of_range": 46.39593908629418,
+      "fib_source": "CURRENT",
+      "entry_fib_position": "Fibo <0.500",
+      "entry_fib_pct_of_range": 46.39593908629418,
+      "entry_fib_source": "CURRENT",
+      "sar_dir": 1,
+      "fib_context_month_utc": "2026-07",
+      "fib_objective_active": true,
+      "fib_objective_carried": false,
+      "fib_objective_value": 0.8207,
+      "fib_objective_origin_month_utc": "2026-07",
+      "fib_objective_started_time_utc": "2026-07-31T12:00:00+00:00",
+      "sar_flame": false
     }
   },
   "pending_objectives": {},
