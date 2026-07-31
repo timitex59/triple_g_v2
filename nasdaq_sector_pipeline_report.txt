@@ -1,155 +1,165 @@
 NASDAQ SECTOR PIPELINE
-Generated: 2026-07-09 20:17 CEST
+Generated: 2026-07-31 18:17 CEST
 Universe: Nasdaq-100 | News window: 14 days
 
 DOMINANT THEMES
-| Theme                              |   Score |   N | 21D     | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
-|------------------------------------|---------|-----|---------|---------|----------------|----------|------------|
-| Cybersecurity                      |   88.55 |   4 | +16.92% | +89.13% | +69.56%        | 100%     | 12/9       |
-| Semiconductors / AI infrastructure |   68.64 |  23 | +2.30%  | +50.09% | +30.52%        | 56%      | 12/6       |
-| Healthcare / Biotech               |   49.25 |   9 | +5.12%  | -4.68%  | -24.25%        | 89%      | 12/12      |
+| Theme                 |   Score |   N | 21D     | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
+|-----------------------|---------|-----|---------|---------|----------------|----------|------------|
+| Cybersecurity         |   82.29 |   5 | -1.40%  | +68.03% | +65.37%        | 80%      | 12/9       |
+| Cloud / Data software |   57.29 |  14 | +13.64% | +3.03%  | +0.38%         | 79%      | 12/9       |
+| Energy                |   55.11 |   2 | +14.56% | -7.36%  | -10.02%        | 100%     | 12/10      |
 
 TOP STOCKS BY DOMINANT THEME
 
 Cybersecurity
-| Ticker   | Name               | Theme         |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|--------------------|---------------|---------|---------|---------|---------|-------|----------|
-| CRWD     | CrowdStrike        | Cybersecurity |     100 | +19.80% | +85.05% | +65.48% |  75.7 | Y        |
-| FTNT     | Fortinet           | Cybersecurity |     100 | +14.05% | +95.35% | +75.78% |  71.2 | Y        |
-| PANW     | Palo Alto Networks | Cybersecurity |     100 | +26.07% | +93.21% | +73.64% |  67.9 | Y        |
+| Ticker   | Name                      | Theme         |   Score | 21D    | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|---------------------------|---------------|---------|--------|---------|---------|-------|----------|
+| PANW     | Palo Alto Networks Inc.   | Cybersecurity |     100 | -7.31% | +81.97% | +79.31% |  47.7 | Y        |
+| FTNT     | Fortinet Inc.             | Cybersecurity |     100 | -0.36% | +87.88% | +85.22% |  46.8 | Y        |
+| CRWD     | CrowdStrike Holdings Inc. | Cybersecurity |     100 | -3.07% | +68.03% | +65.37% |  49.5 | Y        |
 
-Semiconductors / AI infrastructure
-| Ticker   | Name                   | Theme                          |   Score | 21D     | 63D      | Rel63    |   RSI | >SMA50   |
-|----------|------------------------|--------------------------------|---------|---------|----------|----------|-------|----------|
-| AMD      | Advanced Micro Devices | Semiconductors / AI infrastruc |     100 | +11.46% | +135.75% | +116.18% |  55.4 | Y        |
-| ARM      | Arm Holdings           | Semiconductors / AI infrastruc |     100 | -3.66%  | +124.10% | +104.53% |  32.8 | Y        |
-| ALAB     | Astera Labs            | Semiconductors / AI infrastruc |     100 | +22.83% | +239.08% | +219.51% |  56.3 | Y        |
+Cloud / Data software
+| Ticker   | Name                  | Theme                 |   Score | 21D     | 63D      | Rel63    |   RSI | >SMA50   |
+|----------|-----------------------|-----------------------|---------|---------|----------|----------|-------|----------|
+| DDOG     | Datadog Inc.          | Cloud / Data software |  100    | +2.10%  | +104.27% | +101.62% |  56.7 | Y        |
+| TEAM     | Atlassian Corporation | Cloud / Data software |   96.76 | +19.83% | +45.30%  | +42.64%  |  52.8 | Y        |
+| WDAY     | Workday Inc.          | Cloud / Data software |   85.27 | +21.70% | +29.53%  | +26.87%  |  58.2 | Y        |
 
-Healthcare / Biotech
-| Ticker   | Name                    | Theme                |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|-------------------------|----------------------|---------|---------|---------|---------|-------|----------|
-| ALNY     | Alnylam Pharmaceuticals | Healthcare / Biotech |   81.84 | +10.21% | -1.61%  | -21.18% |  84.5 | Y        |
-| VRTX     | Vertex Pharmaceuticals  | Healthcare / Biotech |   52.11 | +10.42% | +10.18% | -9.39%  |  61.4 | Y        |
-| AMGN     | Amgen                   | Healthcare / Biotech |   44.99 | +5.12%  | +4.68%  | -14.89% |  69.4 | Y        |
+Energy
+| Ticker   | Name                    | Theme   |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|-------------------------|---------|---------|---------|---------|---------|-------|----------|
+| FANG     | Diamondback Energy Inc. | Energy  |   58.98 | +16.93% | -1.67%  | -4.33%  |  60.8 | Y        |
+| BKR      | Baker Hughes Company    | Energy  |   40.98 | +12.19% | -13.04% | -15.70% |  60.3 | Y        |
 
 BEST ETF PROXIES
-| ETF   | Name                             | Theme                              |   Score | 21D     | 63D     | 126D    | Rel63   |
-|-------|----------------------------------|------------------------------------|---------|---------|---------|---------|---------|
-| BUG   | Global X Cybersecurity ETF       | Cybersecurity                      |   84.15 | +17.00% | +56.11% | +33.67% | +36.54% |
-| SOXX  | iShares Semiconductor ETF        | Semiconductors / AI infrastructure |   82.55 | +3.14%  | +59.12% | +79.61% | +39.55% |
-| XSD   | SPDR S&P Semiconductor ETF       | Semiconductors / AI infrastructure |   76.98 | -3.04%  | +60.93% | +64.45% | +41.37% |
-| PSI   | Invesco Semiconductors ETF       | Semiconductors / AI infrastructure |   76.39 | +6.02%  | +52.15% | +83.77% | +32.59% |
-| HACK  | Amplify Cybersecurity ETF        | Cybersecurity                      |   73.65 | +15.21% | +41.48% | +38.34% | +21.91% |
-| SOXQ  | Invesco PHLX Semiconductor ETF   | Semiconductors / AI infrastructure |   69.32 | +1.67%  | +54.14% | +71.81% | +34.57% |
-| IHAK  | iShares Cybersecurity and Tech E | Cybersecurity                      |   56.32 | +12.81% | +40.50% | +30.78% | +20.93% |
-| CIBR  | First Trust Nasdaq Cybersecurity | Cybersecurity                      |   54.51 | +9.27%  | +43.33% | +30.59% | +23.76% |
-| SMH   | VanEck Semiconductor ETF         | Semiconductors / AI infrastructure |   53.92 | +2.51%  | +44.99% | +58.20% | +25.42% |
-| XBI   | SPDR S&P Biotech ETF             | Healthcare / Biotech               |   48.33 | +28.08% | +25.90% | +34.73% | +6.34%  |
+| ETF   | Name                             | Theme                          |   Score | 21D    | 63D     | 126D    | Rel63   |
+|-------|----------------------------------|--------------------------------|---------|--------|---------|---------|---------|
+| BUG   | Global X Cybersecurity ETF       | Cybersecurity                  |   91.5  | -3.95% | +41.75% | +30.49% | +39.09% |
+| CIBR  | First Trust Nasdaq Cybersecurity | Cybersecurity                  |   87.43 | -0.42% | +34.63% | +30.77% | +31.97% |
+| WCLD  | WisdomTree Cloud Computing Fund  | Cloud / Data software          |   86.88 | +6.03% | +29.85% | +15.23% | +27.20% |
+| HACK  | Amplify Cybersecurity ETF        | Cybersecurity                  |   86.4  | -1.31% | +33.38% | +35.86% | +30.72% |
+| CLOU  | Global X Cloud Computing ETF     | Cloud / Data software          |   83.45 | +7.18% | +25.21% | +19.30% | +22.56% |
+| IHAK  | iShares Cybersecurity and Tech E | Cybersecurity                  |   68.04 | -3.28% | +27.22% | +28.18% | +24.57% |
+| SKYY  | First Trust Cloud Computing ETF  | Cloud / Data software          |   65.21 | +3.84% | +19.17% | +16.37% | +16.51% |
+| IGV   | iShares Expanded Tech-Software E | Cloud / Data software          |   36.7  | +0.40% | +11.70% | +1.58%  | +9.04%  |
+| FDN   | First Trust Dow Jones Internet E | Consumer internet / E-commerce |   25.88 | +1.19% | +3.56%  | +2.80%  | +0.90%  |
+| ITA   | iShares US Aerospace & Defense E | Industrials / Automation       |   25.13 | -2.16% | +9.24%  | +2.63%  | +6.58%  |
 
 ETF UCITS EUROPE / FRANCE
-| Theme                          | Ticker   | ISIN         | Listing            | Ccy   | UCITS ETF                                  |
-|--------------------------------|----------|--------------|--------------------|-------|--------------------------------------------|
-| Cybersecurity                  | WCBR     | IE00BLPK3577 | Euronext Paris     | EUR   | WisdomTree Cybersecurity UCITS ETF         |
-| Cybersecurity                  | ISPY     | IE00BYPLS672 | Euronext Amsterdam | EUR   | L&G Cyber Security UCITS ETF               |
-| Semiconductors / AI infrastruc | SMH      | IE00BMC38736 | Euronext Paris     | EUR   | VanEck Semiconductor UCITS ETF             |
-| Semiconductors / AI infrastruc | SEME     | IE000I8KRLL9 | Euronext Paris     | EUR   | iShares MSCI Global Semiconductors UCITS E |
+| Theme         | Ticker   | ISIN         | Listing            | Ccy   | UCITS ETF                          |
+|---------------|----------|--------------|--------------------|-------|------------------------------------|
+| Cybersecurity | WCBR     | IE00BLPK3577 | Euronext Paris     | EUR   | WisdomTree Cybersecurity UCITS ETF |
+| Cybersecurity | ISPY     | IE00BYPLS672 | Euronext Amsterdam | EUR   | L&G Cyber Security UCITS ETF       |
 
 ETF UCITS SCORED
-| Ticker   | Theme                          |   Score | 63D     | Rel63 vs EQQQ   | Listing / ISIN                    |
-|----------|--------------------------------|---------|---------|-----------------|-----------------------------------|
-| WCBR     | Cybersecurity                  |  100    | +78.10% | +57.17%         | Euronext Paris | IE00BLPK3577     |
-| ISPY     | Cybersecurity                  |   50.06 | +63.82% | +42.89%         | Euronext Amsterdam | IE00BYPLS672 |
-| SEME     | Semiconductors / AI infrastruc |   33.84 | +56.72% | +35.79%         | Euronext Paris | IE000I8KRLL9     |
-| SMH      | Semiconductors / AI infrastruc |   27.09 | +57.64% | +36.71%         | Euronext Paris | IE00BMC38736     |
+| Ticker   | Theme         |   Score | 63D     | Rel63 vs EQQQ   | Listing / ISIN                    |
+|----------|---------------|---------|---------|-----------------|-----------------------------------|
+| WCBR     | Cybersecurity |      73 | +32.83% | +30.90%         | Euronext Paris | IE00BLPK3577     |
+| ISPY     | Cybersecurity |      31 | +28.45% | +26.52%         | Euronext Amsterdam | IE00BYPLS672 |
 
 FINAL SELECTION - RENKO VALIDATED
-| Final     | Type   | Ticker   | Theme                | Renko          | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
-|-----------|--------|----------|----------------------|----------------|--------|----------|---------|---------|---------|
-| VALIDATED | ETF    | BUG      | Cybersecurity        | BULL CONFIRMED | BULL   | 1/1/1    | +58.46% | +45.68% | +0.00%  |
-| VALIDATED | ETF    | CIBR     | Cybersecurity        | BULL CONFIRMED | BULL   | 1/1/1    | +46.49% | +40.70% | +0.00%  |
-| VALIDATED | ETF    | HACK     | Cybersecurity        | BULL CONFIRMED | BULL   | 1/1/1    | +44.37% | +43.04% | +0.00%  |
-| VALIDATED | ETF    | IHAK     | Cybersecurity        | BULL CONFIRMED | BULL   | 1/1/1    | +42.86% | +40.63% | +0.00%  |
-| VALIDATED | ETF    | XBI      | Healthcare / Biotech | BULL CONFIRMED | BULL   | 1/1/1    | +27.45% | +33.78% | +0.00%  |
-| VALIDATED | STOCK  | CRWD     | Cybersecurity        | BULL CONFIRMED | BULL   | 1/1/1    | +97.70% | +83.66% | -60.99% |
-| VALIDATED | STOCK  | FTNT     | Cybersecurity        | BULL CONFIRMED | BULL   | 1/1/1    | +97.55% | +90.56% | +51.00% |
+| Final     | Type   | Ticker   | Theme                          | Renko          | Bias   | 3M/M/W   | ROC14    | ROC21    | PnL     |
+|-----------|--------|----------|--------------------------------|----------------|--------|----------|----------|----------|---------|
+| VALIDATED | ETF    | CIBR     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +34.98%  | +37.52%  | +0.00%  |
+| VALIDATED | STOCK  | DDOG     | Cloud / Data software          | BULL CONFIRMED | BULL   | 1/1/1    | +108.45% | +114.63% | +43.01% |
+| VALIDATED | STOCK  | CCEP     | Consumer Defensive             | BULL CONFIRMED | BULL   | 1/1/1    | +12.21%  | +9.79%   | +0.00%  |
+| VALIDATED | STOCK  | MNST     | Consumer Defensive             | BULL CONFIRMED | BULL   | 1/1/1    | +23.25%  | +27.52%  | +13.39% |
+| VALIDATED | STOCK  | AMZN     | Consumer internet / E-commerce | BULL CONFIRMED | BULL   | 1/1/1    | +2.66%   | +27.11%  | +13.69% |
+| VALIDATED | STOCK  | ROST     | Consumer internet / E-commerce | BULL CONFIRMED | BULL   | 1/1/1    | +11.09%  | +18.76%  | +10.38% |
+| VALIDATED | STOCK  | FTNT     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +87.95%  | +89.46%  | +46.82% |
+| VALIDATED | STOCK  | FANG     | Energy                         | BULL CONFIRMED | BULL   | 1/1/1    | +3.19%   | +11.34%  | +2.69%  |
+| VALIDATED | STOCK  | CTAS     | Industrials / Automation       | BULL CONFIRMED | BULL   | 1/1/1    | +17.15%  | +1.21%   | +0.00%  |
+| VALIDATED | STOCK  | PCAR     | Industrials / Automation       | BULL CONFIRMED | BULL   | 1/1/1    | +4.79%   | +10.50%  | +4.63%  |
 
 TOP 5 GLOBAL - ETF AND STOCKS COMBINED
-|   # | Ticker   | Type   | Theme         |   Rank |   Score | 63D     | Rel63   | R14     | R21     | PnL Renko   |
-|-----|----------|--------|---------------|--------|---------|---------|---------|---------|---------|-------------|
-|   1 | FTNT     | STOCK  | Cybersecurity |  88.53 |  100    | +95.35% | +75.78% | +97.55% | +90.56% | +51.00%     |
-|   2 | CRWD     | STOCK  | Cybersecurity |  75.12 |  100    | +85.05% | +65.48% | +97.70% | +83.66% | -60.99%     |
-|   3 | BUG      | ETF    | Cybersecurity |  54.6  |   84.15 | +56.11% | +36.54% | +58.46% | +45.68% | +0.00%      |
-|   4 | HACK     | ETF    | Cybersecurity |  44.13 |   73.65 | +41.48% | +21.91% | +44.37% | +43.04% | +0.00%      |
-|   5 | CIBR     | ETF    | Cybersecurity |  38.99 |   54.51 | +43.33% | +23.76% | +46.49% | +40.70% | +0.00%      |
+|   # | Ticker   | Type   | Theme                 |   Rank |   Score | 63D      | Rel63    | R14      | R21      | PnL Renko   |
+|-----|----------|--------|-----------------------|--------|---------|----------|----------|----------|----------|-------------|
+|   1 | DDOG     | STOCK  | Cloud / Data software |  99.54 |  100    | +104.27% | +101.62% | +108.45% | +114.63% | +43.01%     |
+|   2 | FTNT     | STOCK  | Cybersecurity         |  87.88 |  100    | +87.88%  | +85.22%  | +87.95%  | +89.46%  | +46.82%     |
+|   3 | CIBR     | ETF    | Cybersecurity         |  47.57 |   87.43 | +34.63%  | +31.97%  | +34.98%  | +37.52%  | +0.00%      |
+|   4 | MNST     | STOCK  | Consumer Defensive    |  36.94 |   69.35 | +25.13%  | +22.48%  | +23.25%  | +27.52%  | +13.39%     |
+|   5 | CCEP     | STOCK  | Consumer Defensive    |  31.32 |   76.07 | +17.67%  | +15.01%  | +12.21%  | +9.79%   | +0.00%      |
 
 GLOBAL RANKING - RETAINED ASSETS
-|   # | Ticker   | Type   | Theme                |   Rank |   Score | 63D     | Rel63   | R14     | R21     | PnL Renko   |
-|-----|----------|--------|----------------------|--------|---------|---------|---------|---------|---------|-------------|
-|   1 | FTNT     | STOCK  | Cybersecurity        |  88.53 |  100    | +95.35% | +75.78% | +97.55% | +90.56% | +51.00%     |
-|   2 | CRWD     | STOCK  | Cybersecurity        |  75.12 |  100    | +85.05% | +65.48% | +97.70% | +83.66% | -60.99%     |
-|   3 | BUG      | ETF    | Cybersecurity        |  54.6  |   84.15 | +56.11% | +36.54% | +58.46% | +45.68% | +0.00%      |
-|   4 | HACK     | ETF    | Cybersecurity        |  44.13 |   73.65 | +41.48% | +21.91% | +44.37% | +43.04% | +0.00%      |
-|   5 | CIBR     | ETF    | Cybersecurity        |  38.99 |   54.51 | +43.33% | +23.76% | +46.49% | +40.70% | +0.00%      |
-|   6 | IHAK     | ETF    | Cybersecurity        |  38.05 |   56.32 | +40.50% | +20.93% | +42.86% | +40.63% | +0.00%      |
-|   7 | XBI      | ETF    | Healthcare / Biotech |  27.57 |   48.33 | +25.90% | +6.34%  | +27.45% | +33.78% | +0.00%      |
+|   # | Ticker   | Type   | Theme                          |   Rank |   Score | 63D      | Rel63    | R14      | R21      | PnL Renko   |
+|-----|----------|--------|--------------------------------|--------|---------|----------|----------|----------|----------|-------------|
+|   1 | DDOG     | STOCK  | Cloud / Data software          |  99.54 |  100    | +104.27% | +101.62% | +108.45% | +114.63% | +43.01%     |
+|   2 | FTNT     | STOCK  | Cybersecurity                  |  87.88 |  100    | +87.88%  | +85.22%  | +87.95%  | +89.46%  | +46.82%     |
+|   3 | CIBR     | ETF    | Cybersecurity                  |  47.57 |   87.43 | +34.63%  | +31.97%  | +34.98%  | +37.52%  | +0.00%      |
+|   4 | MNST     | STOCK  | Consumer Defensive             |  36.94 |   69.35 | +25.13%  | +22.48%  | +23.25%  | +27.52%  | +13.39%     |
+|   5 | CCEP     | STOCK  | Consumer Defensive             |  31.32 |   76.07 | +17.67%  | +15.01%  | +12.21%  | +9.79%   | +0.00%      |
+|   6 | CTAS     | STOCK  | Industrials / Automation       |  30.35 |   73.78 | +18.32%  | +15.67%  | +17.15%  | +1.21%   | +0.00%      |
+|   7 | ROST     | STOCK  | Consumer internet / E-commerce |  30.3  |   74.18 | +10.66%  | +8.00%   | +11.09%  | +18.76%  | +10.38%     |
+|   8 | AMZN     | STOCK  | Consumer internet / E-commerce |  29.63 |   80.79 | +2.08%   | -0.57%   | +2.66%   | +27.11%  | +13.69%     |
+|   9 | PCAR     | STOCK  | Industrials / Automation       |  24.75 |   62.06 | +12.38%  | +9.72%   | +4.79%   | +10.50%  | +4.63%      |
+|  10 | FANG     | STOCK  | Energy                         |  18.79 |   58.98 | -1.67%   | -4.33%   | +3.19%   | +11.34%  | +2.69%      |
 
 ANALYTIC CLASSIFICATION - RETAINED ASSETS
-| Theme                | Bucket        | Type   | Ticker   |   Score | 63D     | Rel63   | R14     | R21     | Role                     | Use                                                  |
-|----------------------|---------------|--------|----------|---------|---------|---------|---------|---------|--------------------------|------------------------------------------------------|
-| Cybersecurity        | TACTICAL ETF  | ETF    | BUG      |   84.15 | +56.11% | +36.54% | +58.46% | +45.68% | Secondary sector vehicle | Useful for exposure, but not the strongest ETF proxy |
-| Cybersecurity        | SATELLITE ETF | ETF    | CIBR     |   54.51 | +43.33% | +23.76% | +46.49% | +40.70% | Narrow/lagging proxy     | Keep smaller than core ETF candidates                |
-| Cybersecurity        | TACTICAL ETF  | ETF    | HACK     |   73.65 | +41.48% | +21.91% | +44.37% | +43.04% | Secondary sector vehicle | Useful for exposure, but not the strongest ETF proxy |
-| Cybersecurity        | SATELLITE ETF | ETF    | IHAK     |   56.32 | +40.50% | +20.93% | +42.86% | +40.63% | Narrow/lagging proxy     | Keep smaller than core ETF candidates                |
-| Cybersecurity        | LEADER STOCK  | STOCK  | CRWD     |  100    | +85.05% | +65.48% | +97.70% | +83.66% | Primary momentum leader  | Best single-name expression of the theme             |
-| Cybersecurity        | LEADER STOCK  | STOCK  | FTNT     |  100    | +95.35% | +75.78% | +97.55% | +90.56% | Primary momentum leader  | Best single-name expression of the theme             |
-| Healthcare / Biotech | SATELLITE ETF | ETF    | XBI      |   48.33 | +25.90% | +6.34%  | +27.45% | +33.78% | Narrow/lagging proxy     | Keep smaller than core ETF candidates                |
+| Theme                          | Bucket          | Type   | Ticker   |   Score | 63D      | Rel63    | R14      | R21      | Role                                    | Use                                                 |
+|--------------------------------|-----------------|--------|----------|---------|----------|----------|----------|----------|-----------------------------------------|-----------------------------------------------------|
+| Cloud / Data software          | LEADER STOCK    | STOCK  | DDOG     |  100    | +104.27% | +101.62% | +108.45% | +114.63% | Primary momentum leader                 | Best single-name expression of the theme            |
+| Consumer Defensive             | SATELLITE STOCK | STOCK  | CCEP     |   76.07 | +17.67%  | +15.01%  | +12.21%  | +9.79%   | Confirmed but less dominant             | Use after stronger leaders or for diversification   |
+| Consumer Defensive             | SATELLITE STOCK | STOCK  | MNST     |   69.35 | +25.13%  | +22.48%  | +23.25%  | +27.52%  | Confirmed but less dominant             | Use after stronger leaders or for diversification   |
+| Consumer internet / E-commerce | SATELLITE STOCK | STOCK  | AMZN     |   80.79 | +2.08%   | -0.57%   | +2.66%   | +27.11%  | Confirmed but less dominant             | Use after stronger leaders or for diversification   |
+| Consumer internet / E-commerce | SATELLITE STOCK | STOCK  | ROST     |   74.18 | +10.66%  | +8.00%   | +11.09%  | +18.76%  | Confirmed but less dominant             | Use after stronger leaders or for diversification   |
+| Cybersecurity                  | CORE ETF        | ETF    | CIBR     |   87.43 | +34.63%  | +31.97%  | +34.98%  | +37.52%  | Diversified sector vehicle              | Use first for broad exposure to the theme           |
+| Cybersecurity                  | LEADER STOCK    | STOCK  | FTNT     |  100    | +87.88%  | +85.22%  | +87.95%  | +89.46%  | Primary momentum leader                 | Best single-name expression of the theme            |
+| Energy                         | LOW PRIORITY    | STOCK  | FANG     |   58.98 | -1.67%   | -4.33%   | +3.19%   | +11.34%  | Renko confirmed but weak relative score | Confirmed trend, but not a top allocation candidate |
+| Industrials / Automation       | SATELLITE STOCK | STOCK  | CTAS     |   73.78 | +18.32%  | +15.67%  | +17.15%  | +1.21%   | Confirmed but less dominant             | Use after stronger leaders or for diversification   |
+| Industrials / Automation       | SATELLITE STOCK | STOCK  | PCAR     |   62.06 | +12.38%  | +9.72%   | +4.79%   | +10.50%  | Confirmed but less dominant             | Use after stronger leaders or for diversification   |
 
 WATCHLIST - GOOD THEME, WAITING FOR RENKO
-| Final     | Type   | Ticker   | Theme                          | Renko      | Bias   | 3M/M/W   | ROC14    | ROC21    | PnL      |
-|-----------|--------|----------|--------------------------------|------------|--------|----------|----------|----------|----------|
-| WATCHLIST | ETF    | PSI      | Semiconductors / AI infrastruc | MIXED      | MIXED  | -1/-1/0  | +65.95%  | +60.92%  | ---      |
-| WATCHLIST | ETF    | SMH      | Semiconductors / AI infrastruc | MIXED      | MIXED  | 0/0/0    | +56.15%  | +50.25%  | ---      |
-| WATCHLIST | ETF    | SOXQ     | Semiconductors / AI infrastruc | MIXED      | MIXED  | 0/-1/0   | +67.43%  | +61.18%  | ---      |
-| WATCHLIST | ETF    | SOXX     | Semiconductors / AI infrastruc | MIXED      | MIXED  | 1/-1/0   | +73.28%  | +65.93%  | ---      |
-| WATCHLIST | ETF    | XSD      | Semiconductors / AI infrastruc | MIXED      | MIXED  | -1/0/0   | +71.62%  | +59.34%  | ---      |
-| WATCHLIST | STOCK  | PANW     | Cybersecurity                  | BULL MIXED | BULL   | 1/1/0    | +105.75% | +101.14% | +91.09%  |
-| WATCHLIST | STOCK  | AMGN     | Healthcare / Biotech           | MIXED      | MIXED  | 1/0/1    | +4.41%   | -1.60%   | ---      |
-| WATCHLIST | STOCK  | VRTX     | Healthcare / Biotech           | MIXED      | MIXED  | 1/0/0    | +11.53%  | -0.45%   | ---      |
-| WATCHLIST | STOCK  | ALAB     | Semiconductors / AI infrastruc | MIXED      | MIXED  | 0/1/1    | +263.14% | +228.94% | ---      |
-| WATCHLIST | STOCK  | AMD      | Semiconductors / AI infrastruc | BULL MIXED | BULL   | -1/0/1   | +151.16% | +163.50% | +96.23%  |
-| WATCHLIST | STOCK  | ARM      | Semiconductors / AI infrastruc | BULL MIXED | BULL   | 0/1/0    | +123.51% | +166.03% | +101.06% |
+| Final     | Type   | Ticker   | Theme                          | Renko      | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
+|-----------|--------|----------|--------------------------------|------------|--------|----------|---------|---------|---------|
+| WATCHLIST | ETF    | CLOU     | Cloud / Data software          | MIXED      | MIXED  | 0/1/1    | +26.77% | +25.94% | ---     |
+| WATCHLIST | ETF    | IGV      | Cloud / Data software          | MIXED      | MIXED  | 1/0/0    | +9.96%  | +6.50%  | ---     |
+| WATCHLIST | ETF    | SKYY     | Cloud / Data software          | MIXED      | MIXED  | 1/1/0    | +19.44% | +25.10% | ---     |
+| WATCHLIST | ETF    | WCLD     | Cloud / Data software          | MIXED      | MIXED  | 0/0/1    | +29.71% | +18.30% | ---     |
+| WATCHLIST | ETF    | FDN      | Consumer internet / E-commerce | MIXED      | MIXED  | 1/0/1    | +3.74%  | +10.82% | ---     |
+| WATCHLIST | ETF    | BUG      | Cybersecurity                  | MIXED      | MIXED  | 1/1/-1   | +42.05% | +40.62% | ---     |
+| WATCHLIST | ETF    | HACK     | Cybersecurity                  | MIXED      | MIXED  | 1/1/0    | +34.46% | +35.98% | ---     |
+| WATCHLIST | ETF    | IHAK     | Cybersecurity                  | MIXED      | MIXED  | 0/0/-1   | +28.49% | +32.55% | ---     |
+| WATCHLIST | ETF    | ITA      | Industrials / Automation       | MIXED      | MIXED  | 0/0/0    | +10.63% | -1.43%  | ---     |
+| WATCHLIST | STOCK  | CRWD     | Cybersecurity                  | BULL MIXED | BULL   | 1/1/-1   | +67.32% | +74.78% | -62.93% |
+| WATCHLIST | STOCK  | PANW     | Cybersecurity                  | BULL MIXED | BULL   | 1/1/-1   | +82.71% | +97.64% | +85.63% |
+| WATCHLIST | STOCK  | BKR      | Energy                         | BULL MIXED | BULL   | 1/-1/1   | -12.42% | +0.95%  | -3.90%  |
+| WATCHLIST | STOCK  | CSX      | Industrials / Automation       | BULL MIXED | BULL   | 1/1/0    | +10.71% | +25.84% | +19.02% |
 
 EARLY SHIFT - ONLY IF DOMINANT THEMES SLOW
-Slowing dominant themes: Cybersecurity, Semiconductors / AI infrastructure
-| Ticker   | Type   | Theme                |   Early | 21D     | Rel63   | Renko   | R14     | R21    |
-|----------|--------|----------------------|---------|---------|---------|---------|---------|--------|
-| VRTX     | STOCK  | Healthcare / Biotech |    0.1  | +10.42% | -9.39%  | 1/0/0   | +11.53% | -0.45% |
-| AMGN     | STOCK  | Healthcare / Biotech |   -5.03 | +5.12%  | -14.89% | 1/0/1   | +4.41%  | -1.60% |
+Slowing dominant themes: Cybersecurity
+| Ticker   | Type   | Theme                    |   Early | 21D    | Rel63   | Renko   | R14     | R21     |
+|----------|--------|--------------------------|---------|--------|---------|---------|---------|---------|
+| SKYY     | ETF    | Cloud / Data software    |   15.85 | +3.84% | +16.51% | 1/1/0   | +19.44% | +25.10% |
+| CSX      | STOCK  | Industrials / Automation |   10.58 | +4.02% | +8.35%  | 1/1/0   | +10.71% | +25.84% |
+| IGV      | ETF    | Cloud / Data software    |    7.12 | +0.40% | +9.04%  | 1/0/0   | +9.96%  | +6.50%  |
 
 REJECTED BY RENKO
-| Final    | Type   | Ticker   | Theme                | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL    |
-|----------|--------|----------|----------------------|---------|--------|----------|---------|---------|--------|
-| REJECTED | STOCK  | ALNY     | Healthcare / Biotech | BEAR    | BEAR   | -1/-1/0  | +0.72%  | +2.14%  | +0.30% |
+| Final    | Type   | Ticker   | Theme                          | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
+|----------|--------|----------|--------------------------------|---------|--------|----------|---------|---------|---------|
+| REJECTED | STOCK  | TEAM     | Cloud / Data software          | BEAR    | BEAR   | 0/-1/0   | +39.44% | +19.31% | -74.58% |
+| REJECTED | STOCK  | WDAY     | Cloud / Data software          | BEAR    | BEAR   | 0/0/1    | +32.49% | +5.05%  | -41.04% |
+| REJECTED | STOCK  | KHC      | Consumer Defensive             | BEAR    | BEAR   | 0/0/1    | +18.71% | +6.13%  | -15.91% |
+| REJECTED | STOCK  | DASH     | Consumer internet / E-commerce | BEAR    | BEAR   | 0/0/1    | +10.57% | +9.10%  | -28.11% |
 
 NEWS VALIDATION
 
 Cybersecurity: score=100.0 hits=12 sources=9
-- 2026-07-09 | simplywall.st | 3 AI Stocks Retail Investors Are Watching In Cybersecurity And Software - simplywall.st
-  https://news.google.com/rss/articles/CBMi0AFBVV95cUxQTnJienYtNUFILWUybXdwRjZ1VWFsN2RTeEtLS0t5Q0lSS0xqYzhtUEdoTjcxZVFyVFZyM01kSXFlYmxockxZNktVbXJzLU82Tzk2ZWRVdjZjSjNNZFl4UGtfUFJDeXBOTDFQcmlnM3dibXFMcXdsUl9hdlpXYTRsMEIwdDRTOGNJRmY3SEZnYjZVSmNsMzJSQkhrcnlTektkV2pWTE1LTWxPMEZGWVNSQVRjb0VycWVXWnVEVm54aWRWM2JHYURIMndBVW1rNEYx0gHWAUFVX3lxTFBiMlZmOGJnZHVjZVNPdlFaeDh0ZWJpdDZVWFFGbVd2cnptSFRqUkJ5M2U1M2Z4bnZieEo0cWI4V2RCNlBTdWtFN0U4STA2TnNBT21idEM3OFJST0NJbDZVREhhcVRhWFQwaEwyNVZoTGlMQ0Vib1kyTVg2Y0xjT2p3UGUxR2RJSzIwbVRVWjBZVnZuRkMtVFVuUVUyQ2ZtWUJ5Z2h3aDZJZzl0THgxYUZRdXh5aUJaZm43eDE5X3I3ZGFMNm1pMHduLVU3QThYSW9VOVJ0blE?oc=5
-- 2026-07-08 | Yahoo Finance | Is Varonis Systems, Inc. (VRNS) among the Best Cybersecurity Stocks to Buy and Hold for the Long Term? - Yahoo Finance
-  https://news.google.com/rss/articles/CBMimgFBVV95cUxOWHMwQUk1cXJSbDNwY0xjcWx6WDF1LTdsbDJfS3hSS2dGR0RBaFZka1htVklhMHlzaVFFZkRDc2NCU2d1Q3A2VldianRsRGZiUWttUVZoREQyeE5jMkZ4YzdXRXhmWFIzSm41NlI3c092VUdZRDd1b3RHZV9pZ3c0ZndFbmxpWDFEeTJ3Y2ZPRFpOVmZwTWRnVHVn?oc=5
+- 2026-07-31 | simplywall.st | 3 Cybersecurity Stocks Investors May Revisit After The Claude AI Security Shock - simplywall.st
+  https://news.google.com/rss/articles/CBMiugFBVV95cUxPQ1pPRVh3V2ZTNTAtdktRSG85SzY3cFNyYVc0aUZjTDBLN0FicVVzWEl2TU1ETzRjcjJjYVNYWTF2NTNwb2VvRGstUUEyZUEyQWhXdUhIM19xdlc1WUJpMGl0eEZQeHp0b18yYUZRRnB3M1AtUHBOOWpzMjU4Uzd6dlg5SFVkYTdHSGdLTHh2MjNoV0hySzVVQm9aMm8yU1ZMWVJKMUh4SjFMU29xanBnNy15a0R2WklXakHSAb8BQVVfeXFMTTJUU19mX19zbUxKWlEzN3E4aEFTVldSWVcwZS0tdHc0QlFOSjlDLVI5a1I2ZS1kbzlwcmI1YjhYMGR6ckdoLVlQSmotQ2FjSTRoS0pZSUdmZm9DUEd6OW9OUlIwclFKNTZsMmM3ZldNaTdIbk4yUXRrY3N3RXI0b2xLVTJzYVhmV19nTm9NR3d4RFFCLXhWVXNtODN4b2FISUh4V1pfRXhxWGxBNnpNZ3k4bWtOZEJQcjZtV25jTEk?oc=5
+- 2026-07-30 | Barron's | Move Over Memory, Fortinet Earnings Show Cybersecurity Stocks Are Red-Hot AI Plays - Barron's
+  https://news.google.com/rss/articles/CBMikgFBVV95cUxPU09nOXlXaW5XemtGRm9iSnMxMkhxb193T2MtdlBZMERMZlFhZGNNOF9lT191R0NIYmNwV0g0VUw2SXctUUtZeW9iZ2FkTV9IYkZYZ1hWUzRMYWlFUkludXMybUxtbDVvd2h2dXo5d3NOOTFpSEFOcjhSZWdUUnMtSmgwNEF2S1YwQU1vWnJUVDFaUQ?oc=5
 
-Semiconductors / AI infrastructure: score=100.0 hits=12 sources=6
-- 2026-07-09 | Yahoo Finance | MU, WDC, INTC: Why Are Chip Stocks Rebounding In Premarket Trading Today? - Yahoo Finance
-  https://news.google.com/rss/articles/CBMijgFBVV95cUxPUGlvNlc0cG0xRDlFRjFaMjk4dDR0UjVWUThaWjJEdHNHaTBPaDZJUGZwVHNaSEhkZDExbEtwd2JuMi0tVWx0QVBhMXhJaEpfaUtqMTlBbzkteXlCbmFqRURuR0QyQW1XSnZTWmNCVDFUckQ2NFM5Q1NiS1ZfNlh3cmJsdnJhLWVqaXpoeEJn?oc=5
-- 2026-07-09 | Reuters | Wall St rises as chip rally offsets renewed Iran worries - Reuters
-  https://news.google.com/rss/articles/CBMitAFBVV95cUxOWlJrcUhGNjUtY2dOX1RQcWxqNW1KNGtrZU9uYU5KSjZiaDdZM3ozU1BZUjR4WmJyLVJjLW9yYjJGRHdSSEo4T0NNVUQ1T2VHN19keUtvRklORURPYUhtS0hUR2NJWnRIcnd3VFRLdGpDTmcwSnA0WHcxSUJ2RHhrNG1hOWUycm5kUjl6OHhoTjhSNVZXRmFUVnRMclJYMW9FdXRJZ1VLSkFrbmxRWVg5N3Z5c3M?oc=5
+Cloud / Data software: score=100.0 hits=12 sources=9
+- 2026-07-31 | StockStory | 2 Software Stocks to Target This Week and 1 We Question - StockStory
+  https://news.google.com/rss/articles/CBMitwFBVV95cUxQWC04YVNfY1pRakZXVDZiTmRyMzloTXdwUXdncjZhSnNoZEtlY1VMUS0wX2piYUZsSHU5WnRCc3FjTFhVYUNOMVJibHduY2c5ZzRCME9Nd1llYTFBakhaQjBlVFhnUzhUM1luRXlGUFdmYllTU1Q2YnVLeHh1VWpnNE1aUEdhS2NKLW1qMFp4N1dyRTFDdmdmUTlYbmhFZUo3XzdGeUkweVJGSXVzSEJTM2x0cGZjWmc?oc=5
+- 2026-07-29 | CNBC | Jim Cramer says software's comeback could be the blueprint for AI stocks' next rally - CNBC
+  https://news.google.com/rss/articles/CBMilwFBVV95cUxNdnZzNEd5aFY3MFBiVjJBRkQtblNuUTFyWmtGdEhMZmhHUXZCeGxwcVpqUjRidjVQV2Znb2d1ZUM5ZUdSSEt4S0NTZjBtY1Q1U09OakJzdHZQVzJNSk45aUhQclhXX3UxQ0hNVkV1TTJVTjdxTTZ4cmJvVG4yVE9WMFh3X2RtUHdNQS01NXNrZk5nbEw5cUI40gGcAUFVX3lxTE1QSnc2Q3pjYkNtcTRiYlduVEZQTDBCdDhPdzlRM1pUVUFyT1RoNWNSYlAtT0tEQlFzQlFYMGF3eHdYSzhTdXVVVEk0N0JtdWo0V2NmMEp3REN3dHlIV0FKaWpBMHljbzcteHl5Z3h1Qmx4V1lEcmxTZVBCTV8yN1BtR1V6ZHpNQWV2N2RSSWtvdmlhNDhpbVFxRmppRg?oc=5
 
-Healthcare / Biotech: score=100.0 hits=12 sources=12
-- 2026-07-08 | Fierce Biotech | Scipher picks up Chemomab’s liver disease drug, Nasdaq listing in all-stock merger - Fierce Biotech
-  https://news.google.com/rss/articles/CBMiowFBVV95cUxOb2t2NHdwMU83MGw5YzZGVVkzMVctMkhnMEcxZWVVYnlMVVpsblRWc2g1Q2Q1SGdWaDd3NmxEclRTOVp3TkoxZFNyN1pQR19pdUE4bUlWNDB4M2FpMXA3SlN3WjJ4NXU3dklUdXJncXY0QnpHOFJxbGl4QXVNenF2RnVuMFlLQVJfaTY3ZFgzb2NHVG5jdThzSndTUzl6RUpoZGJV?oc=5
-- 2026-07-05 | TheStreet Pro | Biotech Stocks Are Surging in 2026. This One Stands Out After a Pullback. - TheStreet Pro
-  https://news.google.com/rss/articles/CBMirgFBVV95cUxNc2hLaEtVSGcxR0pXODR4U1RoLTctZGxqM0xITDYtXzNMRktOb2RXdmhmYy1LQXk4RTJ1NkFJTHM2Z0xBWUtLN28tMDVWZHYzOW95ZllBTW45aTZjaGs4aUZ3Vjh1RkYxMlpUY0phemtDLTNqbnEtNjNBdTVHVEJyXzBCcU5QdUotR1dpQWUtdWZ1R0E1RnJJMEtGekdrUWM4MDVsR1RLSWVvSHYtdEE?oc=5
+Energy: score=100.0 hits=12 sources=10
+- 2026-07-31 | Yahoo Finance | Are Oils-Energy Stocks Lagging Alvopetro Energy (ALVOF) This Year? - Yahoo Finance
+  https://news.google.com/rss/articles/CBMiowFBVV95cUxPS3RCajBCUnBXUEVhbW9EeEkwdjFLRkgxOVJ5NlFLNldHWVpsd0RFZUV4Z1duc0d2Q3JQQzhoclA1TC1Ybno3VXQ0WmE5dGFHZ3UtUWR1ZlQ2VW5Pay1rSXYzOUtNN283b1B0UDQ5MEN6dzhSR3oxTmlBbm93bHM1YnA4X2JsbVB6aHhaUmg0VzdYa1dEX0V1cXBjRlpXVEFGMDFB?oc=5
+- 2026-07-30 | CNBC | The oil majors are about to report booming profits. These smaller stocks may be better buys - CNBC
+  https://news.google.com/rss/articles/CBMixgFBVV95cUxPWjRtYktmNlMwMU5VZnJSeTEzVGhiendIVEZMbFJpXzNQa3NMQlYyRm9NTnZwT2hyZEZZSTZxNlpMQ1pmZ3Joc09JY3JLRzQ3V2tIbG5oOEo4VHBENGQ1VFlsX2tHRjFObl9QYzBkRzM5NXJibTRoVWt6OFNJTG1vNXVOemx3U1QtYU1BY2VYMVFaNGNSZGE1TGNfbFhqQWVWZldOZGhXRXdfbU01Qm5lbl8temJIcnV4YkVCN0g3aktJU3JQMEHSAcsBQVVfeXFMT3l6dkI4cjRQY0xHVFdDbUJPaFpCS2liRkhMeDRqZE1OWE1KSUlBZjNoQUtUSlZVUWVIQmRlRFFVVHVObEVxUnl0TWJCaUZqSkVWQVJFRUROMEVGQlQ1QnVRdy1jUDlhcEhLMGtLZUd3RGxDaTNoMmFuM2JneWpxSFZhMzFxMEtqcWEzVXRNUThoYUh3UEM4blNBaEpNVUE3VWNxUmhTTE5rc2RfUkNPb0pheWhCVjRpeFNOYW5VLXdRTnI0ZjZjalFCUUk?oc=5
 
 METHOD
 Score action = momentum 21D/63D/126D + force relative vs QQQ + volume + tendance SMA50/SMA200 + proximite high 20D.
