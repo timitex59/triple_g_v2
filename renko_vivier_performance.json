@@ -13565,10 +13565,10 @@
       "base_pct": 83.33333333333334,
       "complete": false,
       "direction": 1,
-      "entered_at_paris": "2026-07-31 14:17",
+      "entered_at_paris": "2026-07-31 14:20",
       "event_id": "ab6d0172a03c3071c14f",
       "event_type": "VIVIER_ENTRY",
-      "fib_pct_of_range": 46.39593908629418,
+      "fib_pct_of_range": 46.80203045685297,
       "fib_position": "Fibo <0.500",
       "final_pct": 83.33333333333334,
       "horizon_basis": "closed_h1_bars",
@@ -13578,6 +13578,29 @@
       "price": 0.8098,
       "px": {
         "D": 0,
+        "M": 1,
+        "W": 1
+      },
+      "time_paris": "2026-07-31T14:00:00+02:00",
+      "time_utc": "2026-07-31T12:00:00+00:00"
+    },
+    {
+      "base_pct": 66.66666666666666,
+      "complete": false,
+      "direction": 1,
+      "entered_at_paris": "2026-07-31 14:20",
+      "event_id": "b8e74b3a58115dba9eaa",
+      "event_type": "VIVIER_ENTRY",
+      "fib_pct_of_range": 42.39533651298379,
+      "fib_position": "Fibo <0.500",
+      "final_pct": 59.99999999999999,
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "objective_value": 114.678,
+      "pair": "AUDJPY",
+      "price": 112.443,
+      "px": {
+        "D": -1,
         "M": 1,
         "W": 1
       },
@@ -13686,7 +13709,7 @@
           "profitable_within_24h_pct": 100.0,
           "profitable_within_4h_pct": 50.0,
           "profitable_within_72h_pct": 100.0,
-          "signals": 7,
+          "signals": 8,
           "status": "LEARNING"
         }
       },
@@ -13726,7 +13749,7 @@
           "profitable_within_24h_pct": 100.0,
           "profitable_within_4h_pct": 100.0,
           "profitable_within_72h_pct": 100.0,
-          "signals": 3,
+          "signals": 4,
           "status": "LEARNING"
         }
       },
@@ -13746,7 +13769,7 @@
         "profitable_within_24h_pct": 100.0,
         "profitable_within_4h_pct": 50.0,
         "profitable_within_72h_pct": 100.0,
-        "signals": 7,
+        "signals": 8,
         "status": "LEARNING"
       }
     },
@@ -15347,7 +15370,7 @@
         "avg_mae_72h_pct": -0.6043796750835791,
         "avg_mfe_72h_pct": 0.3375692257162722,
         "complete": 46,
-        "count": 56,
+        "count": 57,
         "horizons": {
           "12h": {
             "avg_directional_pct": -0.06471001690335199,
@@ -15463,7 +15486,7 @@
       "avg_mae_72h_pct": -0.5376591120111651,
       "avg_mfe_72h_pct": 0.3528471495926775,
       "complete": 174,
-      "count": 194,
+      "count": 195,
       "horizons": {
         "12h": {
           "avg_directional_pct": -0.06554063113968871,
@@ -15497,8 +15520,8 @@
         }
       }
     },
-    "total": 194
+    "total": 195
   },
-  "updated_at_utc": "2026-07-31T12:17:13.817518+00:00",
+  "updated_at_utc": "2026-07-31T12:20:31.188027+00:00",
   "version": 3
 }
