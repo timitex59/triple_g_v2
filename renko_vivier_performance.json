@@ -14156,6 +14156,29 @@
       },
       "time_paris": "2026-08-03T17:00:00+02:00",
       "time_utc": "2026-08-03T15:00:00+00:00"
+    },
+    {
+      "base_pct": 83.33333333333334,
+      "complete": false,
+      "direction": 1,
+      "entered_at_paris": "2026-08-03 20:19",
+      "event_id": "43e538ed1ab408761cc6",
+      "event_type": "VIVIER_ENTRY",
+      "fib_pct_of_range": 48.629441624365235,
+      "fib_position": "Fibo <0.500",
+      "final_pct": 79.16666666666667,
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "objective_value": 0.8207,
+      "pair": "USDCHF",
+      "price": 0.81138,
+      "px": {
+        "D": 0,
+        "M": 1,
+        "W": 1
+      },
+      "time_paris": "2026-08-03T20:00:00+02:00",
+      "time_utc": "2026-08-03T18:00:00+00:00"
     }
   ],
   "pair_profiles": {
@@ -15382,7 +15405,7 @@
           "profitable_within_24h_pct": 80.0,
           "profitable_within_4h_pct": 60.0,
           "profitable_within_72h_pct": 90.0,
-          "signals": 11,
+          "signals": 12,
           "status": "LEARNING"
         }
       },
@@ -15441,7 +15464,7 @@
           "profitable_within_24h_pct": 83.33333333333334,
           "profitable_within_4h_pct": 83.33333333333334,
           "profitable_within_72h_pct": 83.33333333333334,
-          "signals": 7,
+          "signals": 8,
           "status": "LEARNING"
         }
       },
@@ -15461,7 +15484,7 @@
         "profitable_within_24h_pct": 80.0,
         "profitable_within_4h_pct": 60.0,
         "profitable_within_72h_pct": 90.0,
-        "signals": 11,
+        "signals": 12,
         "status": "LEARNING"
       }
     },
@@ -15945,7 +15968,7 @@
         "avg_mae_72h_pct": -0.7177085414582663,
         "avg_mfe_72h_pct": 0.3536178383909765,
         "complete": 50,
-        "count": 58,
+        "count": 59,
         "horizons": {
           "12h": {
             "avg_directional_pct": -0.12821831024586391,
@@ -16061,7 +16084,7 @@
       "avg_mae_72h_pct": -0.6096922396285726,
       "avg_mfe_72h_pct": 0.36014133468811765,
       "complete": 182,
-      "count": 201,
+      "count": 202,
       "horizons": {
         "12h": {
           "avg_directional_pct": -0.10776106821961788,
@@ -16095,8 +16118,8 @@
         }
       }
     },
-    "total": 201
+    "total": 202
   },
-  "updated_at_utc": "2026-08-03T18:08:59.329314+00:00",
+  "updated_at_utc": "2026-08-03T18:19:56.106038+00:00",
   "version": 3
 }
