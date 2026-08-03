@@ -896,7 +896,8 @@
     "2026-08-03": {
       "confirmed_segments": [],
       "date": "2026-08-03",
-      "finalized": false,
+      "finalized": true,
+      "finalized_at_paris": "2026-08-03T23:15:50.776573+02:00",
       "segments": [
         {
           "close_reason": "VIVIER_EXIT",
@@ -910,35 +911,38 @@
           "start_price": 0.81138,
           "start_time_paris": "2026-08-03T20:00:00+02:00",
           "start_time_utc": "2026-08-03T18:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-08-03",
+          "direction": 1,
+          "end_price": 1.88685,
+          "end_time_paris": "2026-08-03T23:00:00+02:00",
+          "end_time_utc": "2026-08-03T21:00:00+00:00",
+          "pair": "GBPCAD",
+          "pips": 8.099999999999774,
+          "start_price": 1.88604,
+          "start_time_paris": "2026-08-03T17:00:00+02:00",
+          "start_time_utc": "2026-08-03T15:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-08-03",
+          "direction": 1,
+          "end_price": 0.81042,
+          "end_time_paris": "2026-08-03T23:00:00+02:00",
+          "end_time_utc": "2026-08-03T21:00:00+00:00",
+          "pair": "USDCHF",
+          "pips": 3.1000000000003247,
+          "start_price": 0.81011,
+          "start_time_paris": "2026-08-03T21:00:00+02:00",
+          "start_time_utc": "2026-08-03T19:00:00+00:00"
         }
       ]
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {
-    "GBPCAD": {
-      "current_pips": 2.80000000000058,
-      "date": "2026-08-03",
-      "direction": 1,
-      "last_price": 1.88632,
-      "last_time_utc": "2026-08-03T20:00:00+00:00",
-      "pair": "GBPCAD",
-      "start_price": 1.88604,
-      "start_time_paris": "2026-08-03T17:00:00+02:00",
-      "start_time_utc": "2026-08-03T15:00:00+00:00"
-    },
-    "USDCHF": {
-      "current_pips": 0.700000000000145,
-      "date": "2026-08-03",
-      "direction": 1,
-      "last_price": 0.81018,
-      "last_time_utc": "2026-08-03T20:00:00+00:00",
-      "pair": "USDCHF",
-      "start_price": 0.81011,
-      "start_time_paris": "2026-08-03T21:00:00+02:00",
-      "start_time_utc": "2026-08-03T19:00:00+00:00"
-    }
-  },
+  "open_segments": {},
   "reports_sent": {
     "monthly": [
       "2026-07"
@@ -949,6 +953,6 @@
       "2026-W31"
     ]
   },
-  "updated_at_paris": "2026-08-03T22:15:45.679503+02:00",
+  "updated_at_paris": "2026-08-03T23:15:50.776573+02:00",
   "version": 2
 }
