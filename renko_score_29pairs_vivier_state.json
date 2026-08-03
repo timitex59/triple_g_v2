@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-08-03 21:17",
+  "updated_at_paris": "2026-08-03 21:58",
   "pairs": {
     "GBPCAD": {
       "direction": 1,
       "entered_at_paris": "2026-08-03 17:20",
-      "last_seen_at_paris": "2026-08-03 21:17",
+      "last_seen_at_paris": "2026-08-03 21:58",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -18,11 +18,11 @@
       },
       "base_pct": 83.33333333333334,
       "weighted_pct": 0.0,
-      "daily_chg": -0.15560001270203883,
+      "daily_chg": -0.1608925301408832,
       "daily_sar_dir": 1,
       "daily_sar_value": 1.87396,
       "fib_position": "Fibo <0.500",
-      "fib_pct_of_range": 46.00060368246295,
+      "fib_pct_of_range": 45.728946574102174,
       "fib_source": "PREVIOUS",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 43.344400845155384,
@@ -36,6 +36,40 @@
       "fib_context_month_utc": "2026-07",
       "fib_objective_reattached_from_post_alignment": true,
       "fib_objective_post_alignment_time_utc": "2026-08-03T05:00:00+00:00",
+      "sar_flame": false
+    },
+    "USDCHF": {
+      "direction": 1,
+      "entered_at_paris": "2026-08-03 21:58",
+      "last_seen_at_paris": "2026-08-03 21:58",
+      "entry_px": {
+        "M": 1,
+        "W": 1,
+        "D": 0
+      },
+      "last_px": {
+        "M": 1,
+        "W": 1,
+        "D": 0
+      },
+      "base_pct": 83.33333333333334,
+      "weighted_pct": 75.00000000000001,
+      "daily_chg": 0.3952667120996115,
+      "daily_sar_dir": -1,
+      "daily_sar_value": 0.81748,
+      "fib_position": "Fibo <0.500",
+      "fib_pct_of_range": 46.903553299492096,
+      "fib_source": "PREVIOUS",
+      "entry_fib_position": "Fibo <0.500",
+      "entry_fib_pct_of_range": 46.903553299492096,
+      "entry_fib_source": "PREVIOUS",
+      "sar_dir": -1,
+      "fib_context_month_utc": "2026-07",
+      "fib_objective_active": true,
+      "fib_objective_carried": false,
+      "fib_objective_value": 0.8207,
+      "fib_objective_origin_month_utc": "2026-07",
+      "fib_objective_started_time_utc": "2026-08-03T19:00:00+00:00",
       "sar_flame": false
     }
   },
