@@ -2841,6 +2841,8 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
             # Cumul annuel: repart de zero au 1er janvier.
             f"🗓 YTD {datetime.now(PARIS_TZ).year} : "
             f"{_format_pips(yearly_confirmed.get('total_pips', 0.0))} pips",
+            f"   🟢 {_format_pips(yearly_confirmed.get('bull_pips', 0.0))} | "
+            f"🔴 {_format_pips(yearly_confirmed.get('bear_pips', 0.0))}",
         ])
     return lines
 

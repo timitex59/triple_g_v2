@@ -751,7 +751,7 @@ def pips_report_lines(state: dict, now: datetime | None = None) -> list[str]:
     d_bull, d_bear, d_total = _sum_pips([r for r in closed if on_day(r)])
     _, _, w_total = _sum_pips([r for r in closed if on_week(r)])
     m_bull, m_bear, m_total = _sum_pips([r for r in closed if on_month(r)])
-    _, _, y_total = _sum_pips(closed)          # closed is already year-scoped
+    y_bull, y_bear, y_total = _sum_pips(closed)   # closed is already year-scoped
 
     open_pos = state.get("open") or {}
     open_pips = sum(float(e.get("open_pips") or 0.0) for e in open_pos.values())
@@ -762,6 +762,7 @@ def pips_report_lines(state: dict, now: datetime | None = None) -> list[str]:
         f"📊 Weekly : {_fmt_pips(w_total)} · Monthly : {_fmt_pips(m_total)}",
         f"   🟢 {_fmt_pips(m_bull)} 🔴 {_fmt_pips(m_bear)} (mois)",
         f"🗓 YTD {state.get('year', now.year)} : {_fmt_pips(y_total)}",
+        f"   🟢 {_fmt_pips(y_bull)} 🔴 {_fmt_pips(y_bear)} (année)",
     ]
 
     today_day = (state.get("days") or {}).get(today) or {}
