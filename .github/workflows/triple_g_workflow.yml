@@ -2,9 +2,10 @@ name: Triple G Indicators Scan
 
 on:
   schedule:
-    - cron: "15 4-22 * * 1-5" # Du lundi au vendredi, de 4h15 à 22h15 UTC
-    # TEST JOUR : Toutes les heures à la minute 10
-    #- cron: "10 * * * *"
+    # TEMPORAIRE (test Fibo 50): toutes les heures, tous les jours.
+    # A REMETTRE apres le test -> "15 4-22 * * 1-5" (lun-ven, 4h15-22h15 UTC).
+    - cron: "10 * * * *"
+    #- cron: "15 4-22 * * 1-5" # Du lundi au vendredi, de 4h15 à 22h15 UTC
   workflow_dispatch:
     # Permet le lancement manuel
 
