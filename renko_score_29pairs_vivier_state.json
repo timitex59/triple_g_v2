@@ -1,7 +1,42 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-08-04 18:20",
-  "pairs": {},
+  "updated_at_paris": "2026-08-04 19:20",
+  "pairs": {
+    "USDCHF": {
+      "direction": 1,
+      "entered_at_paris": "2026-08-04 19:20",
+      "last_seen_at_paris": "2026-08-04 19:20",
+      "entry_px": {
+        "M": 1,
+        "W": 1,
+        "D": 0
+      },
+      "last_px": {
+        "M": 1,
+        "W": 1,
+        "D": 0
+      },
+      "base_pct": 83.33333333333334,
+      "weighted_pct": 0.0,
+      "daily_chg": -0.04565533920682874,
+      "daily_sar_dir": -1,
+      "daily_sar_value": 0.814766,
+      "fib_position": "Fibo <0.500",
+      "fib_pct_of_range": 45.888324873096266,
+      "fib_source": "PREVIOUS",
+      "entry_fib_position": "Fibo <0.500",
+      "entry_fib_pct_of_range": 45.888324873096266,
+      "entry_fib_source": "PREVIOUS",
+      "sar_dir": 1,
+      "fib_context_month_utc": "2026-07",
+      "fib_objective_active": true,
+      "fib_objective_carried": false,
+      "fib_objective_value": 0.8207,
+      "fib_objective_origin_month_utc": "2026-07",
+      "fib_objective_started_time_utc": "2026-08-04T17:00:00+00:00",
+      "sar_flame": false
+    }
+  },
   "pending_objectives": {
     "GBPCAD": {
       "direction": 1,
@@ -25,6 +60,6 @@
     }
   },
   "objective_events": [],
-  "telegram_last_body_hash": "4309f6e1c47fda58980a6577f888be45637b045346b2d089b846e7fd94b2cdb0",
-  "telegram_last_sent_at_paris": "2026-08-04 18:18"
+  "telegram_last_body_hash": "a2d5a253994047cde9b43e2e89aee9f7b8f1f8bdc31918c10d2ad476a97c5f83",
+  "telegram_last_sent_at_paris": "2026-08-04 19:19"
 }
