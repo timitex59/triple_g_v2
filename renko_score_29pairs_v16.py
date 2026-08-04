@@ -2530,6 +2530,16 @@ def _period_pip_summary_report(state: dict, clock: datetime, day_key: str) -> di
             live_day_key=day_key,
             confirmed=True,
         ),
+        "yearly": _period_pip_totals(
+            state, _date_keys_between(day_date.replace(month=1, day=1), day_date),
+            live_day_key=day_key,
+        ),
+        "yearly_confirmed": _period_pip_totals(
+            state,
+            _date_keys_between(day_date.replace(month=1, day=1), day_date),
+            live_day_key=day_key,
+            confirmed=True,
+        ),
     }
 
 
@@ -2822,11 +2832,17 @@ def vivier_pip_intraday_lines(report: dict | None) -> list[str]:
     if summary:
         weekly_confirmed = summary.get("weekly_confirmed") or {}
         monthly_confirmed = summary.get("monthly_confirmed") or {}
+        yearly_confirmed = summary.get("yearly_confirmed") or {}
         lines.extend([
             "",
             "📊 CUMULS",
             f"Weekly : {_format_pips(weekly_confirmed.get('total_pips', 0.0))} pips",
             f"Monthly : {_format_pips(monthly_confirmed.get('total_pips', 0.0))} pips",
+            # Cumul annuel: repart de zero au 1er janvier.
+            f"🗓 YTD {datetime.now(PARIS_TZ).year} : "
+            f"{_format_pips(yearly_confirmed.get('total_pips', 0.0))} pips",
+            f"   🟢 {_format_pips(yearly_confirmed.get('bull_pips', 0.0))} | "
+            f"🔴 {_format_pips(yearly_confirmed.get('bear_pips', 0.0))}",
         ])
     return lines
 
