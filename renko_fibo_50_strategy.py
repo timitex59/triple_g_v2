@@ -31,6 +31,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
@@ -488,6 +489,10 @@ def signal_hash(report_text: str | None) -> str:
     if not report_text:
         return ""
     body = "\n".join(l for l in report_text.splitlines() if not l.startswith("⏰"))
+    # The daily change drifts with every tick, so hashing it would make each
+    # scan look new and re-send the same selection ~19 times a day. What matters
+    # is WHICH pairs are listed under WHICH bias, not the exact percentage.
+    body = re.sub(r"[+-]\d+\.\d+%", "%", body)
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
