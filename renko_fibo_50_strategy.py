@@ -79,15 +79,7 @@ class Fibo50AnchorState:
     crossed_50: bool              # a brick crossed the 50% in the SAR direction after confirmation
     bricks_since_flip: int
     live_price: float | None = None   # latest daily close, the chart reference price
-
-
-def _fmt(value: float | None, pair: str = "") -> str:
-    """Price formatting driven by the instrument, so every line of a given pair
-    shows the same precision (NZDJPY 91.000 next to USDJPY 157.521)."""
-    if value is None:
-        return "n/a"
-    digits = 3 if ("JPY" in pair or pair.startswith("XAU")) else 5
-    return f"{value:.{digits}f}"
+    daily_chg: float | None = None    # % change of that close vs the previous one
 
 
 def compute_renko_bricks(df: pd.DataFrame, length: int = 14) -> list[tuple[float, float, int]]:
@@ -324,17 +316,27 @@ def evaluate_pair_tf_state(pair: str, tf: str, tv_symbol: str, length: int = 14,
         return None
 
 
-def fetch_live_price(pair: str) -> float | None:
-    """Latest (possibly still-forming) daily close — the chart reference price,
-    same convention as compute_pair_score() in the v16 screener."""
+def fetch_daily_quote(pair: str) -> tuple[float | None, float | None]:
+    """(live price, daily change %) from a single daily fetch.
+
+    The price is the latest — possibly still-forming — daily close, same
+    convention as compute_pair_score() in the v16 screener. The change is that
+    close against the previous completed one.
+    """
     try:
         df = fetch_tv_ohlc(f"OANDA:{pair}", "D", n_candles=50)
         if df is None or df.empty:
-            return None
-        return float(df["close"].iloc[-1])
+            return None, None
+        closes = df["close"].astype(float)
+        live = float(closes.iloc[-1])
+        if len(closes) < 2:
+            return live, None
+        prev = float(closes.iloc[-2])
+        chg = ((live - prev) / prev * 100.0) if prev else None
+        return live, chg
     except Exception as e:
-        print(f"  [warn] live price {pair}: {type(e).__name__}: {e}")
-        return None
+        print(f"  [warn] daily quote {pair}: {type(e).__name__}: {e}")
+        return None, None
 
 
 def scan_all_pairs(length: int = 14, candles: int = 80, workers: int = 8,
@@ -355,10 +357,10 @@ def scan_all_pairs(length: int = 14, candles: int = 80, workers: int = 8,
 
     results: dict[str, dict[str, Fibo50AnchorState]] = {}
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
-        live_prices = dict(zip(PAIRS_29, pool.map(fetch_live_price, PAIRS_29)))
+        quotes = dict(zip(PAIRS_29, pool.map(fetch_daily_quote, PAIRS_29)))
         for pair, tf_code, state in pool.map(run, tasks):
             if state:
-                state.live_price = live_prices.get(pair)
+                state.live_price, state.daily_chg = quotes.get(pair, (None, None))
                 results.setdefault(pair, {})[tf_code] = state
     return results
 
@@ -366,10 +368,9 @@ def scan_all_pairs(length: int = 14, candles: int = 80, workers: int = 8,
 _ICONS = {"BULL": "🟢", "BEAR": "🔴", "NEUTRE": "⚪"}
 
 
-def _leg(levels: tuple[float, float], pair: str) -> str:
-    """One timeframe's two levels: PX = Renko brick close, then its Fibo 50%."""
-    brick_close, fibo = levels
-    return f"PX {_fmt(brick_close, pair)} / Fibo {_fmt(fibo, pair)}"
+def _fmt_chg(chg: float | None) -> str:
+    """Daily change, always signed so direction reads at a glance."""
+    return "CHG n/a" if chg is None else f"{chg:+.2f}%"
 
 
 def bias_label(bias: str, live_close: float | None,
@@ -413,8 +414,7 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
             d_lv_solo = (d_state.last_brick_close, d_state.fibo_50)
             d_label_solo = bias_label(d_bias, d_state.live_price, [d_lv_solo])
             if d_label_solo != "NEUTRE":
-                daily_alignments.append((pair, d_bias, d_label_solo,
-                                         d_state.live_price, d_lv_solo))
+                daily_alignments.append((pair, d_label_solo, d_state.daily_chg))
 
         # Monthly + Weekly agreeing is the base structural bias. Daily is then
         # either a confirmation (full alignment) or a counter-trend pullback.
@@ -434,12 +434,11 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
             d_lv = (d_state.last_brick_close, d_state.fibo_50)
             label = bias_label(bias, live, [m_lv, w_lv, d_lv])
             if label != "NEUTRE":
-                strict_alignments.append((pair, bias, label, live, m_lv, w_lv, d_lv))
+                strict_alignments.append((pair, label, d_state.daily_chg))
         else:
             label = bias_label(bias, live, [m_lv, w_lv])
             if label != "NEUTRE":
-                d_label = "n/a" if not d_state else ("BULL" if d_state.direction == 1 else "BEAR")
-                mw_alignments.append((pair, bias, label, live, m_lv, w_lv, d_label))
+                mw_alignments.append((pair, label, w_state.daily_chg))
 
     if not (daily_alignments or strict_alignments or mw_alignments):
         return None
@@ -447,31 +446,16 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
     now_paris = datetime.now(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
     lines = ["📊 RENKO FIBO 50% RETRACEMENT", ""]
 
-    if daily_alignments:
-        lines.append("☀️ DAILY ALIGNÉ (Close > PX > Fibo 50%)")
-        for pair, _bias, label, live, d_lv in sorted(daily_alignments, key=lambda r: r[0]):
-            lines.append(
-                f"{_ICONS[label]} {pair} · {label} · Close: {_fmt(live, pair)}"
-                f" · D: {_leg(d_lv, pair)}"
-            )
-        lines.append("")
-
-    if strict_alignments:
-        lines.append("📊 FULL ALIGNMENT M/W/D (SAR + 3 BRICKS)")
-        for pair, _bias, label, live, m_lv, w_lv, d_lv in sorted(strict_alignments, key=lambda r: r[0]):
-            lines.append(
-                f"{_ICONS[label]} {pair} · {label} · Close: {_fmt(live, pair)}"
-                f" · M: {_leg(m_lv, pair)} · W: {_leg(w_lv, pair)} · D: {_leg(d_lv, pair)}"
-            )
-        lines.append("")
-
-    if mw_alignments:
-        lines.append("🧭 BIAIS M/W ALIGNÉ (D non confirmé)")
-        for pair, _bias, label, live, m_lv, w_lv, d_label in sorted(mw_alignments, key=lambda r: r[0]):
-            lines.append(
-                f"{_ICONS[label]} {pair} · M/W {label} · D: {d_label} · Close: {_fmt(live, pair)}"
-                f" · M: {_leg(m_lv, pair)} · W: {_leg(w_lv, pair)}"
-            )
+    for header, rows in (
+        ("☀️ DAILY ALIGNÉ (Close > PX > Fibo 50%)", daily_alignments),
+        ("📊 FULL ALIGNMENT M/W/D (SAR + 3 BRICKS)", strict_alignments),
+        ("🧭 BIAIS M/W ALIGNÉ (D non confirmé)", mw_alignments),
+    ):
+        if not rows:
+            continue
+        lines.append(header)
+        for pair, label, chg in sorted(rows, key=lambda r: r[0]):
+            lines.append(f"{_ICONS[label]} {pair} · {_fmt_chg(chg)}")
         lines.append("")
 
     lines.append(f"⏰ {now_paris} Paris")
