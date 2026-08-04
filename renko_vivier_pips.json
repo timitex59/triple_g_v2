@@ -1023,24 +1023,25 @@
           "start_price": 0.81019,
           "start_time_paris": "2026-08-04T19:00:00+02:00",
           "start_time_utc": "2026-08-04T17:00:00+00:00"
+        },
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-08-04",
+          "direction": 1,
+          "end_price": 0.80922,
+          "end_time_paris": "2026-08-04T21:00:00+02:00",
+          "end_time_utc": "2026-08-04T19:00:00+00:00",
+          "pair": "USDCHF",
+          "pips": -7.999999999999119,
+          "start_price": 0.81002,
+          "start_time_paris": "2026-08-04T20:00:00+02:00",
+          "start_time_utc": "2026-08-04T18:00:00+00:00"
         }
       ]
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {
-    "USDCHF": {
-      "current_pips": 0.0,
-      "date": "2026-08-04",
-      "direction": 1,
-      "last_price": 0.81002,
-      "last_time_utc": "2026-08-04T18:00:00+00:00",
-      "pair": "USDCHF",
-      "start_price": 0.81002,
-      "start_time_paris": "2026-08-04T20:00:00+02:00",
-      "start_time_utc": "2026-08-04T18:00:00+00:00"
-    }
-  },
+  "open_segments": {},
   "reports_sent": {
     "monthly": [
       "2026-07"
@@ -1051,6 +1052,6 @@
       "2026-W31"
     ]
   },
-  "updated_at_paris": "2026-08-04T20:19:23.885179+02:00",
+  "updated_at_paris": "2026-08-04T21:15:49.070960+02:00",
   "version": 2
 }
