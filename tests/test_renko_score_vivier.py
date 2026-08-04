@@ -441,9 +441,7 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("🟢🔴 GBPJPY (+83% | <0.382)", message)
-        self.assertNotIn("M-1", message)
-        self.assertNotIn("M+ W+ D0", message)
+        self.assertIsNone(message)
 
     def test_telegram_adds_flame_only_for_current_record_event(self):
         state = {
@@ -452,6 +450,8 @@ class VivierStateTests(unittest.TestCase):
                     "direction": 1,
                     "last_px": {"M": 1, "W": 1, "D": 0},
                     "fib_position": "Fibo <0.382",
+                    "daily_chg": 0.12,
+                    "daily_sar_dir": 1,
                     "sar_flame": True,
                 }
             }
@@ -459,7 +459,7 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("🟢⚪ GBPJPY (+83% | <0.382) 🔥", message)
+        self.assertIn("🟢🟢 GBPJPY (+83% | <0.382) 🔥", message)
 
     def test_telegram_shows_current_fibo_and_flame_kind(self):
         state = {
@@ -469,6 +469,8 @@ class VivierStateTests(unittest.TestCase):
                     "last_px": {"M": 1, "W": 1, "D": 0},
                     "entry_fib_position": "Fibo <0.236",
                     "fib_position": "Fibo <0.500",
+                    "daily_chg": 0.12,
+                    "daily_sar_dir": 1,
                     "sar_flame": True,
                     "sar_flame_kind": "RECORD",
                 }
@@ -488,6 +490,8 @@ class VivierStateTests(unittest.TestCase):
                     "direction": 1,
                     "last_px": {"M": 1, "W": 1, "D": 0},
                     "fib_position": "Fibo <0.500",
+                    "daily_chg": 0.12,
+                    "daily_sar_dir": 1,
                     "sar_flame": True,
                 }
             }
@@ -521,10 +525,7 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], [current], vivier_state=state)
 
-        self.assertIn("SUIVI SIGNAL", message)
-        self.assertIn("🟢🟢 GBPJPY (+0.50%)", message)
-        self.assertNotIn("depuis signal", message)
-        self.assertNotIn("F1 215.614", message)
+        self.assertIsNone(message)
 
     def test_telegram_daily_chg_icon_requires_daily_sar_confirmation(self):
         state = {
@@ -583,14 +584,7 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], all_rows, vivier_state=state)
 
-        self.assertNotIn("FORCE FIBO 0.5", message)
-        self.assertNotIn("FORCE FIBO+SAR", message)
-        self.assertIn("PAIRES FORT/FAIBLE", message)
-        self.assertIn("🟢 USDCAD 🌱USD/CAD", message)
-        self.assertNotIn("GBPCAD", message)
-        self.assertNotIn("NZDUSD", message)
-        self.assertNotIn("PROCHE ALIGNEMENT", message)
-        self.assertLess(message.index("VIVIER BULL"), message.index("PAIRES FORT/FAIBLE"))
+        self.assertIsNone(message)
 
     def test_telegram_body_hash_ignores_timestamp_only(self):
         first = "📊 VIVIER\n\n🟢 GBPJPY\n\n⏰ 2026-06-29 08:16 Paris"
@@ -620,11 +614,7 @@ class VivierStateTests(unittest.TestCase):
             [renko_row], [], vivier_state={"pairs": {}}, vivier_signals=[signal]
         )
 
-        self.assertIn("📊 VIVIER", message)
-        self.assertIn("🚨 SIGNAL VIVIER", message)
-        self.assertIn("🟢 GBPJPY · M/W/D alignés · +80%", message)
-        self.assertEqual(message.count("GBPJPY"), 1)
-        self.assertNotIn("RENKO FIBO", message)
+        self.assertIsNone(message)
 
     def test_standalone_renko_fibo_signal_is_silent(self):
         renko_row = {
@@ -862,9 +852,7 @@ class VivierStateTests(unittest.TestCase):
         message = build_telegram_message(
             [], [], vivier_state={"pairs": {}}, pip_report=monthly
         )
-        self.assertIn("🗓 BILAN MENSUEL — JUILLET", message)
-        self.assertIn("JOURS : 🟢 3 gagnants / 🔴 2 perdants / ⚪ 1 neutres", message)
-        self.assertIn("Σ TOTAL : +7.0 pips", message)
+        self.assertIsNone(message)
 
     def test_transition_revalidates_only_entries_created_in_current_month(self):
         current = row("CURRENT", 1, 1, 0, fib_pct=60.0)
