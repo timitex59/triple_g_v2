@@ -372,11 +372,6 @@ def _leg(levels: tuple[float, float], pair: str) -> str:
     return f"PX {_fmt(brick_close, pair)} / Fibo {_fmt(fibo, pair)}"
 
 
-def _neutral_last(row):
-    """Actionable biases first, NEUTRE at the bottom, alphabetical within each."""
-    return (row[2] == "NEUTRE", row[0])
-
-
 def bias_label(bias: str, live_close: float | None,
                tf_levels: list[tuple[float, float]]) -> str:
     """A directional bias only holds when the full chain lines up on EVERY
@@ -401,8 +396,6 @@ def bias_label(bias: str, live_close: float | None,
 
 def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorState]]) -> str | None:
     """Formats a clean Telegram report summarizing Fibo 50% signals and alignments."""
-    bull_signals = []
-    bear_signals = []
     daily_alignments = []
     strict_alignments = []
     mw_alignments = []
@@ -412,15 +405,6 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
         m_state = tf_map.get("M")
         w_state = tf_map.get("W")
         d_state = tf_map.get("D")
-
-        for tf_code, _tf_name in TIMEFRAMES:
-            state = tf_map.get(tf_code)
-            if not state or not state.three_brick_confirmed:
-                continue
-            if state.signal == "BULL":
-                bull_signals.append((pair, tf_code, state))
-            elif state.signal == "BEAR":
-                bear_signals.append((pair, tf_code, state))
 
         # Daily standing on its own: the full chain must line up on D1, whatever
         # the higher timeframes are doing.
@@ -449,34 +433,23 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
         if d_state and d_state.three_brick_confirmed and d_state.direction == m_state.direction:
             d_lv = (d_state.last_brick_close, d_state.fibo_50)
             label = bias_label(bias, live, [m_lv, w_lv, d_lv])
-            strict_alignments.append((pair, bias, label, live, m_lv, w_lv, d_lv))
+            if label != "NEUTRE":
+                strict_alignments.append((pair, bias, label, live, m_lv, w_lv, d_lv))
         else:
             label = bias_label(bias, live, [m_lv, w_lv])
-            d_label = "n/a" if not d_state else ("BULL" if d_state.direction == 1 else "BEAR")
-            mw_alignments.append((pair, bias, label, live, m_lv, w_lv, d_label))
+            if label != "NEUTRE":
+                d_label = "n/a" if not d_state else ("BULL" if d_state.direction == 1 else "BEAR")
+                mw_alignments.append((pair, bias, label, live, m_lv, w_lv, d_label))
 
-    if not (bull_signals or bear_signals or daily_alignments
-            or strict_alignments or mw_alignments):
+    if not (daily_alignments or strict_alignments or mw_alignments):
         return None
 
     now_paris = datetime.now(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
     lines = ["📊 RENKO FIBO 50% RETRACEMENT", ""]
 
-    if bull_signals:
-        lines.append("🌱 SIGNAUX BULL (PX brique > FIBO 50%)")
-        for pair, tf, s in bull_signals:
-            lines.append(f"🟢 {pair} ({tf}) · Fibo 50%: {_fmt(s.fibo_50, pair)} | PX: {_fmt(s.last_brick_close, pair)} | Close: {_fmt(s.live_price, pair)}")
-        lines.append("")
-
-    if bear_signals:
-        lines.append("🔻 SIGNAUX BEAR (PX brique < FIBO 50%)")
-        for pair, tf, s in bear_signals:
-            lines.append(f"🔴 {pair} ({tf}) · Fibo 50%: {_fmt(s.fibo_50, pair)} | PX: {_fmt(s.last_brick_close, pair)} | Close: {_fmt(s.live_price, pair)}")
-        lines.append("")
-
     if daily_alignments:
         lines.append("☀️ DAILY ALIGNÉ (Close > PX > Fibo 50%)")
-        for pair, _bias, label, live, d_lv in sorted(daily_alignments, key=_neutral_last):
+        for pair, _bias, label, live, d_lv in sorted(daily_alignments, key=lambda r: r[0]):
             lines.append(
                 f"{_ICONS[label]} {pair} · {label} · Close: {_fmt(live, pair)}"
                 f" · D: {_leg(d_lv, pair)}"
@@ -485,7 +458,7 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
 
     if strict_alignments:
         lines.append("📊 FULL ALIGNMENT M/W/D (SAR + 3 BRICKS)")
-        for pair, _bias, label, live, m_lv, w_lv, d_lv in sorted(strict_alignments, key=_neutral_last):
+        for pair, _bias, label, live, m_lv, w_lv, d_lv in sorted(strict_alignments, key=lambda r: r[0]):
             lines.append(
                 f"{_ICONS[label]} {pair} · {label} · Close: {_fmt(live, pair)}"
                 f" · M: {_leg(m_lv, pair)} · W: {_leg(w_lv, pair)} · D: {_leg(d_lv, pair)}"
@@ -494,7 +467,7 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
 
     if mw_alignments:
         lines.append("🧭 BIAIS M/W ALIGNÉ (D non confirmé)")
-        for pair, _bias, label, live, m_lv, w_lv, d_label in sorted(mw_alignments, key=_neutral_last):
+        for pair, _bias, label, live, m_lv, w_lv, d_label in sorted(mw_alignments, key=lambda r: r[0]):
             lines.append(
                 f"{_ICONS[label]} {pair} · M/W {label} · D: {d_label} · Close: {_fmt(live, pair)}"
                 f" · M: {_leg(m_lv, pair)} · W: {_leg(w_lv, pair)}"
