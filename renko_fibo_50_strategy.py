@@ -4,14 +4,25 @@
 renko_fibo_50_strategy.py
 -------------------------
 Renko ATR(14) Fibonacci 50% Retracement Strategy across 29 Forex pairs.
-Analyzes Monthly (MN), Weekly (W1), and Daily (D1) Renko charts.
+Analyzes Monthly (1M), Weekly (1W), and Daily (1D) Renko charts.
 
 Core Strategy Rules:
-1. Identify 3 consecutive Renko bricks following a SAR flip.
-2. Determine Anchor Low (swing low below SAR on Bull flip) and Anchor High (swing high above SAR on Bear flip).
-3. Compute Fibo 50% level = (Anchor High + Anchor Low) / 2.
-4. Trigger BULL signal when a Renko brick closes ABOVE Fibo 50%, or BEAR signal when a Renko brick closes BELOW Fibo 50%.
-5. Monitor multi-timeframe (M/W/D) alignments and send Telegram notifications when new signals occur.
+1. Run a Parabolic SAR (0.1 / 0.1 / 0.2) ON THE RENKO BRICK SERIES and locate
+   the most recent SAR flip.
+2. Require at least 3 consecutive bricks in the SAR direction after that flip
+   (three_brick_confirmed).
+3. Anchors are FROZEN on the swing being retraced — the last run of bricks
+   opposite to the SAR, plus the brick just before it (whose extreme is the
+   actual swing top/bottom). They never move with the current brick:
+     - Bull flip: Anchor High = top of the down swing, Anchor Low = its bottom.
+     - Bear flip: Anchor Low = bottom of the up swing, Anchor High = its top.
+   Fibo 50% = (Anchor High + Anchor Low) / 2.
+4. A signal fires when the current leg recovers more than 50% of that swing:
+   a brick must CROSS the Fibo 50% in the SAR direction, within the current leg
+   and no more than --max-age-bricks ago, and price must still be on that side.
+     - BULL: SAR bullish, a brick closed above the 50% of the prior down swing.
+     - BEAR: SAR bearish, a brick closed below the 50% of the prior up swing.
+5. Multi-timeframe (M/W/D) alignments and Telegram notifications on new signals.
 """
 
 from __future__ import annotations
@@ -20,16 +31,13 @@ import argparse
 import hashlib
 import json
 import os
-import re
-import sys
-import time
-from dataclasses import asdict, dataclass
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pandas as pd
-import requests
 
 from ichimoku_v4 import PAIRS_29, send_telegram_message
 from renko_score_29pairs_v16 import (
@@ -44,42 +52,74 @@ PARIS_TZ = ZoneInfo("Europe/Paris")
 SCRIPT_DIR = Path(__file__).resolve().parent
 STATE_FILE = SCRIPT_DIR / "renko_fibo_50_state.json"
 
+# Parabolic SAR applied to the Renko brick series.
+SAR_AF_START = 0.1
+SAR_AF_STEP = 0.1
+SAR_AF_MAX = 0.2
+
+# TradingView's create_series rejects the legacy "MN"/"W1"/"D1" codes with
+# "invalid parameters" — it wants "1M"/"1W"/"1D". A wrong code costs the full
+# retry budget (~126 s per symbol/TF) before silently yielding nothing.
+TIMEFRAMES = [("M", "1M"), ("W", "1W"), ("D", "1D")]
+
 
 @dataclass
 class Fibo50AnchorState:
     pair: str
     tf: str
-    direction: int                # +1 for Bullish, -1 for Bearish, 0 for None
+    direction: int                # +1 Bullish SAR, -1 Bearish SAR, 0 undetermined
     anchor_high: float
     anchor_low: float
     fibo_50: float
     last_brick_open: float
     last_brick_close: float
-    px_vs_fibo: int               # +1 if close > fibo_50, -1 if close < fibo_50, 0 inside
+    px_vs_fibo: int               # +1 close above fibo, -1 below, 0 exactly on it
     signal: str                   # "BULL", "BEAR", or "NONE"
     three_brick_confirmed: bool
+    crossed_50: bool              # a brick crossed the 50% in the SAR direction after confirmation
+    bricks_since_flip: int
+    live_price: float | None = None   # latest daily close, the chart reference price
+
+
+def _fmt(value: float | None, pair: str = "") -> str:
+    """Price formatting driven by the instrument, so every line of a given pair
+    shows the same precision (NZDJPY 91.000 next to USDJPY 157.521)."""
+    if value is None:
+        return "n/a"
+    digits = 3 if ("JPY" in pair or pair.startswith("XAU")) else 5
+    return f"{value:.{digits}f}"
 
 
 def compute_renko_bricks(df: pd.DataFrame, length: int = 14) -> list[tuple[float, float, int]]:
-    """Build ATR(14) Renko bricks from OHLC dataframe."""
+    """Build ATR(length) Renko bricks from an OHLC dataframe.
+
+    The box size is taken from the ATR value *at the candle being replayed*, so
+    historical bricks are not rebuilt with today's ATR.
+    """
     if len(df) < length + 5:
         return []
 
     atr_series = atr(df, length)
-    box_size = float(atr_series.iloc[-1])
-    if not box_size or box_size <= 0:
-        return []
-
-    closes = [float(x) for x in df["close"].tolist()]
+    closes = df["close"].astype(float).tolist()
+    boxes = atr_series.astype(float).tolist()
     if not closes:
         return []
 
-    anchor = closes[0]
+    anchor = 0.0
+    started = False
     direction = 0
     bricks: list[tuple[float, float, int]] = []
 
-    for price in closes[1:]:
-        formed = 0
+    for i in range(len(closes)):
+        box_size = float(boxes[i])
+        if pd.isna(box_size) or box_size <= 0:
+            continue
+        price = float(closes[i])
+        if not started:
+            anchor = price
+            started = True
+            continue
+
         new_direction = direction
         move = 0
 
@@ -97,7 +137,7 @@ def compute_renko_bricks(df: pd.DataFrame, length: int = 14) -> list[tuple[float
             elif price <= anchor - (2.0 * box_size):
                 move = int((anchor - price) // box_size) - 1
                 new_direction = -1
-        else: # direction == -1
+        else:  # direction == -1
             if price <= anchor - box_size:
                 move = int((anchor - price) // box_size)
                 new_direction = -1
@@ -105,125 +145,146 @@ def compute_renko_bricks(df: pd.DataFrame, length: int = 14) -> list[tuple[float
                 move = int((price - anchor) // box_size) - 1
                 new_direction = 1
 
+        # A reversal that just clears the 2-box threshold rounds down to 0 bricks;
+        # it must still print (and flip the direction) instead of being dropped.
+        if new_direction != direction and new_direction != 0 and move < 1:
+            move = 1
+
         if move > 0:
             for _ in range(move):
                 brick_open = anchor
                 anchor = anchor + box_size if new_direction == 1 else anchor - box_size
                 bricks.append((brick_open, anchor, new_direction))
-            formed = move
             direction = new_direction
-
-        if formed == 0:
-            continue
 
     return bricks
 
 
-def detect_fibo_50_level(bricks: list[tuple[float, float, int]]) -> tuple[float, float, float, bool, int]:
-    """Detects 3-brick SAR flip sequence and computes Anchor High, Anchor Low, Fibo 50%.
+def _bricks_to_frame(bricks: list[tuple[float, float, int]]) -> pd.DataFrame:
+    """Renko bricks -> OHLC frame usable by parabolic_sar()."""
+    return pd.DataFrame(
+        {
+            "open": [o for o, _c, _d in bricks],
+            "close": [c for _o, c, _d in bricks],
+            "high": [max(o, c) for o, c, _d in bricks],
+            "low": [min(o, c) for o, c, _d in bricks],
+        }
+    )
+
+
+def detect_fibo_50_level(
+    bricks: list[tuple[float, float, int]]
+) -> tuple[float, float, float, bool, int, int, int]:
+    """Locate the last Parabolic SAR flip on the brick series and derive anchors.
 
     Returns:
-        (anchor_high, anchor_low, fibo_50, three_brick_confirmed, current_direction)
+        (anchor_high, anchor_low, fibo_50, three_brick_confirmed,
+         sar_direction, flip_index, confirm_index)
+        confirm_index is -1 while the 3-brick confirmation has not happened.
     """
     if len(bricks) < 3:
         if bricks:
             o, c, d = bricks[-1]
             high, low = max(o, c), min(o, c)
-            return high, low, (high + low) / 2.0, False, d
-        return 0.0, 0.0, 0.0, False, 0
+            return high, low, (high + low) / 2.0, False, d, 0, -1
+        return 0.0, 0.0, 0.0, False, 0, 0, -1
 
-    # Build Highs/Lows history from bricks
-    brick_data = []
-    for o, c, d in bricks:
-        brick_data.append({
-            "open": o, "close": c, "direction": d,
-            "high": max(o, c), "low": min(o, c)
-        })
+    frame = _bricks_to_frame(bricks)
+    sar_state = parabolic_sar(frame, SAR_AF_START, SAR_AF_STEP, SAR_AF_MAX)
+    if not sar_state:
+        return 0.0, 0.0, 0.0, False, 0, 0, -1
 
-    # Track runs of consecutive bricks
-    runs = []
-    curr_dir = brick_data[0]["direction"]
-    curr_run = [brick_data[0]]
+    trend = sar_state["trend"]
+    sar_dir = trend[-1]
 
-    for b in brick_data[1:]:
-        if b["direction"] == curr_dir:
-            curr_run.append(b)
+    # Index of the most recent flip, and of the flip before it.
+    flip_idx = 0
+    for i in range(len(trend) - 1, 0, -1):
+        if trend[i] != trend[i - 1]:
+            flip_idx = i
+            break
+
+    highs = [float(x) for x in frame["high"]]
+    lows = [float(x) for x in frame["low"]]
+
+    # 3 consecutive bricks in the SAR direction, counted from the flip.
+    run = 0
+    confirm_idx = -1
+    for i in range(flip_idx, len(bricks)):
+        if bricks[i][2] == sar_dir:
+            run += 1
+            if run >= 3 and confirm_idx < 0:
+                confirm_idx = i
         else:
-            runs.append((curr_dir, curr_run))
-            curr_dir = b["direction"]
-            curr_run = [b]
-    runs.append((curr_dir, curr_run))
+            run = 0
+    three_confirmed = confirm_idx >= 0
 
-    if not runs:
-        return 0.0, 0.0, 0.0, False, 0
+    # Anchors = the swing that is being retraced: the last run of bricks opposite
+    # to the SAR direction, plus the brick just before it (that brick's extreme
+    # IS the swing top/bottom — the first opposite brick only opens there).
+    # This window is closed and frozen, so fibo_50 never drifts with the current
+    # brick. SAR legs alone are too short here (af 0.1/0.1/0.2 flips in 2-3 bricks).
+    end_opp = flip_idx
+    while end_opp >= 0 and bricks[end_opp][2] == sar_dir:
+        end_opp -= 1
 
-    latest_dir, latest_run = runs[-1]
-    three_confirmed = len(latest_run) >= 3
-
-    # Determine Anchor High and Anchor Low across recent swings
-    all_highs = [b["high"] for b in brick_data]
-    all_lows = [b["low"] for b in brick_data]
-
-    if len(runs) >= 2:
-        prev_dir, prev_run = runs[-2]
-        if latest_dir == 1: # Bullish flip (from Red to Green)
-            anchor_low = min([b["low"] for b in prev_run] + [b["low"] for b in latest_run[:1]])
-            anchor_high = max([b["high"] for b in latest_run])
-        else: # Bearish flip (from Green to Red)
-            anchor_high = max([b["high"] for b in prev_run] + [b["high"] for b in latest_run[:1]])
-            anchor_low = min([b["low"] for b in latest_run])
+    if end_opp < 0:                       # no opposite brick yet: whole history
+        swing = slice(0, len(bricks))
     else:
-        anchor_high = max(all_highs)
-        anchor_low = min(all_lows)
+        start_opp = end_opp
+        while start_opp - 1 >= 0 and bricks[start_opp - 1][2] != sar_dir:
+            start_opp -= 1
+        swing = slice(max(0, start_opp - 1), end_opp + 1)
 
+    anchor_high = max(highs[swing])
+    anchor_low = min(lows[swing])
     fibo_50 = (anchor_high + anchor_low) / 2.0
-    return anchor_high, anchor_low, fibo_50, three_confirmed, latest_dir
+    return anchor_high, anchor_low, fibo_50, three_confirmed, sar_dir, flip_idx, confirm_idx
 
 
-def evaluate_pair_tf_state(pair: str, tf: str, tv_symbol: str, length: int = 14, candles: int = 300) -> Fibo50AnchorState | None:
-    """Evaluates Renko Fibo 50% state for a specific pair and timeframe."""
-    native = fetch_tv_native_renko_ohlc(tv_symbol, tf, atr_length=length, n_bricks=candles)
-    if native:
-        bricks = []
-        for r in native:
-            o, c = float(r["open"]), float(r["close"])
-            d = 1 if c > o else (-1 if c < o else 0)
-            if d:
-                bricks.append((o, c, d))
-    else:
-        df_raw = fetch_tv_ohlc(tv_symbol, tf, n_candles=candles)
-        if df_raw is None or df_raw.empty:
-            return None
-        df_src = closed_renko_source(df_raw)
-        bricks = compute_renko_bricks(df_src, length=length)
-
+def evaluate_bricks(pair: str, tf: str, bricks: list[tuple[float, float, int]],
+                    max_age_bricks: int = 3) -> Fibo50AnchorState | None:
     if not bricks:
         return None
 
-    anchor_high, anchor_low, fibo_50, three_confirmed, curr_dir = detect_fibo_50_level(bricks)
+    (anchor_high, anchor_low, fibo_50, three_confirmed,
+     sar_dir, flip_idx, confirm_idx) = detect_fibo_50_level(bricks)
     last_open, last_close, _ = bricks[-1]
 
-    # Evaluate signal trigger: close relative to Fibo 50%
-    if last_close > fibo_50 and last_open <= fibo_50:
-        signal = "BULL"
-        px_vs_fibo = 1
-    elif last_close < fibo_50 and last_open >= fibo_50:
-        signal = "BEAR"
-        px_vs_fibo = -1
-    elif last_close > fibo_50:
-        signal = "BULL" if curr_dir == 1 and three_confirmed else "NONE"
+    if last_close > fibo_50:
         px_vs_fibo = 1
     elif last_close < fibo_50:
-        signal = "BEAR" if curr_dir == -1 and three_confirmed else "NONE"
         px_vs_fibo = -1
     else:
-        signal = "NONE"
         px_vs_fibo = 0
+
+    # Rule 4: the new leg must have recovered more than 50% of the swing it
+    # retraces. anchor_high/anchor_low come from a closed swing, so this is a
+    # real condition — not the tautology it was when anchors tracked the current
+    # brick. crossed_50 flags where the 50% was actually taken out.
+    crossed = False
+    signal = "NONE"
+    if three_confirmed:
+        leg = bricks[flip_idx:]
+        # The 50% must be taken out BY THE CURRENT LEG, and recently: on monthly
+        # Renko a leg runs for years, so without a freshness window a level
+        # cleared in 2021 would still be reported as a signal today.
+        cross_idx = -1
+        for i, (o, c, _d) in enumerate(leg):
+            if (sar_dir == 1 and o <= fibo_50 < c) or (sar_dir == -1 and o >= fibo_50 > c):
+                cross_idx = i
+        crossed = cross_idx >= 0
+        fresh = crossed and (len(leg) - 1 - cross_idx) <= max_age_bricks
+
+        if fresh and sar_dir == 1 and last_close > fibo_50:
+            signal = "BULL"
+        elif fresh and sar_dir == -1 and last_close < fibo_50:
+            signal = "BEAR"
 
     return Fibo50AnchorState(
         pair=pair,
         tf=tf,
-        direction=curr_dir,
+        direction=sar_dir,
         anchor_high=anchor_high,
         anchor_low=anchor_low,
         fibo_50=fibo_50,
@@ -232,78 +293,212 @@ def evaluate_pair_tf_state(pair: str, tf: str, tv_symbol: str, length: int = 14,
         px_vs_fibo=px_vs_fibo,
         signal=signal,
         three_brick_confirmed=three_confirmed,
+        crossed_50=crossed,
+        bricks_since_flip=len(bricks) - flip_idx,
     )
 
 
-def scan_all_pairs(length: int = 14, candles: int = 300) -> dict[str, dict[str, Fibo50AnchorState]]:
-    """Scans all 29 pairs across M, W, D timeframes."""
-    results: dict[str, dict[str, Fibo50AnchorState]] = {}
-    timeframes = [("M", "MN"), ("W", "W1"), ("D", "D1")]
+def evaluate_pair_tf_state(pair: str, tf: str, tv_symbol: str, length: int = 14,
+                           candles: int = 80, max_age_bricks: int = 3) -> Fibo50AnchorState | None:
+    """Evaluates Renko Fibo 50% state for a specific pair and timeframe."""
+    try:
+        native = fetch_tv_native_renko_ohlc(tv_symbol, tf, atr_length=length, n_bricks=candles)
+        if native:
+            bricks = []
+            for r in native:
+                o, c = float(r["open"]), float(r["close"])
+                d = 1 if c > o else (-1 if c < o else 0)
+                if d:
+                    bricks.append((o, c, d))
+        else:
+            df_raw = fetch_tv_ohlc(tv_symbol, tf, n_candles=max(candles, length * 8))
+            if df_raw is None or df_raw.empty:
+                return None
+            df_src = closed_renko_source(df_raw)
+            bricks = compute_renko_bricks(df_src, length=length)
 
-    for pair in PAIRS_29:
-        tv_symbol = f"OANDA:{pair}"
-        pair_tf_map = {}
-        for tf_code, tf_name in timeframes:
-            state = evaluate_pair_tf_state(pair, tf_name, tv_symbol, length=length, candles=candles)
+        return evaluate_bricks(pair, tf, bricks, max_age_bricks=max_age_bricks)
+    except Exception as e:
+        # One bad symbol must not abort a 10-minute scan.
+        print(f"  [warn] {pair} {tf}: {type(e).__name__}: {e}")
+        return None
+
+
+def fetch_live_price(pair: str) -> float | None:
+    """Latest (possibly still-forming) daily close — the chart reference price,
+    same convention as compute_pair_score() in the v16 screener."""
+    try:
+        df = fetch_tv_ohlc(f"OANDA:{pair}", "D", n_candles=50)
+        if df is None or df.empty:
+            return None
+        return float(df["close"].iloc[-1])
+    except Exception as e:
+        print(f"  [warn] live price {pair}: {type(e).__name__}: {e}")
+        return None
+
+
+def scan_all_pairs(length: int = 14, candles: int = 80, workers: int = 8,
+                   max_age_bricks: int = 3) -> dict[str, dict[str, Fibo50AnchorState]]:
+    """Scans all 29 pairs across M, W, D timeframes (network-bound -> threaded)."""
+    tasks = [
+        (pair, tf_code, tf_name)
+        for pair in PAIRS_29
+        for tf_code, tf_name in TIMEFRAMES
+    ]
+
+    def run(task):
+        pair, tf_code, tf_name = task
+        state = evaluate_pair_tf_state(pair, tf_name, f"OANDA:{pair}",
+                                       length=length, candles=candles,
+                                       max_age_bricks=max_age_bricks)
+        return pair, tf_code, state
+
+    results: dict[str, dict[str, Fibo50AnchorState]] = {}
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        live_prices = dict(zip(PAIRS_29, pool.map(fetch_live_price, PAIRS_29)))
+        for pair, tf_code, state in pool.map(run, tasks):
             if state:
-                pair_tf_map[tf_code] = state
-        if pair_tf_map:
-            results[pair] = pair_tf_map
+                state.live_price = live_prices.get(pair)
+                results.setdefault(pair, {})[tf_code] = state
     return results
+
+
+_ICONS = {"BULL": "🟢", "BEAR": "🔴", "NEUTRE": "⚪"}
+
+
+def _leg(levels: tuple[float, float], pair: str) -> str:
+    """One timeframe's two levels: PX = Renko brick close, then its Fibo 50%."""
+    brick_close, fibo = levels
+    return f"PX {_fmt(brick_close, pair)} / Fibo {_fmt(fibo, pair)}"
+
+
+def _neutral_last(row):
+    """Actionable biases first, NEUTRE at the bottom, alphabetical within each."""
+    return (row[2] == "NEUTRE", row[0])
+
+
+def bias_label(bias: str, live_close: float | None,
+               tf_levels: list[tuple[float, float]]) -> str:
+    """A directional bias only holds when the full chain lines up on EVERY
+    timeframe checked:
+
+        BULL:  Close (live price) > PX (Renko brick close) > Fibo 50%
+        BEAR:  Close (live price) < PX (Renko brick close) < Fibo 50%
+
+    tf_levels holds one (brick_close, fibo_50) pair per timeframe. Anything that
+    breaks the chain is downgraded to NEUTRE rather than reported as actionable.
+    """
+    if live_close is None or not tf_levels:
+        return "NEUTRE"
+    if bias == "BULL":
+        ok = all(live_close > px > fibo for px, fibo in tf_levels)
+        return "BULL" if ok else "NEUTRE"
+    if bias == "BEAR":
+        ok = all(live_close < px < fibo for px, fibo in tf_levels)
+        return "BEAR" if ok else "NEUTRE"
+    return "NEUTRE"
 
 
 def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorState]]) -> str | None:
     """Formats a clean Telegram report summarizing Fibo 50% signals and alignments."""
     bull_signals = []
     bear_signals = []
+    daily_alignments = []
     strict_alignments = []
+    mw_alignments = []
 
-    for pair, tf_map in results.items():
+    for pair in sorted(results):
+        tf_map = results[pair]
         m_state = tf_map.get("M")
         w_state = tf_map.get("W")
         d_state = tf_map.get("D")
 
-        # Check signals
-        for tf_code, state in tf_map.items():
-            if state.three_brick_confirmed:
-                if state.signal == "BULL" and state.px_vs_fibo == 1:
-                    bull_signals.append((pair, tf_code, state))
-                elif state.signal == "BEAR" and state.px_vs_fibo == -1:
-                    bear_signals.append((pair, tf_code, state))
+        for tf_code, _tf_name in TIMEFRAMES:
+            state = tf_map.get(tf_code)
+            if not state or not state.three_brick_confirmed:
+                continue
+            if state.signal == "BULL":
+                bull_signals.append((pair, tf_code, state))
+            elif state.signal == "BEAR":
+                bear_signals.append((pair, tf_code, state))
 
-        # Check M/W/D full alignment
-        if m_state and w_state and d_state:
-            if (m_state.direction == 1 and w_state.direction == 1 and d_state.direction == 1 and
-                m_state.three_brick_confirmed and w_state.three_brick_confirmed and d_state.three_brick_confirmed):
-                strict_alignments.append((pair, "BULL", d_state.fibo_50, d_state.last_brick_close))
-            elif (m_state.direction == -1 and w_state.direction == -1 and d_state.direction == -1 and
-                  m_state.three_brick_confirmed and w_state.three_brick_confirmed and d_state.three_brick_confirmed):
-                strict_alignments.append((pair, "BEAR", d_state.fibo_50, d_state.last_brick_close))
+        # Daily standing on its own: the full chain must line up on D1, whatever
+        # the higher timeframes are doing.
+        if d_state and d_state.three_brick_confirmed and d_state.direction != 0:
+            d_bias = "BULL" if d_state.direction == 1 else "BEAR"
+            d_lv_solo = (d_state.last_brick_close, d_state.fibo_50)
+            d_label_solo = bias_label(d_bias, d_state.live_price, [d_lv_solo])
+            if d_label_solo != "NEUTRE":
+                daily_alignments.append((pair, d_bias, d_label_solo,
+                                         d_state.live_price, d_lv_solo))
 
-    # If no actionable signals or strict alignments, suppress empty telegram notification
-    if not bull_signals and not bear_signals and not strict_alignments:
+        # Monthly + Weekly agreeing is the base structural bias. Daily is then
+        # either a confirmation (full alignment) or a counter-trend pullback.
+        if not (m_state and w_state):
+            continue
+        if not (m_state.three_brick_confirmed and w_state.three_brick_confirmed):
+            continue
+        if m_state.direction != w_state.direction or m_state.direction == 0:
+            continue
+
+        bias = "BULL" if m_state.direction == 1 else "BEAR"
+        live = w_state.live_price          # market price, identical across TFs
+        m_lv = (m_state.last_brick_close, m_state.fibo_50)
+        w_lv = (w_state.last_brick_close, w_state.fibo_50)
+
+        if d_state and d_state.three_brick_confirmed and d_state.direction == m_state.direction:
+            d_lv = (d_state.last_brick_close, d_state.fibo_50)
+            label = bias_label(bias, live, [m_lv, w_lv, d_lv])
+            strict_alignments.append((pair, bias, label, live, m_lv, w_lv, d_lv))
+        else:
+            label = bias_label(bias, live, [m_lv, w_lv])
+            d_label = "n/a" if not d_state else ("BULL" if d_state.direction == 1 else "BEAR")
+            mw_alignments.append((pair, bias, label, live, m_lv, w_lv, d_label))
+
+    if not (bull_signals or bear_signals or daily_alignments
+            or strict_alignments or mw_alignments):
         return None
 
     now_paris = datetime.now(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
     lines = ["📊 RENKO FIBO 50% RETRACEMENT", ""]
 
     if bull_signals:
-        lines.append("🌱 SIGNAUX BULL (> FIBO 50%)")
+        lines.append("🌱 SIGNAUX BULL (PX brique > FIBO 50%)")
         for pair, tf, s in bull_signals:
-            lines.append(f"🟢 {pair} ({tf}) · Fibo 50%: {s.fibo_50:.5f} | PX: {s.last_brick_close:.5f}")
+            lines.append(f"🟢 {pair} ({tf}) · Fibo 50%: {_fmt(s.fibo_50, pair)} | PX: {_fmt(s.last_brick_close, pair)} | Close: {_fmt(s.live_price, pair)}")
         lines.append("")
 
     if bear_signals:
-        lines.append("🔻 SIGNAUX BEAR (< FIBO 50%)")
+        lines.append("🔻 SIGNAUX BEAR (PX brique < FIBO 50%)")
         for pair, tf, s in bear_signals:
-            lines.append(f"🔴 {pair} ({tf}) · Fibo 50%: {s.fibo_50:.5f} | PX: {s.last_brick_close:.5f}")
+            lines.append(f"🔴 {pair} ({tf}) · Fibo 50%: {_fmt(s.fibo_50, pair)} | PX: {_fmt(s.last_brick_close, pair)} | Close: {_fmt(s.live_price, pair)}")
+        lines.append("")
+
+    if daily_alignments:
+        lines.append("☀️ DAILY ALIGNÉ (Close > PX > Fibo 50%)")
+        for pair, _bias, label, live, d_lv in sorted(daily_alignments, key=_neutral_last):
+            lines.append(
+                f"{_ICONS[label]} {pair} · {label} · Close: {_fmt(live, pair)}"
+                f" · D: {_leg(d_lv, pair)}"
+            )
         lines.append("")
 
     if strict_alignments:
-        lines.append("📊 FULL ALIGNMENT M/W/D (3 BRICKS SAR)")
-        for pair, direction, fibo, px in strict_alignments:
-            icon = "🟢" if direction == "BULL" else "🔴"
-            lines.append(f"{icon} {pair} · Fibo 50%: {fibo:.5f}")
+        lines.append("📊 FULL ALIGNMENT M/W/D (SAR + 3 BRICKS)")
+        for pair, _bias, label, live, m_lv, w_lv, d_lv in sorted(strict_alignments, key=_neutral_last):
+            lines.append(
+                f"{_ICONS[label]} {pair} · {label} · Close: {_fmt(live, pair)}"
+                f" · M: {_leg(m_lv, pair)} · W: {_leg(w_lv, pair)} · D: {_leg(d_lv, pair)}"
+            )
+        lines.append("")
+
+    if mw_alignments:
+        lines.append("🧭 BIAIS M/W ALIGNÉ (D non confirmé)")
+        for pair, _bias, label, live, m_lv, w_lv, d_label in sorted(mw_alignments, key=_neutral_last):
+            lines.append(
+                f"{_ICONS[label]} {pair} · M/W {label} · D: {d_label} · Close: {_fmt(live, pair)}"
+                f" · M: {_leg(m_lv, pair)} · W: {_leg(w_lv, pair)}"
+            )
         lines.append("")
 
     lines.append(f"⏰ {now_paris} Paris")
@@ -331,7 +526,9 @@ def save_current_state(state: dict, file_path: Path = STATE_FILE) -> None:
 def parse_args():
     parser = argparse.ArgumentParser(description="Scan 29 pairs for Renko ATR(14) Fibonacci 50% retracement signals.")
     parser.add_argument("--length", type=int, default=14, help="ATR length.")
-    parser.add_argument("--candles", type=int, default=300, help="Number of candles fetched per symbol and timeframe.")
+    parser.add_argument("--candles", type=int, default=80, help="Number of Renko bricks / candles fetched per symbol and timeframe.")
+    parser.add_argument("--workers", type=int, default=8, help="Parallel fetch workers.")
+    parser.add_argument("--max-age-bricks", type=int, default=3, help="Max bricks since the Fibo 50%% cross for a signal to still count as fresh.")
     parser.add_argument("--telegram", action="store_true", help="Send scanner result to Telegram.")
     parser.add_argument("--force-telegram", action="store_true", help="Force Telegram send even if body unchanged.")
     return parser.parse_args()
@@ -341,7 +538,8 @@ def main():
     args = parse_args()
     print(f"[{datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M:%S Paris')}] Scanning 29 pairs for Renko Fibo 50% retracements...")
 
-    results = scan_all_pairs(length=args.length, candles=args.candles)
+    results = scan_all_pairs(length=args.length, candles=args.candles, workers=args.workers,
+                             max_age_bricks=args.max_age_bricks)
     report_text = format_telegram_fibo_50_report(results)
 
     if report_text:
@@ -350,11 +548,22 @@ def main():
         print("Aucun signal ou alignement Fibo 50% à signaler.")
 
     prev_state = load_previous_state()
-    body_hash = hashlib.sha256(report_text.encode("utf-8")).hexdigest() if report_text else ""
     last_hash = prev_state.get("last_body_hash", "")
+    body_hash = hashlib.sha256(report_text.encode("utf-8")).hexdigest() if report_text else ""
 
-    if args.telegram or os.getenv("ENABLE_TELEGRAM_FIBO_50", "").lower() == "true":
-        if report_text and (args.force_telegram or body_hash != last_hash):
+    telegram_enabled = args.telegram or os.getenv("ENABLE_TELEGRAM_FIBO_50", "").lower() == "true"
+
+    if not report_text:
+        # Reset the dedup hash so an identical report later is not swallowed.
+        if last_hash:
+            prev_state["last_body_hash"] = ""
+            save_current_state(prev_state)
+        if telegram_enabled:
+            print("Telegram send skipped (aucun signal).")
+        return
+
+    if telegram_enabled:
+        if args.force_telegram or body_hash != last_hash:
             print("Sending Telegram notification...")
             res = send_telegram_message(report_text)
             print(f"Telegram status: {res}")
@@ -362,7 +571,7 @@ def main():
             prev_state["last_sent_at"] = datetime.now(PARIS_TZ).isoformat()
             save_current_state(prev_state)
         else:
-            print("Telegram send skipped (message empty or unchanged).")
+            print("Telegram send skipped (message unchanged).")
 
 
 if __name__ == "__main__":
