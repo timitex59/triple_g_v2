@@ -34,7 +34,7 @@ import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -446,7 +446,12 @@ def bias_label(bias: str, live_close: float | None,
 
 
 PIPS_FILE = SCRIPT_DIR / "renko_fibo_50_pips.json"
-PIPS_VERSION = 1
+PIPS_VERSION = 2
+# Same conventions as the VIVIER tracker: a day is settled after this hour, and
+# a result below this many pips counts as flat rather than as a win or a loss.
+PIPS_DAY_END_HOUR_PARIS = 23
+PIPS_DAY_RESULT_EPSILON = 0.05
+PIPS_DAY_HISTORY = 400
 
 
 def pip_size(pair: str) -> float:
@@ -463,7 +468,8 @@ def load_pips_state(path: Path = PIPS_FILE) -> dict:
                 return payload
         except Exception:
             pass
-    return {"version": PIPS_VERSION, "year": None, "open": {}, "closed": []}
+    return {"version": PIPS_VERSION, "year": None, "open": {}, "closed": [],
+            "days": {}, "reports_sent": {"weekly": [], "monthly": []}}
 
 
 def save_pips_state(state: dict, path: Path = PIPS_FILE) -> None:
@@ -562,6 +568,75 @@ def update_pips_tracker(results: dict[str, dict[str, Fibo50AnchorState]],
     return state
 
 
+def _day_result(total_pips: float) -> str:
+    if total_pips > PIPS_DAY_RESULT_EPSILON:
+        return "WIN"
+    if total_pips < -PIPS_DAY_RESULT_EPSILON:
+        return "LOSS"
+    return "FLAT"
+
+
+def finalize_days(state: dict, now: datetime) -> dict:
+    """Settle every past day, and today once the session is over.
+
+    A settled day freezes its realised total and its verdict, which is what
+    makes win/loss/flat counts possible over a week or a month. Days without a
+    single closed position are settled as flat but flagged as inactive, so they
+    do not dilute the statistics.
+    """
+    days: dict = state.setdefault("days", {})
+    today = now.strftime("%Y-%m-%d")
+    by_day: dict[str, list[dict]] = {}
+    for row in state.get("closed") or []:
+        by_day.setdefault(str(row.get("exit_date")), []).append(row)
+
+    candidates = set(by_day) | {today}
+    for day_key in candidates:
+        if days.get(day_key, {}).get("finalized"):
+            continue
+        # Today is only settled once the session is over.
+        if day_key == today and now.hour < PIPS_DAY_END_HOUR_PARIS:
+            continue
+        if day_key > today:
+            continue
+        rows = by_day.get(day_key, [])
+        bull, bear, total = _sum_pips(rows)
+        days[day_key] = {
+            "date": day_key,
+            "bull_pips": round(bull, 1),
+            "bear_pips": round(bear, 1),
+            "total_pips": round(total, 1),
+            "trades": len(rows),
+            "active": bool(rows),
+            "result": _day_result(total) if rows else "FLAT",
+            "finalized": True,
+        }
+
+    for obsolete in sorted(days)[:-PIPS_DAY_HISTORY]:
+        days.pop(obsolete, None)
+    return state
+
+
+def _day_counts(state: dict, day_keys: list[str]) -> dict:
+    """Win/loss/flat tally over settled, active days."""
+    days = state.get("days") or {}
+    wins = losses = flats = followed = 0
+    for key in day_keys:
+        day = days.get(key) or {}
+        if not day.get("finalized") or not day.get("active"):
+            continue
+        followed += 1
+        result = day.get("result")
+        if result == "WIN":
+            wins += 1
+        elif result == "LOSS":
+            losses += 1
+        else:
+            flats += 1
+    return {"followed_days": followed, "winning_days": wins,
+            "losing_days": losses, "flat_days": flats}
+
+
 def _sum_pips(rows: list[dict]) -> tuple[float, float, float]:
     """(bull, bear, total) over a set of closed positions."""
     bull = sum(float(r.get("pips") or 0.0) for r in rows if r.get("direction") == 1)
@@ -571,6 +646,84 @@ def _sum_pips(rows: list[dict]) -> tuple[float, float, float]:
 
 def _fmt_pips(value: float) -> str:
     return f"{0.0 if abs(value) < 0.05 else value:+.1f}"
+
+
+_WEEKDAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"]
+_MONTHS = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet",
+           "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+
+
+def _is_last_day_of_month(day) -> bool:
+    return (day + timedelta(days=1)).month != day.month
+
+
+def periodic_pips_reports(state: dict, now: datetime) -> tuple[list[str], dict]:
+    """Weekly and monthly wrap-ups, each emitted once.
+
+    Weekly fires on Friday evening, monthly on the last day of the month —
+    calendar month, matching the requested "month after month until 31 December"
+    cycle rather than the VIVIER's last-Friday cycle.
+    """
+    if now.hour < PIPS_DAY_END_HOUR_PARIS:
+        return [], {}
+
+    days = state.get("days") or {}
+    sent = state.get("reports_sent") or {}
+    lines: list[str] = []
+    emitted: dict = {}
+
+    if now.weekday() == 4:                       # Friday
+        iso_year, iso_week, _ = now.isocalendar()
+        key = f"{iso_year}-W{iso_week:02d}"
+        if key not in (sent.get("weekly") or []):
+            monday = now.date() - timedelta(days=now.weekday())
+            week_keys = [(monday + timedelta(days=i)).isoformat() for i in range(5)]
+            block = ["📅 BILAN HEBDOMADAIRE"]
+            for i, day_key in enumerate(week_keys):
+                day = days.get(day_key) or {}
+                if day.get("finalized") and day.get("active"):
+                    block.append(f"{_WEEKDAYS[i]} : {_fmt_pips(day.get('total_pips', 0.0))} pips")
+            counts = _day_counts(state, week_keys)
+            total = sum((days.get(k) or {}).get("total_pips", 0.0) for k in week_keys)
+            block.append(
+                f"JOURS : 🟢 {counts['winning_days']} gagnants / "
+                f"🔴 {counts['losing_days']} perdants / ⚪ {counts['flat_days']} neutres"
+            )
+            block.append(f"TOTAL : {_fmt_pips(total)} pips")
+            lines.extend(block)
+            emitted["weekly"] = key
+
+    if _is_last_day_of_month(now.date()):
+        key = now.strftime("%Y-%m")
+        if key not in (sent.get("monthly") or []):
+            month_keys = [k for k in days if k.startswith(key)]
+            counts = _day_counts(state, month_keys)
+            bull = sum((days.get(k) or {}).get("bull_pips", 0.0) for k in month_keys)
+            bear = sum((days.get(k) or {}).get("bear_pips", 0.0) for k in month_keys)
+            if lines:
+                lines.append("")
+            lines.extend([
+                f"🗓 BILAN MENSUEL — {_MONTHS[now.month - 1]} {now.year}",
+                f"{counts['followed_days']} journées suivies",
+                f"JOURS : 🟢 {counts['winning_days']} gagnants / "
+                f"🔴 {counts['losing_days']} perdants / ⚪ {counts['flat_days']} neutres",
+                f"🟢 BULL : {_fmt_pips(bull)} pips",
+                f"🔴 BEAR : {_fmt_pips(bear)} pips",
+                f"Σ TOTAL : {_fmt_pips(bull + bear)} pips",
+            ])
+            emitted["monthly"] = key
+
+    return lines, emitted
+
+
+def mark_reports_sent(state: dict, emitted: dict) -> None:
+    """Remember which wrap-ups already went out, so they are never repeated."""
+    sent = state.setdefault("reports_sent", {"weekly": [], "monthly": []})
+    for kind, key in emitted.items():
+        keys = sent.setdefault(kind, [])
+        if key not in keys:
+            keys.append(key)
+            del keys[:-100]
 
 
 def pips_report_lines(state: dict, now: datetime | None = None) -> list[str]:
@@ -597,7 +750,7 @@ def pips_report_lines(state: dict, now: datetime | None = None) -> list[str]:
 
     d_bull, d_bear, d_total = _sum_pips([r for r in closed if on_day(r)])
     _, _, w_total = _sum_pips([r for r in closed if on_week(r)])
-    _, _, m_total = _sum_pips([r for r in closed if on_month(r)])
+    m_bull, m_bear, m_total = _sum_pips([r for r in closed if on_month(r)])
     _, _, y_total = _sum_pips(closed)          # closed is already year-scoped
 
     open_pos = state.get("open") or {}
@@ -607,8 +760,23 @@ def pips_report_lines(state: dict, now: datetime | None = None) -> list[str]:
         "💰 PIPS",
         f"📈 Daily : {_fmt_pips(d_total)} · 🟢 {_fmt_pips(d_bull)} 🔴 {_fmt_pips(d_bear)}",
         f"📊 Weekly : {_fmt_pips(w_total)} · Monthly : {_fmt_pips(m_total)}",
+        f"   🟢 {_fmt_pips(m_bull)} 🔴 {_fmt_pips(m_bear)} (mois)",
         f"🗓 YTD {state.get('year', now.year)} : {_fmt_pips(y_total)}",
     ]
+
+    today_day = (state.get("days") or {}).get(today) or {}
+    if today_day.get("finalized") and today_day.get("active"):
+        verdicts = {"WIN": "🟢 JOUR GAGNANT", "LOSS": "🔴 JOUR PERDANT"}
+        lines.append(verdicts.get(str(today_day.get("result")), "⚪ JOUR NEUTRE"))
+
+    monday = now.date() - timedelta(days=now.weekday())
+    counts = _day_counts(state, [(monday + timedelta(days=i)).isoformat() for i in range(7)])
+    if counts["followed_days"]:
+        lines.append(
+            f"📆 Semaine : 🟢 {counts['winning_days']} / "
+            f"🔴 {counts['losing_days']} / ⚪ {counts['flat_days']}"
+        )
+
     if open_pos:
         detail = " ".join(
             f"{p} {_fmt_pips(float(e.get('open_pips') or 0.0))}"
@@ -675,7 +843,8 @@ def build_sections(results: dict[str, dict[str, Fibo50AnchorState]],
 
 def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorState]],
                                    min_chg: float = DEFAULT_MIN_CHG,
-                                   pips_state: dict | None = None) -> str | None:
+                                   pips_state: dict | None = None,
+                                   periodic_lines: list[str] | None = None) -> str | None:
     """Formats the Telegram report: alignment sections plus the pip tracker."""
     daily_alignments, strict_alignments, mw_alignments = build_sections(results, min_chg)
 
@@ -699,6 +868,10 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
 
     if pips_state is not None:
         lines.extend(pips_report_lines(pips_state))
+        lines.append("")
+
+    if periodic_lines:
+        lines.extend(periodic_lines)
         lines.append("")
 
     while lines and not lines[-1]:
@@ -806,13 +979,17 @@ def main():
 
     results = scan_all_pairs(length=args.length, candles=args.candles, workers=args.workers,
                              max_age_bricks=args.max_age_bricks)
+    now_paris = datetime.now(PARIS_TZ)
     pips_state = load_pips_state()
     _daily, full_alignment, _mw = build_sections(results, min_chg=args.min_chg)
-    pips_state = update_pips_tracker(results, full_alignment, pips_state)
-    save_pips_state(pips_state)
+    pips_state = update_pips_tracker(results, full_alignment, pips_state, now=now_paris)
+    pips_state = finalize_days(pips_state, now_paris)
+    periodic_lines, emitted = periodic_pips_reports(pips_state, now_paris)
+    save_pips_state(pips_state)          # positions and settled days, always
 
     report_text = format_telegram_fibo_50_report(results, min_chg=args.min_chg,
-                                                 pips_state=pips_state)
+                                                 pips_state=pips_state,
+                                                 periodic_lines=periodic_lines)
 
     if report_text:
         print("\n" + report_text + "\n")
@@ -846,6 +1023,10 @@ def main():
                 prev_state["last_body_hash"] = body_hash
                 prev_state["last_sent_at"] = datetime.now(PARIS_TZ).isoformat()
                 save_current_state(prev_state)
+                # A wrap-up counts as delivered only once it actually left.
+                if emitted:
+                    mark_reports_sent(pips_state, emitted)
+                    save_pips_state(pips_state)
             else:
                 print("Envoi échoué: hash non enregistré, nouvelle tentative au prochain scan.")
         else:
