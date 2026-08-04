@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-08-04 10:17",
+  "updated_at_paris": "2026-08-04 11:17",
   "pairs": {
     "GBPCAD": {
       "direction": 1,
       "entered_at_paris": "2026-08-03 17:20",
-      "last_seen_at_paris": "2026-08-04 10:17",
+      "last_seen_at_paris": "2026-08-04 11:17",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -18,11 +18,11 @@
       },
       "base_pct": 83.33333333333334,
       "weighted_pct": 0.0,
-      "daily_chg": 0.012719612051833373,
+      "daily_chg": -0.011659644380840394,
       "daily_sar_dir": 1,
       "daily_sar_value": 1.877544,
       "fib_position": "Fibo <0.500",
-      "fib_pct_of_range": 47.72109870208251,
+      "fib_pct_of_range": 46.30244491397514,
       "fib_source": "PREVIOUS",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 43.344400845155384,
@@ -40,6 +40,40 @@
       "sar_last_processed_time_utc": "2026-08-03T21:00:00+00:00",
       "sar_record_value": 1.88505,
       "sar_record_time_utc": "2026-08-03T21:00:00+00:00"
+    },
+    "USDCHF": {
+      "direction": 1,
+      "entered_at_paris": "2026-08-04 11:17",
+      "last_seen_at_paris": "2026-08-04 11:17",
+      "entry_px": {
+        "M": 1,
+        "W": 1,
+        "D": 0
+      },
+      "last_px": {
+        "M": 1,
+        "W": 1,
+        "D": 0
+      },
+      "base_pct": 83.33333333333334,
+      "weighted_pct": 0.0,
+      "daily_chg": -0.043187483033497745,
+      "daily_sar_dir": -1,
+      "daily_sar_value": 0.814766,
+      "fib_position": "Fibo <0.500",
+      "fib_pct_of_range": 45.98984771573596,
+      "fib_source": "PREVIOUS",
+      "entry_fib_position": "Fibo <0.500",
+      "entry_fib_pct_of_range": 45.98984771573596,
+      "entry_fib_source": "PREVIOUS",
+      "sar_dir": 1,
+      "fib_context_month_utc": "2026-07",
+      "fib_objective_active": true,
+      "fib_objective_carried": false,
+      "fib_objective_value": 0.8207,
+      "fib_objective_origin_month_utc": "2026-07",
+      "fib_objective_started_time_utc": "2026-08-04T09:00:00+00:00",
+      "sar_flame": false
     }
   },
   "pending_objectives": {},
