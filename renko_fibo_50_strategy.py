@@ -500,7 +500,7 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
         return None
 
     now_paris = datetime.now(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
-    lines = ["📊 RENKO FIBO 50% RETRACEMENT", ""]
+    lines = ["📊 RENKO FIBO 50%", ""]
 
     for header, rows in (
         ("☀️ DAILY", daily_alignments),
@@ -514,6 +514,8 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
             lines.append(f"{_ICONS[label]} {pair} · {_fmt_chg(chg)}")
         lines.append("")
 
+    while lines and not lines[-1]:
+        lines.pop()
     lines.append(f"⏰ {now_paris} Paris")
     return "\n".join(lines)
 
