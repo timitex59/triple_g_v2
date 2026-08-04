@@ -14653,52 +14653,6 @@
       "reason": "MONTHLY_OR_SCORE_INVALID",
       "time_paris": "2026-08-04T13:00:00+02:00",
       "time_utc": "2026-08-04T11:00:00+00:00"
-    },
-    {
-      "base_pct": 100.0,
-      "complete": false,
-      "direction": 1,
-      "entered_at_paris": "2026-08-03 17:20",
-      "event_id": "164be4c8778c9dc15ea1",
-      "event_type": "SIGNAL_VIVIER",
-      "fib_pct_of_range": 59.13069725324499,
-      "fib_position": "Fibo <0.618",
-      "final_pct": 80.0,
-      "horizon_basis": "closed_h1_bars",
-      "horizons": {},
-      "objective_value": 1.90441,
-      "pair": "GBPCAD",
-      "price": 1.89018,
-      "px": {
-        "D": 1,
-        "M": 1,
-        "W": 1
-      },
-      "time_paris": "2026-08-04T14:00:00+02:00",
-      "time_utc": "2026-08-04T12:00:00+00:00"
-    },
-    {
-      "base_pct": 100.0,
-      "complete": false,
-      "direction": 1,
-      "event_id": "f23eaba62ff19324db21",
-      "event_type": "POST_ALIGNMENT_OBJECTIVE_CREATED",
-      "fib_pct_of_range": 59.13069725324499,
-      "fib_position": "Fibo <0.618",
-      "final_pct": 80.0,
-      "horizon_basis": "closed_h1_bars",
-      "horizons": {},
-      "objective_value": 1.90441,
-      "origin_month_utc": "2026-07",
-      "pair": "GBPCAD",
-      "price": 1.89018,
-      "px": {
-        "D": 1,
-        "M": 1,
-        "W": 1
-      },
-      "time_paris": "2026-08-04T14:00:00+02:00",
-      "time_utc": "2026-08-04T12:00:00+00:00"
     }
   ],
   "pair_profiles": {
@@ -15335,7 +15289,7 @@
           "profitable_within_24h_pct": 76.92307692307693,
           "profitable_within_4h_pct": 50.0,
           "profitable_within_72h_pct": 88.46153846153845,
-          "signals": 30,
+          "signals": 29,
           "status": "READY"
         }
       },
@@ -15375,7 +15329,7 @@
           "profitable_within_24h_pct": null,
           "profitable_within_4h_pct": null,
           "profitable_within_72h_pct": null,
-          "signals": 2,
+          "signals": 1,
           "status": "LEARNING"
         },
         "VIVIER_ENTRY": {
@@ -15436,7 +15390,7 @@
         "profitable_within_24h_pct": 76.92307692307693,
         "profitable_within_4h_pct": 50.0,
         "profitable_within_72h_pct": 88.46153846153845,
-        "signals": 30,
+        "signals": 29,
         "status": "READY"
       }
     },
@@ -16260,7 +16214,7 @@
         "avg_mae_72h_pct": -0.5078541182459461,
         "avg_mfe_72h_pct": 0.27427552729896887,
         "complete": 12,
-        "count": 14,
+        "count": 13,
         "horizons": {
           "12h": {
             "avg_directional_pct": -0.002016675319418076,
@@ -16450,7 +16404,7 @@
         "avg_mae_72h_pct": -0.4488725302610511,
         "avg_mfe_72h_pct": 0.30515115307737445,
         "complete": 12,
-        "count": 14,
+        "count": 13,
         "horizons": {
           "12h": {
             "avg_directional_pct": 0.00196848311887831,
@@ -16604,7 +16558,7 @@
       "avg_mae_72h_pct": -0.5942688272771481,
       "avg_mfe_72h_pct": 0.350578933615274,
       "complete": 188,
-      "count": 211,
+      "count": 209,
       "horizons": {
         "12h": {
           "avg_directional_pct": -0.10496125432547652,
@@ -16638,8 +16592,8 @@
         }
       }
     },
-    "total": 211
+    "total": 209
   },
-  "updated_at_utc": "2026-08-04T12:17:11.761962+00:00",
+  "updated_at_utc": "2026-08-04T12:20:54.374777+00:00",
   "version": 3
 }
