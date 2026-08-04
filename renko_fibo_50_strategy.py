@@ -386,6 +386,43 @@ def chg_confirms(label: str, chg: float | None, min_chg: float = DEFAULT_MIN_CHG
     return chg > 0 if label == "BULL" else chg < 0 if label == "BEAR" else False
 
 
+def currency_strengths(rows: list[tuple]) -> dict[str, set[int]]:
+    """Strength verdicts each retained pair casts on its two currencies.
+
+    A BULL on BASE/QUOTE means the base strengthens and the quote weakens;
+    a BEAR means the opposite. A currency collecting both +1 and -1 is telling
+    two contradictory stories at once.
+    """
+    votes: dict[str, set[int]] = {}
+    for pair, label, *_ in rows:
+        base, quote = pair[:3], pair[3:]
+        base_vote = 1 if label == "BULL" else -1
+        votes.setdefault(base, set()).add(base_vote)
+        votes.setdefault(quote, set()).add(-base_vote)
+    return votes
+
+
+def drop_currency_conflicts(*sections: list[tuple]) -> tuple[list[list[tuple]], set[str]]:
+    """Remove every pair touching a currency whose verdicts contradict.
+
+    Conflicts are resolved across ALL sections at once: a currency is a single
+    market view, so it cannot be strong in one section and weak in another.
+    Single pass — a pair is dropped on the conflict set computed from the full
+    original selection, so the outcome never depends on evaluation order.
+    """
+    all_rows = [row for section in sections for row in section]
+    conflicted = {cur for cur, votes in currency_strengths(all_rows).items() if len(votes) > 1}
+    if not conflicted:
+        return list(sections), conflicted
+
+    cleaned = [
+        [row for row in section
+         if row[0][:3] not in conflicted and row[0][3:] not in conflicted]
+        for section in sections
+    ]
+    return cleaned, conflicted
+
+
 def bias_label(bias: str, live_close: float | None,
                tf_levels: list[tuple[float, float]]) -> str:
     """A directional bias only holds when the full chain lines up on EVERY
@@ -453,6 +490,11 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
             label = bias_label(bias, live, [m_lv, w_lv])
             if label != "NEUTRE" and chg_confirms(label, w_state.daily_chg, min_chg):
                 mw_alignments.append((pair, label, w_state.daily_chg))
+
+    (daily_alignments, strict_alignments, mw_alignments), conflicted = \
+        drop_currency_conflicts(daily_alignments, strict_alignments, mw_alignments)
+    if conflicted:
+        print(f"  Devises contradictoires, paires exclues: {', '.join(sorted(conflicted))}")
 
     if not (daily_alignments or strict_alignments or mw_alignments):
         return None
