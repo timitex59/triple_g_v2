@@ -373,6 +373,18 @@ def _fmt_chg(chg: float | None) -> str:
     return "CHG n/a" if chg is None else f"{chg:+.2f}%"
 
 
+DEFAULT_MIN_CHG = 0.05
+
+
+def chg_confirms(label: str, chg: float | None, min_chg: float = DEFAULT_MIN_CHG) -> bool:
+    """The day's move must back the structural bias, and be big enough to mean
+    something: |chg| strictly above min_chg, and its sign matching the bias
+    (positive for BULL, negative for BEAR). An unknown change never confirms."""
+    if chg is None or abs(chg) <= min_chg:
+        return False
+    return chg > 0 if label == "BULL" else chg < 0 if label == "BEAR" else False
+
+
 def bias_label(bias: str, live_close: float | None,
                tf_levels: list[tuple[float, float]]) -> str:
     """A directional bias only holds when the full chain lines up on EVERY
@@ -395,7 +407,8 @@ def bias_label(bias: str, live_close: float | None,
     return "NEUTRE"
 
 
-def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorState]]) -> str | None:
+def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorState]],
+                                   min_chg: float = DEFAULT_MIN_CHG) -> str | None:
     """Formats a clean Telegram report summarizing Fibo 50% signals and alignments."""
     daily_alignments = []
     strict_alignments = []
@@ -413,7 +426,7 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
             d_bias = "BULL" if d_state.direction == 1 else "BEAR"
             d_lv_solo = (d_state.last_brick_close, d_state.fibo_50)
             d_label_solo = bias_label(d_bias, d_state.live_price, [d_lv_solo])
-            if d_label_solo != "NEUTRE":
+            if d_label_solo != "NEUTRE" and chg_confirms(d_label_solo, d_state.daily_chg, min_chg):
                 daily_alignments.append((pair, d_label_solo, d_state.daily_chg))
 
         # Monthly + Weekly agreeing is the base structural bias. Daily is then
@@ -433,11 +446,11 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
         if d_state and d_state.three_brick_confirmed and d_state.direction == m_state.direction:
             d_lv = (d_state.last_brick_close, d_state.fibo_50)
             label = bias_label(bias, live, [m_lv, w_lv, d_lv])
-            if label != "NEUTRE":
+            if label != "NEUTRE" and chg_confirms(label, d_state.daily_chg, min_chg):
                 strict_alignments.append((pair, label, d_state.daily_chg))
         else:
             label = bias_label(bias, live, [m_lv, w_lv])
-            if label != "NEUTRE":
+            if label != "NEUTRE" and chg_confirms(label, w_state.daily_chg, min_chg):
                 mw_alignments.append((pair, label, w_state.daily_chg))
 
     if not (daily_alignments or strict_alignments or mw_alignments):
@@ -538,6 +551,7 @@ def parse_args():
     parser.add_argument("--length", type=int, default=14, help="ATR length.")
     parser.add_argument("--candles", type=int, default=80, help="Number of Renko bricks / candles fetched per symbol and timeframe.")
     parser.add_argument("--workers", type=int, default=8, help="Parallel fetch workers.")
+    parser.add_argument("--min-chg", type=float, default=DEFAULT_MIN_CHG, help="Minimum absolute daily change %% required, exclusive.")
     parser.add_argument("--max-age-bricks", type=int, default=3, help="Max bricks since the Fibo 50%% cross for a signal to still count as fresh.")
     parser.add_argument("--telegram", action="store_true", help="Send scanner result to Telegram.")
     parser.add_argument("--force-telegram", action="store_true", help="Force Telegram send even if body unchanged.")
@@ -550,7 +564,7 @@ def main():
 
     results = scan_all_pairs(length=args.length, candles=args.candles, workers=args.workers,
                              max_age_bricks=args.max_age_bricks)
-    report_text = format_telegram_fibo_50_report(results)
+    report_text = format_telegram_fibo_50_report(results, min_chg=args.min_chg)
 
     if report_text:
         print("\n" + report_text + "\n")
