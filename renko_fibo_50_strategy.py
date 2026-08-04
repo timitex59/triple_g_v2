@@ -445,9 +445,183 @@ def bias_label(bias: str, live_close: float | None,
     return "NEUTRE"
 
 
-def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorState]],
-                                   min_chg: float = DEFAULT_MIN_CHG) -> str | None:
-    """Formats a clean Telegram report summarizing Fibo 50% signals and alignments."""
+PIPS_FILE = SCRIPT_DIR / "renko_fibo_50_pips.json"
+PIPS_VERSION = 1
+
+
+def pip_size(pair: str) -> float:
+    """Standard pip size for the 29-instrument universe (same as the VIVIER)."""
+    return 0.01 if pair.endswith("JPY") or pair == "XAUUSD" else 0.0001
+
+
+def load_pips_state(path: Path = PIPS_FILE) -> dict:
+    if path.exists():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            if isinstance(payload, dict):
+                return payload
+        except Exception:
+            pass
+    return {"version": PIPS_VERSION, "year": None, "open": {}, "closed": []}
+
+
+def save_pips_state(state: dict, path: Path = PIPS_FILE) -> None:
+    try:
+        tmp = path.with_suffix(f".tmp{os.getpid()}")
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2, sort_keys=True)
+        os.replace(tmp, path)
+    except Exception as e:
+        print(f"Warning: Failed to save pips file {path}: {e}")
+
+
+def structure_holds(tf_map: dict[str, Fibo50AnchorState]) -> int:
+    """Direction of the M/W/D SAR structure, 0 when it no longer holds.
+
+    This is what keeps a virtual position alive. The display filters (daily
+    change, currency coherence) can hide a pair from the report without closing
+    its position — only the structure breaking does that.
+    """
+    m, w, d = tf_map.get("M"), tf_map.get("W"), tf_map.get("D")
+    if not (m and w and d):
+        return 0
+    if not (m.three_brick_confirmed and w.three_brick_confirmed and d.three_brick_confirmed):
+        return 0
+    if m.direction == w.direction == d.direction and m.direction != 0:
+        return m.direction
+    return 0
+
+
+def update_pips_tracker(results: dict[str, dict[str, Fibo50AnchorState]],
+                        full_alignment: list[tuple], state: dict,
+                        now: datetime | None = None) -> dict:
+    """Open a virtual position when a pair reaches FULL ALIGNMENT, hold it while
+    the M/W/D structure survives, close it when that structure breaks."""
+    now = now or datetime.now(PARIS_TZ)
+
+    # Yearly reset: cumulative totals restart on 1 January. Open positions carry
+    # over — it is the accounting that restarts, not the market view.
+    if state.get("year") != now.year:
+        state["year"] = now.year
+        state["closed"] = []
+
+    open_pos: dict = state.setdefault("open", {})
+    closed: list = state.setdefault("closed", [])
+
+    # 1. Close positions whose structure broke (or reversed).
+    for pair in list(open_pos):
+        entry = open_pos[pair]
+        tf_map = results.get(pair) or {}
+        direction = structure_holds(tf_map)
+        d_state = tf_map.get("D")
+        price = d_state.live_price if d_state else None
+
+        if direction == entry.get("direction") and direction != 0:
+            continue                                  # still valid, hold
+        if price is None:
+            continue                                  # no price: cannot close fairly
+
+        pips = (price - entry["entry_price"]) / pip_size(pair) * entry["direction"]
+        closed.append({
+            "pair": pair,
+            "direction": entry["direction"],
+            "entry_price": entry["entry_price"],
+            "entry_date": entry["entry_date"],
+            "exit_price": float(price),
+            "exit_date": now.strftime("%Y-%m-%d"),
+            "exit_time": now.isoformat(),
+            "pips": round(pips, 1),
+            "reason": "reversed" if direction else "structure_broken",
+        })
+        open_pos.pop(pair)
+
+    # 2. Open a position for every newly listed FULL ALIGNMENT pair.
+    for pair, label, _chg in full_alignment:
+        if pair in open_pos:
+            continue
+        d_state = (results.get(pair) or {}).get("D")
+        price = d_state.live_price if d_state else None
+        if price is None:
+            continue
+        open_pos[pair] = {
+            "direction": 1 if label == "BULL" else -1,
+            "entry_price": float(price),
+            "entry_date": now.strftime("%Y-%m-%d"),
+            "entry_time": now.isoformat(),
+        }
+
+    # 3. Refresh the unrealised value of every open position.
+    for pair, entry in open_pos.items():
+        d_state = (results.get(pair) or {}).get("D")
+        price = d_state.live_price if d_state else None
+        if price is not None:
+            entry["last_price"] = float(price)
+            entry["open_pips"] = round(
+                (price - entry["entry_price"]) / pip_size(pair) * entry["direction"], 1)
+    return state
+
+
+def _sum_pips(rows: list[dict]) -> tuple[float, float, float]:
+    """(bull, bear, total) over a set of closed positions."""
+    bull = sum(float(r.get("pips") or 0.0) for r in rows if r.get("direction") == 1)
+    bear = sum(float(r.get("pips") or 0.0) for r in rows if r.get("direction") == -1)
+    return bull, bear, bull + bear
+
+
+def _fmt_pips(value: float) -> str:
+    return f"{0.0 if abs(value) < 0.05 else value:+.1f}"
+
+
+def pips_report_lines(state: dict, now: datetime | None = None) -> list[str]:
+    """💰 PIPS section: realised day / week / month / year-to-date, plus the
+    unrealised total of the positions still open."""
+    now = now or datetime.now(PARIS_TZ)
+    closed = state.get("closed") or []
+
+    today = now.strftime("%Y-%m-%d")
+    week = now.isocalendar()[:2]
+    month = now.strftime("%Y-%m")
+
+    def on_day(r):
+        return r.get("exit_date") == today
+
+    def on_week(r):
+        try:
+            return datetime.strptime(r.get("exit_date", ""), "%Y-%m-%d").isocalendar()[:2] == week
+        except ValueError:
+            return False
+
+    def on_month(r):
+        return str(r.get("exit_date", "")).startswith(month)
+
+    d_bull, d_bear, d_total = _sum_pips([r for r in closed if on_day(r)])
+    _, _, w_total = _sum_pips([r for r in closed if on_week(r)])
+    _, _, m_total = _sum_pips([r for r in closed if on_month(r)])
+    _, _, y_total = _sum_pips(closed)          # closed is already year-scoped
+
+    open_pos = state.get("open") or {}
+    open_pips = sum(float(e.get("open_pips") or 0.0) for e in open_pos.values())
+
+    lines = [
+        "💰 PIPS",
+        f"📈 Daily : {_fmt_pips(d_total)} · 🟢 {_fmt_pips(d_bull)} 🔴 {_fmt_pips(d_bear)}",
+        f"📊 Weekly : {_fmt_pips(w_total)} · Monthly : {_fmt_pips(m_total)}",
+        f"🗓 YTD {state.get('year', now.year)} : {_fmt_pips(y_total)}",
+    ]
+    if open_pos:
+        detail = " ".join(
+            f"{p} {_fmt_pips(float(e.get('open_pips') or 0.0))}"
+            for p, e in sorted(open_pos.items())
+        )
+        lines.append(f"🔓 Ouvert {_fmt_pips(open_pips)} · {detail}")
+    return lines
+
+
+def build_sections(results: dict[str, dict[str, Fibo50AnchorState]],
+                   min_chg: float = DEFAULT_MIN_CHG) -> tuple[list, list, list]:
+    """The three report sections, after every filter. Shared by the report and
+    the pip tracker so both always agree on what qualifies."""
     daily_alignments = []
     strict_alignments = []
     mw_alignments = []
@@ -496,6 +670,15 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
     if conflicted:
         print(f"  Devises contradictoires, paires exclues: {', '.join(sorted(conflicted))}")
 
+    return daily_alignments, strict_alignments, mw_alignments
+
+
+def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorState]],
+                                   min_chg: float = DEFAULT_MIN_CHG,
+                                   pips_state: dict | None = None) -> str | None:
+    """Formats the Telegram report: alignment sections plus the pip tracker."""
+    daily_alignments, strict_alignments, mw_alignments = build_sections(results, min_chg)
+
     if not (daily_alignments or strict_alignments or mw_alignments):
         return None
 
@@ -512,6 +695,10 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
         lines.append(header)
         for pair, label, chg in sorted(rows, key=lambda r: r[0]):
             lines.append(f"{_ICONS[label]} {pair} · {_fmt_chg(chg)}")
+        lines.append("")
+
+    if pips_state is not None:
+        lines.extend(pips_report_lines(pips_state))
         lines.append("")
 
     while lines and not lines[-1]:
@@ -532,7 +719,13 @@ def signal_hash(report_text: str | None) -> str:
     """
     if not report_text:
         return ""
-    body = "\n".join(l for l in report_text.splitlines() if not l.startswith("⏰"))
+    kept = []
+    for line in report_text.splitlines():
+        if line.startswith("💰"):
+            break                     # pip totals move on every tick
+        if not line.startswith("⏰"):
+            kept.append(line)
+    body = "\n".join(kept)
     # The daily change drifts with every tick, so hashing it would make each
     # scan look new and re-send the same selection ~19 times a day. What matters
     # is WHICH pairs are listed under WHICH bias, not the exact percentage.
@@ -613,7 +806,13 @@ def main():
 
     results = scan_all_pairs(length=args.length, candles=args.candles, workers=args.workers,
                              max_age_bricks=args.max_age_bricks)
-    report_text = format_telegram_fibo_50_report(results, min_chg=args.min_chg)
+    pips_state = load_pips_state()
+    _daily, full_alignment, _mw = build_sections(results, min_chg=args.min_chg)
+    pips_state = update_pips_tracker(results, full_alignment, pips_state)
+    save_pips_state(pips_state)
+
+    report_text = format_telegram_fibo_50_report(results, min_chg=args.min_chg,
+                                                 pips_state=pips_state)
 
     if report_text:
         print("\n" + report_text + "\n")
