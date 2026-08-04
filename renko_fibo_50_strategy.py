@@ -505,6 +505,59 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
     return "\n".join(lines)
 
 
+TELEGRAM_MAX_CHARS = 4096
+
+
+def signal_hash(report_text: str | None) -> str:
+    """Fingerprint of the report CONTENT, timestamp excluded.
+
+    The report ends with a '⏰ <date> <heure> Paris' line that changes every
+    minute. Hashing the whole text made every scan look like new content, so the
+    dedup check never matched and Telegram fired on each run.
+    """
+    if not report_text:
+        return ""
+    body = "\n".join(l for l in report_text.splitlines() if not l.startswith("⏰"))
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def split_for_telegram(text: str, limit: int = TELEGRAM_MAX_CHARS) -> list[str]:
+    """Split on line boundaries so no chunk exceeds Telegram's message limit.
+    A single oversized message is rejected by the API and silently lost."""
+    if len(text) <= limit:
+        return [text]
+
+    chunks: list[str] = []
+    current: list[str] = []
+    size = 0
+    for line in text.splitlines():
+        line = line[:limit]                      # pathological single line
+        extra = len(line) + (1 if current else 0)
+        if size + extra > limit and current:
+            chunks.append("\n".join(current))
+            current, size = [line], len(line)
+        else:
+            current.append(line)
+            size += extra
+    if current:
+        chunks.append("\n".join(current))
+    return chunks
+
+
+def send_telegram_report(report_text: str) -> bool:
+    """Send the report, split across several messages when needed.
+    Returns True only if every chunk went through."""
+    chunks = split_for_telegram(report_text)
+    if len(chunks) > 1:
+        print(f"Rapport découpé en {len(chunks)} messages ({len(report_text)} caractères).")
+    ok = True
+    for i, chunk in enumerate(chunks, 1):
+        suffix = f"\n\n({i}/{len(chunks)})" if len(chunks) > 1 else ""
+        if not send_telegram_message(chunk + suffix):
+            ok = False
+    return ok
+
+
 def load_previous_state(file_path: Path = STATE_FILE) -> dict:
     if file_path.exists():
         try:
@@ -549,7 +602,7 @@ def main():
 
     prev_state = load_previous_state()
     last_hash = prev_state.get("last_body_hash", "")
-    body_hash = hashlib.sha256(report_text.encode("utf-8")).hexdigest() if report_text else ""
+    body_hash = signal_hash(report_text)
 
     telegram_enabled = args.telegram or os.getenv("ENABLE_TELEGRAM_FIBO_50", "").lower() == "true"
 
@@ -565,11 +618,17 @@ def main():
     if telegram_enabled:
         if args.force_telegram or body_hash != last_hash:
             print("Sending Telegram notification...")
-            res = send_telegram_message(report_text)
-            print(f"Telegram status: {res}")
-            prev_state["last_body_hash"] = body_hash
-            prev_state["last_sent_at"] = datetime.now(PARIS_TZ).isoformat()
-            save_current_state(prev_state)
+            ok = send_telegram_report(report_text)
+            print(f"Telegram status: {ok}")
+            # Only remember the hash on success — otherwise a failed send would
+            # mark the report as "already delivered" and it would never be
+            # retried on the next scan.
+            if ok:
+                prev_state["last_body_hash"] = body_hash
+                prev_state["last_sent_at"] = datetime.now(PARIS_TZ).isoformat()
+                save_current_state(prev_state)
+            else:
+                print("Envoi échoué: hash non enregistré, nouvelle tentative au prochain scan.")
         else:
             print("Telegram send skipped (message unchanged).")
 
