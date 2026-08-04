@@ -503,9 +503,9 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
     lines = ["📊 RENKO FIBO 50% RETRACEMENT", ""]
 
     for header, rows in (
-        ("☀️ DAILY ALIGNÉ (Close > PX > Fibo 50%)", daily_alignments),
-        ("📊 FULL ALIGNMENT M/W/D (SAR + 3 BRICKS)", strict_alignments),
-        ("🧭 BIAIS M/W ALIGNÉ (D non confirmé)", mw_alignments),
+        ("☀️ DAILY", daily_alignments),
+        ("📊 FULL ALIGNMENT", strict_alignments),
+        ("🧭 BIAIS M/W", mw_alignments),
     ):
         if not rows:
             continue
