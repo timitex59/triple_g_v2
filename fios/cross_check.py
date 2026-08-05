@@ -235,10 +235,10 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
                     and _big(r) and _solid(r["tf_up"], r["tf_down"], -1)],
                    key=lambda r: r["strength"], reverse=True)
 
-    lines = ["🔀 CONFLUENCE", ""]
     if not buys and not sells:
-        lines.append("Aucune paire alignée aujourd'hui.")
-        return lines
+        return []  # rien d'aligne -> pas de message (evite le spam horaire)
+
+    lines = ["🔀 CONFLUENCE", ""]
     for r in buys:
         lines.append(f"🟢 {r['pair']} ({r['daily_chg']:+.2f}%)")
     for r in sells:

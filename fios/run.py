@@ -98,7 +98,7 @@ def main() -> None:
         return
     pairs_section = cross_check.build_pairs_section(composites, align)
     if not pairs_section:
-        print("Sidecar sans paires (renko_full_alignment doit tourner avant FIOS).")
+        print("Aucune paire alignée (ou sidecar sans paires) — pas de message.")
         tv_feed.clear_cache()
         return
 
