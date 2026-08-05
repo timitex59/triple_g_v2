@@ -74,10 +74,34 @@ def _plan_lines(plan: dict | None) -> list[str]:
     if not plan:
         return []
     return [
-        (f"   📍 Entrée {plan['entry_s']} · SL {plan['sl_s']} · "
+        (f"   📍 Entrée {plan['entry_s']} (base ATR) · SL {plan['sl_s']} · "
          f"TP1 {plan['tp1_s']} · TP2 {plan['tp2_s']} · RR {plan['rr']:.1f}"),
         f"   ❌ Invalidation : clôture D au-delà de {plan['sl_s']}",
     ]
+
+
+def _drivers_line(sig: PairSignal, drivers: dict | None) -> str:
+    """Traçabilite fondamentale : les drivers FRED deja calcules pour base/quote."""
+    if not drivers:
+        return ""
+
+    def _top(cur: str) -> str:
+        d = drivers.get(cur) or {}
+        items = [kv for kv in d.items() if abs(kv[1]) >= 0.05]
+        items = sorted(items, key=lambda kv: abs(kv[1]), reverse=True)[:3]
+        return ", ".join(f"{lbl} {v:+.2f}" for lbl, v in items)
+
+    b, q = _top(sig.base), _top(sig.quote)
+    if not b and not q:
+        return ""
+    return f"   🧩 Fond {sig.base}: {b or '—'} · {sig.quote}: {q or '—'}"
+
+
+def _market_state_lines(state: dict | None) -> list[str]:
+    if not state or state.get("risk") in (None, "n/d"):
+        return []
+    return [f"📋 État du marché : {state.get('risk', 'n/d')} · "
+            f"volatilité {state.get('vol', 'n/d')}"]
 
 
 def _families_line(families: dict[str, FamilyResult]) -> str:
@@ -102,18 +126,27 @@ def build_message(
     composites: dict[str, dict] | None = None,
     freshness: dict | None = None,
     trade_plans: dict[str, dict] | None = None,
+    market: dict | None = None,
+    regimes: dict[str, str] | None = None,
+    fundamental_drivers: dict | None = None,
 ) -> str:
     now = datetime.now(PARIS).strftime("%d/%m/%Y %H:%M")
     trade_plans = trade_plans or {}
+    regimes = regimes or {}
     lines: list[str] = []
-    lines.append("🧭 FIOS — Confluence Forex")
+    lines.append("🧭 FIOS — Desk Forex")
     lines.append(_families_line(families))
     fr_line = _freshness_line(families, freshness)
     if fr_line:
         lines.append(fr_line)
     lines.append("")
+    # 1) L'histoire du marche AVANT les signaux (facon note de desk).
+    ms = _market_state_lines(market)
+    if ms:
+        lines.extend(ms)
+        lines.append("")
     if desk_note:
-        lines.append("🧠 Note du desk")
+        lines.append("🧠 Desk Summary")
         lines.append(desk_note.strip())
         lines.append("")
     lines.append("💪 Force devises (0-100)")
@@ -128,17 +161,25 @@ def build_message(
 
     actionable = [s for s in signals if s.decision != "WAIT"][:top_n]
     if actionable:
-        lines.append("🎯 Signaux (confluence)")
-        for s in actionable:
+        lines.append("🎯 Opportunités (classées)")
+        for i, s in enumerate(actionable, 1):
             emoji = "🟢" if s.decision == "BUY" else "🔴"
             stars = "★" * s.quality + "☆" * (5 - s.quality)
-            badge = " 🔷 Premium" if s.premium else ""
+            badge = " 🔷" if s.premium else ""
+            reg = regimes.get(s.pair)
+            reg_txt = f" · Régime {reg}" if reg and reg != "n/d" else ""
             lines.append(
-                f"{emoji} {_FR.get(s.decision, s.decision)} {s.pair}  {stars}  "
-                f"{s.agree}/{s.families} fam · cohérence {s.coherence:.0f}% · "
-                f"conf {s.confidence:.0f}%{badge}"
+                f"{i}. {emoji} {_FR.get(s.decision, s.decision)} {s.pair}  "
+                f"Conviction {stars}{badge}{reg_txt}"
+            )
+            lines.append(
+                f"   {s.agree}/{s.families} familles · cohérence {s.coherence:.0f}% · "
+                f"confiance FIOS {s.confidence:.0f}%"
             )
             lines.append(f"   {_vote_line(s)}")
+            dl = _drivers_line(s, fundamental_drivers)
+            if dl:
+                lines.append(dl)
             lines.extend(_plan_lines(trade_plans.get(s.pair)))
             lines.append("")
     else:

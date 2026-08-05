@@ -30,6 +30,7 @@ from . import config as cfg
 from . import cross_check
 from . import journal as journal_mod
 from . import llm_explain
+from . import regime as regime_mod
 from . import report as report_mod
 from . import trade_plan
 from . import tv_feed
@@ -214,15 +215,19 @@ def main() -> None:
         except Exception:
             freshness["sentiment"] = "COT"
 
-    # --- Plans de trade (entree/SL/TP/RR) pour les signaux actionnables ---
+    # --- Plans de trade + contexte (etat marche, regime par paire) ---
     pairs_by_name = {p["name"]: p for p in pairs}
     trade_plans = trade_plan.plans_for(signals, pairs_by_name, args.top)
+    market = regime_mod.market_state(corr)
+    regimes = regime_mod.regimes_for(signals, pairs_by_name, args.top)
+    fund_drivers = fund.details.get("drivers", {}) if fund.available else {}
 
     # --- Telegram ---
     message = report_mod.build_message(
         ranking_rows, signals, families, top_n=args.top,
         desk_note=desk_note, cross_section=cross_section, composites=composites,
         freshness=freshness, trade_plans=trade_plans,
+        market=market, regimes=regimes, fundamental_drivers=fund_drivers,
     )
     print(message)
     if not args.no_telegram:
