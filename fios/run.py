@@ -28,6 +28,7 @@ from dotenv import load_dotenv
 
 from . import config as cfg
 from . import journal as journal_mod
+from . import llm_explain
 from . import report as report_mod
 from . import tv_feed
 from .adapters import correlations as corr_adapter
@@ -71,6 +72,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--no-retail", action="store_true", help="Ignorer le sentiment retail (OANDA/Myfxbook)")
     p.add_argument("--no-fund", action="store_true", help="Ignorer le fondamental FRED")
     p.add_argument("--no-corr", action="store_true", help="Ignorer les correlations")
+    p.add_argument("--no-llm", action="store_true", help="Ignorer la note du desk (LLM)")
     p.add_argument("--limit", type=int, default=0, help="Limiter le nb de paires (0 = toutes)")
     p.add_argument("--top", type=int, default=5, help="Nb de signaux dans le message")
     p.add_argument("--verbose", action="store_true", help="Detail par adaptateur")
@@ -163,8 +165,17 @@ def main() -> None:
     with open(cfg.REPORT_JSON, "w", encoding="utf-8") as f:
         json.dump(snapshot, f, ensure_ascii=False, indent=2)
 
+    # --- Note du desk (LLM) ---
+    desk_note = None
+    if not args.no_llm:
+        print("• Note du desk (LLM)...")
+        desk_note = llm_explain.desk_note(ranking_rows, signals, families)
+        print("   " + ("note generee" if desk_note else "indisponible — repli gabarit"))
+
     # --- Telegram ---
-    message = report_mod.build_message(ranking_rows, signals, families, top_n=args.top)
+    message = report_mod.build_message(
+        ranking_rows, signals, families, top_n=args.top, desk_note=desk_note
+    )
     print(message)
     if not args.no_telegram:
         send_telegram(message)

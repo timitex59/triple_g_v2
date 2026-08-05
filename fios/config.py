@@ -176,6 +176,22 @@ SELL_THRESHOLD = -25.0
 # Nb minimal de familles independantes qui doivent converger pour un signal.
 MIN_FAMILIES_AGREE = 2
 
+# --- Explication LLM (Phase 1.2) -------------------------------------------
+
+# Couche d'explication en langage naturel : une "note du desk" concise redigee
+# a partir des donnees FIOS deja calculees. Anthropic (Claude) par defaut,
+# OpenAI en secours ; repli sur le gabarit deterministe si l'API echoue.
+# Cles : ANTHROPIC_API_KEY / OPENAI_API_KEY. Selection : FIOS_LLM_PROVIDER
+# ("anthropic" | "openai" | "off"), FIOS_LLM_MODEL pour forcer un modele.
+LLM_PROVIDER_DEFAULT = "anthropic"
+LLM_ANTHROPIC_MODEL = "claude-opus-5"
+# OpenAI (secours). Modele recent par defaut ; override via FIOS_LLM_MODEL
+# (ex. "gpt-4.1", "gpt-5", "o4-mini"). L'appel gere automatiquement le
+# parametre max_completion_tokens requis par les modeles recents.
+LLM_OPENAI_MODEL = "gpt-4o"
+LLM_MAX_TOKENS = 700
+LLM_TOP_SIGNALS = 5  # nb de signaux transmis au LLM pour la note
+
 # --- Sorties ---------------------------------------------------------------
 
 JOURNAL_FILE = "fios_journal.json"

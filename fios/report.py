@@ -38,12 +38,17 @@ def build_message(
     signals: list[PairSignal],
     families: dict[str, FamilyResult],
     top_n: int = 5,
+    desk_note: str | None = None,
 ) -> str:
     now = datetime.now(PARIS).strftime("%d/%m/%Y %H:%M")
     lines: list[str] = []
     lines.append("🧭 FIOS — Confluence Forex")
     lines.append(_families_line(families))
     lines.append("")
+    if desk_note:
+        lines.append("🧠 Note du desk")
+        lines.append(desk_note.strip())
+        lines.append("")
     lines.append("💪 Force devises (0-100)")
     lines.append(_ranking_line(ranking_rows))
     lines.append("")
