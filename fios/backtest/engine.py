@@ -60,12 +60,17 @@ def _mk(outcome: str, reason: str, entry_price: float, exit_price: float,
 
 def resolve_forward(
     df: pd.DataFrame, entry_idx: int, direction: int,
-    sl_mult: float = cfg.BT_SL_ATR, tp_mult: float = cfg.BT_TP_ATR,
-    max_bars: int = cfg.BT_MAX_BARS, atr_len: int = cfg.BT_ATR_LEN,
+    sl_mult: float | None = None, tp_mult: float | None = None,
+    max_bars: int | None = None, atr_len: int | None = None,
 ) -> dict | None:
     """Denoue une entree a partir de la bougie entry_idx. direction: +1 long,
-    -1 short. Retourne None si l'ATR est nul ou s'il n'y a aucune bougie apres
-    l'entree (signal trop recent -> OPEN a gerer par l'appelant)."""
+    -1 short. Les parametres None sont lus dans config AU MOMENT DE L'APPEL
+    (permet les overrides CLI). Retourne None si l'ATR est nul ou s'il n'y a
+    aucune bougie apres l'entree (signal trop recent -> OPEN cote appelant)."""
+    sl_mult = cfg.BT_SL_ATR if sl_mult is None else sl_mult
+    tp_mult = cfg.BT_TP_ATR if tp_mult is None else tp_mult
+    max_bars = cfg.BT_MAX_BARS if max_bars is None else max_bars
+    atr_len = cfg.BT_ATR_LEN if atr_len is None else atr_len
     n = len(df)
     if entry_idx < 0 or entry_idx >= n - 1:
         return None

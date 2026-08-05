@@ -113,7 +113,25 @@ def main() -> None:
     p.add_argument("--mode", choices=["history", "journal", "both"], default="history")
     p.add_argument("--limit", type=int, default=0, help="Limiter le nb de paires (historique)")
     p.add_argument("--verbose", action="store_true")
+    # Overrides de parametres (tuning). Appliques a config avant execution.
+    p.add_argument("--sl", type=float, help="Stop en multiples d'ATR (defaut %.1f)" % cfg.BT_SL_ATR)
+    p.add_argument("--tp", type=float, help="Cible en multiples d'ATR (defaut %.1f)" % cfg.BT_TP_ATR)
+    p.add_argument("--threshold", type=float, help="Seuil |score| d'entree (defaut %.2f)" % cfg.BT_ENTRY_THRESHOLD)
+    p.add_argument("--horizon", type=int, help="Horizon max en bougies (defaut %d)" % cfg.BT_MAX_BARS)
+    p.add_argument("--tf", choices=list(cfg.TIMEFRAMES.keys()), help="Timeframe de denouement")
     args = p.parse_args()
+
+    # Application des overrides (les fonctions relisent config au moment de l'appel).
+    if args.sl is not None:
+        cfg.BT_SL_ATR = args.sl
+    if args.tp is not None:
+        cfg.BT_TP_ATR = args.tp
+    if args.threshold is not None:
+        cfg.BT_ENTRY_THRESHOLD = args.threshold
+    if args.horizon is not None:
+        cfg.BT_MAX_BARS = args.horizon
+    if args.tf is not None:
+        cfg.BT_TF = args.tf
 
     pairs = cfg.PAIRS[: args.limit] if args.limit else cfg.PAIRS
     if args.mode in ("history", "both"):
