@@ -71,6 +71,22 @@ def _align_score(a: dict) -> float:
     return (m * 3 + w * 2 + d * 1) / 6.0
 
 
+def _tf_counts(a: dict) -> tuple[int, int]:
+    """Nombre de timeframes M/W/D haussiers (+1) et baissiers (-1)."""
+    vals = [a.get("px_m") or 0, a.get("px_w") or 0, a.get("px_d") or 0]
+    return sum(1 for v in vals if v == 1), sum(1 for v in vals if v == -1)
+
+
+def _solid(tf_up: int, tf_down: int, direction: int) -> bool:
+    """Alignement solide : au moins 2 TF dans le sens, aucun a contre-sens.
+    Ecarte les alignements sur un seul timeframe."""
+    if direction > 0:
+        return tf_up >= 2 and tf_down == 0
+    if direction < 0:
+        return tf_down >= 2 and tf_up == 0
+    return False
+
+
 def confluence(composites: dict[str, dict], align: dict) -> list[dict]:
     recs: list[dict] = []
     for cur in cfg.CURRENCIES:
@@ -99,6 +115,7 @@ def confluence(composites: dict[str, dict], align: dict) -> list[dict]:
                 intra = "repli"
             elif align_dir < 0 and chg > 0:
                 intra = "rebond"
+        tf_up, tf_down = _tf_counts(a)
         recs.append({
             "currency": cur,
             "force": round(force, 0),
@@ -107,6 +124,7 @@ def confluence(composites: dict[str, dict], align: dict) -> list[dict]:
             "daily_chg": chg,
             "verdict": verdict,
             "intra": intra,
+            "tf_up": tf_up, "tf_down": tf_down,
             "strength": round(abs(force - 50) + abs(ascore) * 50, 1),
         })
     return recs
@@ -121,10 +139,12 @@ def build_section(composites: dict[str, dict], payload: dict | None) -> list[str
         return isinstance(r["daily_chg"], (int, float))
 
     # STRICT : une devise n'est retenue que si TOUT est aligne — force FIOS,
-    # alignement RENKO M/W/D et variation du jour dans le meme sens.
-    bulls = sorted([r for r in recs if r["verdict"] == "bull" and _num(r) and r["daily_chg"] > 0],
+    # variation du jour, ET alignement RENKO solide (>=2 TF, 0 a contre-sens).
+    bulls = sorted([r for r in recs if r["verdict"] == "bull" and _num(r)
+                    and r["daily_chg"] > 0 and _solid(r["tf_up"], r["tf_down"], 1)],
                    key=lambda r: r["strength"], reverse=True)
-    bears = sorted([r for r in recs if r["verdict"] == "bear" and _num(r) and r["daily_chg"] < 0],
+    bears = sorted([r for r in recs if r["verdict"] == "bear" and _num(r)
+                    and r["daily_chg"] < 0 and _solid(r["tf_up"], r["tf_down"], -1)],
                    key=lambda r: r["strength"], reverse=True)
     if not bulls and not bears:
         return []
@@ -133,6 +153,11 @@ def build_section(composites: dict[str, dict], payload: dict | None) -> list[str
     div_fa = [r["currency"] for r in recs if r["verdict"] == "divergence"]
     div_intra = [r["currency"] for r in recs
                  if r.get("intra") and r["verdict"] != "divergence"]
+    # Alignement RENKO faible (1 seul TF) sur une devise sinon confluente.
+    weak = [r["currency"] for r in recs
+            if r["verdict"] in ("bull", "bear") and not r.get("intra")
+            and _num(r) and (r["daily_chg"] > 0) == (r["verdict"] == "bull")
+            and not _solid(r["tf_up"], r["tf_down"], 1 if r["verdict"] == "bull" else -1)]
 
     lines = ["🔀 Confluence FULL ALIGN × FIOS (stricte)"]
 
@@ -150,6 +175,8 @@ def build_section(composites: dict[str, dict], payload: dict | None) -> list[str
         excl.append(f"{', '.join(div_fa)} (FIOS×Align)")
     if div_intra:
         excl.append(f"{', '.join(div_intra)} (jour≠structure)")
+    if weak:
+        excl.append(f"{', '.join(weak)} (align. faible)")
     if excl:
         lines.append("🚫 Exclus : " + " · ".join(excl))
     if bulls and bears:
@@ -171,14 +198,17 @@ def pair_confluence(composites: dict[str, dict], pairs: dict) -> list[dict]:
         fios_diff = float(cb["composite"]) - float(cq["composite"])
         ascore = _align_score(a)
         chg = a.get("daily_chg")
-        fios_dir = 1 if fios_diff > 2 else (-1 if fios_diff < -2 else 0)
+        thr = cfg.PAIR_MIN_FIOS_DIFF
+        fios_dir = 1 if fios_diff >= thr else (-1 if fios_diff <= -thr else 0)
         align_dir = 1 if ascore > 0 else (-1 if ascore < 0 else 0)
         daily_dir = (1 if isinstance(chg, (int, float)) and chg > 0
                      else (-1 if isinstance(chg, (int, float)) and chg < 0 else 0))
+        tf_up, tf_down = _tf_counts(a)
         recs.append({
             "pair": name, "base": base, "quote": quote,
             "fios_diff": round(fios_diff, 0), "tag": _px_tag(a), "daily_chg": chg,
             "fios_dir": fios_dir, "align_dir": align_dir, "daily_dir": daily_dir,
+            "tf_up": tf_up, "tf_down": tf_down,
             "strength": round(abs(fios_diff) + abs(ascore) * 50, 1),
         })
     return recs
@@ -191,10 +221,13 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
     if not pairs:
         return []
     recs = pair_confluence(composites, pairs)
-    # STRICT : FIOS, alignement RENKO et variation du jour tous dans le meme sens.
-    buys = sorted([r for r in recs if r["align_dir"] > 0 and r["fios_dir"] > 0 and r["daily_dir"] > 0],
+    # STRICT : FIOS + variation du jour + alignement RENKO SOLIDE (>=2 TF, 0
+    # a contre-sens), tous dans le meme sens. Ecarte les alignements 1 TF.
+    buys = sorted([r for r in recs if r["fios_dir"] > 0 and r["daily_dir"] > 0
+                   and _solid(r["tf_up"], r["tf_down"], 1)],
                   key=lambda r: r["strength"], reverse=True)
-    sells = sorted([r for r in recs if r["align_dir"] < 0 and r["fios_dir"] < 0 and r["daily_dir"] < 0],
+    sells = sorted([r for r in recs if r["fios_dir"] < 0 and r["daily_dir"] < 0
+                    and _solid(r["tf_up"], r["tf_down"], -1)],
                    key=lambda r: r["strength"], reverse=True)
 
     lines = ["🔀 Confluence PAIRES (stricte)"]

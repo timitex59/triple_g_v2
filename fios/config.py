@@ -168,3 +168,7 @@ CONFLUENCE_WEIGHTS: dict[str, float] = {
     "retail": 0.12,
     "correlation": 0.15,
 }
+
+# Ecart de force FIOS minimal (base - quote) pour retenir une paire : ecarte les
+# paires dont les deux devises sont du meme ordre (ex. EUR 58 vs GBP 52 -> 6).
+PAIR_MIN_FIOS_DIFF = 8.0
