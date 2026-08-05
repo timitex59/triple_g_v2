@@ -12,7 +12,6 @@ import pytz
 
 from . import config as cfg
 from .adapters.base import FamilyResult
-from .explain import explain, headline
 from .scoring.confluence import PairSignal
 
 PARIS = pytz.timezone("Europe/Paris")
@@ -46,16 +45,39 @@ def _decompo_lines(ranking_rows: list[tuple[str, float]],
     return lines
 
 
-def _weighted_line(sig: PairSignal) -> str:
-    """Ligne pondere auditable : contribution x poids par famille (tri par impact)."""
-    items = sorted(
-        sig.contributions.items(),
-        key=lambda kv: abs(kv[1] * cfg.CONFLUENCE_WEIGHTS.get(kv[0], 0.0)),
-        reverse=True,
-    )
-    parts = [f"{_FAM_ABBR.get(k, k)} {c:+.0f}×{cfg.CONFLUENCE_WEIGHTS.get(k, 0):.2f}"
-             for k, c in items]
-    return "⚖️ " + " · ".join(parts) + f"  → net {sig.net:+.0f}"
+_FR = {"BUY": "ACHAT", "SELL": "VENTE", "WAIT": "ATTENTE"}
+
+
+def _vote_line(sig: PairSignal) -> str:
+    """Vote de chaque famille : ✔ si elle va dans le sens de la decision, ✗ sinon
+    (avec sa contribution signee). Rend la cohérence intuitive."""
+    ddir = 1 if sig.decision == "BUY" else -1
+    items = sorted(sig.contributions.items(), key=lambda kv: abs(kv[1]), reverse=True)
+    parts = []
+    for k, c in items:
+        agree = (1 if c > 0 else -1) == ddir and abs(c) >= 5
+        parts.append(f"{'✔' if agree else '✗'}{_FAM_ABBR.get(k, k)} {c:+.0f}")
+    return " · ".join(parts)
+
+
+def _freshness_line(families: dict[str, FamilyResult], freshness: dict | None) -> str:
+    if not freshness:
+        return ""
+    order = ("fundamental", "technical", "sentiment", "retail", "correlation")
+    parts = [f"{_FAM_ABBR[n]} {freshness[n]}"
+             for n in order
+             if families.get(n) and families[n].available and freshness.get(n)]
+    return "🕐 Fraîcheur : " + " · ".join(parts) if parts else ""
+
+
+def _plan_lines(plan: dict | None) -> list[str]:
+    if not plan:
+        return []
+    return [
+        (f"   📍 Entrée {plan['entry_s']} · SL {plan['sl_s']} · "
+         f"TP1 {plan['tp1_s']} · TP2 {plan['tp2_s']} · RR {plan['rr']:.1f}"),
+        f"   ❌ Invalidation : clôture D au-delà de {plan['sl_s']}",
+    ]
 
 
 def _families_line(families: dict[str, FamilyResult]) -> str:
@@ -78,11 +100,17 @@ def build_message(
     desk_note: str | None = None,
     cross_section: list[str] | None = None,
     composites: dict[str, dict] | None = None,
+    freshness: dict | None = None,
+    trade_plans: dict[str, dict] | None = None,
 ) -> str:
     now = datetime.now(PARIS).strftime("%d/%m/%Y %H:%M")
+    trade_plans = trade_plans or {}
     lines: list[str] = []
     lines.append("🧭 FIOS — Confluence Forex")
     lines.append(_families_line(families))
+    fr_line = _freshness_line(families, freshness)
+    if fr_line:
+        lines.append(fr_line)
     lines.append("")
     if desk_note:
         lines.append("🧠 Note du desk")
@@ -103,11 +131,15 @@ def build_message(
         lines.append("🎯 Signaux (confluence)")
         for s in actionable:
             emoji = "🟢" if s.decision == "BUY" else "🔴"
+            stars = "★" * s.quality + "☆" * (5 - s.quality)
             badge = " 🔷 Premium" if s.premium else ""
-            lines.append(f"{emoji} {headline(s)} · cohérence {s.coherence:.0f}%{badge}")
-            lines.append(f"   {_weighted_line(s)}")
-            for r in explain(s, families)[:2]:
-                lines.append(f"   • {r}")
+            lines.append(
+                f"{emoji} {_FR.get(s.decision, s.decision)} {s.pair}  {stars}  "
+                f"{s.agree}/{s.families} fam · cohérence {s.coherence:.0f}% · "
+                f"conf {s.confidence:.0f}%{badge}"
+            )
+            lines.append(f"   {_vote_line(s)}")
+            lines.extend(_plan_lines(trade_plans.get(s.pair)))
             lines.append("")
     else:
         lines.append("😴 Aucun signal en confluence aujourd'hui (tout en ATTENTE).")

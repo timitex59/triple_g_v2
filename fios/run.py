@@ -31,6 +31,7 @@ from . import cross_check
 from . import journal as journal_mod
 from . import llm_explain
 from . import report as report_mod
+from . import trade_plan
 from . import tv_feed
 from .adapters import correlations as corr_adapter
 from .adapters import cot as cot_adapter
@@ -199,10 +200,29 @@ def main() -> None:
         desk_note = llm_explain.desk_note(ranking_rows, signals, families)
         print("   " + ("note generee" if desk_note else "indisponible — repli gabarit"))
 
+    # --- Fraîcheur des donnees par famille ---
+    freshness = {"technical": "live", "correlation": "live", "retail": "live",
+                 "fundamental": "macro"}
+    cot = families.get("sentiment")
+    if cot and cot.available:
+        det = cot.details.get("cot", {})
+        rd = next((v.get("report_date") for v in det.values() if v.get("report_date")), None)
+        try:
+            days = (datetime.now(timezone.utc).date()
+                    - datetime.fromisoformat(rd).date()).days if rd else None
+            freshness["sentiment"] = f"{days}j" if days is not None else "COT"
+        except Exception:
+            freshness["sentiment"] = "COT"
+
+    # --- Plans de trade (entree/SL/TP/RR) pour les signaux actionnables ---
+    pairs_by_name = {p["name"]: p for p in pairs}
+    trade_plans = trade_plan.plans_for(signals, pairs_by_name, args.top)
+
     # --- Telegram ---
     message = report_mod.build_message(
         ranking_rows, signals, families, top_n=args.top,
         desk_note=desk_note, cross_section=cross_section, composites=composites,
+        freshness=freshness, trade_plans=trade_plans,
     )
     print(message)
     if not args.no_telegram:
