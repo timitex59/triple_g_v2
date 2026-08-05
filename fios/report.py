@@ -27,21 +27,26 @@ def _ranking_line(ranking_rows: list[tuple[str, float]]) -> str:
     return " · ".join(f"{cur} {score:.0f}" for cur, score in ranking_rows)
 
 
+def _bar(score: float, width: int = 8) -> str:
+    filled = int(round(max(0.0, min(100.0, score)) / 100.0 * width))
+    return "█" * filled + "░" * (width - filled)
+
+
 def _decompo_lines(ranking_rows: list[tuple[str, float]],
                    composites: dict[str, dict]) -> list[str]:
-    """Decomposition auditable de la force de chaque devise par famille."""
+    """Force de chaque devise : barre visuelle + decomposition auditable par famille."""
     if not composites:
         return []
     weights = " ".join(
         f"{_FAM_LETTER[f]}={cfg.CONFLUENCE_WEIGHTS.get(f, 0):.2f}" for f in _FAM_ORDER
     )
-    lines = [f"🔍 Décompo force (F=Fond T=Tech C=COT R=Ret K=Corr · poids {weights})"]
+    lines = [f"💪 Force devises (F=Fond T=Tech C=COT R=Ret K=Corr · poids {weights})"]
     for cur, score in ranking_rows:
         parts = (composites.get(cur) or {}).get("parts", {})
         detail = " ".join(
             f"{_FAM_LETTER[f]}{parts[f]:.0f}" for f in _FAM_ORDER if f in parts
         )
-        lines.append(f"{cur} {score:.0f} · {detail}")
+        lines.append(f"{cur} {_bar(score)} {score:.0f} · {detail}")
     return lines
 
 
@@ -89,7 +94,8 @@ def _drivers_line(sig: PairSignal, drivers: dict | None) -> str:
         d = drivers.get(cur) or {}
         items = [kv for kv in d.items() if abs(kv[1]) >= 0.05]
         items = sorted(items, key=lambda kv: abs(kv[1]), reverse=True)[:3]
-        return ", ".join(f"{lbl} {v:+.2f}" for lbl, v in items)
+        # Direction (↑/↓) plutot qu'un nombre non interpretable de l'exterieur.
+        return ", ".join(f"{lbl} {'↑' if v > 0 else '↓'}" for lbl, v in items)
 
     b, q = _top(sig.base), _top(sig.quote)
     if not b and not q:
@@ -100,8 +106,10 @@ def _drivers_line(sig: PairSignal, drivers: dict | None) -> str:
 def _market_state_lines(state: dict | None) -> list[str]:
     if not state or state.get("risk") in (None, "n/d"):
         return []
-    return [f"📋 État du marché : {state.get('risk', 'n/d')} · "
-            f"volatilité {state.get('vol', 'n/d')}"]
+    txt = f"📋 État du marché : {state['risk']}"
+    if state.get("vol") not in (None, "n/d"):
+        txt += f" · volatilité {state['vol']}"
+    return [txt]
 
 
 def _families_line(families: dict[str, FamilyResult]) -> str:
@@ -149,11 +157,12 @@ def build_message(
         lines.append("🧠 Desk Summary")
         lines.append(desk_note.strip())
         lines.append("")
-    lines.append("💪 Force devises (0-100)")
-    lines.append(_ranking_line(ranking_rows))
-    lines.append("")
     if composites:
         lines.extend(_decompo_lines(ranking_rows, composites))
+        lines.append("")
+    else:
+        lines.append("💪 Force devises (0-100)")
+        lines.append(_ranking_line(ranking_rows))
         lines.append("")
     if cross_section:
         lines.extend(cross_section)
@@ -165,12 +174,13 @@ def build_message(
         for i, s in enumerate(actionable, 1):
             emoji = "🟢" if s.decision == "BUY" else "🔴"
             stars = "★" * s.quality + "☆" * (5 - s.quality)
+            conv = {5: "Très forte", 4: "Forte", 3: "Modérée"}.get(s.quality, "Faible")
             badge = " 🔷" if s.premium else ""
             reg = regimes.get(s.pair)
             reg_txt = f" · Régime {reg}" if reg and reg != "n/d" else ""
             lines.append(
                 f"{i}. {emoji} {_FR.get(s.decision, s.decision)} {s.pair}  "
-                f"Conviction {stars}{badge}{reg_txt}"
+                f"Conviction {stars} {conv}{badge}{reg_txt}"
             )
             lines.append(
                 f"   {s.agree}/{s.families} familles · cohérence {s.coherence:.0f}% · "

@@ -39,24 +39,51 @@ def load(path: str) -> dict:
 
 
 def append_run(path: str, paris_date: str, signals: list[PairSignal],
-               only_actionable: bool = True) -> dict:
+               only_actionable: bool = True,
+               context: dict[str, dict] | None = None) -> dict:
+    """Journalise chaque signal avec TOUT son contexte des le premier jour, pour
+    que la Phase 2 puisse analyser/calibrer sans regretter des variables
+    manquantes. context[pair] apporte forces devises, parts par famille, regime,
+    plan (ATR/entree/SL/TP/RR) et etat du marche."""
     data = load(path)
+    context = context or {}
     now = datetime.now(timezone.utc).isoformat()
     for s in signals:
         if only_actionable and s.decision == "WAIT":
             continue
+        ctx = context.get(s.pair, {})
         data["entries"].append({
             "ts": now,
             "date": paris_date,
             "pair": s.pair,
+            "base": s.base,
+            "quote": s.quote,
             "decision": s.decision,
             "net": s.net,
             "confidence": s.confidence,
+            "coherence": s.coherence,
+            "premium": s.premium,
             "quality": s.quality,
             "contributions": s.contributions,
             "agree": s.agree,
             "families": s.families,
-            "result": None,   # a renseigner au denouement (Phase 2)
+            # --- Contexte (pour l'analyse Phase 2) ---
+            "force_base": ctx.get("force_base"),
+            "force_quote": ctx.get("force_quote"),
+            "parts_base": ctx.get("parts_base"),
+            "parts_quote": ctx.get("parts_quote"),
+            "regime": ctx.get("regime"),
+            "market_risk": ctx.get("market_risk"),
+            "market_vol": ctx.get("market_vol"),
+            "atr": ctx.get("atr"),
+            "entry": ctx.get("entry"),
+            "sl": ctx.get("sl"),
+            "tp1": ctx.get("tp1"),
+            "tp2": ctx.get("tp2"),
+            "rr": ctx.get("rr"),
+            # Rempli au denouement : outcome, exit_reason, r, bars_held,
+            # mae_r (excursion adverse max), mfe_r (excursion favorable max).
+            "result": None,
         })
     data["updated_at"] = now
     return data

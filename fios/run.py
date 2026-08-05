@@ -142,14 +142,39 @@ def main() -> None:
         pair_score_maps["retail"] = retail.details.get("pairs", {})
     signals = conf_mod.evaluate_all(families, pair_score_maps, pairs=pairs)
 
+    # --- Contexte (plans, regime, etat marche) — calcule AVANT le journal
+    # pour l'enregistrer des le premier jour (schema riche pour la Phase 2). ---
+    pairs_by_name = {p["name"]: p for p in pairs}
+    trade_plans = trade_plan.plans_for(signals, pairs_by_name, args.top)
+    market = regime_mod.market_state(corr)
+    regimes = regime_mod.regimes_for(signals, pairs_by_name, args.top)
+    journal_ctx: dict[str, dict] = {}
+    for s in signals:
+        if s.decision == "WAIT":
+            continue
+        plan = trade_plans.get(s.pair, {})
+        journal_ctx[s.pair] = {
+            "force_base": (composites.get(s.base) or {}).get("composite"),
+            "force_quote": (composites.get(s.quote) or {}).get("composite"),
+            "parts_base": (composites.get(s.base) or {}).get("parts"),
+            "parts_quote": (composites.get(s.quote) or {}).get("parts"),
+            "regime": regimes.get(s.pair),
+            "market_risk": market.get("risk"),
+            "market_vol": market.get("vol"),
+            "atr": plan.get("atr"), "entry": plan.get("entry"),
+            "sl": plan.get("sl"), "tp1": plan.get("tp1"),
+            "tp2": plan.get("tp2"), "rr": plan.get("rr"),
+        }
+
     # --- Sorties console ---
     print()
     print(report_mod.build_console(ranking_rows, signals, families))
     print()
 
-    # --- Journal ---
+    # --- Journal (schema enrichi) ---
     paris_date = datetime.now(PARIS).strftime("%Y-%m-%d")
-    data = journal_mod.append_run(cfg.JOURNAL_FILE, paris_date, signals)
+    data = journal_mod.append_run(cfg.JOURNAL_FILE, paris_date, signals,
+                                  context=journal_ctx)
     journal_mod.save(cfg.JOURNAL_FILE, data)
 
     # --- Denouement des signaux murus + snapshot stats (Phase 2) ---
@@ -215,14 +240,8 @@ def main() -> None:
         except Exception:
             freshness["sentiment"] = "COT"
 
-    # --- Plans de trade + contexte (etat marche, regime par paire) ---
-    pairs_by_name = {p["name"]: p for p in pairs}
-    trade_plans = trade_plan.plans_for(signals, pairs_by_name, args.top)
-    market = regime_mod.market_state(corr)
-    regimes = regime_mod.regimes_for(signals, pairs_by_name, args.top)
+    # --- Telegram (plans/regime/marche deja calcules plus haut) ---
     fund_drivers = fund.details.get("drivers", {}) if fund.available else {}
-
-    # --- Telegram ---
     message = report_mod.build_message(
         ranking_rows, signals, families, top_n=args.top,
         desk_note=desk_note, cross_section=cross_section, composites=composites,

@@ -19,22 +19,20 @@ from .indicators import adx as adx_fn
 
 
 def market_state(corr: FamilyResult | None) -> dict:
-    """Etat global depuis le momentum SPX / VIX (deja calcule par correlations)."""
+    """Etat global (risk-on/off) depuis le momentum des actifs de risque deja
+    calcule par correlations : SPX + BTC (risque), or (refuge, en sens inverse)."""
     out = {"risk": "n/d", "vol": "n/d"}
     if not corr or not corr.available:
         return out
     mom = corr.details.get("momentum_pct", {})
-    spx = mom.get("SPX")
-    vix = mom.get("VIX")
-    if spx is not None and vix is not None:
-        if spx > 0 and vix < 0:
-            out["risk"] = "RISK-ON"
-        elif spx < 0 and vix > 0:
-            out["risk"] = "RISK-OFF"
-        else:
-            out["risk"] = "MIXTE"
-    if vix is not None:
-        out["vol"] = "en hausse" if vix > 5 else ("en baisse" if vix < -5 else "normale")
+    votes = []
+    for name, sign in (("SPX", 1), ("BTC", 1), ("GOLD", -1)):
+        v = mom.get(name)
+        if v is not None and v != 0:
+            votes.append(sign * (1 if v > 0 else -1))
+    if votes:
+        s = sum(votes)
+        out["risk"] = "RISK-ON" if s > 0 else ("RISK-OFF" if s < 0 else "MIXTE")
     return out
 
 

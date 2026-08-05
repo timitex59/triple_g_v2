@@ -78,28 +78,42 @@ def resolve_forward(
     if a <= 0:
         return None
     entry_price = float(df["Close"].iloc[entry_idx])
-    sl = entry_price - direction * a * sl_mult
+    risk = a * sl_mult
+    sl = entry_price - direction * risk
     tp = entry_price + direction * a * tp_mult
     last_j = min(entry_idx + max_bars, n - 1)
+
+    # Excursions max favorable / adverse (en R) avant la sortie.
+    max_fav = 0.0
+    max_adv = 0.0
+
+    def _final(res: dict) -> dict:
+        res["mfe_r"] = round(max_fav / risk, 2) if risk > 0 else 0.0
+        res["mae_r"] = round(-max_adv / risk, 2) if risk > 0 else 0.0
+        return res
 
     for j in range(entry_idx + 1, last_j + 1):
         high = float(df["High"].iloc[j])
         low = float(df["Low"].iloc[j])
         if direction > 0:
+            max_fav = max(max_fav, high - entry_price)
+            max_adv = max(max_adv, entry_price - low)
             if low <= sl:
-                return _mk("LOSS", "SL", entry_price, sl, df, entry_idx, j, -sl_mult)
+                return _final(_mk("LOSS", "SL", entry_price, sl, df, entry_idx, j, -sl_mult))
             if high >= tp:
-                return _mk("WIN", "TP", entry_price, tp, df, entry_idx, j, tp_mult)
+                return _final(_mk("WIN", "TP", entry_price, tp, df, entry_idx, j, tp_mult))
         else:
+            max_fav = max(max_fav, entry_price - low)
+            max_adv = max(max_adv, high - entry_price)
             if high >= sl:
-                return _mk("LOSS", "SL", entry_price, sl, df, entry_idx, j, -sl_mult)
+                return _final(_mk("LOSS", "SL", entry_price, sl, df, entry_idx, j, -sl_mult))
             if low <= tp:
-                return _mk("WIN", "TP", entry_price, tp, df, entry_idx, j, tp_mult)
+                return _final(_mk("WIN", "TP", entry_price, tp, df, entry_idx, j, tp_mult))
 
     exit_price = float(df["Close"].iloc[last_j])
     r = (exit_price - entry_price) * direction / a
     outcome = "WIN" if r > 0 else "LOSS"
-    return _mk(outcome, "TIMEOUT", entry_price, exit_price, df, entry_idx, last_j, r)
+    return _final(_mk(outcome, "TIMEOUT", entry_price, exit_price, df, entry_idx, last_j, r))
 
 
 def _entry_index(df: pd.DataFrame, entry_dt: datetime) -> int | None:

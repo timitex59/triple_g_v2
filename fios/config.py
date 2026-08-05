@@ -65,7 +65,6 @@ CORRELATION_INSTRUMENTS: dict[str, str] = {
     "US10Y": "TVC:US10Y",
     "US02Y": "TVC:US02Y",
     "SPX": "OANDA:SPX500USD",
-    "VIX": "TVC:VIX",
     "OIL": "TVC:USOIL",
     "BTC": "OANDA:BTCUSD",
 }
