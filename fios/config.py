@@ -192,6 +192,23 @@ LLM_OPENAI_MODEL = "gpt-4o"
 LLM_MAX_TOKENS = 700
 LLM_TOP_SIGNALS = 5  # nb de signaux transmis au LLM pour la note
 
+# --- Backtest (Phase 2) ----------------------------------------------------
+
+# Denouement des signaux : on pose une cible (TP) et un stop (SL) exprimes en
+# multiples d'ATR, puis on deroule les bougies suivantes pour voir lequel est
+# touche en premier (SL prioritaire si les deux le sont dans la meme bougie).
+# Si rien n'est touche avant l'horizon, sortie a la cloture (R realise).
+BT_TF = "D"                 # timeframe de denouement (cle de TIMEFRAMES)
+BT_SL_ATR = 1.5             # stop = 1.5 x ATR
+BT_TP_ATR = 2.0            # cible = 2.0 x ATR  (RR ~ 1.33)
+BT_MAX_BARS = 15           # horizon max avant sortie forcee (bougies)
+BT_ATR_LEN = 14
+BT_HISTORY_BARS = 300      # profondeur d'historique pour le replay technique
+BT_ENTRY_THRESHOLD = 0.30  # |score technique| minimal pour ouvrir (replay)
+
+STATS_FILE = "fios_stats.json"        # snapshot stats du journal live
+BT_REPORT_JSON = "fios_backtest.json"  # rapport du backtest historique
+
 # --- Sorties ---------------------------------------------------------------
 
 JOURNAL_FILE = "fios_journal.json"

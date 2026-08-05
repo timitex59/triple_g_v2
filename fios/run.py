@@ -37,6 +37,7 @@ from .adapters import fundamental_fred as fund_adapter
 from .adapters import retail as retail_adapter
 from .adapters import technical as tech_adapter
 from .adapters.base import FamilyResult
+from .backtest import journal as bt_journal
 from .scoring import confluence as conf_mod
 from .scoring import currency as cur_mod
 
@@ -73,6 +74,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--no-fund", action="store_true", help="Ignorer le fondamental FRED")
     p.add_argument("--no-corr", action="store_true", help="Ignorer les correlations")
     p.add_argument("--no-llm", action="store_true", help="Ignorer la note du desk (LLM)")
+    p.add_argument("--no-backtest", action="store_true", help="Ne pas denouer le journal (stats)")
     p.add_argument("--limit", type=int, default=0, help="Limiter le nb de paires (0 = toutes)")
     p.add_argument("--top", type=int, default=5, help="Nb de signaux dans le message")
     p.add_argument("--verbose", action="store_true", help="Detail par adaptateur")
@@ -145,6 +147,12 @@ def main() -> None:
     paris_date = datetime.now(PARIS).strftime("%Y-%m-%d")
     data = journal_mod.append_run(cfg.JOURNAL_FILE, paris_date, signals)
     journal_mod.save(cfg.JOURNAL_FILE, data)
+
+    # --- Denouement des signaux murus + snapshot stats (Phase 2) ---
+    if not args.no_backtest:
+        stats = bt_journal.resolve_and_snapshot(cfg.JOURNAL_FILE, cfg.STATS_FILE)
+        print(f"Journal: {stats['resolved_trades']} trades denoues, "
+              f"{stats['open_signals']} ouverts")
 
     # --- Snapshot JSON (pour d'autres scripts / debug) ---
     snapshot = {
