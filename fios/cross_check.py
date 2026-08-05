@@ -87,13 +87,25 @@ def confluence(composites: dict[str, dict], align: dict) -> list[dict]:
             verdict = "divergence"
         else:
             verdict = "neutre"
+        # Divergence intraday : la structure M/W/D et la variation du jour vont
+        # en sens opposes. "repli" = structure haussiere mais jour en baisse
+        # (souvent un pullback) ; "rebond" = structure baissiere mais jour en
+        # hausse (souvent un rebond a vendre).
+        chg = a.get("daily_chg")
+        intra = None
+        if isinstance(chg, (int, float)) and align_dir != 0:
+            if align_dir > 0 and chg < 0:
+                intra = "repli"
+            elif align_dir < 0 and chg > 0:
+                intra = "rebond"
         recs.append({
             "currency": cur,
             "force": round(force, 0),
             "align_score": round(ascore, 2),
             "tag": _px_tag(a),
-            "daily_chg": a.get("daily_chg"),
+            "daily_chg": chg,
             "verdict": verdict,
+            "intra": intra,
             "strength": round(abs(force - 50) + abs(ascore) * 50, 1),
         })
     return recs
@@ -117,12 +129,20 @@ def build_section(composites: dict[str, dict], align: dict | None) -> list[str]:
         c = r["daily_chg"]
         return f" ({c:+.2f}%)" if isinstance(c, (int, float)) else ""
 
+    def _intra(r):
+        return f" ↩️ {r['intra']}" if r.get("intra") else ""
+
     for r in bulls:
-        lines.append(f"🟢 {r['currency']}  FIOS {r['force']:.0f} · Align {r['tag']}{_chg(r)}")
+        lines.append(f"🟢 {r['currency']}  FIOS {r['force']:.0f} · Align {r['tag']}{_chg(r)}{_intra(r)}")
     for r in bears:
-        lines.append(f"🔴 {r['currency']}  FIOS {r['force']:.0f} · Align {r['tag']}{_chg(r)}")
+        lines.append(f"🔴 {r['currency']}  FIOS {r['force']:.0f} · Align {r['tag']}{_chg(r)}{_intra(r)}")
     if divs:
-        lines.append("⚠️ Divergences : " + ", ".join(r["currency"] for r in divs))
+        lines.append("⚠️ Divergences FIOS×Align : " + ", ".join(r["currency"] for r in divs))
+    # Divergences structure vs jour (repli/rebond) sur toutes les devises.
+    intra = [r for r in recs if r.get("intra")]
+    if intra:
+        lines.append("↩️ Structure vs jour : "
+                     + ", ".join(f"{r['currency']} ({r['intra']})" for r in intra))
     if bulls and bears:
         lines.append(f"→ Paire confluente : ACHAT {bulls[0]['currency']}{bears[0]['currency']}")
     return lines
