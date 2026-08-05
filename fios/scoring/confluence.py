@@ -40,6 +40,8 @@ class PairSignal:
     contributions: dict[str, float] = field(default_factory=dict)  # famille -> -100..100
     agree: int = 0
     families: int = 0
+    coherence: float = 0.0              # 0..100 : les familles racontent-elles la meme histoire ?
+    premium: bool = False               # confluence forte ET coherente
 
 
 def _pair_contributions(
@@ -79,11 +81,19 @@ def evaluate_pair(
     # Moyenne ponderee sur les familles presentes.
     wsum = 0.0
     acc = 0.0
+    wabs = 0.0
     for fam_name, c in contribs.items():
         w = cfg.CONFLUENCE_WEIGHTS.get(fam_name, 0.0)
         acc += w * c
+        wabs += w * abs(c)
         wsum += w
     net = (acc / wsum) if wsum > 0 else 0.0
+
+    # Coherence : |somme ponderee signee| / somme ponderee absolue -> 0..100.
+    # 100 = toutes les familles pointent dans le meme sens ; bas = elles se
+    # contredisent. Mesure directement la qualite de la convergence (distinct de
+    # la confiance, qui melange amplitude et accord).
+    coherence = (abs(acc) / wabs * 100.0) if wabs > 0 else 0.0
 
     direction = 1 if net > 0 else -1
     agree = sum(
@@ -104,6 +114,8 @@ def evaluate_pair(
     if decision == "WAIT":
         confidence = min(confidence, 45.0)
     quality = 1 + int(clamp(confidence / 20.0, 0.0, 4.0))
+    premium = (decision != "WAIT" and coherence >= 70.0
+               and agree >= cfg.MIN_FAMILIES_AGREE)
 
     return PairSignal(
         pair=pair["name"], base=pair["base"], quote=pair["quote"],
@@ -111,6 +123,7 @@ def evaluate_pair(
         quality=quality,
         contributions={k: round(v, 1) for k, v in contribs.items()},
         agree=agree, families=families_present,
+        coherence=round(coherence, 1), premium=premium,
     )
 
 

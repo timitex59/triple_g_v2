@@ -10,15 +10,52 @@ from datetime import datetime
 
 import pytz
 
+from . import config as cfg
 from .adapters.base import FamilyResult
 from .explain import explain, headline
 from .scoring.confluence import PairSignal
 
 PARIS = pytz.timezone("Europe/Paris")
 
+_FAM_ABBR = {"fundamental": "Fond", "technical": "Tech", "sentiment": "COT",
+             "retail": "Retail", "correlation": "Corr"}
+_FAM_LETTER = {"fundamental": "F", "technical": "T", "sentiment": "C",
+               "retail": "R", "correlation": "K"}
+_FAM_ORDER = ("fundamental", "technical", "sentiment", "retail", "correlation")
+
 
 def _ranking_line(ranking_rows: list[tuple[str, float]]) -> str:
     return " · ".join(f"{cur} {score:.0f}" for cur, score in ranking_rows)
+
+
+def _decompo_lines(ranking_rows: list[tuple[str, float]],
+                   composites: dict[str, dict]) -> list[str]:
+    """Decomposition auditable de la force de chaque devise par famille."""
+    if not composites:
+        return []
+    weights = " ".join(
+        f"{_FAM_LETTER[f]}={cfg.CONFLUENCE_WEIGHTS.get(f, 0):.2f}" for f in _FAM_ORDER
+    )
+    lines = [f"🔍 Décompo force (F=Fond T=Tech C=COT R=Ret K=Corr · poids {weights})"]
+    for cur, score in ranking_rows:
+        parts = (composites.get(cur) or {}).get("parts", {})
+        detail = " ".join(
+            f"{_FAM_LETTER[f]}{parts[f]:.0f}" for f in _FAM_ORDER if f in parts
+        )
+        lines.append(f"{cur} {score:.0f} · {detail}")
+    return lines
+
+
+def _weighted_line(sig: PairSignal) -> str:
+    """Ligne pondere auditable : contribution x poids par famille (tri par impact)."""
+    items = sorted(
+        sig.contributions.items(),
+        key=lambda kv: abs(kv[1] * cfg.CONFLUENCE_WEIGHTS.get(kv[0], 0.0)),
+        reverse=True,
+    )
+    parts = [f"{_FAM_ABBR.get(k, k)} {c:+.0f}×{cfg.CONFLUENCE_WEIGHTS.get(k, 0):.2f}"
+             for k, c in items]
+    return "⚖️ " + " · ".join(parts) + f"  → net {sig.net:+.0f}"
 
 
 def _families_line(families: dict[str, FamilyResult]) -> str:
@@ -40,6 +77,7 @@ def build_message(
     top_n: int = 5,
     desk_note: str | None = None,
     cross_section: list[str] | None = None,
+    composites: dict[str, dict] | None = None,
 ) -> str:
     now = datetime.now(PARIS).strftime("%d/%m/%Y %H:%M")
     lines: list[str] = []
@@ -53,6 +91,9 @@ def build_message(
     lines.append("💪 Force devises (0-100)")
     lines.append(_ranking_line(ranking_rows))
     lines.append("")
+    if composites:
+        lines.extend(_decompo_lines(ranking_rows, composites))
+        lines.append("")
     if cross_section:
         lines.extend(cross_section)
         lines.append("")
@@ -62,8 +103,10 @@ def build_message(
         lines.append("🎯 Signaux (confluence)")
         for s in actionable:
             emoji = "🟢" if s.decision == "BUY" else "🔴"
-            lines.append(f"{emoji} {headline(s)}")
-            for r in explain(s, families)[:3]:
+            badge = " 🔷 Premium" if s.premium else ""
+            lines.append(f"{emoji} {headline(s)} · cohérence {s.coherence:.0f}%{badge}")
+            lines.append(f"   {_weighted_line(s)}")
+            for r in explain(s, families)[:2]:
                 lines.append(f"   • {r}")
             lines.append("")
     else:

@@ -156,17 +156,24 @@ def main() -> None:
         print(f"Journal: {stats['resolved_trades']} trades denoues, "
               f"{stats['open_signals']} ouverts")
 
-    # --- Snapshot JSON (pour d'autres scripts / debug) ---
+    # --- Snapshot JSON auditable (transparence complete) ---
     snapshot = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "paris_date": paris_date,
         "families_available": {n: f.available for n, f in families.items()},
+        "confluence_weights": cfg.CONFLUENCE_WEIGHTS,
         "currency_ranking": [{"currency": c, "composite": s} for c, s in ranking_rows],
+        # Decomposition de chaque force devise : score composite + parts par famille.
         "composites": composites,
+        # Detail fondamental : drivers FRED orientes par devise (pourquoi ce score).
+        "fundamental_drivers": (fund.details.get("drivers", {}) if fund.available else {}),
+        # Detail retail : % long par source (OANDA / Myfxbook) par paire.
+        "retail_detail": (retail.details.get("long_pct", {}) if retail.available else {}),
         "signals": [
             {
                 "pair": s.pair, "decision": s.decision, "net": s.net,
-                "confidence": s.confidence, "quality": s.quality,
+                "confidence": s.confidence, "coherence": s.coherence,
+                "premium": s.premium, "quality": s.quality,
                 "contributions": s.contributions, "agree": s.agree, "families": s.families,
             }
             for s in signals
@@ -195,7 +202,7 @@ def main() -> None:
     # --- Telegram ---
     message = report_mod.build_message(
         ranking_rows, signals, families, top_n=args.top,
-        desk_note=desk_note, cross_section=cross_section,
+        desk_note=desk_note, cross_section=cross_section, composites=composites,
     )
     print(message)
     if not args.no_telegram:
