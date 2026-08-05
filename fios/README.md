@@ -1,100 +1,69 @@
-# FIOS — Forex Intelligence Operating System (Phase 1)
+# FIOS — Confluence force devises × alignement RENKO M/W/D
 
-Moteur de **confluence multi-sources** pour le Forex. Aucune décision sur un
-seul signal : une reco `BUY`/`SELL` n'apparaît que lorsque plusieurs familles
-indépendantes convergent. Sinon `WAIT`. Le moteur explique toujours pourquoi.
+Message Telegram unique qui croise **deux vues devises indépendantes** :
 
-Données graphiques : **TradingView WebSocket** (symboles OANDA), comme le reste
-du repo (`data_fetcher.py`).
+1. **Force composite FIOS** par devise (0-100) = moyenne pondérée de :
+   - Fondamental (FRED : taux, rendements, inflation, chômage)
+   - Technique (TradingView D/H4/H1, EMA/RSI/ADX)
+   - Sentiment institutionnel (COT CFTC)
+   - Sentiment retail contrarien (OANDA + Myfxbook)
+   - Corrélations inter-marchés (DXY, or, rendements US, actions, pétrole, BTC)
+2. **Alignement RENKO M/W/D** des index de devises (DXY/EXY/BXY/…), produit par
+   `renko_full_alignment_29pairs.py` dans un sidecar `full_alignment_index.json`.
 
-## Ce qui tourne en Phase 1
+Quand les deux méthodologies pointent la même devise dans le même sens →
+confluence haute conviction. Quand elles divergent → prudence.
 
-| Famille | Source | Statut | Clé requise |
-|---|---|---|---|
-| **Technique** | TradingView (D / H4 / H1) | actif | — |
-| **Sentiment / positionnement** | COT CFTC (Legacy futures) | actif | — |
-| **Corrélations / flux** | TradingView (DXY, or, US10Y, SPX, VIX, pétrole, BTC) | actif | — |
-| **Fondamental** | FRED (taux, rendements, inflation, chômage) | branché | `FRED_API_KEY` |
+## Sortie
 
-Chaque famille produit un score 0-100 par devise (50 = neutre). Le moteur de
-confluence pondère les familles **présentes** (poids renormalisés) et n'émet un
-signal que si le net dépasse le seuil **et** qu'au moins 2 familles convergent.
+```
+🔀 Confluence FULL ALIGN × FIOS
+🟢 AUD  FIOS 67 · Align M+ W+ D+ (+0.14%)
+🟢 NZD  FIOS 60 · Align M0 W+ D+ (-0.12%)
+🔴 CHF  FIOS 40 · Align M0 W- D0 (+0.19%)
+⚠️ Divergences : USD, CAD
+→ Paire confluente : ACHAT AUDCHF
+⏰ 05/08/2026 07:15 Paris
+```
 
 ## Lancement
 
 ```bash
 python -m fios.run                 # calcul + envoi Telegram
-python -m fios.run --no-telegram   # console seulement
-python -m fios.run --verbose       # détail par adaptateur
-python -m fios.run --limit 6       # limite le nb de paires (tests rapides)
-python -m fios.run --no-cot --no-corr --no-fund   # technique seule
+python -m fios.run --no-telegram   # affichage seul
+python -m fios.run --verbose       # détail par famille
+python -m fios.run --no-fund --no-retail   # sous-ensemble de familles
 ```
 
-Dépendances : déjà dans `requirements.txt` du repo (`requests`, `pandas`,
-`pytz`, `python-dotenv`, `websocket-client`). Aucune nouvelle dépendance.
+Dépendances : `yfinance`, `pandas`, `numpy`, `requests`, `pytz`,
+`python-dotenv`, `websocket-client` (déjà dans `requirements.txt`). **Aucune
+dépendance LLM.**
 
-## Activer le fondamental (FRED, gratuit)
+## Prérequis
 
-1. Créer une clé gratuite : https://fred.stlouisfed.org/docs/api/api_key.html
-2. Ajouter dans `.env` : `FRED_API_KEY=xxxxxxxx`
-3. Relancer : la famille « Fond » passe active et entre dans la confluence.
+- `.env` : `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `FRED_API_KEY` (gratuit),
+  `MYFXBOOK_EMAIL`/`MYFXBOOK_PASSWORD`, `OANDA_API_TOKEN` (optionnel). Chaque
+  famille sans identifiants est simplement ignorée (poids redistribué).
+- **`renko_full_alignment_29pairs.py` doit tourner AVANT FIOS** pour écrire le
+  sidecar `full_alignment_index.json`. En CI, il tourne dans le même job juste
+  avant FIOS, donc le sidecar est frais à 07h. Sans sidecar frais, FIOS
+  n'envoie rien (proprement).
 
-Sans clé, FIOS ignore proprement le fondamental et redistribue son poids.
-
-## Sorties
-
-- **`fios_report.json`** — snapshot du run (classement devises, signaux,
-  contributions par famille). Fichier réécrit à chaque run → destiné à être lu
-  par d'autres scripts.
-- **`fios_journal.json`** — journal cumulatif des recos actionnables
-  (horodatage, décision, scores, contributions, `result: null`). Matière
-  première du backtest (Phase 2) et de l'apprentissage adaptatif (Phase 3).
-
-## Architecture
+## Structure
 
 ```
 fios/
-  config.py            réglages : devises, paires, symboles TV, poids, seuils, mappings COT/FRED
-  tv_feed.py           moteur TradingView WebSocket (multi-TF), cache mémoire
-  indicators.py        EMA / RSI / ADX / ATR (pandas pur)
+  config.py            devises, paires, symboles TV, poids, mappings COT/FRED
+  tv_feed.py           moteur TradingView WebSocket (multi-TF)
+  indicators.py        EMA / RSI / ADX / ATR
   adapters/
     base.py            interface FamilyResult (score 0-100 par devise)
-    technical.py       score multi-TF par paire → force par devise (TradingView)
-    cot.py             positionnement COT CFTC → sentiment par devise
-    correlations.py    flux inter-marchés (momentum macro → vent par devise)
-    fundamental_fred.py macro FRED (branché sur FRED_API_KEY)
-  scoring/
-    currency.py        composite par devise (Currency Power Ranking)
-    confluence.py      moteur BUY/SELL/WAIT + confiance + qualité
-  explain.py           raisons lisibles (gabarit ; LLM en Phase 1.5)
-  journal.py           mémoire statistique (fios_journal.json)
-  report.py            message Telegram + rapport console
-  run.py               orchestrateur CLI
+    technical.py       force technique multi-TF -> par devise
+    cot.py             positionnement COT CFTC
+    correlations.py    flux inter-marchés
+    fundamental_fred.py macro FRED
+    retail.py          sentiment retail contrarien (OANDA + Myfxbook)
+  scoring/currency.py  force composite par devise (Currency Power Ranking)
+  cross_check.py       lecture du sidecar RENKO + section confluence
+  run.py               orchestrateur (message unique)
 ```
-
-Chaque adaptateur est isolé derrière `FamilyResult` : on branche une nouvelle
-source (Myfxbook, IG, OANDA, options) sans toucher au moteur.
-
-## Réglages clés (`config.py`)
-
-- `PAIRS` — univers de paires (base/quote/symbole TV).
-- `TF_WEIGHTS` — poids des timeframes techniques (D 0.5 / H4 0.3 / H1 0.2).
-- `CONFLUENCE_WEIGHTS` — poids des familles (Fond 0.30 / Tech 0.35 / Sent 0.20 / Corr 0.15).
-- `BUY_THRESHOLD` / `SELL_THRESHOLD` — seuils du net directionnel (±25).
-- `MIN_FAMILIES_AGREE` — familles convergentes minimales (2).
-
-## Feuille de route
-
-- **Phase 1 (fait)** : squelette + technique TradingView + COT + corrélations
-  + fondamental FRED + confluence + explication + journal + Telegram.
-- **Phase 1.5** : explication LLM (ton hawkish/dovish des discours BC), OANDA
-  position book (sentiment retail contrarien), planification CI 1×/jour.
-- **Phase 2** : dénouement des signaux dans le journal + backtest (win rate,
-  RR, drawdown par combinaison de familles et régime de marché).
-- **Phase 3** : pondérations adaptatives (Bayésien puis gradient boosting) —
-  entraînées **sur le journal**, jamais en boîte noire.
-- **Plugins optionnels** : Myfxbook, IG, CME (volume/options/risk reversals) —
-  branchés quand l'accès aux données (souvent payant) est réglé.
-
-> Aucun système ne supprime le risque. FIOS hiérarchise et pondère des signaux
-> indépendants pour réduire les faux signaux, pas pour garantir un résultat.

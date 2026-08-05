@@ -155,11 +155,12 @@ MYFXBOOK_LOGIN_URL = "https://www.myfxbook.com/api/login.json"
 MYFXBOOK_OUTLOOK_URL = "https://www.myfxbook.com/api/get-community-outlook.json"
 MYFXBOOK_LOGOUT_URL = "https://www.myfxbook.com/api/logout.json"
 
-# --- Moteur de confluence --------------------------------------------------
+# --- Composite de force par devise -----------------------------------------
 
 # Poids par famille (renormalises sur les familles reellement disponibles).
 # 'sentiment' = COT (institutionnels, suiveurs). 'retail' = OANDA+Myfxbook
-# (particuliers, CONTRARIEN). Deux bouts opposes du marche -> vraie confluence.
+# (particuliers, CONTRARIEN). La force composite par devise est la moyenne
+# ponderee de ces familles ; elle est croisee avec l'alignement RENKO M/W/D.
 CONFLUENCE_WEIGHTS: dict[str, float] = {
     "fundamental": 0.28,
     "technical": 0.30,
@@ -167,48 +168,3 @@ CONFLUENCE_WEIGHTS: dict[str, float] = {
     "retail": 0.12,
     "correlation": 0.15,
 }
-
-# Seuils de decision sur le score net directionnel (-100..+100).
-BUY_THRESHOLD = 25.0
-SELL_THRESHOLD = -25.0
-
-# Nb minimal de familles independantes qui doivent converger pour un signal.
-MIN_FAMILIES_AGREE = 2
-
-# --- Explication LLM (Phase 1.2) -------------------------------------------
-
-# Couche d'explication en langage naturel : une "note du desk" concise redigee
-# a partir des donnees FIOS deja calculees. Anthropic (Claude) par defaut,
-# OpenAI en secours ; repli sur le gabarit deterministe si l'API echoue.
-# Cles : ANTHROPIC_API_KEY / OPENAI_API_KEY. Selection : FIOS_LLM_PROVIDER
-# ("anthropic" | "openai" | "off"), FIOS_LLM_MODEL pour forcer un modele.
-LLM_PROVIDER_DEFAULT = "anthropic"
-LLM_ANTHROPIC_MODEL = "claude-opus-5"
-# OpenAI (secours). Modele recent par defaut ; override via FIOS_LLM_MODEL
-# (ex. "gpt-4.1", "gpt-5", "o4-mini"). L'appel gere automatiquement le
-# parametre max_completion_tokens requis par les modeles recents.
-LLM_OPENAI_MODEL = "gpt-4o"
-LLM_MAX_TOKENS = 700
-LLM_TOP_SIGNALS = 5  # nb de signaux transmis au LLM pour la note
-
-# --- Backtest (Phase 2) ----------------------------------------------------
-
-# Denouement des signaux : on pose une cible (TP) et un stop (SL) exprimes en
-# multiples d'ATR, puis on deroule les bougies suivantes pour voir lequel est
-# touche en premier (SL prioritaire si les deux le sont dans la meme bougie).
-# Si rien n'est touche avant l'horizon, sortie a la cloture (R realise).
-BT_TF = "D"                 # timeframe de denouement (cle de TIMEFRAMES)
-BT_SL_ATR = 1.5             # stop = 1.5 x ATR
-BT_TP_ATR = 2.0            # cible = 2.0 x ATR  (RR ~ 1.33)
-BT_MAX_BARS = 15           # horizon max avant sortie forcee (bougies)
-BT_ATR_LEN = 14
-BT_HISTORY_BARS = 300      # profondeur d'historique pour le replay technique
-BT_ENTRY_THRESHOLD = 0.30  # |score technique| minimal pour ouvrir (replay)
-
-STATS_FILE = "fios_stats.json"        # snapshot stats du journal live
-BT_REPORT_JSON = "fios_backtest.json"  # rapport du backtest historique
-
-# --- Sorties ---------------------------------------------------------------
-
-JOURNAL_FILE = "fios_journal.json"
-REPORT_JSON = "fios_report.json"
