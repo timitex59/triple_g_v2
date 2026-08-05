@@ -892,25 +892,33 @@ def scan_pairs(length: int, candles: int, max_streak: int) -> list[dict]:
     return scan_assets(FOREX_PAIR_ASSETS, length, candles, max_streak)
 
 
-def write_index_sidecar(path: Path, index_by_currency: dict, now: datetime) -> None:
-    """Ecrit un sidecar per-devise (daily_chg + px M/W/D + alignement strict)
-    lu par FIOS pour croiser avec sa force composite. Non-invasif : sans effet
-    sur le message Telegram existant."""
-    currencies: dict = {}
-    for cur, row in index_by_currency.items():
-        px = row.get("px") or {}
-        currencies[str(cur)] = {
-            "daily_chg": row.get("daily_chg"),
-            "px_m": px.get("M"),
-            "px_w": px.get("W"),
-            "px_d": px.get("D"),
-            "full_alignment": full_alignment_direction(row),
-        }
+def _sidecar_row(row: dict) -> dict:
+    px = row.get("px") or {}
+    return {
+        "daily_chg": row.get("daily_chg"),
+        "px_m": px.get("M"),
+        "px_w": px.get("W"),
+        "px_d": px.get("D"),
+        "full_alignment": full_alignment_direction(row),
+    }
+
+
+def write_index_sidecar(path: Path, index_by_currency: dict, rows: list[dict],
+                        now: datetime) -> None:
+    """Ecrit un sidecar (daily_chg + px M/W/D + alignement strict) par devise ET
+    par paire, lu par FIOS pour croiser avec sa force composite. Non-invasif :
+    sans effet sur le message Telegram existant."""
+    currencies: dict = {cur: _sidecar_row(row) for cur, row in index_by_currency.items()}
+    pairs: dict = {
+        str(row.get("pair")): _sidecar_row(row)
+        for row in rows if row.get("asset_type") != "INDEX"
+    }
     payload = {
         "generated_at": now.isoformat(),
         "paris_date": now.strftime("%Y-%m-%d"),
         "source": "renko_full_alignment_29pairs.py",
         "currencies": currencies,
+        "pairs": pairs,
     }
     try:
         path.write_text(
@@ -925,7 +933,7 @@ def main() -> int:
     now = datetime.now(PARIS_TZ)
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
     index_by_currency = _index_rows_by_currency(rows)
-    write_index_sidecar(INDEX_SIDECAR_FILE, index_by_currency, now)
+    write_index_sidecar(INDEX_SIDECAR_FILE, index_by_currency, rows, now)
     rows_by_pair = {str(row.get("pair")): row for row in rows}
 
     index_daily_chg_rows = select_index_daily_chg_rows(rows)

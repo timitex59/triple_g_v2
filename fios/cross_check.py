@@ -42,8 +42,8 @@ def _fresh(payload: dict, today: str) -> bool:
 
 
 def load_align() -> dict | None:
-    """Retourne {devise: {daily_chg, px_m, px_w, px_d, full_alignment}} si le
-    sidecar existe et date d'aujourd'hui (heure de Paris), sinon None."""
+    """Retourne le payload du sidecar (clés 'currencies' et 'pairs') s'il existe
+    et date d'aujourd'hui (heure de Paris), sinon None."""
     try:
         with open(SIDECAR, "r", encoding="utf-8") as f:
             payload = json.load(f)
@@ -52,8 +52,9 @@ def load_align() -> dict | None:
     today = datetime.now(PARIS).strftime("%Y-%m-%d")
     if not _fresh(payload, today):
         return None
-    cur = payload.get("currencies")
-    return cur if isinstance(cur, dict) and cur else None
+    if not isinstance(payload.get("currencies"), dict) or not payload["currencies"]:
+        return None
+    return payload
 
 
 def _px_tag(a: dict) -> str:
@@ -111,10 +112,10 @@ def confluence(composites: dict[str, dict], align: dict) -> list[dict]:
     return recs
 
 
-def build_section(composites: dict[str, dict], align: dict | None) -> list[str]:
-    if not align:
+def build_section(composites: dict[str, dict], payload: dict | None) -> list[str]:
+    if not payload:
         return []
-    recs = confluence(composites, align)
+    recs = confluence(composites, payload.get("currencies", {}))
 
     def _num(r) -> bool:
         return isinstance(r["daily_chg"], (int, float))
@@ -153,4 +154,60 @@ def build_section(composites: dict[str, dict], align: dict | None) -> list[str]:
         lines.append("🚫 Exclus : " + " · ".join(excl))
     if bulls and bears:
         lines.append(f"→ Paire confluente : ACHAT {bulls[0]['currency']}{bears[0]['currency']}")
+    return lines
+
+
+def pair_confluence(composites: dict[str, dict], pairs: dict) -> list[dict]:
+    """Meme analyse au niveau paire : direction FIOS (force base - force quote),
+    alignement RENKO M/W/D de la paire, variation du jour de la paire."""
+    recs: list[dict] = []
+    for name, a in pairs.items():
+        if len(name) != 6:
+            continue
+        base, quote = name[:3], name[3:]
+        cb, cq = composites.get(base), composites.get(quote)
+        if not cb or not cq:
+            continue
+        fios_diff = float(cb["composite"]) - float(cq["composite"])
+        ascore = _align_score(a)
+        chg = a.get("daily_chg")
+        fios_dir = 1 if fios_diff > 2 else (-1 if fios_diff < -2 else 0)
+        align_dir = 1 if ascore > 0 else (-1 if ascore < 0 else 0)
+        daily_dir = (1 if isinstance(chg, (int, float)) and chg > 0
+                     else (-1 if isinstance(chg, (int, float)) and chg < 0 else 0))
+        recs.append({
+            "pair": name, "base": base, "quote": quote,
+            "fios_diff": round(fios_diff, 0), "tag": _px_tag(a), "daily_chg": chg,
+            "fios_dir": fios_dir, "align_dir": align_dir, "daily_dir": daily_dir,
+            "strength": round(abs(fios_diff) + abs(ascore) * 50, 1),
+        })
+    return recs
+
+
+def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> list[str]:
+    if not payload:
+        return []
+    pairs = payload.get("pairs") or {}
+    if not pairs:
+        return []
+    recs = pair_confluence(composites, pairs)
+    # STRICT : FIOS, alignement RENKO et variation du jour tous dans le meme sens.
+    buys = sorted([r for r in recs if r["align_dir"] > 0 and r["fios_dir"] > 0 and r["daily_dir"] > 0],
+                  key=lambda r: r["strength"], reverse=True)
+    sells = sorted([r for r in recs if r["align_dir"] < 0 and r["fios_dir"] < 0 and r["daily_dir"] < 0],
+                   key=lambda r: r["strength"], reverse=True)
+
+    lines = ["🔀 Confluence PAIRES (stricte)"]
+
+    def _chg(r):
+        c = r["daily_chg"]
+        return f" ({c:+.2f}%)" if isinstance(c, (int, float)) else ""
+
+    if not buys and not sells:
+        lines.append("Aucune paire strictement alignée aujourd'hui.")
+        return lines
+    for r in buys:
+        lines.append(f"🟢 ACHAT {r['pair']} · Align {r['tag']} · FIOS {r['fios_diff']:+.0f}{_chg(r)}")
+    for r in sells:
+        lines.append(f"🔴 VENTE {r['pair']} · Align {r['tag']} · FIOS {r['fios_diff']:+.0f}{_chg(r)}")
     return lines
