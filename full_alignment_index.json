@@ -1,61 +1,266 @@
 {
-  "generated_at": "2026-08-05T19:20:36.490527+02:00",
+  "generated_at": "2026-08-05T21:17:07.337893+02:00",
   "paris_date": "2026-08-05",
   "source": "renko_full_alignment_29pairs.py",
   "currencies": {
     "USD": {
-      "daily_chg": -0.12214779883659216,
+      "daily_chg": -0.17320958359615315,
       "px_m": 0,
       "px_w": 0,
       "px_d": -1,
       "full_alignment": 0
     },
     "EUR": {
-      "daily_chg": 0.12576979790094198,
+      "daily_chg": 0.17607771706131384,
       "px_m": 0,
       "px_w": 0,
       "px_d": 1,
       "full_alignment": 0
     },
     "GBP": {
-      "daily_chg": 0.09667583847698033,
+      "daily_chg": 0.1338588532758287,
       "px_m": 0,
       "px_w": 1,
       "px_d": 1,
       "full_alignment": 0
     },
     "JPY": {
-      "daily_chg": 0.027771027875171776,
+      "daily_chg": 0.030769036566239805,
       "px_m": 0,
       "px_w": 1,
       "px_d": 0,
       "full_alignment": 0
     },
     "CHF": {
-      "daily_chg": 0.18996619135998122,
+      "daily_chg": 0.25577041529507283,
       "px_m": 0,
       "px_w": -1,
       "px_d": 0,
       "full_alignment": 0
     },
     "CAD": {
-      "daily_chg": 0.29891308170242814,
+      "daily_chg": 0.37838879519037066,
       "px_m": 0,
       "px_w": 0,
       "px_d": 1,
       "full_alignment": 0
     },
     "AUD": {
-      "daily_chg": 0.14200511218403056,
+      "daily_chg": 0.24850894632206358,
       "px_m": 1,
       "px_w": 1,
       "px_d": 1,
       "full_alignment": 1
     },
     "NZD": {
-      "daily_chg": -0.11890606420927516,
+      "daily_chg": 0.05095974180397679,
       "px_m": 0,
       "px_w": 1,
+      "px_d": 1,
+      "full_alignment": 0
+    }
+  },
+  "pairs": {
+    "AUDCAD": {
+      "daily_chg": -0.17360760643558792,
+      "px_m": 1,
+      "px_w": 0,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "AUDCHF": {
+      "daily_chg": -0.03508402624284777,
+      "px_m": 0,
+      "px_w": 0,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "AUDJPY": {
+      "daily_chg": 0.1646364503301788,
+      "px_m": 1,
+      "px_w": 0,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "AUDNZD": {
+      "daily_chg": 0.2852935762930168,
+      "px_m": 0,
+      "px_w": -1,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "AUDUSD": {
+      "daily_chg": 0.18023387829246043,
+      "px_m": 0,
+      "px_w": 1,
+      "px_d": 1,
+      "full_alignment": 0
+    },
+    "CADCHF": {
+      "daily_chg": 0.152953036465393,
+      "px_m": 0,
+      "px_w": 0,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "CADJPY": {
+      "daily_chg": 0.3440714527659384,
+      "px_m": 1,
+      "px_w": -1,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "CHFJPY": {
+      "daily_chg": 0.19283237942848008,
+      "px_m": 0,
+      "px_w": -1,
+      "px_d": 1,
+      "full_alignment": 0
+    },
+    "EURAUD": {
+      "daily_chg": -0.025662489383677864,
+      "px_m": -1,
+      "px_w": 0,
+      "px_d": -1,
+      "full_alignment": 0
+    },
+    "EURCAD": {
+      "daily_chg": -0.20288728963548217,
+      "px_m": 0,
+      "px_w": 0,
+      "px_d": 1,
+      "full_alignment": 0
+    },
+    "EURCHF": {
+      "daily_chg": -0.05252044545912414,
+      "px_m": 0,
+      "px_w": 1,
+      "px_d": 1,
+      "full_alignment": 0
+    },
+    "EURGBP": {
+      "daily_chg": 0.0524909890468745,
+      "px_m": 0,
+      "px_w": 0,
+      "px_d": 1,
+      "full_alignment": 0
+    },
+    "EURJPY": {
+      "daily_chg": 0.13632216004660813,
+      "px_m": 1,
+      "px_w": -1,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "EURNZD": {
+      "daily_chg": 0.27040151302169946,
+      "px_m": 0,
+      "px_w": -1,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "EURUSD": {
+      "daily_chg": 0.15434775068501722,
+      "px_m": 0,
+      "px_w": 1,
+      "px_d": 1,
+      "full_alignment": 0
+    },
+    "GBPAUD": {
+      "daily_chg": -0.07438215666348763,
+      "px_m": 0,
+      "px_w": 0,
+      "px_d": -1,
+      "full_alignment": 0
+    },
+    "GBPCAD": {
+      "daily_chg": -0.2537614853505564,
+      "px_m": 1,
+      "px_w": 1,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "GBPCHF": {
+      "daily_chg": -0.1038326181440678,
+      "px_m": 0,
+      "px_w": 1,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "GBPJPY": {
+      "daily_chg": 0.08482483671219254,
+      "px_m": 1,
+      "px_w": -1,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "GBPNZD": {
+      "daily_chg": 0.21297481112727057,
+      "px_m": 0,
+      "px_w": -1,
+      "px_d": -1,
+      "full_alignment": 0
+    },
+    "GBPUSD": {
+      "daily_chg": 0.1025839255448795,
+      "px_m": 0,
+      "px_w": 1,
+      "px_d": 1,
+      "full_alignment": 0
+    },
+    "NZDCAD": {
+      "daily_chg": -0.476523669352894,
+      "px_m": 0,
+      "px_w": 0,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "NZDCHF": {
+      "daily_chg": -0.3397152263719694,
+      "px_m": 0,
+      "px_w": 1,
+      "px_d": 1,
+      "full_alignment": 0
+    },
+    "NZDJPY": {
+      "daily_chg": -0.14518470721084598,
+      "px_m": 0,
+      "px_w": 0,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "NZDUSD": {
+      "daily_chg": -0.10856658184902016,
+      "px_m": 0,
+      "px_w": 1,
+      "px_d": 1,
+      "full_alignment": 0
+    },
+    "USDCAD": {
+      "daily_chg": -0.3598503705178604,
+      "px_m": 1,
+      "px_w": 0,
+      "px_d": -1,
+      "full_alignment": 0
+    },
+    "USDCHF": {
+      "daily_chg": -0.20766634939863468,
+      "px_m": 1,
+      "px_w": 0,
+      "px_d": -1,
+      "full_alignment": 0
+    },
+    "USDJPY": {
+      "daily_chg": -0.018383984379950275,
+      "px_m": 1,
+      "px_w": -1,
+      "px_d": 0,
+      "full_alignment": 0
+    },
+    "XAUUSD": {
+      "daily_chg": 4.380612966957765,
+      "px_m": 1,
+      "px_w": 0,
       "px_d": 1,
       "full_alignment": 0
     }
