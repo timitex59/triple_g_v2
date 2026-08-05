@@ -96,16 +96,14 @@ def main() -> None:
               "(le script renko_full_alignment doit tourner avant FIOS).")
         tv_feed.clear_cache()
         return
-    section = cross_check.build_section(composites, align)
     pairs_section = cross_check.build_pairs_section(composites, align)
-    blocks = [b for b in (section, pairs_section) if b]
-    if not blocks:
-        print("Aucune confluence a afficher aujourd'hui.")
+    if not pairs_section:
+        print("Sidecar sans paires (renko_full_alignment doit tourner avant FIOS).")
         tv_feed.clear_cache()
         return
 
     now = datetime.now(PARIS).strftime("%d/%m/%Y %H:%M")
-    message = "\n\n".join("\n".join(b) for b in blocks) + f"\n\n⏰ {now} Paris"
+    message = "\n".join(pairs_section) + f"\n\n⏰ {now} Paris"
     print("\n" + message)
 
     if not args.no_telegram:

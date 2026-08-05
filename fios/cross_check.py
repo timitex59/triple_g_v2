@@ -221,26 +221,26 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
     if not pairs:
         return []
     recs = pair_confluence(composites, pairs)
-    # STRICT : FIOS + variation du jour + alignement RENKO SOLIDE (>=2 TF, 0
-    # a contre-sens), tous dans le meme sens. Ecarte les alignements 1 TF.
+
+    def _big(r) -> bool:
+        c = r["daily_chg"]
+        return isinstance(c, (int, float)) and abs(c) > cfg.PAIR_MIN_DAILY_CHG
+
+    # STRICT : FIOS (ecart >= seuil) + variation du jour (|chg| > seuil) +
+    # alignement RENKO SOLIDE (>=2 TF, 0 a contre-sens), tous dans le meme sens.
     buys = sorted([r for r in recs if r["fios_dir"] > 0 and r["daily_dir"] > 0
-                   and _solid(r["tf_up"], r["tf_down"], 1)],
+                   and _big(r) and _solid(r["tf_up"], r["tf_down"], 1)],
                   key=lambda r: r["strength"], reverse=True)
     sells = sorted([r for r in recs if r["fios_dir"] < 0 and r["daily_dir"] < 0
-                    and _solid(r["tf_up"], r["tf_down"], -1)],
+                    and _big(r) and _solid(r["tf_up"], r["tf_down"], -1)],
                    key=lambda r: r["strength"], reverse=True)
 
-    lines = ["🔀 Confluence PAIRES (stricte)"]
-
-    def _chg(r):
-        c = r["daily_chg"]
-        return f" ({c:+.2f}%)" if isinstance(c, (int, float)) else ""
-
+    lines = ["🔀 CONFLUENCE", ""]
     if not buys and not sells:
-        lines.append("Aucune paire strictement alignée aujourd'hui.")
+        lines.append("Aucune paire alignée aujourd'hui.")
         return lines
     for r in buys:
-        lines.append(f"🟢 ACHAT {r['pair']} · Align {r['tag']} · FIOS {r['fios_diff']:+.0f}{_chg(r)}")
+        lines.append(f"🟢 {r['pair']} ({r['daily_chg']:+.2f}%)")
     for r in sells:
-        lines.append(f"🔴 VENTE {r['pair']} · Align {r['tag']} · FIOS {r['fios_diff']:+.0f}{_chg(r)}")
+        lines.append(f"🔴 {r['pair']} ({r['daily_chg']:+.2f}%)")
     return lines
