@@ -35,6 +35,9 @@ from renko_score_29pairs_v16 import (
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
 MID_SAR_STATE_FILE = Path("renko_full_alignment_mid_sar_state.json")
+# Sidecar per-devise (force via index DXY/EXY/... + alignement M/W/D) lu par FIOS
+# pour croiser cette analyse avec sa force composite (confluence inter-systemes).
+INDEX_SIDECAR_FILE = Path("full_alignment_index.json")
 MID_SAR_WINDOW_START_HOUR = 7
 MID_SAR_WINDOW_END_HOUR = 23
 MID_SAR_ALLOWED_TF_PAIRS = {"M/W/D"}
@@ -889,11 +892,40 @@ def scan_pairs(length: int, candles: int, max_streak: int) -> list[dict]:
     return scan_assets(FOREX_PAIR_ASSETS, length, candles, max_streak)
 
 
+def write_index_sidecar(path: Path, index_by_currency: dict, now: datetime) -> None:
+    """Ecrit un sidecar per-devise (daily_chg + px M/W/D + alignement strict)
+    lu par FIOS pour croiser avec sa force composite. Non-invasif : sans effet
+    sur le message Telegram existant."""
+    currencies: dict = {}
+    for cur, row in index_by_currency.items():
+        px = row.get("px") or {}
+        currencies[str(cur)] = {
+            "daily_chg": row.get("daily_chg"),
+            "px_m": px.get("M"),
+            "px_w": px.get("W"),
+            "px_d": px.get("D"),
+            "full_alignment": full_alignment_direction(row),
+        }
+    payload = {
+        "generated_at": now.isoformat(),
+        "paris_date": now.strftime("%Y-%m-%d"),
+        "source": "renko_full_alignment_29pairs.py",
+        "currencies": currencies,
+    }
+    try:
+        path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+    except Exception as exc:
+        print(f"Sidecar index non ecrit: {exc}")
+
+
 def main() -> int:
     args = parse_args()
     now = datetime.now(PARIS_TZ)
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
     index_by_currency = _index_rows_by_currency(rows)
+    write_index_sidecar(INDEX_SIDECAR_FILE, index_by_currency, now)
     rows_by_pair = {str(row.get("pair")): row for row in rows}
 
     index_daily_chg_rows = select_index_daily_chg_rows(rows)

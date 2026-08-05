@@ -27,6 +27,7 @@ import requests
 from dotenv import load_dotenv
 
 from . import config as cfg
+from . import cross_check
 from . import journal as journal_mod
 from . import llm_explain
 from . import report as report_mod
@@ -74,6 +75,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--no-fund", action="store_true", help="Ignorer le fondamental FRED")
     p.add_argument("--no-corr", action="store_true", help="Ignorer les correlations")
     p.add_argument("--no-llm", action="store_true", help="Ignorer la note du desk (LLM)")
+    p.add_argument("--no-cross", action="store_true", help="Ignorer la confluence FULL ALIGNMENT")
     p.add_argument("--no-backtest", action="store_true", help="Ne pas denouer le journal (stats)")
     p.add_argument("--limit", type=int, default=0, help="Limiter le nb de paires (0 = toutes)")
     p.add_argument("--top", type=int, default=5, help="Nb de signaux dans le message")
@@ -173,6 +175,16 @@ def main() -> None:
     with open(cfg.REPORT_JSON, "w", encoding="utf-8") as f:
         json.dump(snapshot, f, ensure_ascii=False, indent=2)
 
+    # --- Confluence FULL ALIGNMENT x FIOS ---
+    cross_section = None
+    if not args.no_cross:
+        align = cross_check.load_align()
+        if align:
+            cross_section = cross_check.build_section(composites, align)
+            print(f"• Confluence FULL ALIGNMENT: {len(cross_section)} lignes")
+        else:
+            print("• Confluence FULL ALIGNMENT: sidecar absent/perime — ignore")
+
     # --- Note du desk (LLM) ---
     desk_note = None
     if not args.no_llm:
@@ -182,7 +194,8 @@ def main() -> None:
 
     # --- Telegram ---
     message = report_mod.build_message(
-        ranking_rows, signals, families, top_n=args.top, desk_note=desk_note
+        ranking_rows, signals, families, top_n=args.top,
+        desk_note=desk_note, cross_section=cross_section,
     )
     print(message)
     if not args.no_telegram:

@@ -39,6 +39,7 @@ def build_message(
     families: dict[str, FamilyResult],
     top_n: int = 5,
     desk_note: str | None = None,
+    cross_section: list[str] | None = None,
 ) -> str:
     now = datetime.now(PARIS).strftime("%d/%m/%Y %H:%M")
     lines: list[str] = []
@@ -52,6 +53,9 @@ def build_message(
     lines.append("💪 Force devises (0-100)")
     lines.append(_ranking_line(ranking_rows))
     lines.append("")
+    if cross_section:
+        lines.extend(cross_section)
+        lines.append("")
 
     actionable = [s for s in signals if s.decision != "WAIT"][:top_n]
     if actionable:
