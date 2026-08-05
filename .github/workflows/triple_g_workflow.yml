@@ -170,7 +170,10 @@ jobs:
           # 1x/jour a 07h Paris (avant l'ouverture de Londres) pour donner le
           # biais de la journee. Les familles sans identifiants sont ignorees.
           if [ "$(TZ="$REVERSAL_TZ" date +%H)" = "07" ]; then
-            run_with_telegram "$ENABLE_TELEGRAM_FIOS" -m fios.run
+            # Non-fatal : un echec de FIOS ne doit pas faire avorter le step
+            # (set -e) et empecher les scripts suivants de tourner. Le journal
+            # et les stats sont ecrits tot dans le run, avant l'envoi Telegram.
+            run_with_telegram "$ENABLE_TELEGRAM_FIOS" -m fios.run || echo "FIOS run failed (non-fatal)"
           else
             echo "Skip fios.run outside 07:00-08:00 Europe/Paris"
           fi
