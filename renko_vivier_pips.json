@@ -1105,6 +1105,19 @@
           "start_price": 182.226,
           "start_time_paris": "2026-08-06T16:00:00+02:00",
           "start_time_utc": "2026-08-06T14:00:00+00:00"
+        },
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-08-06",
+          "direction": 1,
+          "end_price": 182.532,
+          "end_time_paris": "2026-08-06T22:00:00+02:00",
+          "end_time_utc": "2026-08-06T20:00:00+00:00",
+          "pair": "EURJPY",
+          "pips": 0.40000000000190994,
+          "start_price": 182.528,
+          "start_time_paris": "2026-08-06T20:00:00+02:00",
+          "start_time_utc": "2026-08-06T18:00:00+00:00"
         }
       ]
     }
@@ -1112,44 +1125,33 @@
   "open_confirmed_segments": {},
   "open_segments": {
     "CADJPY": {
-      "current_pips": 37.60000000000048,
+      "current_pips": 38.59999999999957,
       "date": "2026-08-06",
       "direction": 1,
-      "last_price": 113.028,
-      "last_time_utc": "2026-08-06T18:00:00+00:00",
+      "last_price": 113.038,
+      "last_time_utc": "2026-08-06T20:00:00+00:00",
       "pair": "CADJPY",
       "start_price": 112.652,
       "start_time_paris": "2026-08-06T16:00:00+02:00",
       "start_time_utc": "2026-08-06T14:00:00+00:00"
     },
-    "EURJPY": {
-      "current_pips": 0.0,
-      "date": "2026-08-06",
-      "direction": 1,
-      "last_price": 182.528,
-      "last_time_utc": "2026-08-06T18:00:00+00:00",
-      "pair": "EURJPY",
-      "start_price": 182.528,
-      "start_time_paris": "2026-08-06T20:00:00+02:00",
-      "start_time_utc": "2026-08-06T18:00:00+00:00"
-    },
     "GBPCAD": {
-      "current_pips": -3.1000000000003247,
+      "current_pips": -6.500000000000394,
       "date": "2026-08-06",
       "direction": 1,
-      "last_price": 1.88584,
-      "last_time_utc": "2026-08-06T18:00:00+00:00",
+      "last_price": 1.8855,
+      "last_time_utc": "2026-08-06T20:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.88615,
       "start_time_paris": "2026-08-06T07:00:00+02:00",
       "start_time_utc": "2026-08-06T05:00:00+00:00"
     },
     "USDJPY": {
-      "current_pips": 19.900000000001228,
+      "current_pips": 19.80000000000075,
       "date": "2026-08-06",
       "direction": 1,
-      "last_price": 158.405,
-      "last_time_utc": "2026-08-06T18:00:00+00:00",
+      "last_price": 158.404,
+      "last_time_utc": "2026-08-06T20:00:00+00:00",
       "pair": "USDJPY",
       "start_price": 158.206,
       "start_time_paris": "2026-08-06T17:00:00+02:00",
@@ -1166,6 +1168,6 @@
       "2026-W31"
     ]
   },
-  "updated_at_paris": "2026-08-06T20:28:03.902316+02:00",
+  "updated_at_paris": "2026-08-06T22:15:49.828815+02:00",
   "version": 2
 }
