@@ -214,6 +214,57 @@ def pair_confluence(composites: dict[str, dict], pairs: dict) -> list[dict]:
     return recs
 
 
+def build_index_chg_lines(payload: dict | None) -> list[str]:
+    """Extrait et formate la section 💱 INDEX CHG%D a partir des devises du sidecar.
+    Filtres stricts : |CHG%D| >= 0.05%, 2+ TF consécutifs de même signe, counts cohérents."""
+    if not payload:
+        return []
+    currencies = payload.get("currencies") or {}
+    if not currencies:
+        return []
+
+    valid_rows = []
+    for cur, data in currencies.items():
+        daily_chg = data.get("daily_chg")
+        if not isinstance(daily_chg, (int, float)) or abs(daily_chg) < 0.005:
+            continue
+        m = data.get("px_m") or 0
+        w = data.get("px_w") or 0
+        d = data.get("px_d") or 0
+
+        # Au moins 2 timeframes consecutifs de meme signe (M, W) ou (W, D)
+        has_consecutive = (m != 0 and m == w) or (w != 0 and w == d)
+        if not has_consecutive:
+            continue
+
+        pos_count = (1 if m == 1 else 0) + (1 if w == 1 else 0) + (1 if d == 1 else 0)
+        neg_count = (1 if m == -1 else 0) + (1 if w == -1 else 0) + (1 if d == -1 else 0)
+
+        if daily_chg > 0 and neg_count > pos_count:
+            continue
+        if daily_chg < 0 and pos_count > neg_count:
+            continue
+
+        valid_rows.append((cur, daily_chg, m, w, d))
+
+    if not valid_rows:
+        return []
+
+    pos_rows = sorted([r for r in valid_rows if r[1] > 0], key=lambda x: x[1], reverse=True)
+    neg_rows = sorted([r for r in valid_rows if r[1] < 0], key=lambda x: x[1])
+
+    def _sign(v):
+        return "+" if v == 1 else ("-" if v == -1 else "0")
+
+    lines = []
+    for cur, chg, m, w, d in pos_rows + neg_rows:
+        icon = "🟢" if chg > 0 else "🔴"
+        tag = f"M{_sign(m)} W{_sign(w)} D{_sign(d)}"
+        lines.append(f"{icon} {cur} {chg:+.2f}% ({tag})")
+
+    return lines
+
+
 def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> list[str]:
     if not payload:
         return []
@@ -243,4 +294,10 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
         lines.append(f"🟢 {r['pair']} ({r['daily_chg']:+.2f}%)")
     for r in sells:
         lines.append(f"🔴 {r['pair']} ({r['daily_chg']:+.2f}%)")
+
+    idx_lines = build_index_chg_lines(payload)
+    if idx_lines:
+        lines.extend(["", "💱 INDEX CHG%D"])
+        lines.extend(idx_lines)
+
     return lines
