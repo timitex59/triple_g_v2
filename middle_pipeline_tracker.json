@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-06",
-  "prev_update": "2026-08-05",
+  "updated": "2026-08-07",
+  "prev_update": "2026-08-06",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -58,13 +58,13 @@
       "dropped_on": "2026-07-01"
     },
     "AVT": {
-      "streak": 1,
-      "days": 6,
+      "streak": 2,
+      "days": 7,
       "first_seen": "2026-06-23",
-      "last_seen": "2026-08-06",
-      "last_rank": 4,
+      "last_seen": "2026-08-07",
+      "last_rank": 5,
       "peak_rank": 3,
-      "last_rel": 11.89,
+      "last_rel": 10.28,
       "active": true
     },
     "SMTC": {
@@ -145,24 +145,23 @@
       "dropped_on": "2026-07-31"
     },
     "OKTA": {
-      "streak": 10,
-      "days": 10,
+      "streak": 1,
+      "days": 11,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-08-05",
+      "last_seen": "2026-08-07",
       "last_rank": 2,
       "peak_rank": 1,
-      "last_rel": 83.38,
-      "active": false,
-      "dropped_on": "2026-08-06"
+      "last_rel": 75.76,
+      "active": true
     },
     "QLYS": {
-      "streak": 3,
-      "days": 10,
+      "streak": 4,
+      "days": 11,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-08-06",
+      "last_seen": "2026-08-07",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 92.76,
+      "last_rel": 82.07,
       "active": true
     },
     "CXT": {
@@ -178,14 +177,13 @@
     },
     "TWLO": {
       "streak": 1,
-      "days": 1,
+      "days": 2,
       "first_seen": "2026-07-07",
-      "last_seen": "2026-07-07",
-      "last_rank": 4,
-      "peak_rank": 4,
-      "last_rel": 53.29,
-      "active": false,
-      "dropped_on": "2026-07-08"
+      "last_seen": "2026-08-07",
+      "last_rank": 3,
+      "peak_rank": 3,
+      "last_rel": 19.75,
+      "active": true
     },
     "SYNA": {
       "streak": 1,
@@ -206,7 +204,8 @@
       "last_rank": 5,
       "peak_rank": 2,
       "last_rel": 11.2,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-08-07"
     },
     "MANH": {
       "streak": 2,
@@ -249,16 +248,17 @@
       "last_rank": 2,
       "peak_rank": 2,
       "last_rel": 33.07,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-08-07"
     },
     "NOVT": {
-      "streak": 1,
-      "days": 1,
+      "streak": 2,
+      "days": 2,
       "first_seen": "2026-08-06",
-      "last_seen": "2026-08-06",
-      "last_rank": 3,
+      "last_seen": "2026-08-07",
+      "last_rank": 4,
       "peak_rank": 3,
-      "last_rel": 15.41,
+      "last_rel": 15.48,
       "active": true
     }
   },
@@ -266,86 +266,91 @@
     "persistent": [
       [
         "QLYS",
-        3
-      ],
-      [
-        "ARW",
-        3
-      ],
-      [
-        "DBX",
-        1
+        4
       ],
       [
         "NOVT",
-        1
+        2
       ],
       [
         "AVT",
+        2
+      ],
+      [
+        "OKTA",
+        1
+      ],
+      [
+        "TWLO",
         1
       ]
     ],
     "new": [
-      "DBX",
-      "NOVT",
-      "AVT"
+      "OKTA",
+      "TWLO"
     ],
     "weakening": [
       {
         "ticker": "QLYS",
         "rank": 1,
         "prev_rank": 1,
-        "rel": 92.76,
-        "prev_rel": 93.88
+        "rel": 82.07,
+        "prev_rel": 92.76
       },
       {
-        "ticker": "ARW",
+        "ticker": "NOVT",
+        "rank": 4,
+        "prev_rank": 3,
+        "rel": 15.48,
+        "prev_rel": 15.41
+      },
+      {
+        "ticker": "AVT",
         "rank": 5,
         "prev_rank": 4,
-        "rel": 11.2,
-        "prev_rel": 13.05
+        "rel": 10.28,
+        "prev_rel": 11.89
       }
     ],
     "dropped": [
-      "CGNX",
-      "SNX",
-      "OKTA"
+      "ARW",
+      "DBX"
     ],
     "durable": [
       [
         "QLYS",
-        3,
-        92.76,
-        278.3
+        4,
+        82.07,
+        328.3
       ],
       [
-        "ARW",
-        3,
-        11.2,
-        33.6
-      ],
-      [
-        "DBX",
+        "OKTA",
         1,
-        33.07,
-        33.1
+        75.76,
+        75.8
       ],
       [
         "NOVT",
-        1,
-        15.41,
-        15.4
+        2,
+        15.48,
+        31.0
       ],
       [
         "AVT",
+        2,
+        10.28,
+        20.6
+      ],
+      [
+        "TWLO",
         1,
-        11.89,
-        11.9
+        19.75,
+        19.8
       ]
     ],
     "switch": null
   },
   "leader_raw": "Logiciels",
-  "leader_raw_days": 5,
+  "leader_raw_days": 6,
   "leader_confirmed": "Logiciels"
 }
