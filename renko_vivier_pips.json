@@ -1235,25 +1235,37 @@
       ]
     }
   },
-  "open_confirmed_segments": {},
-  "open_segments": {
+  "open_confirmed_segments": {
     "CADJPY": {
-      "current_pips": -13.2000000000005,
+      "current_pips": 0.0,
       "date": "2026-08-07",
       "direction": 1,
-      "last_price": 112.85,
-      "last_time_utc": "2026-08-07T13:00:00+00:00",
+      "last_price": 113.088,
+      "last_time_utc": "2026-08-07T14:00:00+00:00",
+      "pair": "CADJPY",
+      "start_price": 113.088,
+      "start_time_paris": "2026-08-07T16:00:00+02:00",
+      "start_time_utc": "2026-08-07T14:00:00+00:00"
+    }
+  },
+  "open_segments": {
+    "CADJPY": {
+      "current_pips": 10.599999999999454,
+      "date": "2026-08-07",
+      "direction": 1,
+      "last_price": 113.088,
+      "last_time_utc": "2026-08-07T14:00:00+00:00",
       "pair": "CADJPY",
       "start_price": 112.982,
       "start_time_paris": "2026-08-07T07:00:00+02:00",
       "start_time_utc": "2026-08-07T05:00:00+00:00"
     },
     "GBPCAD": {
-      "current_pips": -31.200000000000117,
+      "current_pips": -43.30000000000167,
       "date": "2026-08-07",
       "direction": 1,
-      "last_price": 1.88294,
-      "last_time_utc": "2026-08-07T13:00:00+00:00",
+      "last_price": 1.88173,
+      "last_time_utc": "2026-08-07T14:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.88606,
       "start_time_paris": "2026-08-07T07:00:00+02:00",
@@ -1270,6 +1282,6 @@
       "2026-W31"
     ]
   },
-  "updated_at_paris": "2026-08-07T15:36:27.699083+02:00",
+  "updated_at_paris": "2026-08-07T16:15:49.565631+02:00",
   "version": 2
 }
