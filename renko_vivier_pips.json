@@ -1175,6 +1175,19 @@
           "start_price": 1.88606,
           "start_time_paris": "2026-08-07T07:00:00+02:00",
           "start_time_utc": "2026-08-07T05:00:00+00:00"
+        },
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-08-07",
+          "direction": 1,
+          "end_price": 113.076,
+          "end_time_paris": "2026-08-07T18:00:00+02:00",
+          "end_time_utc": "2026-08-07T16:00:00+00:00",
+          "pair": "CADJPY",
+          "pips": -1.2000000000000455,
+          "start_price": 113.088,
+          "start_time_paris": "2026-08-07T16:00:00+02:00",
+          "start_time_utc": "2026-08-07T14:00:00+00:00"
         }
       ],
       "date": "2026-08-07",
@@ -1231,52 +1244,42 @@
           "start_price": 158.378,
           "start_time_paris": "2026-08-07T07:00:00+02:00",
           "start_time_utc": "2026-08-07T05:00:00+00:00"
+        },
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-08-07",
+          "direction": 1,
+          "end_price": 182.114,
+          "end_time_paris": "2026-08-07T18:00:00+02:00",
+          "end_time_utc": "2026-08-07T16:00:00+00:00",
+          "pair": "EURJPY",
+          "pips": -34.99999999999943,
+          "start_price": 182.464,
+          "start_time_paris": "2026-08-07T17:00:00+02:00",
+          "start_time_utc": "2026-08-07T15:00:00+00:00"
         }
       ]
     }
   },
-  "open_confirmed_segments": {
-    "CADJPY": {
-      "current_pips": 18.700000000001182,
-      "date": "2026-08-07",
-      "direction": 1,
-      "last_price": 113.275,
-      "last_time_utc": "2026-08-07T15:00:00+00:00",
-      "pair": "CADJPY",
-      "start_price": 113.088,
-      "start_time_paris": "2026-08-07T16:00:00+02:00",
-      "start_time_utc": "2026-08-07T14:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
   "open_segments": {
     "CADJPY": {
-      "current_pips": 29.300000000000637,
+      "current_pips": 9.399999999999409,
       "date": "2026-08-07",
       "direction": 1,
-      "last_price": 113.275,
-      "last_time_utc": "2026-08-07T15:00:00+00:00",
+      "last_price": 113.076,
+      "last_time_utc": "2026-08-07T16:00:00+00:00",
       "pair": "CADJPY",
       "start_price": 112.982,
       "start_time_paris": "2026-08-07T07:00:00+02:00",
       "start_time_utc": "2026-08-07T05:00:00+00:00"
     },
-    "EURJPY": {
-      "current_pips": 0.0,
-      "date": "2026-08-07",
-      "direction": 1,
-      "last_price": 182.464,
-      "last_time_utc": "2026-08-07T15:00:00+00:00",
-      "pair": "EURJPY",
-      "start_price": 182.464,
-      "start_time_paris": "2026-08-07T17:00:00+02:00",
-      "start_time_utc": "2026-08-07T15:00:00+00:00"
-    },
     "GBPCAD": {
-      "current_pips": -53.800000000001624,
+      "current_pips": -55.400000000001,
       "date": "2026-08-07",
       "direction": 1,
-      "last_price": 1.88068,
-      "last_time_utc": "2026-08-07T15:00:00+00:00",
+      "last_price": 1.88052,
+      "last_time_utc": "2026-08-07T16:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.88606,
       "start_time_paris": "2026-08-07T07:00:00+02:00",
@@ -1293,6 +1296,6 @@
       "2026-W31"
     ]
   },
-  "updated_at_paris": "2026-08-07T17:15:49.794481+02:00",
+  "updated_at_paris": "2026-08-07T18:10:27.743768+02:00",
   "version": 2
 }
