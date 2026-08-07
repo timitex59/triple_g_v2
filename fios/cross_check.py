@@ -326,7 +326,7 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
 
     idx_lines = build_index_chg_lines(payload)
     if idx_lines:
-        lines.extend(["", "💱 INDEX CHG%D"])
+        lines.append("")
         lines.extend(idx_lines)
 
     return lines
