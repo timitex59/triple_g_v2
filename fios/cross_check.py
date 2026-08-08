@@ -381,6 +381,32 @@ def build_renko_fibo_50_section() -> list[str]:
         return []
 
 
+def build_multilayer_section(composites: dict[str, dict], payload: dict | None) -> tuple[list[str], dict[str, dict]]:
+    """Génère la section Multi-Layer Matrix (Grade A+ et Grade A)."""
+    fibo_50_results = {}
+    try:
+        from renko_fibo_50_strategy import scan_all_pairs
+        fibo_50_results = scan_all_pairs(length=14, candles=80, workers=10, max_age_bricks=5) or {}
+    except Exception as exc:
+        print(f"Warning: Impossible d'exécuter le scan Renko Fibo 50%: {exc}")
+
+    vivier_state = {}
+    try:
+        from renko_score_29pairs_v16 import load_vivier_state
+        vivier_state = load_vivier_state() or {}
+    except Exception as exc:
+        print(f"Warning: Impossible de charger le state Vivier: {exc}")
+
+    try:
+        from .multilayer import compute_multilayer_matrix, format_multilayer_section
+        scores = compute_multilayer_matrix(composites, payload, fibo_50_results, vivier_state)
+        lines = format_multilayer_section(scores)
+        return lines, fibo_50_results
+    except Exception as exc:
+        print(f"Warning: Erreur dans le calcul Multicouche: {exc}")
+        return [], fibo_50_results
+
+
 def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> list[str]:
     if not payload:
         return []
@@ -402,10 +428,18 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
                     and _big(r) and _solid(r["tf_up"], r["tf_down"], -1)],
                    key=lambda r: r["strength"], reverse=True)
 
-    if not buys and not sells:
+    ml_lines, fibo_results = build_multilayer_section(composites, payload)
+
+    if not buys and not sells and not ml_lines:
         return []  # rien d'aligne -> pas de message (evite le spam horaire)
 
-    lines = ["🔀 CONFLUENCE", ""]
+    lines = []
+    if ml_lines:
+        lines.extend(ml_lines)
+        lines.append("")
+
+    lines.append("🔀 CONFLUENCE")
+    lines.append("")
     for r in buys:
         lines.append(f"🟢 {r['pair']} ({r['daily_chg']:+.2f}%) ({r['tag']})")
     for r in sells:
