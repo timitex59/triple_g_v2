@@ -6,11 +6,12 @@ fios/index_scoring.py
 Système de Scoring des Indices Devises Constitutifs (-100 à +100 Pts).
 
 Calcule le score objectif de chaque devise (AUD, NZD, EUR, GBP, CHF, CAD, JPY, USD)
-à partir de 4 piliers :
-1. Variation Daily (CHG%D) - Max 30 Pts
-2. Alignement Multi-TF (M/W/D) - Max 30 Pts
-3. Force Composite FIOS - Max 20 Pts
-4. Rang Relatif sur le Marché (1er à 8ème) - Max 20 Pts
+à partir de 4 piliers (la STRUCTURE domine, le pop du jour ne fait que confirmer) :
+1. Alignement Multi-TF M/W/D - Max ±30 Pts  (le socle)
+2. Force Composite FIOS       - Max ±25 Pts
+3. Variation Daily (CHG%D)    - Max ±15 Pts  (confirmation, pas domination)
+4. Rang Relatif sur 8         - Max ±10 Pts  (départage)
+Total borné à ±80.
 """
 
 from __future__ import annotations
@@ -71,7 +72,7 @@ def compute_currency_index_scores(
     )
     ranks = {cur: i + 1 for i, cur in enumerate(ranked_cur)}
 
-    rank_points_map = {1: 20, 2: 14, 3: 8, 4: 2, 5: -2, 6: -8, 7: -14, 8: -20}
+    rank_points_map = {1: 10, 2: 7, 3: 4, 4: 1, 5: -1, 6: -4, 7: -7, 8: -10}
 
     results: dict[str, CurrencyScore] = {}
 
@@ -82,43 +83,37 @@ def compute_currency_index_scores(
         comp = d["composite"]
         rank = ranks[cur]
 
-        # ── Pilier 1: Variation Daily (Max 30 Pts) ──
-        if chg >= 0.50:
-            p1 = 30
-        elif chg >= 0.30:
-            p1 = 20
+        # ── Pilier 1: Alignement Multi-TF M/W/D (Max ±30) — le socle ──
+        p1_struct = (px_m * 10) + (px_w * 10) + (px_d * 10)
+
+        # ── Pilier 2: Force Composite FIOS (Max ±25) ──
+        p2_comp = max(-25, min(25, round((comp - 50.0) * 0.5)))
+
+        # ── Pilier 3: Variation Daily (Max ±15) — confirme, ne domine pas ──
+        if chg >= 0.30:
+            p3_daily = 15
         elif chg >= 0.10:
-            p1 = 10
+            p3_daily = 8
         elif chg > -0.10:
-            p1 = 0
+            p3_daily = 0
         elif chg > -0.30:
-            p1 = -10
-        elif chg > -0.50:
-            p1 = -20
+            p3_daily = -8
         else:
-            p1 = -30
+            p3_daily = -15
 
-        # ── Pilier 2: Alignement Multi-TF (Max 30 Pts) ──
-        p2 = (px_m * 10) + (px_w * 10) + (px_d * 10)
+        # ── Pilier 4: Rang Relatif sur 8 (Max ±10) — départage ──
+        p4_rank = rank_points_map.get(rank, 0)
 
-        # ── Pilier 3: Force Composite FIOS (Max 20 Pts) ──
-        p3 = round((comp - 50.0) * 0.4)
-        p3 = max(-20, min(20, p3))
+        # Score Global borné à ±80.
+        tot = max(-80, min(80, p1_struct + p2_comp + p3_daily + p4_rank))
 
-        # ── Pilier 4: Rang Relatif sur 8 (Max 20 Pts) ──
-        p4 = rank_points_map.get(rank, 0)
-
-        # Score Global (-100 à +100)
-        tot = p1 + p2 + p3 + p4
-        tot = max(-100, min(100, tot))
-
-        if tot >= 70:
+        if tot >= 55:
             label, icon = "ULTRA-FORT", "🟢🟢"
-        elif tot >= 35:
+        elif tot >= 25:
             label, icon = "FORT", "🟢"
-        elif tot > -35:
+        elif tot > -25:
             label, icon = "NEUTRE", "⚪"
-        elif tot > -70:
+        elif tot > -55:
             label, icon = "FAIBLE", "🔴"
         else:
             label, icon = "ULTRA-FAIBLE", "🔴🔴"

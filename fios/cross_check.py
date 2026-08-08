@@ -214,11 +214,8 @@ def pair_confluence(composites: dict[str, dict], pairs: dict) -> list[dict]:
     return recs
 
 
-def build_index_chg_lines(payload: dict | None) -> list[str]:
-    """Extrait et formate les sections 💱 INDEX CHG%D et OTHER INDEX a partir des devises du sidecar."""
-    if not payload:
-        return []
 def build_index_chg_lines(payload: dict | None, composites: dict[str, dict] | None = None) -> list[str]:
+    """Sections 💱 INDEX CHG%D et OTHER INDEX (score d'indice par devise)."""
     if not payload:
         return []
     currencies = payload.get("indexes") or payload.get("currencies") or {}
@@ -363,16 +360,14 @@ def build_vivier_section() -> list[str]:
         return []
 
 
-def build_renko_fibo_50_section() -> list[str]:
-    """Charge et génère la section RENKO FIBO 50% (DAILY, FULL ALIGNMENT, BIAIS M/W)."""
+def build_renko_fibo_50_section(results: dict | None = None) -> list[str]:
+    """Section RENKO FIBO 50% (DAILY, FULL ALIGNMENT, BIAIS M/W). Reutilise le
+    scan deja calcule par le podium si fourni (evite un double scan)."""
     try:
-        from renko_fibo_50_strategy import (
-            scan_all_pairs,
-            build_sections,
-            _ICONS,
-            _fmt_chg,
-        )
-        results = scan_all_pairs(length=14, candles=80, workers=10, max_age_bricks=5)
+        from renko_fibo_50_strategy import build_sections, _ICONS, _fmt_chg
+        if not results:
+            from renko_fibo_50_strategy import scan_all_pairs
+            results = scan_all_pairs(length=14, candles=80, workers=10, max_age_bricks=5)
         if not results:
             return []
 
@@ -469,7 +464,7 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
         lines.append("")
         lines.extend(vivier_lines)
 
-    fibo_50_lines = build_renko_fibo_50_section()
+    fibo_50_lines = build_renko_fibo_50_section(fibo_results)
     if fibo_50_lines:
         lines.append("")
         lines.extend(fibo_50_lines)

@@ -65,18 +65,28 @@ def evaluate_pair_multilayer(
     else:
         return None
 
+    # Confirmation du jour : la variation du jour doit aller dans le sens du
+    # trade et depasser le seuil. Garantit la coherence avec la section
+    # CONFLUENCE (plus de #1 dont le jour contredit la direction).
+    chg = a.get("daily_chg")
+    if not isinstance(chg, (int, float)) or abs(chg) <= cfg.PAIR_MIN_DAILY_CHG:
+        return None
+    if (1 if chg > 0 else -1) != direction:
+        return None
+
     score = 0
     layers_passed = []
 
     # ── Layer 1: Différentiel d'Indices Devises (Max 30 Pts) ──
+    # Seuils cales sur la nouvelle echelle d'indice (±80 -> diff jusqu'a ±160).
     signed_diff = index_diff * direction
-    if signed_diff >= 120:
+    if signed_diff >= 90:
         score += 30
         layers_passed.append("Diff Index Max")
-    elif signed_diff >= 80:
+    elif signed_diff >= 55:
         score += 20
         layers_passed.append("Diff Index Fort")
-    elif signed_diff >= 40:
+    elif signed_diff >= 25:
         score += 10
         layers_passed.append("Diff Index Modéré")
 
@@ -198,5 +208,5 @@ PAIRS_ALL = [
     "EURGBP", "EURJPY", "EURCHF", "EURCAD", "EURAUD", "EURNZD",
     "GBPJPY", "GBPCHF", "GBPCAD", "GBPAUD", "GBPNZD",
     "CHFJPY", "CADJPY", "AUDJPY", "NZDJPY",
-    "CADCHF", "AUDCHF", "AUDCAD", "AUDNZD", "NZDCHF", "NZDCAD", "BTCUSD"
+    "CADCHF", "AUDCHF", "AUDCAD", "AUDNZD", "NZDCHF", "NZDCAD"
 ]
