@@ -345,28 +345,19 @@ def build_vivier_section() -> list[str]:
 
 
 def build_renko_fibo_50_section() -> list[str]:
-    """Charge et génère la section RENKO FIBO 50% (DAILY, FULL ALIGNMENT, BIAIS M/W, PIPS)."""
+    """Charge et génère la section RENKO FIBO 50% (DAILY, FULL ALIGNMENT, BIAIS M/W)."""
     try:
         from renko_fibo_50_strategy import (
             scan_all_pairs,
             build_sections,
-            load_pips_state,
-            update_pips_tracker,
-            finalize_days,
-            pips_report_lines,
             _ICONS,
             _fmt_chg,
-            PARIS_TZ,
         )
         results = scan_all_pairs(length=14, candles=80, workers=10, max_age_bricks=5)
         if not results:
             return []
 
         daily_alignments, strict_alignments, mw_alignments = build_sections(results)
-        now_paris = datetime.now(PARIS_TZ)
-        pips_state = load_pips_state()
-        pips_state = update_pips_tracker(results, strict_alignments, pips_state, now=now_paris)
-        pips_state = finalize_days(pips_state, now_paris)
 
         lines = ["📊 RENKO FIBO 50%"]
         has_content = False
@@ -382,12 +373,6 @@ def build_renko_fibo_50_section() -> list[str]:
             lines.append(header)
             for pair, label, chg in sorted(rows, key=lambda r: r[0]):
                 lines.append(f"{_ICONS[label]} {pair} · {_fmt_chg(chg)}")
-            has_content = True
-
-        pips_lines = pips_report_lines(pips_state, now=now_paris)
-        if pips_lines:
-            lines.append("")
-            lines.extend(pips_lines)
             has_content = True
 
         return lines if has_content else []
