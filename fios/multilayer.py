@@ -173,18 +173,15 @@ def compute_multilayer_matrix(
     return sorted(scores, key=lambda x: (-x.total_score, x.pair))
 
 
-def format_multilayer_section(scores: list[MultiLayerScore]) -> list[str]:
-    grade_aplus = [s for s in scores if s.grade == "A+"]
-    grade_a = [s for s in scores if s.grade == "A"]
-
-    if not grade_aplus and not grade_a:
+def format_multilayer_section(scores: list[MultiLayerScore], top_n: int = 5) -> list[str]:
+    retained = [s for s in scores if s.grade in ("A+", "A", "B")]
+    if not retained:
         return []
 
     lines = ["🏆 CLASSEMENT DES MEILLEURES PAIRES (TOP CONFLUENCE)"]
     medals = ["🥇", "🥈", "🥉"]
 
-    all_retained = grade_aplus + grade_a
-    for i, s in enumerate(all_retained, 1):
+    for i, s in enumerate(retained[:top_n], 1):
         medal = medals[i - 1] if i <= 3 else f"{i}."
         icon = "🟢" if s.direction == 1 else "🔴"
         chg_str = f" ({s.daily_chg:+.2f}%)" if isinstance(s.daily_chg, (int, float)) else ""
