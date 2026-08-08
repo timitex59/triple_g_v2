@@ -320,9 +320,9 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
 
     lines = ["🔀 CONFLUENCE", ""]
     for r in buys:
-        lines.append(f"🟢 {r['pair']} ({r['daily_chg']:+.2f}%)")
+        lines.append(f"🟢 {r['pair']} ({r['daily_chg']:+.2f}%) ({r['tag']})")
     for r in sells:
-        lines.append(f"🔴 {r['pair']} ({r['daily_chg']:+.2f}%)")
+        lines.append(f"🔴 {r['pair']} ({r['daily_chg']:+.2f}%) ({r['tag']})")
 
     idx_lines = build_index_chg_lines(payload)
     if idx_lines:
