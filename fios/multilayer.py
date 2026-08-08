@@ -3,22 +3,16 @@
 """
 fios/multilayer.py
 ------------------
-Moteur de Scoring Multicouche (Layer 1 à Layer 4) pour identifier les opportunités
-à la plus haute conviction (Grade A+, Grade A, Grade B).
+Moteur de Scoring Multicouche Ultime avec Agrégation des Indices Devises.
 
-Couches d'analyse :
-- Layer 1: Force Devises & Indices FIOS (25 Pts)
-- Layer 2: Alignement Renko M/W/D (30 Pts)
-- Layer 3: Retracement & Breakout Fibo 50% (25 Pts)
-- Layer 4: Timing Intraday Vivier H1 (20 Pts)
+Calcule le score de chaque paire (0 à 100 Pts) à partir du différentiel d'indices
+et de la structure technique pour établir le Podium des Meilleures Paires (🥇 🥈 🥉).
 """
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
-from datetime import datetime
-
+from .index_scoring import compute_currency_index_scores, CurrencyScore
 from . import config as cfg
 
 
@@ -29,7 +23,11 @@ class MultiLayerScore:
     total_score: int                   # 0 à 100 points
     grade: str                         # "A+", "A", "B", "NONE"
     layers_passed: list[str] = field(default_factory=list)
-    fios_diff: float = 0.0
+    index_diff: int = 0
+    base_score: int = 0
+    quote_score: int = 0
+    base_cur: str = ""
+    quote_cur: str = ""
     daily_chg: float | None = None
     tag_mwd: str = ""
 
@@ -40,20 +38,21 @@ def evaluate_pair_multilayer(
     align_pairs: dict[str, dict],
     fibo_50_results: dict[str, dict],
     vivier_state: dict,
+    index_scores: dict[str, CurrencyScore],
 ) -> MultiLayerScore | None:
     if len(pair) != 6:
         return None
 
     base, quote = pair[:3], pair[3:]
-    cb, cq = composites.get(base), composites.get(quote)
-    if not cb or not cq:
+    sb = index_scores.get(base)
+    sq = index_scores.get(quote)
+    if not sb or not sq:
         return None
 
-    fios_diff = float(cb["composite"]) - float(cq["composite"])
-    thr = cfg.PAIR_MIN_FIOS_DIFF
-    fios_dir = 1 if fios_diff >= thr else (-1 if fios_diff <= -thr else 0)
+    index_diff = sb.total_score - sq.total_score
+    index_dir = 1 if index_diff > 0 else (-1 if index_diff < 0 else 0)
 
-    # Determine potential trade direction from FIOS or Renko alignment
+    # Determine potential trade direction from Renko alignment or Index differential
     a = align_pairs.get(pair) or {}
     px_m = a.get("px_m") or 0
     px_w = a.get("px_w") or 0
@@ -61,21 +60,27 @@ def evaluate_pair_multilayer(
 
     if px_m == px_w == px_d and px_m != 0:
         direction = px_m
-    elif fios_dir != 0:
-        direction = fios_dir
+    elif index_dir != 0:
+        direction = index_dir
     else:
         return None
 
     score = 0
     layers_passed = []
 
-    # ── Layer 1: Force Devises & Indices FIOS (25 Pts) ──
-    l1_pass = (direction == 1 and fios_diff >= thr) or (direction == -1 and fios_diff <= -thr)
-    if l1_pass:
-        score += 25
-        layers_passed.append("FIOS")
+    # ── Layer 1: Différentiel d'Indices Devises (Max 30 Pts) ──
+    signed_diff = index_diff * direction
+    if signed_diff >= 120:
+        score += 30
+        layers_passed.append("Diff Index Max")
+    elif signed_diff >= 80:
+        score += 20
+        layers_passed.append("Diff Index Fort")
+    elif signed_diff >= 40:
+        score += 10
+        layers_passed.append("Diff Index Modéré")
 
-    # ── Layer 2: Alignement Renko M/W/D (30 Pts) ──
+    # ── Layer 2: Structure Renko M/W/D (Max 30 Pts) ──
     l2_strict = (px_m == direction and px_w == direction and px_d == direction)
     l2_solid = (
         (sum(1 for v in (px_m, px_w, px_d) if v == direction) >= 2)
@@ -88,7 +93,7 @@ def evaluate_pair_multilayer(
         score += 20
         layers_passed.append("Renko 2-TF")
 
-    # ── Layer 3: Retracement Fibo 50% (25 Pts) ──
+    # ── Layer 3: Breakout / Retracement Fibo 50% (Max 25 Pts) ──
     tf_fibo = fibo_50_results.get(pair) or {}
     d_fibo = tf_fibo.get("D") or tf_fibo.get("W")
     if d_fibo:
@@ -99,21 +104,21 @@ def evaluate_pair_multilayer(
             score += 25
             layers_passed.append("Fibo 50%")
 
-    # ── Layer 4: Timing Intraday Vivier (20 Pts) ──
+    # ── Layer 4: Timing Intraday Vivier H1 (Max 15 Pts) ──
     v_pairs = (vivier_state or {}).get("pairs") or {}
     v_entry = v_pairs.get(pair) or {}
     if v_entry and v_entry.get("direction") == direction:
         v_sar = v_entry.get("daily_sar_dir")
         if v_sar == direction:
-            score += 20
+            score += 15
             layers_passed.append("Vivier H1")
 
     # Grade Classification
-    if score >= 85:
+    if score >= 80:
         grade = "A+"
-    elif score >= 65:
+    elif score >= 60:
         grade = "A"
-    elif score >= 45:
+    elif score >= 40:
         grade = "B"
     else:
         grade = "NONE"
@@ -133,7 +138,11 @@ def evaluate_pair_multilayer(
         total_score=score,
         grade=grade,
         layers_passed=layers_passed,
-        fios_diff=fios_diff,
+        index_diff=index_diff,
+        base_score=sb.total_score,
+        quote_score=sq.total_score,
+        base_cur=base,
+        quote_cur=quote,
         daily_chg=chg,
         tag_mwd=tag_mwd,
     )
@@ -150,11 +159,14 @@ def compute_multilayer_matrix(
     fibo_50_results = fibo_50_results or {}
     vivier_state = vivier_state or {}
 
+    index_scores = compute_currency_index_scores(composites, payload)
     all_pairs = sorted(list(set(list(align_pairs.keys()) + list(PAIRS_ALL))))
     scores: list[MultiLayerScore] = []
 
     for pair in all_pairs:
-        s = evaluate_pair_multilayer(pair, composites, align_pairs, fibo_50_results, vivier_state)
+        s = evaluate_pair_multilayer(
+            pair, composites, align_pairs, fibo_50_results, vivier_state, index_scores
+        )
         if s is not None:
             scores.append(s)
 
@@ -168,27 +180,18 @@ def format_multilayer_section(scores: list[MultiLayerScore]) -> list[str]:
     if not grade_aplus and not grade_a:
         return []
 
-    lines = []
+    lines = ["🏆 CLASSEMENT DES MEILLEURES PAIRES (TOP CONFLUENCE)"]
+    medals = ["🥇", "🥈", "🥉"]
 
-    if grade_aplus:
-        lines.append("🌟🌟🌟 TRADES GRADE A+ (CONFLUENCE TOTALE)")
-        for s in grade_aplus:
-            icon = "🟢" if s.direction == 1 else "🔴"
-            chg_str = f" ({s.daily_chg:+.2f}%)" if isinstance(s.daily_chg, (int, float)) else ""
-            layers_str = " + ".join(s.layers_passed)
-            lines.append(f"{icon} {s.pair}{chg_str} ({s.tag_mwd}) · Score: {s.total_score}/100")
-            lines.append(f"   ↳ {layers_str}")
+    all_retained = grade_aplus + grade_a
+    for i, s in enumerate(all_retained, 1):
+        medal = medals[i - 1] if i <= 3 else f"{i}."
+        icon = "🟢" if s.direction == 1 else "🔴"
+        chg_str = f" ({s.daily_chg:+.2f}%)" if isinstance(s.daily_chg, (int, float)) else ""
+        layers_str = " + ".join(s.layers_passed)
 
-    if grade_a:
-        if lines:
-            lines.append("")
-        lines.append("🌟🌟 TRADES GRADE A (CONFLUENCE FORTE)")
-        for s in grade_a:
-            icon = "🟢" if s.direction == 1 else "🔴"
-            chg_str = f" ({s.daily_chg:+.2f}%)" if isinstance(s.daily_chg, (int, float)) else ""
-            layers_str = " + ".join(s.layers_passed)
-            lines.append(f"{icon} {s.pair}{chg_str} ({s.tag_mwd}) · Score: {s.total_score}/100")
-            lines.append(f"   ↳ {layers_str}")
+        lines.append(f"{medal} {icon} {s.pair}{chg_str} ({s.tag_mwd}) · Score: {s.total_score}/100 (GRADE {s.grade})")
+        lines.append(f"   ↳ Diff Index: {s.index_diff:+d} ({s.base_cur} {s.base_score:+d} vs {s.quote_cur} {s.quote_score:+d}) · {layers_str}")
 
     return lines
 
