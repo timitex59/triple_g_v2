@@ -294,14 +294,29 @@ def build_index_chg_lines(payload: dict | None) -> list[str]:
     return lines
 
 
+def _format_vivier_chg_px_line(pair: str, entry: dict) -> str:
+    """Format Vivier line: CHG%D + real M/W/D state tag."""
+    from renko_score_29pairs_v16 import daily_chg_sar_icon, vivier_flame_label
+    direction = int(entry.get("direction", 1))
+    icon = "🟢" if direction == 1 else "🔴"
+    chg_icon = daily_chg_sar_icon(entry.get("daily_chg"), entry.get("daily_sar_dir"))
+    chg = entry.get("daily_chg")
+    chg_txt = f"{chg:+.2f}%" if isinstance(chg, (int, float)) else "---"
+
+    px = entry.get("last_px") or {}
+    def _sign(v):
+        return "+" if v == 1 else ("-" if v == -1 else "0")
+    tag = f"M{_sign(px.get('M'))} W{_sign(px.get('W'))} D{_sign(px.get('D'))}"
+
+    line = f"{icon}{chg_icon} {pair} ({chg_txt}) ({tag})"
+    flame = vivier_flame_label(entry)
+    return f"{line} {flame}" if flame else line
+
+
 def build_vivier_section() -> list[str]:
     """Charge l'état du VIVIER et génère la section VIVIER (🌱 VIVIER BULL / 🌱 VIVIER BEAR)."""
     try:
-        from renko_score_29pairs_v16 import (
-            load_vivier_state,
-            vivier_groups,
-            _format_telegram_vivier_entry_line,
-        )
+        from renko_score_29pairs_v16 import load_vivier_state, vivier_groups
         state = load_vivier_state()
         if not state:
             return []
@@ -314,13 +329,13 @@ def build_vivier_section() -> list[str]:
             lines.append("")
             lines.append("🌱 VIVIER BULL")
             for pair, entry in bull_vivier:
-                lines.append(_format_telegram_vivier_entry_line(pair, entry))
+                lines.append(_format_vivier_chg_px_line(pair, entry))
 
         if bear_vivier:
             lines.append("")
             lines.append("🌱 VIVIER BEAR")
             for pair, entry in bear_vivier:
-                lines.append(_format_telegram_vivier_entry_line(pair, entry))
+                lines.append(_format_vivier_chg_px_line(pair, entry))
 
         return lines
     except Exception as exc:
