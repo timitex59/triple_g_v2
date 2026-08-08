@@ -221,7 +221,7 @@ def build_index_chg_lines(payload: dict | None) -> list[str]:
 def build_index_chg_lines(payload: dict | None, composites: dict[str, dict] | None = None) -> list[str]:
     if not payload:
         return []
-    currencies = payload.get("indexes") or {}
+    currencies = payload.get("indexes") or payload.get("currencies") or {}
     if not currencies:
         return []
 

@@ -41,7 +41,7 @@ def compute_currency_index_scores(
     payload: dict | None,
 ) -> dict[str, CurrencyScore]:
     payload = payload or {}
-    align_indexes = payload.get("indexes") or {}
+    align_indexes = payload.get("indexes") or payload.get("currencies") or {}
 
     # Gather daily change and M/W/D states for each currency
     cur_data: dict[str, dict] = {}
