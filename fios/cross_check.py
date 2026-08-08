@@ -314,7 +314,7 @@ def _format_vivier_chg_px_line(pair: str, entry: dict) -> str:
 
 
 def build_vivier_section() -> list[str]:
-    """Charge l'état du VIVIER et génère la section VIVIER (🌱 VIVIER BULL / 🌱 VIVIER BEAR)."""
+    """Charge l'état du VIVIER et génère la section VIVIER."""
     try:
         from renko_score_29pairs_v16 import load_vivier_state, vivier_groups
         state = load_vivier_state()
@@ -325,17 +325,10 @@ def build_vivier_section() -> list[str]:
             return []
 
         lines = ["📊 VIVIER"]
-        if bull_vivier:
-            lines.append("")
-            lines.append("🌱 VIVIER BULL")
-            for pair, entry in bull_vivier:
-                lines.append(_format_vivier_chg_px_line(pair, entry))
-
-        if bear_vivier:
-            lines.append("")
-            lines.append("🌱 VIVIER BEAR")
-            for pair, entry in bear_vivier:
-                lines.append(_format_vivier_chg_px_line(pair, entry))
+        for pair, entry in bull_vivier:
+            lines.append(_format_vivier_chg_px_line(pair, entry))
+        for pair, entry in bear_vivier:
+            lines.append(_format_vivier_chg_px_line(pair, entry))
 
         return lines
     except Exception as exc:
