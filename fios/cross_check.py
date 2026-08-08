@@ -294,6 +294,40 @@ def build_index_chg_lines(payload: dict | None) -> list[str]:
     return lines
 
 
+def build_vivier_section() -> list[str]:
+    """Charge l'état du VIVIER et génère la section VIVIER (🌱 VIVIER BULL / 🌱 VIVIER BEAR)."""
+    try:
+        from renko_score_29pairs_v16 import (
+            load_vivier_state,
+            vivier_groups,
+            _format_telegram_vivier_entry_line,
+        )
+        state = load_vivier_state()
+        if not state:
+            return []
+        bull_vivier, bear_vivier = vivier_groups(state)
+        if not bull_vivier and not bear_vivier:
+            return []
+
+        lines = ["📊 VIVIER"]
+        if bull_vivier:
+            lines.append("")
+            lines.append("🌱 VIVIER BULL")
+            for pair, entry in bull_vivier:
+                lines.append(_format_telegram_vivier_entry_line(pair, entry))
+
+        if bear_vivier:
+            lines.append("")
+            lines.append("🌱 VIVIER BEAR")
+            for pair, entry in bear_vivier:
+                lines.append(_format_telegram_vivier_entry_line(pair, entry))
+
+        return lines
+    except Exception as exc:
+        print(f"Warning: Impossible de charger la section VIVIER: {exc}")
+        return []
+
+
 def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> list[str]:
     if not payload:
         return []
@@ -323,6 +357,11 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
         lines.append(f"🟢 {r['pair']} ({r['daily_chg']:+.2f}%) ({r['tag']})")
     for r in sells:
         lines.append(f"🔴 {r['pair']} ({r['daily_chg']:+.2f}%) ({r['tag']})")
+
+    vivier_lines = build_vivier_section()
+    if vivier_lines:
+        lines.append("")
+        lines.extend(vivier_lines)
 
     idx_lines = build_index_chg_lines(payload)
     if idx_lines:
