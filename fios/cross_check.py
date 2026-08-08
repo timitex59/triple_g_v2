@@ -295,11 +295,19 @@ def build_index_chg_lines(payload: dict | None) -> list[str]:
 
 
 def _format_vivier_chg_px_line(pair: str, entry: dict) -> str:
-    """Format Vivier line: CHG%D + real M/W/D state tag."""
+    """Format Vivier line: single icon (🟢 if both green, 🔴 if both red, ⚪ if mixed) + CHG%D + real M/W/D state tag."""
     from renko_score_29pairs_v16 import daily_chg_sar_icon, vivier_flame_label
     direction = int(entry.get("direction", 1))
-    icon = "🟢" if direction == 1 else "🔴"
-    chg_icon = daily_chg_sar_icon(entry.get("daily_chg"), entry.get("daily_sar_dir"))
+    c1 = "🟢" if direction == 1 else "🔴"
+    c2 = daily_chg_sar_icon(entry.get("daily_chg"), entry.get("daily_sar_dir"))
+
+    if c1 == "🟢" and c2 == "🟢":
+        final_icon = "🟢"
+    elif c1 == "🔴" and c2 == "🔴":
+        final_icon = "🔴"
+    else:
+        final_icon = "⚪"
+
     chg = entry.get("daily_chg")
     chg_txt = f"{chg:+.2f}%" if isinstance(chg, (int, float)) else "---"
 
@@ -308,7 +316,7 @@ def _format_vivier_chg_px_line(pair: str, entry: dict) -> str:
         return "+" if v == 1 else ("-" if v == -1 else "0")
     tag = f"M{_sign(px.get('M'))} W{_sign(px.get('W'))} D{_sign(px.get('D'))}"
 
-    line = f"{icon}{chg_icon} {pair} ({chg_txt}) ({tag})"
+    line = f"{final_icon} {pair} ({chg_txt}) ({tag})"
     flame = vivier_flame_label(entry)
     return f"{line} {flame}" if flame else line
 
