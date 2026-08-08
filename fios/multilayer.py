@@ -184,21 +184,17 @@ def compute_multilayer_matrix(
 
 
 def format_multilayer_section(scores: list[MultiLayerScore], top_n: int = 5) -> list[str]:
+    """Podium compact : médaille + icône + paire + grade. Sans détail."""
     retained = [s for s in scores if s.grade in ("A+", "A", "B")]
     if not retained:
         return []
 
-    lines = ["🏆 CLASSEMENT DES MEILLEURES PAIRES (TOP CONFLUENCE)"]
+    lines = ["🏆 CLASSEMENT", ""]
     medals = ["🥇", "🥈", "🥉"]
-
     for i, s in enumerate(retained[:top_n], 1):
         medal = medals[i - 1] if i <= 3 else f"{i}."
         icon = "🟢" if s.direction == 1 else "🔴"
-        chg_str = f" ({s.daily_chg:+.2f}%)" if isinstance(s.daily_chg, (int, float)) else ""
-        layers_str = " + ".join(s.layers_passed)
-
-        lines.append(f"{medal} {icon} {s.pair}{chg_str} ({s.tag_mwd}) · Score: {s.total_score}/100 (GRADE {s.grade})")
-        lines.append(f"   ↳ Diff Index: {s.index_diff:+d} ({s.base_cur} {s.base_score:+d} vs {s.quote_cur} {s.quote_score:+d}) · {layers_str}")
+        lines.append(f"{medal} {icon} {s.pair} (GRADE {s.grade})")
 
     return lines
 
