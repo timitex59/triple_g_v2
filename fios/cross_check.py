@@ -218,9 +218,20 @@ def build_index_chg_lines(payload: dict | None) -> list[str]:
     """Extrait et formate les sections 💱 INDEX CHG%D et OTHER INDEX a partir des devises du sidecar."""
     if not payload:
         return []
-    currencies = payload.get("currencies") or {}
+def build_index_chg_lines(payload: dict | None, composites: dict[str, dict] | None = None) -> list[str]:
+    if not payload:
+        return []
+    currencies = payload.get("indexes") or {}
     if not currencies:
         return []
+
+    composites = composites or {}
+    try:
+        from .index_scoring import compute_currency_index_scores
+        index_scores = compute_currency_index_scores(composites, payload)
+    except Exception as exc:
+        print(f"Warning: Impossible de calculer le scoring des indices: {exc}")
+        index_scores = {}
 
     def _sign(v):
         return "+" if v == 1 else ("-" if v == -1 else "0")
@@ -273,9 +284,13 @@ def build_index_chg_lines(payload: dict | None) -> list[str]:
         neg_main = sorted([r for r in main_rows if r[1] < 0], key=lambda x: x[1])
         lines.append("💱 INDEX CHG%D")
         for cur, chg, m, w, d in pos_main + neg_main:
-            icon = "🟢" if chg > 0 else "🔴"
-            tag = f"M{_sign(m)} W{_sign(w)} D{_sign(d)}"
-            lines.append(f"{icon} {cur} {chg:+.2f}% ({tag})")
+            sc = index_scores.get(cur)
+            if sc:
+                lines.append(f"{sc.icon} {cur} {chg:+.2f}% ({sc.tag_mwd}) · Score: {sc.total_score:+d} ({sc.label})")
+            else:
+                icon = "🟢" if chg > 0 else "🔴"
+                tag = f"M{_sign(m)} W{_sign(w)} D{_sign(d)}"
+                lines.append(f"{icon} {cur} {chg:+.2f}% ({tag})")
 
     # Section OTHER INDEX
     if other_rows:
@@ -287,9 +302,13 @@ def build_index_chg_lines(payload: dict | None) -> list[str]:
             lines.append("")
         lines.append("OTHER INDEX")
         for cur, chg, m, w, d in pos_other + neg_other + zero_other:
-            icon = "🟢" if chg > 0 else ("🔴" if chg < 0 else "⚪")
-            tag = f"M{_sign(m)} W{_sign(w)} D{_sign(d)}"
-            lines.append(f"{icon} {cur} {chg:+.2f}% ({tag})")
+            sc = index_scores.get(cur)
+            if sc:
+                lines.append(f"{sc.icon} {cur} {chg:+.2f}% ({sc.tag_mwd}) · Score: {sc.total_score:+d} ({sc.label})")
+            else:
+                icon = "🟢" if chg > 0 else ("🔴" if chg < 0 else "⚪")
+                tag = f"M{_sign(m)} W{_sign(w)} D{_sign(d)}"
+                lines.append(f"{icon} {cur} {chg:+.2f}% ({tag})")
 
     return lines
 
@@ -455,7 +474,7 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
         lines.append("")
         lines.extend(fibo_50_lines)
 
-    idx_lines = build_index_chg_lines(payload)
+    idx_lines = build_index_chg_lines(payload, composites)
     if idx_lines:
         lines.append("")
         lines.extend(idx_lines)
