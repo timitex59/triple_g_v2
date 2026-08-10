@@ -1,11 +1,45 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-08-10 05:07",
+  "updated_at_paris": "2026-08-10 07:17",
   "pairs": {
+    "CADJPY": {
+      "direction": 1,
+      "entered_at_paris": "2026-08-10 07:17",
+      "last_seen_at_paris": "2026-08-10 07:17",
+      "entry_px": {
+        "M": 1,
+        "W": -1,
+        "D": 1
+      },
+      "last_px": {
+        "M": 1,
+        "W": -1,
+        "D": 1
+      },
+      "base_pct": 33.33333333333333,
+      "weighted_pct": 26.666666666666664,
+      "daily_chg": 0.20847688203389003,
+      "daily_sar_dir": 1,
+      "daily_sar_value": 111.0816,
+      "fib_position": "Fibo <0.382",
+      "fib_pct_of_range": 28.068932955618646,
+      "fib_source": "PREVIOUS",
+      "entry_fib_position": "Fibo <0.382",
+      "entry_fib_pct_of_range": 28.068932955618646,
+      "entry_fib_source": "PREVIOUS",
+      "sar_dir": 1,
+      "fib_context_month_utc": "2026-07",
+      "fib_objective_active": true,
+      "fib_objective_carried": false,
+      "fib_objective_value": 116.482,
+      "fib_objective_origin_month_utc": "2026-07",
+      "fib_objective_started_time_utc": "2026-08-10T05:00:00+00:00",
+      "sar_flame": false
+    },
     "GBPCAD": {
       "direction": 1,
       "entered_at_paris": "2026-08-05 18:19",
-      "last_seen_at_paris": "2026-08-10 05:07",
+      "last_seen_at_paris": "2026-08-10 07:17",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -17,12 +51,12 @@
         "D": 0
       },
       "base_pct": 83.33333333333334,
-      "weighted_pct": 0.0,
-      "daily_chg": 0.08613401815194438,
+      "weighted_pct": 41.66666666666667,
+      "daily_chg": 0.13026441016807105,
       "daily_sar_dir": -1,
       "daily_sar_value": 1.893802,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 33.5949290673103,
+      "fib_pct_of_range": 36.1002112888621,
       "fib_source": "PREVIOUS",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 49.01901599758554,
@@ -44,6 +78,6 @@
   },
   "pending_objectives": {},
   "objective_events": [],
-  "telegram_last_body_hash": "171c94dad2bdd321f50f46616a6558f097f2084bd307755863afffdeb60202c6",
-  "telegram_last_sent_at_paris": "2026-08-08 00:53"
+  "telegram_last_body_hash": "7b63d6d69e0ae16c38a4a2b0129888710c74349e8bec4e07b48edd1c4b1289cd",
+  "telegram_last_sent_at_paris": "2026-08-10 07:15"
 }
