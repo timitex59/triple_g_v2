@@ -896,6 +896,10 @@ def _sidecar_row(row: dict) -> dict:
     px = row.get("px") or {}
     return {
         "daily_chg": row.get("daily_chg"),
+        # Niveau brut de l'indice/paire (close daily courant). Sert a FIOS pour
+        # calculer un momentum robuste (variation du NIVEAU, immunise au rollover
+        # du CHG%D qui se renormalise sur la cloture de la veille).
+        "live_price": row.get("live_price"),
         "px_m": px.get("M"),
         "px_w": px.get("W"),
         "px_d": px.get("D"),

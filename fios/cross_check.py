@@ -214,99 +214,99 @@ def pair_confluence(composites: dict[str, dict], pairs: dict) -> list[dict]:
     return recs
 
 
-def build_index_chg_lines(payload: dict | None, composites: dict[str, dict] | None = None) -> list[str]:
-    """Sections 💱 INDEX CHG%D et OTHER INDEX (score d'indice par devise)."""
+_INDEX_CHG_STATE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "fios_index_chg_state.json"
+)
+
+
+def _load_index_chg_state(path: str) -> dict:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_index_chg_state(path: str, state: dict) -> None:
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass  # non-fatal : la persistance ne doit jamais casser le run FIOS
+
+
+def _mom_arrow(v: float, eps: float = 0.005) -> str:
+    return "▲" if v > eps else ("▼" if v < -eps else "▪")
+
+
+def build_index_momentum_lines(payload: dict | None, state_path: str | None = None) -> list[str]:
+    """Section 📈 MOMENTUM INDEX : variation du NIVEAU de chaque indice devise sur
+    3 horizons, triee par le momentum court terme (run-a-run) decroissant.
+
+    - col 1 (run) : variation vs le cycle precedent
+    - col 2 (7h)  : variation vs le 1er run du jour (reference = 0 a 7h)
+    - col 3 (jour): le CHG%D actuel (niveau du jour, vs cloture de la veille)
+
+    Base sur le NIVEAU brut (live_price), pas sur le CHG%D : la reference (7h,
+    cycle precedent) est un prix absolu qui ne se renormalise jamais -> robuste
+    au rollover de fin de journee. Etat remis a zero chaque nouveau jour (Paris).
+    """
     if not payload:
         return []
     currencies = payload.get("indexes") or payload.get("currencies") or {}
     if not currencies:
         return []
 
-    composites = composites or {}
-    try:
-        from .index_scoring import compute_currency_index_scores
-        index_scores = compute_currency_index_scores(composites, payload)
-    except Exception as exc:
-        print(f"Warning: Impossible de calculer le scoring des indices: {exc}")
-        index_scores = {}
+    path = state_path or _INDEX_CHG_STATE
+    today = datetime.now(PARIS).strftime("%Y-%m-%d")
+    prev = _load_index_chg_state(path)
+    prev_curs = prev.get("currencies", {}) if prev.get("date") == today else {}
 
-    def _sign(v):
-        return "+" if v == 1 else ("-" if v == -1 else "0")
-
-    main_rows = []
-    other_rows = []
-    main_cur_set = set()
-
-    # 1. Sélection pour 💱 INDEX CHG%D (critères stricts)
+    rows: list[dict] = []
+    new_curs: dict[str, dict] = {}
     for cur, data in currencies.items():
-        daily_chg = data.get("daily_chg")
-        if not isinstance(daily_chg, (int, float)) or abs(daily_chg) < 0.005:
-            continue
-        m = data.get("px_m") or 0
-        w = data.get("px_w") or 0
-        d = data.get("px_d") or 0
+        lvl = data.get("live_price")
+        chg = data.get("daily_chg")
+        if not isinstance(lvl, (int, float)) or lvl <= 0:
+            continue  # pas de niveau exploitable -> on n'affiche pas cette devise
 
-        # Au moins 2 timeframes consecutifs de meme signe (M, W) ou (W, D)
-        has_consecutive = (m != 0 and m == w) or (w != 0 and w == d)
-        if not has_consecutive:
-            continue
+        p = prev_curs.get(cur) or {}
+        baseline = p.get("baseline")
+        prev_lvl = p.get("prev")
+        if not isinstance(baseline, (int, float)) or baseline <= 0:
+            baseline = lvl  # 1er run du jour pour cette devise : reference = maintenant
 
-        pos_count = (1 if m == 1 else 0) + (1 if w == 1 else 0) + (1 if d == 1 else 0)
-        neg_count = (1 if m == -1 else 0) + (1 if w == -1 else 0) + (1 if d == -1 else 0)
+        d_run = ((lvl / prev_lvl - 1.0) * 100.0) if isinstance(prev_lvl, (int, float)) and prev_lvl > 0 else 0.0
+        d_7h = (lvl / baseline - 1.0) * 100.0
+        day = chg if isinstance(chg, (int, float)) else None
 
-        if daily_chg > 0 and neg_count > pos_count:
-            continue
-        if daily_chg < 0 and pos_count > neg_count:
-            continue
+        rows.append({"cur": cur, "d_run": d_run, "d_7h": d_7h, "day": day})
+        new_curs[cur] = {"baseline": baseline, "prev": lvl}
 
-        main_rows.append((cur, daily_chg, m, w, d))
-        main_cur_set.add(cur)
+    # Conserve le baseline des devises non vues ce cycle (evite un reset sur un
+    # trou transitoire) ; le reset propre se fait au changement de jour.
+    for cur, p in prev_curs.items():
+        new_curs.setdefault(cur, p)
 
-    # 2. Sélection pour OTHER INDEX (toutes les devises non retenues dans main_rows)
-    for cur, data in currencies.items():
-        if cur in main_cur_set:
-            continue
-        daily_chg = data.get("daily_chg")
-        m = data.get("px_m") or 0
-        w = data.get("px_w") or 0
-        d = data.get("px_d") or 0
-        chg_val = daily_chg if isinstance(daily_chg, (int, float)) else 0.0
-        other_rows.append((cur, chg_val, m, w, d))
+    _save_index_chg_state(path, {"date": today, "currencies": new_curs})
 
-    lines = []
+    if not rows:
+        return []
+    rows.sort(key=lambda r: r["d_run"], reverse=True)
 
-    # Section 💱 INDEX CHG%D
-    if main_rows:
-        pos_main = sorted([r for r in main_rows if r[1] > 0], key=lambda x: x[1], reverse=True)
-        neg_main = sorted([r for r in main_rows if r[1] < 0], key=lambda x: x[1])
-        lines.append("💱 INDEX CHG%D")
-        for cur, chg, m, w, d in pos_main + neg_main:
-            sc = index_scores.get(cur)
-            if sc:
-                lines.append(f"{sc.icon} {cur} {chg:+.2f}% ({sc.tag_mwd}) · Score: {sc.total_score:+d} ({sc.label})")
-            else:
-                icon = "🟢" if chg > 0 else "🔴"
-                tag = f"M{_sign(m)} W{_sign(w)} D{_sign(d)}"
-                lines.append(f"{icon} {cur} {chg:+.2f}% ({tag})")
-
-    # Section OTHER INDEX
-    if other_rows:
-        pos_other = sorted([r for r in other_rows if r[1] > 0], key=lambda x: x[1], reverse=True)
-        neg_other = sorted([r for r in other_rows if r[1] < 0], key=lambda x: x[1])
-        zero_other = sorted([r for r in other_rows if r[1] == 0], key=lambda x: x[0])
-
-        if lines:
-            lines.append("")
-        lines.append("OTHER INDEX")
-        for cur, chg, m, w, d in pos_other + neg_other + zero_other:
-            sc = index_scores.get(cur)
-            if sc:
-                lines.append(f"{sc.icon} {cur} {chg:+.2f}% ({sc.tag_mwd}) · Score: {sc.total_score:+d} ({sc.label})")
-            else:
-                icon = "🟢" if chg > 0 else ("🔴" if chg < 0 else "⚪")
-                tag = f"M{_sign(m)} W{_sign(w)} D{_sign(d)}"
-                lines.append(f"{icon} {cur} {chg:+.2f}% ({tag})")
-
+    lines = ["📈 MOMENTUM INDEX   run / 7h / jour", ""]
+    for r in rows:
+        icon = "🟢" if r["d_run"] > 0.005 else ("🔴" if r["d_run"] < -0.005 else "⚪")
+        if r["day"] is not None:
+            day_txt = f"{_mom_arrow(r['day'])} {r['day']:+.2f}%"
+        else:
+            day_txt = "--"
+        lines.append(
+            f"{icon} {r['cur']}  {_mom_arrow(r['d_run'])} {r['d_run']:+.2f}"
+            f"  /  {_mom_arrow(r['d_7h'])} {r['d_7h']:+.2f}"
+            f"  /  {day_txt}"
+        )
     return lines
 
 
@@ -469,7 +469,7 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
         lines.append("")
         lines.extend(fibo_50_lines)
 
-    idx_lines = build_index_chg_lines(payload, composites)
+    idx_lines = build_index_momentum_lines(payload)
     if idx_lines:
         lines.append("")
         lines.extend(idx_lines)
