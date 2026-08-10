@@ -1,4 +1,44 @@
 {
+  "confirmed_hourly": {
+    "2026": {
+      "19-20": {
+        "best_pips": 4.999999999999449,
+        "flat": 0,
+        "negative": 0,
+        "observations": 1,
+        "pips": 4.999999999999449,
+        "positive": 1,
+        "samples": [
+          4.999999999999449
+        ],
+        "worst_pips": 4.999999999999449
+      },
+      "20-21": {
+        "best_pips": 0.8000000000008001,
+        "flat": 0,
+        "negative": 0,
+        "observations": 1,
+        "pips": 0.8000000000008001,
+        "positive": 1,
+        "samples": [
+          0.8000000000008001
+        ],
+        "worst_pips": 0.8000000000008001
+      },
+      "21-22": {
+        "best_pips": -0.40000000000040004,
+        "flat": 0,
+        "negative": 1,
+        "observations": 1,
+        "pips": -0.40000000000040004,
+        "positive": 0,
+        "samples": [
+          -0.40000000000040004
+        ],
+        "worst_pips": -0.40000000000040004
+      }
+    }
+  },
   "days": {
     "2026-07-13": {
       "confirmed_segments": [],
@@ -1353,6 +1393,8 @@
       "current_pips": 5.399999999999849,
       "date": "2026-08-10",
       "direction": 1,
+      "hourly_last_price": 0.81016,
+      "hourly_last_time_utc": "2026-08-10T20:00:00+00:00",
       "last_price": 0.81016,
       "last_time_utc": "2026-08-10T20:00:00+00:00",
       "pair": "USDCHF",
@@ -1397,6 +1439,6 @@
       "2026-W32"
     ]
   },
-  "updated_at_paris": "2026-08-10T22:15:47.544420+02:00",
-  "version": 2
+  "updated_at_paris": "2026-08-10T22:58:17.522640+02:00",
+  "version": 3
 }
