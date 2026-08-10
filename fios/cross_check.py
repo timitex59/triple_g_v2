@@ -289,16 +289,33 @@ def _perfect_pair(strong: str, weak: str, universe: set[str]) -> tuple[str | Non
     return None, None
 
 
-def _perfect_pairs_lines(rows: list[dict]) -> list[str]:
+def _convergence(pair_row: dict | None, direction: str) -> tuple[str, str]:
+    """Confronte le sens du trade (issu des INDICES) au momentum PROPRE de la
+    paire (son prix). Retourne (signature 3 horizons de la paire, verdict)."""
+    if not pair_row:
+        return "—", "❔"
+    sign = 1 if direction == "LONG" else -1
+    st = _align_strength(pair_row, sign)
+    sig = _mom_sig(pair_row)
+    if st is None:
+        return sig, "⚠️ divergent"
+    if st >= 2:
+        return sig, "✅ convergent"
+    if st == 1:
+        return sig, "〰️ partiel"
+    return sig, "➖ neutre"
+
+
+def _perfect_pairs_lines(rows: list[dict], pair_by_name: dict[str, dict]) -> tuple[list[str], set[str]]:
     """Paires classees en 3 paliers selon l'alignement des 3 horizons entre une
     base haussiere et une quote baissiere, sans horizon contradictoire :
       🎯 PARFAITE = 3/3 des deux cotes · ⭐ QUASI = min 2/3 · ✅ CORRECTE = min 1/3
-    Le palier d'une paire = le cote le plus faible des deux devises. Croise avec
-    l'univers reel des paires ; sens LONG/SHORT selon la convention base/quote."""
+    Chaque paire (issue des INDICES) est confrontee a son momentum PROPRE (via
+    pair_by_name) -> verdict de convergence. Retourne (lignes, noms affiches)."""
     strongs = [(r, s) for r in rows if (s := _align_strength(r, 1)) and s >= 1]
     weaks = [(r, s) for r in rows if (s := _align_strength(r, -1)) and s >= 1]
     if not strongs or not weaks:
-        return []
+        return [], set()
 
     try:
         from .multilayer import PAIRS_ALL
@@ -319,7 +336,7 @@ def _perfect_pairs_lines(rows: list[dict]) -> list[str]:
             cand.append((min(s_str, w_str), _mom_score(s) - _mom_score(w), pair, direction, s, w))
 
     if not cand:
-        return []
+        return [], set()
 
     blocks: list[list[str]] = []
     for tier in (3, 2, 1):
@@ -328,7 +345,10 @@ def _perfect_pairs_lines(rows: list[dict]) -> list[str]:
             continue
         block = [_TIER_LABELS[tier]]
         for _, _, pair, direction, s, w in group[:_TIER_CAPS[tier]]:
-            block.append(f"{direction} {pair}  ({s['cur']} {_mom_sig(s)} / {w['cur']} {_mom_sig(w)})")
+            psig, verdict = _convergence(pair_by_name.get(pair), direction)
+            block.append(
+                f"{direction} {pair}  (idx {_mom_sig(s)}/{_mom_sig(w)} · paire {psig})  {verdict}"
+            )
         blocks.append(block)
 
     lines: list[str] = []
@@ -336,81 +356,109 @@ def _perfect_pairs_lines(rows: list[dict]) -> list[str]:
         if i > 0:
             lines.append("")
         lines.extend(block)
+    # seen = tous les candidats parfaits (tous paliers), pour que le leaderboard
+    # ne re-liste pas une paire deja flaguee par l'indice (meme sortie par le cap).
+    return lines, seen
+
+
+def _pair_leaderboard_lines(pair_rows: list[dict], exclude: set[str],
+                            top_n: int = 3, eps: float = 0.005) -> list[str]:
+    """🔝 Paires qui bougent le plus (run-a-run), hors paires deja listees en
+    parfaites -> decouvre ce que les indices n'ont pas flague."""
+    movers = [r for r in pair_rows if r["cur"] not in exclude and abs(r["d_run"]) > eps]
+    if not movers:
+        return []
+    movers.sort(key=lambda r: abs(r["d_run"]), reverse=True)
+    lines = ["🔝 TOP MOMENTUM PAIRES   run / 7h / jour"]
+    for r in movers[:top_n]:
+        day_txt = f"{r['day']:+.2f}%" if isinstance(r["day"], (int, float)) else "--"
+        lines.append(f"{_mom_sig(r)} {r['cur']}  {r['d_run']:+.2f} / {r['d_7h']:+.2f} / {day_txt}")
     return lines
 
 
-def build_index_momentum_lines(payload: dict | None, state_path: str | None = None) -> list[str]:
-    """Section 📈 MOMENTUM INDEX : variation du NIVEAU de chaque indice devise sur
-    3 horizons, triee par le momentum court terme (run-a-run) decroissant.
-
-    - col 1 (run) : variation vs le cycle precedent
-    - col 2 (7h)  : variation vs le 1er run du jour (reference = 0 a 7h)
-    - col 3 (jour): le CHG%D actuel (niveau du jour, vs cloture de la veille)
-
-    Base sur le NIVEAU brut (live_price), pas sur le CHG%D : la reference (7h,
-    cycle precedent) est un prix absolu qui ne se renormalise jamais -> robuste
-    au rollover de fin de journee. Etat remis a zero chaque nouveau jour (Paris).
-    """
-    if not payload:
-        return []
-    currencies = payload.get("indexes") or payload.get("currencies") or {}
-    if not currencies:
-        return []
-
-    path = state_path or _INDEX_CHG_STATE
-    today = datetime.now(PARIS).strftime("%Y-%m-%d")
-    prev = _load_index_chg_state(path)
-    prev_curs = prev.get("currencies", {}) if prev.get("date") == today else {}
-
+def _momentum_rows(items: dict, prev_items: dict) -> tuple[list[dict], dict]:
+    """Calcule les 3 horizons (run/7h/jour) de chaque item (devise OU paire) a
+    partir de son NIVEAU brut (live_price) + CHG%D, et renvoie l'etat a jour.
+    - run : variation vs le cycle precedent
+    - 7h  : variation vs le 1er run du jour (reference absolue = 0 a 7h)
+    - jour: le CHG%D actuel
+    Base sur le prix absolu -> immunise au rollover de fin de journee."""
     rows: list[dict] = []
-    new_curs: dict[str, dict] = {}
-    for cur, data in currencies.items():
+    new_items: dict[str, dict] = {}
+    for name, data in items.items():
         lvl = data.get("live_price")
         chg = data.get("daily_chg")
         if not isinstance(lvl, (int, float)) or lvl <= 0:
-            continue  # pas de niveau exploitable -> on n'affiche pas cette devise
+            continue  # pas de niveau exploitable -> on ignore cet item
 
-        p = prev_curs.get(cur) or {}
+        p = prev_items.get(name) or {}
         baseline = p.get("baseline")
         prev_lvl = p.get("prev")
         if not isinstance(baseline, (int, float)) or baseline <= 0:
-            baseline = lvl  # 1er run du jour pour cette devise : reference = maintenant
+            baseline = lvl  # 1er run du jour : reference = maintenant
 
         d_run = ((lvl / prev_lvl - 1.0) * 100.0) if isinstance(prev_lvl, (int, float)) and prev_lvl > 0 else 0.0
         d_7h = (lvl / baseline - 1.0) * 100.0
         day = chg if isinstance(chg, (int, float)) else None
 
-        rows.append({"cur": cur, "d_run": d_run, "d_7h": d_7h, "day": day})
-        new_curs[cur] = {"baseline": baseline, "prev": lvl}
+        rows.append({"cur": name, "d_run": d_run, "d_7h": d_7h, "day": day})
+        new_items[name] = {"baseline": baseline, "prev": lvl}
 
-    # Conserve le baseline des devises non vues ce cycle (evite un reset sur un
+    # Conserve le baseline des items non vus ce cycle (evite un reset sur un
     # trou transitoire) ; le reset propre se fait au changement de jour.
-    for cur, p in prev_curs.items():
-        new_curs.setdefault(cur, p)
+    for name, p in prev_items.items():
+        new_items.setdefault(name, p)
+    return rows, new_items
 
-    _save_index_chg_state(path, {"date": today, "currencies": new_curs})
 
-    if not rows:
+def build_index_momentum_lines(payload: dict | None, state_path: str | None = None) -> list[str]:
+    """Section 📈 MOMENTUM : 3 horizons (run / 7h / jour) sur le NIVEAU brut des
+    8 indices devises ET des 29 paires. Compose trois blocs :
+      1. momentum des indices (trie par run-a-run),
+      2. paires parfaites (issues des indices) confrontees au momentum PROPRE de
+         la paire -> verdict de convergence,
+      3. top des paires qui bougent le plus (decouverte, hors parfaites).
+    Etat (baseline 7h + cycle precedent, devises + paires) remis a zero chaque
+    nouveau jour (Paris), persiste entre runs CI."""
+    if not payload:
         return []
-    rows.sort(key=lambda r: r["d_run"], reverse=True)
+    currencies = payload.get("indexes") or payload.get("currencies") or {}
+    if not currencies:
+        return []
+    pairs = payload.get("pairs") or {}
+
+    path = state_path or _INDEX_CHG_STATE
+    today = datetime.now(PARIS).strftime("%Y-%m-%d")
+    prev = _load_index_chg_state(path)
+    same_day = prev.get("date") == today
+    cur_rows, new_curs = _momentum_rows(currencies, prev.get("currencies", {}) if same_day else {})
+    pair_rows, new_pairs = _momentum_rows(pairs, prev.get("pairs", {}) if same_day else {})
+    _save_index_chg_state(path, {"date": today, "currencies": new_curs, "pairs": new_pairs})
+
+    if not cur_rows:
+        return []
+    cur_rows.sort(key=lambda r: r["d_run"], reverse=True)
 
     lines = ["📈 MOMENTUM INDEX   run / 7h / jour", ""]
-    for r in rows:
+    for r in cur_rows:
         icon = "🟢" if r["d_run"] > 0.005 else ("🔴" if r["d_run"] < -0.005 else "⚪")
-        if r["day"] is not None:
-            day_txt = f"{_mom_arrow(r['day'])} {r['day']:+.2f}%"
-        else:
-            day_txt = "--"
+        day_txt = f"{_mom_arrow(r['day'])} {r['day']:+.2f}%" if r["day"] is not None else "--"
         lines.append(
             f"{icon} {r['cur']}  {_mom_arrow(r['d_run'])} {r['d_run']:+.2f}"
             f"  /  {_mom_arrow(r['d_7h'])} {r['d_7h']:+.2f}"
             f"  /  {day_txt}"
         )
 
-    perfect = _perfect_pairs_lines(rows)
+    pair_by_name = {r["cur"]: r for r in pair_rows}
+    perfect, shown = _perfect_pairs_lines(cur_rows, pair_by_name)
     if perfect:
         lines.append("")
         lines.extend(perfect)
+
+    lead = _pair_leaderboard_lines(pair_rows, shown)
+    if lead:
+        lines.append("")
+        lines.extend(lead)
 
     return lines
 
