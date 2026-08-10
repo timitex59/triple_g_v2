@@ -279,17 +279,24 @@ def compute_multilayer_matrix(
 
 
 def format_multilayer_section(scores: list[MultiLayerScore], top_n: int = 5) -> list[str]:
-    """Podium compact : médaille + icône + paire + grade. Sans détail."""
+    """Classement : icône + paire + CHG%D + tag M/W/D, même format que CONFLUENCE.
+
+    La SELECTION des paires (top_n) reste pilotée par le score + l'hystérésis
+    (membres stables) ; seul l'AFFICHAGE est trié par |CHG%D| décroissant."""
     retained = [s for s in scores if s.grade in ("A+", "A", "B")]
     if not retained:
         return []
 
+    def _abs_chg(s: MultiLayerScore) -> float:
+        return abs(s.daily_chg) if isinstance(s.daily_chg, (int, float)) else 0.0
+
+    top = sorted(retained[:top_n], key=_abs_chg, reverse=True)
+
     lines = ["🏆 CLASSEMENT", ""]
-    medals = ["🥇", "🥈", "🥉"]
-    for i, s in enumerate(retained[:top_n], 1):
-        medal = medals[i - 1] if i <= 3 else f"{i}."
+    for s in top:
         icon = "🟢" if s.direction == 1 else "🔴"
-        lines.append(f"{medal} {icon} {s.pair} (GRADE {s.grade})")
+        chg_txt = f"{s.daily_chg:+.2f}%" if isinstance(s.daily_chg, (int, float)) else "---"
+        lines.append(f"{icon} {s.pair} ({chg_txt}) ({s.tag_mwd})")
 
     return lines
 
