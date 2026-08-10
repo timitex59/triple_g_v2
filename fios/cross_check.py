@@ -240,15 +240,6 @@ def _mom_arrow(v: float, eps: float = 0.005) -> str:
     return "▲" if v > eps else ("▼" if v < -eps else "▪")
 
 
-# Poids du score de momentum par devise (run-a-run / depuis 7h / jour).
-_MOM_WEIGHTS = (0.5, 0.3, 0.2)
-
-
-def _mom_score(r: dict) -> float:
-    wr, w7, wd = _MOM_WEIGHTS
-    return wr * r["d_run"] + w7 * r["d_7h"] + wd * (r["day"] or 0.0)
-
-
 def _mom_sig(r: dict) -> str:
     """Signature 3 horizons d'une devise, ex. '▲▲▲' ou '▼▼▼'."""
     return f"{_mom_arrow(r['d_run'])}{_mom_arrow(r['d_7h'])}{_mom_arrow(r['day'] or 0.0)}"
@@ -275,10 +266,6 @@ def _align_strength(r: dict, sign: int, eps: float = 0.005) -> int | None:
     return aligned
 
 
-_TIER_LABELS = {3: "🎯 PARFAITE(S)", 2: "⭐ QUASI-PARFAITE(S)", 1: "✅ CORRECTE(S)"}
-_TIER_CAPS = {3: 3, 2: 3, 1: 2}
-
-
 def _perfect_pair(strong: str, weak: str, universe: set[str]) -> tuple[str | None, str | None]:
     """Retourne (paire canonique, sens) pour LONG strong / SHORT weak, si la
     combinaison existe dans l'univers des paires reelles."""
@@ -289,29 +276,13 @@ def _perfect_pair(strong: str, weak: str, universe: set[str]) -> tuple[str | Non
     return None, None
 
 
-def _convergence(pair_row: dict | None, direction: str) -> tuple[str, str]:
-    """Confronte le sens du trade (issu des INDICES) au momentum PROPRE de la
-    paire (son prix). Retourne (signature 3 horizons de la paire, verdict)."""
-    if not pair_row:
-        return "—", "❔"
-    sign = 1 if direction == "LONG" else -1
-    st = _align_strength(pair_row, sign)
-    sig = _mom_sig(pair_row)
-    if st is None:
-        return sig, "⚠️ divergent"
-    if st >= 2:
-        return sig, "✅ convergent"
-    if st == 1:
-        return sig, "〰️ partiel"
-    return sig, "➖ neutre"
-
-
 def _perfect_pairs_lines(rows: list[dict], pair_by_name: dict[str, dict]) -> tuple[list[str], set[str]]:
-    """Paires classees en 3 paliers selon l'alignement des 3 horizons entre une
-    base haussiere et une quote baissiere, sans horizon contradictoire :
-      🎯 PARFAITE = 3/3 des deux cotes · ⭐ QUASI = min 2/3 · ✅ CORRECTE = min 1/3
-    Chaque paire (issue des INDICES) est confrontee a son momentum PROPRE (via
-    pair_by_name) -> verdict de convergence. Retourne (lignes, noms affiches)."""
+    """Section unique des paires CONVERGENTES : l'indice designe une base
+    haussiere / quote baissiere (aucun horizon contradictoire), ET le momentum
+    PROPRE de la paire confirme le sens (>=2 horizons alignes). Triee par |CHG%D|
+    de la paire decroissant ; la flamme 🔥 marque les PARFAITES (3/3 des 2 cotes).
+    Retourne (lignes, tous les candidats indice) — le 2e sert a exclure du
+    leaderboard les paires deja flaguees."""
     strongs = [(r, s) for r in rows if (s := _align_strength(r, 1)) and s >= 1]
     weaks = [(r, s) for r in rows if (s := _align_strength(r, -1)) and s >= 1]
     if not strongs or not weaks:
@@ -323,8 +294,8 @@ def _perfect_pairs_lines(rows: list[dict], pair_by_name: dict[str, dict]) -> tup
     except Exception:
         universe = set()
 
-    cand: list[tuple[int, float, str, str, dict, dict]] = []
     seen: set[str] = set()
+    shown: list[tuple[float, int, str, str]] = []  # (|CHG%D|, tier, pair, direction)
     for s, s_str in strongs:
         for w, w_str in weaks:
             if s["cur"] == w["cur"]:
@@ -333,37 +304,27 @@ def _perfect_pairs_lines(rows: list[dict], pair_by_name: dict[str, dict]) -> tup
             if not pair or not direction or pair in seen:
                 continue
             seen.add(pair)
-            cand.append((min(s_str, w_str), _mom_score(s) - _mom_score(w), pair, direction, s, w))
+            # Convergence : le momentum PROPRE de la paire doit confirmer le sens.
+            prow = pair_by_name.get(pair)
+            if not prow:
+                continue
+            sign = 1 if direction == "LONG" else -1
+            st = _align_strength(prow, sign)
+            if st is None or st < 2:
+                continue  # on n'affiche QUE les convergentes
+            day = prow.get("day")
+            chg_abs = abs(day) if isinstance(day, (int, float)) else 0.0
+            shown.append((chg_abs, min(s_str, w_str), pair, direction))
 
-    if not cand:
-        return [], set()
+    if not shown:
+        return [], seen
+    shown.sort(key=lambda x: x[0], reverse=True)
 
-    blocks: list[list[str]] = []
-    for tier in (3, 2, 1):
-        group = sorted([c for c in cand if c[0] == tier], key=lambda x: x[1], reverse=True)
-        if not group:
-            continue
-        block = [_TIER_LABELS[tier]]
-        for _, _, pair, direction, s, w in group[:_TIER_CAPS[tier]]:
-            psig, verdict = _convergence(pair_by_name.get(pair), direction)
-            # Signatures idx dans l'ordre base/quote DE LA PAIRE (pas strong/weak),
-            # pour qu'elles se lisent dans le meme sens que le nom de la paire.
-            base_sig, quote_sig = (
-                (_mom_sig(s), _mom_sig(w)) if s["cur"] == pair[:3]
-                else (_mom_sig(w), _mom_sig(s))
-            )
-            block.append(
-                f"{direction} {pair}  (idx {base_sig}/{quote_sig} · paire {psig})  {verdict}"
-            )
-        blocks.append(block)
-
-    lines: list[str] = []
-    for i, block in enumerate(blocks):
-        if i > 0:
-            lines.append("")
-        lines.extend(block)
-    # seen = tous les candidats parfaits (tous paliers), pour que le leaderboard
-    # ne re-liste pas une paire deja flaguee par l'indice (meme sortie par le cap).
+    lines = ["🎯 PAIRES CONVERGENTES", ""]
+    for _, tier, pair, direction in shown:
+        icon = "🟢" if direction == "LONG" else "🔴"
+        flame = " 🔥" if tier == 3 else ""
+        lines.append(f"{icon} {pair}{flame}")
     return lines, seen
 
 
@@ -418,12 +379,13 @@ def _momentum_rows(items: dict, prev_items: dict) -> tuple[list[dict], dict]:
 
 
 def build_index_momentum_lines(payload: dict | None, state_path: str | None = None) -> list[str]:
-    """Section 📈 MOMENTUM : 3 horizons (run / 7h / jour) sur le NIVEAU brut des
-    8 indices devises ET des 29 paires. Compose trois blocs :
-      1. momentum des indices (trie par run-a-run),
-      2. paires parfaites (issues des indices) confrontees au momentum PROPRE de
-         la paire -> verdict de convergence,
-      3. top des paires qui bougent le plus (decouverte, hors parfaites).
+    """Momentum 3 horizons (run / 7h / jour) sur le NIVEAU brut des 8 indices
+    devises ET des 29 paires. Le momentum des indices est calcule et persiste
+    pour l'analyse en arriere-plan mais N'EST PLUS envoye sur Telegram. La sortie
+    (Telegram) ne contient que :
+      1. les paires CONVERGENTES (indice + momentum propre concordent), triees
+         par |CHG%D| decroissant, flamme 🔥 sur les parfaites,
+      2. le top des paires qui bougent le plus (decouverte, hors flaguees).
     Etat (baseline 7h + cycle precedent, devises + paires) remis a zero chaque
     nouveau jour (Paris), persiste entre runs CI."""
     if not payload:
@@ -443,27 +405,20 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
 
     if not cur_rows:
         return []
-    cur_rows.sort(key=lambda r: r["d_run"], reverse=True)
 
-    lines = ["📈 MOMENTUM INDEX   run / 7h / jour", ""]
-    for r in cur_rows:
-        icon = "🟢" if r["d_run"] > 0.005 else ("🔴" if r["d_run"] < -0.005 else "⚪")
-        day_txt = f"{_mom_arrow(r['day'])} {r['day']:+.2f}%" if r["day"] is not None else "--"
-        lines.append(
-            f"{icon} {r['cur']}  {_mom_arrow(r['d_run'])} {r['d_run']:+.2f}"
-            f"  /  {_mom_arrow(r['d_7h'])} {r['d_7h']:+.2f}"
-            f"  /  {day_txt}"
-        )
-
+    # Le bloc par-indice (8 devises) n'est plus envoye sur Telegram : il reste
+    # calcule et persiste ci-dessus pour l'analyse en arriere-plan. On ne rend
+    # que les paires convergentes puis le top momentum.
+    lines: list[str] = []
     pair_by_name = {r["cur"]: r for r in pair_rows}
     perfect, shown = _perfect_pairs_lines(cur_rows, pair_by_name)
     if perfect:
-        lines.append("")
         lines.extend(perfect)
 
     lead = _pair_leaderboard_lines(pair_rows, shown)
     if lead:
-        lines.append("")
+        if lines:
+            lines.append("")
         lines.extend(lead)
 
     return lines
