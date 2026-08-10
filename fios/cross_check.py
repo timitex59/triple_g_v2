@@ -346,8 +346,14 @@ def _perfect_pairs_lines(rows: list[dict], pair_by_name: dict[str, dict]) -> tup
         block = [_TIER_LABELS[tier]]
         for _, _, pair, direction, s, w in group[:_TIER_CAPS[tier]]:
             psig, verdict = _convergence(pair_by_name.get(pair), direction)
+            # Signatures idx dans l'ordre base/quote DE LA PAIRE (pas strong/weak),
+            # pour qu'elles se lisent dans le meme sens que le nom de la paire.
+            base_sig, quote_sig = (
+                (_mom_sig(s), _mom_sig(w)) if s["cur"] == pair[:3]
+                else (_mom_sig(w), _mom_sig(s))
+            )
             block.append(
-                f"{direction} {pair}  (idx {_mom_sig(s)}/{_mom_sig(w)} · paire {psig})  {verdict}"
+                f"{direction} {pair}  (idx {base_sig}/{quote_sig} · paire {psig})  {verdict}"
             )
         blocks.append(block)
 
