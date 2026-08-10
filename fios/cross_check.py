@@ -536,56 +536,26 @@ def build_multilayer_section(composites: dict[str, dict], payload: dict | None) 
 
 
 def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> list[str]:
+    """Message FIOS envoye sur Telegram. Ne contient plus que :
+      📊 VIVIER · 🎯 PAIRES CONVERGENTES · 🔝 TOP MOMENTUM PAIRES.
+    Le CLASSEMENT multicouche, la CONFLUENCE et RENKO FIBO 50% ne sont plus
+    envoyes (et ne sont donc plus calcules ici : plus de scan Fibo)."""
     if not payload:
         return []
     pairs = payload.get("pairs") or {}
     if not pairs:
         return []
-    recs = pair_confluence(composites, pairs)
 
-    def _big(r) -> bool:
-        c = r["daily_chg"]
-        return isinstance(c, (int, float)) and abs(c) > cfg.PAIR_MIN_DAILY_CHG
-
-    # STRICT : FIOS (ecart >= seuil) + variation du jour (|chg| > seuil) +
-    # alignement RENKO SOLIDE (>=2 TF, 0 a contre-sens), tous dans le meme sens.
-    buys = sorted([r for r in recs if r["fios_dir"] > 0 and r["daily_dir"] > 0
-                   and _big(r) and _solid(r["tf_up"], r["tf_down"], 1)],
-                  key=lambda r: r["strength"], reverse=True)
-    sells = sorted([r for r in recs if r["fios_dir"] < 0 and r["daily_dir"] < 0
-                    and _big(r) and _solid(r["tf_up"], r["tf_down"], -1)],
-                   key=lambda r: r["strength"], reverse=True)
-
-    ml_lines, fibo_results = build_multilayer_section(composites, payload)
-
-    if not buys and not sells and not ml_lines:
-        return []  # rien d'aligne -> pas de message (evite le spam horaire)
-
-    lines = []
-    if ml_lines:
-        lines.extend(ml_lines)
-        lines.append("")
-
-    lines.append("🔀 CONFLUENCE")
-    lines.append("")
-    for r in buys:
-        lines.append(f"🟢 {r['pair']} ({r['daily_chg']:+.2f}%) ({r['tag']})")
-    for r in sells:
-        lines.append(f"🔴 {r['pair']} ({r['daily_chg']:+.2f}%) ({r['tag']})")
+    lines: list[str] = []
 
     vivier_lines = build_vivier_section()
     if vivier_lines:
-        lines.append("")
         lines.extend(vivier_lines)
-
-    fibo_50_lines = build_renko_fibo_50_section(fibo_results)
-    if fibo_50_lines:
-        lines.append("")
-        lines.extend(fibo_50_lines)
 
     idx_lines = build_index_momentum_lines(payload)
     if idx_lines:
-        lines.append("")
+        if lines:
+            lines.append("")
         lines.extend(idx_lines)
 
     return lines
