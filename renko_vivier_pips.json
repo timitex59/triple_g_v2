@@ -36,6 +36,18 @@
           -0.40000000000040004
         ],
         "worst_pips": -0.40000000000040004
+      },
+      "22-23": {
+        "best_pips": 1.60000000000049,
+        "flat": 0,
+        "negative": 0,
+        "observations": 1,
+        "pips": 1.60000000000049,
+        "positive": 1,
+        "samples": [
+          1.60000000000049
+        ],
+        "worst_pips": 1.60000000000049
       }
     }
   },
@@ -1367,10 +1379,24 @@
           "start_price": 113.426,
           "start_time_paris": "2026-08-10T07:00:00+02:00",
           "start_time_utc": "2026-08-10T05:00:00+00:00"
+        },
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-08-10",
+          "direction": 1,
+          "end_price": 0.81032,
+          "end_time_paris": "2026-08-10T23:00:00+02:00",
+          "end_time_utc": "2026-08-10T21:00:00+00:00",
+          "pair": "USDCHF",
+          "pips": 7.000000000000339,
+          "start_price": 0.80962,
+          "start_time_paris": "2026-08-10T19:00:00+02:00",
+          "start_time_utc": "2026-08-10T17:00:00+00:00"
         }
       ],
       "date": "2026-08-10",
-      "finalized": false,
+      "finalized": true,
+      "finalized_at_paris": "2026-08-10T23:03:54.250508+02:00",
       "segments": [
         {
           "close_reason": "VIVIER_EXIT",
@@ -1384,51 +1410,42 @@
           "start_price": 113.426,
           "start_time_paris": "2026-08-10T07:00:00+02:00",
           "start_time_utc": "2026-08-10T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-08-10",
+          "direction": 1,
+          "end_price": 1.88302,
+          "end_time_paris": "2026-08-10T23:00:00+02:00",
+          "end_time_utc": "2026-08-10T21:00:00+00:00",
+          "pair": "GBPCAD",
+          "pips": 0.0,
+          "start_price": 1.88302,
+          "start_time_paris": "2026-08-10T07:00:00+02:00",
+          "start_time_utc": "2026-08-10T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-08-10",
+          "direction": 1,
+          "end_price": 0.81032,
+          "end_time_paris": "2026-08-10T23:00:00+02:00",
+          "end_time_utc": "2026-08-10T21:00:00+00:00",
+          "pair": "USDCHF",
+          "pips": 7.000000000000339,
+          "start_price": 0.80962,
+          "start_time_paris": "2026-08-10T19:00:00+02:00",
+          "start_time_utc": "2026-08-10T17:00:00+00:00"
         }
       ]
     }
   },
-  "open_confirmed_segments": {
-    "USDCHF": {
-      "current_pips": 5.399999999999849,
-      "date": "2026-08-10",
-      "direction": 1,
-      "hourly_last_price": 0.81016,
-      "hourly_last_time_utc": "2026-08-10T20:00:00+00:00",
-      "last_price": 0.81016,
-      "last_time_utc": "2026-08-10T20:00:00+00:00",
-      "pair": "USDCHF",
-      "start_price": 0.80962,
-      "start_time_paris": "2026-08-10T19:00:00+02:00",
-      "start_time_utc": "2026-08-10T17:00:00+00:00"
-    }
-  },
-  "open_segments": {
-    "GBPCAD": {
-      "current_pips": -0.9999999999998899,
-      "date": "2026-08-10",
-      "direction": 1,
-      "last_price": 1.88292,
-      "last_time_utc": "2026-08-10T20:00:00+00:00",
-      "pair": "GBPCAD",
-      "start_price": 1.88302,
-      "start_time_paris": "2026-08-10T07:00:00+02:00",
-      "start_time_utc": "2026-08-10T05:00:00+00:00"
-    },
-    "USDCHF": {
-      "current_pips": 5.399999999999849,
-      "date": "2026-08-10",
-      "direction": 1,
-      "last_price": 0.81016,
-      "last_time_utc": "2026-08-10T20:00:00+00:00",
-      "pair": "USDCHF",
-      "start_price": 0.80962,
-      "start_time_paris": "2026-08-10T19:00:00+02:00",
-      "start_time_utc": "2026-08-10T17:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
+  "open_segments": {},
   "reports_sent": {
-    "general_daily": [],
+    "general_daily": [
+      "2026-08-10"
+    ],
     "monthly": [
       "2026-07"
     ],
@@ -1439,6 +1456,6 @@
       "2026-W32"
     ]
   },
-  "updated_at_paris": "2026-08-10T22:58:17.522640+02:00",
+  "updated_at_paris": "2026-08-10T23:03:54.250508+02:00",
   "version": 3
 }
