@@ -254,14 +254,29 @@ def _mom_sig(r: dict) -> str:
     return f"{_mom_arrow(r['d_run'])}{_mom_arrow(r['d_7h'])}{_mom_arrow(r['day'] or 0.0)}"
 
 
-def _aligned(r: dict, sign: int, eps: float = 0.005) -> bool:
-    """True si la devise est alignee sur les 3 horizons (run + 7h + jour)."""
+def _align_strength(r: dict, sign: int, eps: float = 0.005) -> int | None:
+    """Nombre d'horizons (run/7h/jour) alignes dans le sens `sign` (0..3), ou
+    None si un horizon CONTREDIT le sens (on refuse tout signal contradictoire).
+    Un horizon neutre (▪) ne compte pas mais ne disqualifie pas."""
     day = r["day"]
-    if not isinstance(day, (int, float)):
-        return False
-    if sign > 0:
-        return r["d_run"] > eps and r["d_7h"] > eps and day > eps
-    return r["d_run"] < -eps and r["d_7h"] < -eps and day < -eps
+    vals = [r["d_run"], r["d_7h"], day if isinstance(day, (int, float)) else 0.0]
+    aligned = 0
+    for v in vals:
+        if sign > 0:
+            if v > eps:
+                aligned += 1
+            elif v < -eps:
+                return None
+        else:
+            if v < -eps:
+                aligned += 1
+            elif v > eps:
+                return None
+    return aligned
+
+
+_TIER_LABELS = {3: "🎯 PARFAITE(S)", 2: "⭐ QUASI-PARFAITE(S)", 1: "✅ CORRECTE(S)"}
+_TIER_CAPS = {3: 3, 2: 3, 1: 2}
 
 
 def _perfect_pair(strong: str, weak: str, universe: set[str]) -> tuple[str | None, str | None]:
@@ -274,11 +289,14 @@ def _perfect_pair(strong: str, weak: str, universe: set[str]) -> tuple[str | Non
     return None, None
 
 
-def _perfect_pairs_lines(rows: list[dict], top_n: int = 3) -> list[str]:
-    """🎯 Paire(s) parfaite(s) : base alignee haussiere sur les 3 horizons vs
-    quote alignee baissiere sur les 3 horizons, croisee avec l'univers reel."""
-    strongs = sorted([r for r in rows if _aligned(r, 1)], key=_mom_score, reverse=True)
-    weaks = sorted([r for r in rows if _aligned(r, -1)], key=_mom_score)
+def _perfect_pairs_lines(rows: list[dict]) -> list[str]:
+    """Paires classees en 3 paliers selon l'alignement des 3 horizons entre une
+    base haussiere et une quote baissiere, sans horizon contradictoire :
+      🎯 PARFAITE = 3/3 des deux cotes · ⭐ QUASI = min 2/3 · ✅ CORRECTE = min 1/3
+    Le palier d'une paire = le cote le plus faible des deux devises. Croise avec
+    l'univers reel des paires ; sens LONG/SHORT selon la convention base/quote."""
+    strongs = [(r, s) for r in rows if (s := _align_strength(r, 1)) and s >= 1]
+    weaks = [(r, s) for r in rows if (s := _align_strength(r, -1)) and s >= 1]
     if not strongs or not weaks:
         return []
 
@@ -288,25 +306,36 @@ def _perfect_pairs_lines(rows: list[dict], top_n: int = 3) -> list[str]:
     except Exception:
         universe = set()
 
-    perfect: list[tuple[float, str, str, dict, dict]] = []
+    cand: list[tuple[int, float, str, str, dict, dict]] = []
     seen: set[str] = set()
-    for s in strongs:
-        for w in weaks:
+    for s, s_str in strongs:
+        for w, w_str in weaks:
             if s["cur"] == w["cur"]:
                 continue
             pair, direction = _perfect_pair(s["cur"], w["cur"], universe)
             if not pair or not direction or pair in seen:
                 continue
             seen.add(pair)
-            perfect.append((_mom_score(s) - _mom_score(w), pair, direction, s, w))
+            cand.append((min(s_str, w_str), _mom_score(s) - _mom_score(w), pair, direction, s, w))
 
-    if not perfect:
+    if not cand:
         return []
-    perfect.sort(key=lambda x: x[0], reverse=True)
 
-    lines = ["🎯 PAIRE(S) PARFAITE(S)"]
-    for _, pair, direction, s, w in perfect[:top_n]:
-        lines.append(f"{direction} {pair}  ({s['cur']} {_mom_sig(s)} / {w['cur']} {_mom_sig(w)})")
+    blocks: list[list[str]] = []
+    for tier in (3, 2, 1):
+        group = sorted([c for c in cand if c[0] == tier], key=lambda x: x[1], reverse=True)
+        if not group:
+            continue
+        block = [_TIER_LABELS[tier]]
+        for _, _, pair, direction, s, w in group[:_TIER_CAPS[tier]]:
+            block.append(f"{direction} {pair}  ({s['cur']} {_mom_sig(s)} / {w['cur']} {_mom_sig(w)})")
+        blocks.append(block)
+
+    lines: list[str] = []
+    for i, block in enumerate(blocks):
+        if i > 0:
+            lines.append("")
+        lines.extend(block)
     return lines
 
 
