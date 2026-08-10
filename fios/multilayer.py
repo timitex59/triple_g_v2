@@ -11,9 +11,29 @@ et de la structure technique pour établir le Podium des Meilleures Paires (🥇
 
 from __future__ import annotations
 
+import json
+import os
+from datetime import datetime
 from dataclasses import dataclass, field
+
+import pytz
+
 from .index_scoring import compute_currency_index_scores, CurrencyScore
 from . import config as cfg
+
+# ── Memoire de podium (hysteresis) ─────────────────────────────────────────
+# Le podium etait recalcule de zero a chaque cycle, sans inertie : le moindre
+# bruit sur le score faisait tourner le champion. On donne au podium une
+# MEMOIRE (comme le VIVIER garde ses positions ouvertes) : une paire qui reste
+# qualifiee accumule de l'anciennete (streak) et garde sa place tant qu'elle ne
+# perd pas de palier de grade. Persiste entre les runs CI via STATE_FILES.
+_PODIUM_STATE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "..", "fios_podium_state.json"
+)
+_PARIS = pytz.timezone("Europe/Paris")
+_STREAK_CAP = 6          # au-dela, l'anciennete sature (~6 cycles = ~1h)
+_PODIUM_GRACE = 1        # tolere 1 cycle d'absence (anti-clignotement du seuil)
+_GRADE_TIER = {"A+": 3, "A": 2, "B": 1, "NONE": 0}
 
 
 @dataclass
@@ -30,6 +50,7 @@ class MultiLayerScore:
     quote_cur: str = ""
     daily_chg: float | None = None
     tag_mwd: str = ""
+    streak: int = 0                    # cycles consecutifs qualifie (hysteresis)
 
 
 def evaluate_pair_multilayer(
@@ -158,11 +179,70 @@ def evaluate_pair_multilayer(
     )
 
 
+def _paris_date() -> str:
+    return datetime.now(_PARIS).strftime("%Y-%m-%d")
+
+
+def _load_podium_state(path: str) -> dict:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def _save_podium_state(path: str, state: dict) -> None:
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass  # non-fatal : la persistance ne doit jamais casser le run FIOS
+
+
+def _apply_hysteresis(scores: list[MultiLayerScore], path: str) -> None:
+    """Renseigne .streak (nb de cycles consecutifs qualifie) et persiste l'etat.
+    Une paire qui reste qualifiee gagne de l'anciennete, ce qui la maintient au
+    podium malgre le bruit du score. Tolere _PODIUM_GRACE cycle(s) d'absence
+    pour ne pas remettre l'anciennete a zero sur un simple clignotement du seuil.
+    L'etat est reinitialise a chaque nouveau jour (heure de Paris)."""
+    today = _paris_date()
+    prev = _load_podium_state(path)
+    prev_pairs = prev.get("pairs", {}) if prev.get("date") == today else {}
+
+    cur_names: set[str] = set()
+    new_pairs: dict[str, dict] = {}
+    for s in scores:
+        cur_names.add(s.pair)
+        p = prev_pairs.get(s.pair)
+        if p and int(p.get("direction", 0)) == s.direction:
+            s.streak = int(p.get("streak", 0)) + 1
+        else:
+            s.streak = 1
+        new_pairs[s.pair] = {"streak": s.streak, "direction": s.direction, "misses": 0}
+
+    # Grace : garde en memoire (sans afficher) une paire absente ce cycle, pour
+    # que son anciennete reprenne si elle repasse le seuil au cycle suivant.
+    for name, p in prev_pairs.items():
+        if name in cur_names:
+            continue
+        misses = int(p.get("misses", 0)) + 1
+        if misses <= _PODIUM_GRACE:
+            new_pairs[name] = {
+                "streak": int(p.get("streak", 0)),
+                "direction": int(p.get("direction", 0)),
+                "misses": misses,
+            }
+
+    _save_podium_state(path, {"date": today, "pairs": new_pairs})
+
+
 def compute_multilayer_matrix(
     composites: dict[str, dict],
     payload: dict | None,
     fibo_50_results: dict[str, dict] | None = None,
     vivier_state: dict | None = None,
+    state_path: str | None = None,
 ) -> list[MultiLayerScore]:
     payload = payload or {}
     align_pairs = payload.get("pairs") or {}
@@ -180,7 +260,22 @@ def compute_multilayer_matrix(
         if s is not None:
             scores.append(s)
 
-    return sorted(scores, key=lambda x: (-x.total_score, x.pair))
+    # Hysteresis : renseigne .streak et persiste l'etat du podium.
+    _apply_hysteresis(scores, state_path or _PODIUM_STATE)
+
+    # Tri stable : palier de grade d'abord (A+ > A > B), puis anciennete (une
+    # paire deja installee garde sa place), puis score fin, puis ecart d'indice
+    # continu (departage reel, plus l'ordre alphabetique arbitraire), puis nom.
+    return sorted(
+        scores,
+        key=lambda x: (
+            -_GRADE_TIER.get(x.grade, 0),
+            -min(x.streak, _STREAK_CAP),
+            -x.total_score,
+            -(x.index_diff * x.direction),
+            x.pair,
+        ),
+    )
 
 
 def format_multilayer_section(scores: list[MultiLayerScore], top_n: int = 5) -> list[str]:

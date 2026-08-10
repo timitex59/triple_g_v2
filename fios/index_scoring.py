@@ -64,10 +64,13 @@ def compute_currency_index_scores(
             "composite": comp_val,
         }
 
-    # Rank currencies by daily change (primary) and composite (secondary)
+    # Rang pilote par la STRUCTURE/composite (stable), departage par le jour.
+    # Trier d'abord par daily_chg (bruite intraday) faisait sauter le rang a
+    # chaque cycle et desorganisait tout le podium en aval ; le composite est
+    # bien plus stable (fondamental + technique multi-TF dominent).
     ranked_cur = sorted(
         CURRENCIES_ALL,
-        key=lambda c: (cur_data[c]["daily_chg"], cur_data[c]["composite"]),
+        key=lambda c: (cur_data[c]["composite"], cur_data[c]["daily_chg"]),
         reverse=True,
     )
     ranks = {cur: i + 1 for i, cur in enumerate(ranked_cur)}
