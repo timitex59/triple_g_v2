@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytz
 
@@ -49,7 +49,8 @@ def load_align() -> dict | None:
             payload = json.load(f)
     except Exception:
         return None
-    today = datetime.now(PARIS).strftime("%Y-%m-%d")
+    clock = datetime.now(PARIS)
+    today = clock.strftime("%Y-%m-%d")
     if not _fresh(payload, today):
         return None
     if not isinstance(payload.get("currencies"), dict) or not payload["currencies"]:
@@ -270,6 +271,8 @@ def _perfect_pair(strong: str, weak: str, universe: set[str]) -> tuple[str | Non
 # CHG%D a contre-sens (en %) pour considerer qu'une paire s'est INVERSEE
 # franchement (et doit alors quitter sa section malgre la pseudo-persistance).
 _REVERSAL_THR = 0.10
+_SECTION_PIPS_START_HOUR = 7
+_SECTION_PIPS_END_HOUR = 23
 
 
 def _convergent_now(rows: list[dict], pair_by_name: dict[str, dict]) -> tuple[dict[str, dict], set[str]]:
@@ -399,6 +402,172 @@ def _render_memory_sections(conv_now: dict[str, dict], top_now: dict[str, dict],
             new_sections)
 
 
+def _section_pip_size(pair: str) -> float:
+    return 0.01 if pair.endswith("JPY") or pair == "XAUUSD" else 0.0001
+
+
+def _section_segment_pips(segment: dict, price: float) -> float:
+    return ((float(price) - float(segment["start_price"]))
+            / _section_pip_size(str(segment["pair"]))
+            * int(segment["dir"]))
+
+
+def _section_day(state: dict, day_key: str) -> dict:
+    return state.setdefault("days", {}).setdefault(
+        day_key, {"date": day_key, "segments": [], "finalized": False}
+    )
+
+
+def _close_section_segment(state: dict, pair: str, segment: dict,
+                           price: float, clock: datetime, reason: str) -> None:
+    closed = dict(segment)
+    closed.update({
+        "end_price": float(price),
+        "end_time_paris": clock.isoformat(),
+        "pips": _section_segment_pips(segment, float(price)),
+        "close_reason": reason,
+    })
+    closed.pop("last_price", None)
+    closed.pop("current_pips", None)
+    _section_day(state, str(segment["date"]))["segments"].append(closed)
+    state.setdefault("open", {}).pop(pair, None)
+
+
+def _section_period_total(state: dict, section: str, start: str, end: str) -> float:
+    total = 0.0
+    for day_key, day in (state.get("days") or {}).items():
+        if start <= day_key <= end:
+            total += sum(
+                float(item.get("pips") or 0.0)
+                for item in day.get("segments") or []
+                if item.get("section") == section
+            )
+    return total
+
+
+def _update_section_pip_tracker(previous: dict | None, sections: dict,
+                                pair_by_name: dict[str, dict], clock: datetime
+                                ) -> tuple[dict, dict | None]:
+    """Deux books persistants (convergentes/top), marques aux prix de chaque run.
+
+    Une paire reste ouverte tant que la pseudo-persistance la conserve. Une
+    migration ferme l'ancien book et ouvre le nouveau au meme prix. Les books
+    sont soldes au dernier run (23h Paris); les cumuls repartent logiquement de
+    zero au 1er janvier sans supprimer les archives.
+    """
+    state = json.loads(json.dumps(previous)) if isinstance(previous, dict) else {}
+    state["version"] = 1
+    state.setdefault("open", {})
+    state.setdefault("days", {})
+    state.setdefault("reports_sent", [])
+    clock = clock.astimezone(PARIS) if clock.tzinfo else clock.replace(tzinfo=PARIS)
+    today = clock.date().isoformat()
+
+    def price_of(pair: str) -> float | None:
+        value = (pair_by_name.get(pair) or {}).get("level")
+        return float(value) if isinstance(value, (int, float)) and value > 0 else None
+
+    # Un run de cloture manque: figer au dernier prix connu, jamais au prix du
+    # lendemain (qui introduirait artificiellement le gap overnight).
+    for pair, segment in list(state["open"].items()):
+        if segment.get("date") == today:
+            continue
+        last_price = segment.get("last_price", segment.get("start_price"))
+        if isinstance(last_price, (int, float)):
+            end_clock = datetime.fromisoformat(str(segment.get("last_time_paris")))
+            _close_section_segment(
+                state, pair, segment, float(last_price), end_clock, "MISSED_DAY_END"
+            )
+        old_day = _section_day(state, str(segment["date"]))
+        old_day["finalized"] = True
+
+    in_window = _SECTION_PIPS_START_HOUR <= clock.hour <= _SECTION_PIPS_END_HOUR
+    day = _section_day(state, today)
+    if in_window and not day.get("finalized"):
+        for pair, segment in list(state["open"].items()):
+            target = sections.get(pair)
+            same_book = (target and target.get("section") == segment.get("section")
+                         and int(target.get("dir", 0)) == int(segment.get("dir", 0)))
+            price = price_of(pair)
+            if same_book:
+                if price is not None:
+                    segment["last_price"] = price
+                    segment["last_time_paris"] = clock.isoformat()
+                    segment["current_pips"] = _section_segment_pips(segment, price)
+                continue
+            last_price = price if price is not None else segment.get("last_price")
+            if isinstance(last_price, (int, float)):
+                reason = "MIGRATION" if target else "SECTION_EXIT"
+                _close_section_segment(
+                    state, pair, segment, float(last_price), clock, reason
+                )
+
+        for pair, target in sections.items():
+            if pair in state["open"]:
+                continue
+            price = price_of(pair)
+            if price is None or target.get("section") not in ("conv", "top"):
+                continue
+            state["open"][pair] = {
+                "pair": pair,
+                "section": target["section"],
+                "dir": int(target["dir"]),
+                "date": today,
+                "start_price": price,
+                "last_price": price,
+                "start_time_paris": clock.isoformat(),
+                "last_time_paris": clock.isoformat(),
+                "current_pips": 0.0,
+            }
+
+        if clock.hour >= _SECTION_PIPS_END_HOUR:
+            for pair, segment in list(state["open"].items()):
+                price = price_of(pair)
+                if price is None:
+                    price = segment.get("last_price", segment.get("start_price"))
+                _close_section_segment(
+                    state, pair, segment, float(price), clock, "DAY_END"
+                )
+            day["finalized"] = True
+            day["finalized_at_paris"] = clock.isoformat()
+
+    report = None
+    if (clock.hour >= _SECTION_PIPS_END_HOUR and day.get("finalized")
+            and today not in state["reports_sent"]):
+        week_start = (clock.date() - timedelta(days=clock.weekday())).isoformat()
+        month_start = clock.date().replace(day=1).isoformat()
+        year_start = clock.date().replace(month=1, day=1).isoformat()
+        report = {}
+        for section in ("conv", "top"):
+            report[section] = {
+                "daily": _section_period_total(state, section, today, today),
+                "weekly": _section_period_total(state, section, week_start, today),
+                "monthly": _section_period_total(state, section, month_start, today),
+                "yearly": _section_period_total(state, section, year_start, today),
+                "year": clock.year,
+            }
+        state["reports_sent"].append(today)
+        del state["reports_sent"][:-400]
+    return state, report
+
+
+def _append_section_pip_report(lines: list[str], title: str,
+                               item: dict | None) -> list[str]:
+    if not item:
+        return lines
+    if not lines:
+        lines = [title, ""]
+    elif lines[-1] != "":
+        lines.append("")
+    lines.extend([
+        f"📈 Daily : {item['daily']:+.1f}",
+        f"📊 Weekly : {item['weekly']:+.1f}",
+        f"Monthly : {item['monthly']:+.1f}",
+        f"🗓 YTD {item['year']} : {item['yearly']:+.1f}",
+    ])
+    return lines
+
+
 def _momentum_rows(items: dict, prev_items: dict) -> tuple[list[dict], dict]:
     """Calcule les 3 horizons (run/7h/jour) de chaque item (devise OU paire) a
     partir de son NIVEAU brut (live_price) + CHG%D, et renvoie l'etat a jour.
@@ -424,7 +593,8 @@ def _momentum_rows(items: dict, prev_items: dict) -> tuple[list[dict], dict]:
         d_7h = (lvl / baseline - 1.0) * 100.0
         day = chg if isinstance(chg, (int, float)) else None
 
-        rows.append({"cur": name, "d_run": d_run, "d_7h": d_7h, "day": day})
+        rows.append({"cur": name, "d_run": d_run, "d_7h": d_7h,
+                     "day": day, "level": float(lvl)})
         new_items[name] = {"baseline": baseline, "prev": lvl}
 
     # Conserve le baseline des items non vus ce cycle (evite un reset sur un
@@ -463,6 +633,7 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
             "currencies": new_curs,
             "pairs": new_pairs,
             "sections": prev.get("sections", {}) if same_day else {},
+            "tracking": prev.get("tracking", {}),
         })
         return []
 
@@ -479,11 +650,22 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
         pair_by_name,
         prev.get("sections", {}) if same_day else {},
     )
+    tracking, pip_report = _update_section_pip_tracker(
+        prev.get("tracking", {}), new_sections, pair_by_name, clock
+    )
+    if pip_report:
+        conv_lines = _append_section_pip_report(
+            conv_lines, "🎯 PAIRES CONVERGENTES", pip_report.get("conv")
+        )
+        top_lines = _append_section_pip_report(
+            top_lines, "🔝 TOP MOMENTUM PAIRES", pip_report.get("top")
+        )
     _save_index_chg_state(path, {
         "date": today,
         "currencies": new_curs,
         "pairs": new_pairs,
         "sections": new_sections,
+        "tracking": tracking,
     })
 
     if conv_lines:
