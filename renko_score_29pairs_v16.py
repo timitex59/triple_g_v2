@@ -2543,6 +2543,47 @@ def _period_pip_summary_report(state: dict, clock: datetime, day_key: str) -> di
     }
 
 
+def _yearly_general_pip_report(state: dict, clock: datetime) -> dict:
+    """Bilan du book confirme pour l'annee civile de ``clock``.
+
+    Le filtrage par prefixe d'annee realise un reset logique chaque 1er janvier
+    tout en conservant les jours des annees precedentes dans l'historique.
+    """
+    year_prefix = f"{clock.year:04d}-"
+    segments = []
+    for day_key, day in (state.get("days") or {}).items():
+        if day_key.startswith(year_prefix):
+            segments.extend(day.get("confirmed_segments") or [])
+
+    closed_pips = sum(float(item.get("pips") or 0.0) for item in segments)
+    open_segments = [
+        item for item in (state.get("open_confirmed_segments") or {}).values()
+        if str(item.get("date") or "").startswith(year_prefix)
+    ]
+    open_pips = sum(float(item.get("current_pips") or 0.0) for item in open_segments)
+    winning = sum(
+        1 for item in segments
+        if float(item.get("pips") or 0.0) > VIVIER_PIPS_DAY_RESULT_EPSILON
+    )
+    losing = sum(
+        1 for item in segments
+        if float(item.get("pips") or 0.0) < -VIVIER_PIPS_DAY_RESULT_EPSILON
+    )
+    decided = winning + losing
+    return {
+        "key": clock.date().isoformat(),
+        "year": clock.year,
+        "closed_trades": len(segments),
+        "winning_trades": winning,
+        "losing_trades": losing,
+        "flat_trades": len(segments) - decided,
+        "win_rate_pct": (winning / decided * 100.0) if decided else 0.0,
+        "closed_pips": closed_pips,
+        "open_pips": open_pips,
+        "displayed_total_pips": closed_pips + open_pips,
+    }
+
+
 def _vivier_entry_confirmed_for_pips(entry: dict | None) -> bool:
     if not isinstance(entry, dict):
         return False
@@ -2563,6 +2604,7 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
     reports_sent = state.setdefault("reports_sent", {})
     reports_sent.setdefault("weekly", [])
     reports_sent.setdefault("monthly", [])
+    reports_sent.setdefault("general_daily", [])
 
     clock = now or datetime.now(PARIS_TZ)
     if clock.tzinfo is None:
@@ -2748,6 +2790,7 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
         "period_summary": None,
         "weekly": None,
         "monthly": None,
+        "general": None,
     }
     if in_window and fresh_market:
         today_totals = _pip_day_totals(state, today)
@@ -2782,6 +2825,11 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
         if monthly and monthly["key"] not in reports_sent["monthly"]:
             report["monthly"] = monthly
 
+    if clock.hour >= VIVIER_PIPS_END_HOUR_PARIS:
+        general_key = clock.date().isoformat()
+        if general_key not in reports_sent["general_daily"]:
+            report["general"] = _yearly_general_pip_report(state, clock)
+
     # Keep slightly more than one year of daily detail.
     day_keys = sorted(state["days"])
     for obsolete in day_keys[:-400]:
@@ -2792,14 +2840,18 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
 
 def mark_vivier_pip_reports_sent(state: dict, report: dict | None) -> None:
     sent = state.setdefault("reports_sent", {"weekly": [], "monthly": []})
-    for kind in ("weekly", "monthly"):
+    for kind, sent_kind in (
+        ("weekly", "weekly"),
+        ("monthly", "monthly"),
+        ("general", "general_daily"),
+    ):
         item = (report or {}).get(kind)
         if not item:
             continue
-        keys = sent.setdefault(kind, [])
+        keys = sent.setdefault(sent_kind, [])
         if item["key"] not in keys:
             keys.append(item["key"])
-            del keys[:-100]
+            del keys[:-400]
 
 
 def _format_pips(value: float) -> str:
@@ -2880,6 +2932,27 @@ def vivier_pip_period_lines(report: dict | None) -> list[str]:
             f"🔴 BEAR : {_format_pips(monthly.get('confirmed_bear_pips', 0.0))} pips",
             f"Σ TOTAL : {_format_pips(monthly.get('confirmed_total_pips', 0.0))} pips",
         ])
+    return lines
+
+
+def vivier_pip_general_lines(report: dict | None) -> list[str]:
+    general = (report or {}).get("general")
+    if not general:
+        return []
+    lines = [
+        f"📋 BILAN GÉNÉRAL {general['year']}",
+        f"{general['closed_trades']} trades clôturés",
+        f"🟢 {general['winning_trades']} gagnants",
+        f"🔴 {general['losing_trades']} perdants",
+    ]
+    if general.get("flat_trades"):
+        lines.append(f"⚪ {general['flat_trades']} neutres")
+    lines.extend([
+        f"Taux de réussite : {general['win_rate_pct']:.1f}%",
+        f"Gains clôturés : {_format_pips(general['closed_pips'])} pips",
+        f"Position ouverte : {_format_pips(general['open_pips'])} pips",
+        f"Total affiché : {_format_pips(general['displayed_total_pips'])} pips",
+    ])
     return lines
 
 
@@ -3402,6 +3475,7 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
     )
     intraday_pip_lines = vivier_pip_intraday_lines(pip_report)
     period_pip_lines = vivier_pip_period_lines(pip_report)
+    general_pip_lines = vivier_pip_general_lines(pip_report)
 
     has_confirmed_position = any(
         _vivier_entry_confirmed_for_pips(entry) or "daily_sar_dir" not in entry
@@ -3434,6 +3508,7 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         or has_open_confirmed_segments
         or has_signals
         or has_pip_activity
+        or bool(general_pip_lines)
     )
 
     if not has_trade_action:
@@ -3496,6 +3571,12 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
         if has_content:
             lines.append("")
         lines.extend(period_pip_lines)
+        has_content = True
+
+    if general_pip_lines:
+        if has_content:
+            lines.append("")
+        lines.extend(general_pip_lines)
         has_content = True
 
     # Message: ecosysteme VIVIER et horodatage.

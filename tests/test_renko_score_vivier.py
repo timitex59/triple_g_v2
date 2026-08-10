@@ -26,12 +26,14 @@ from renko_score_29pairs_v16 import (
     fibo_theoretical_pairs,
     fib_directional_label,
     monthly_fib_transition_context,
+    mark_vivier_pip_reports_sent,
     sar_cross_event,
     telegram_body_hash,
     update_vivier,
     update_vivier_pip_tracker,
     update_vivier_performance,
     vivier_pip_intraday_lines,
+    vivier_pip_general_lines,
     vivier_pip_period_lines,
     vivier_pip_size,
     vivier_groups,
@@ -865,6 +867,77 @@ class VivierStateTests(unittest.TestCase):
         self.assertIn("🗓 BILAN MENSUEL — JUILLET", message)
         self.assertIn("JOURS : 🟢 3 gagnants / 🔴 2 perdants / ⚪ 1 neutres", message)
         self.assertIn("Σ TOTAL : +7.0 pips", message)
+
+    def test_vivier_last_run_builds_yearly_general_report_once_per_day(self):
+        state = {
+            "days": {
+                "2025-12-31": {
+                    "confirmed_segments": [{"direction": 1, "pips": 99.0}],
+                    "finalized": True,
+                },
+                "2026-01-02": {
+                    "confirmed_segments": [
+                        {"direction": 1, "pips": 10.0},
+                        {"direction": 1, "pips": -4.0},
+                    ],
+                    "finalized": True,
+                },
+            },
+            "open_segments": {},
+            "open_confirmed_segments": {},
+            "reports_sent": {"weekly": [], "monthly": []},
+        }
+        active = {"pairs": {"EURUSD": {
+            "direction": 1,
+            "daily_chg": 0.10,
+            "daily_sar_dir": 1,
+        }}}
+
+        state, report = update_vivier_pip_tracker(
+            state,
+            active,
+            [pip_row("EURUSD", 1.1000, "2026-01-02 23:00+01:00")],
+            now=datetime(2026, 1, 2, 23, 15, tzinfo=PARIS),
+        )
+
+        general = report["general"]
+        self.assertEqual(general["closed_trades"], 2)
+        self.assertEqual(general["winning_trades"], 1)
+        self.assertEqual(general["losing_trades"], 1)
+        self.assertAlmostEqual(general["closed_pips"], 6.0)
+        self.assertAlmostEqual(general["open_pips"], 0.0)
+        self.assertAlmostEqual(general["displayed_total_pips"], 6.0)
+        self.assertAlmostEqual(general["win_rate_pct"], 50.0)
+
+        mark_vivier_pip_reports_sent(state, report)
+        state, repeated = update_vivier_pip_tracker(
+            state,
+            active,
+            [pip_row("EURUSD", 1.1000, "2026-01-02 23:00+01:00")],
+            now=datetime(2026, 1, 2, 23, 30, tzinfo=PARIS),
+        )
+        self.assertIsNone(repeated["general"])
+
+    def test_vivier_general_lines_match_requested_summary(self):
+        lines = vivier_pip_general_lines({"general": {
+            "year": 2026,
+            "closed_trades": 16,
+            "winning_trades": 11,
+            "losing_trades": 5,
+            "flat_trades": 0,
+            "win_rate_pct": 68.75,
+            "closed_pips": 177.5,
+            "open_pips": 5.8,
+            "displayed_total_pips": 183.3,
+        }})
+
+        self.assertIn("16 trades clôturés", lines)
+        self.assertIn("🟢 11 gagnants", lines)
+        self.assertIn("🔴 5 perdants", lines)
+        self.assertIn("Taux de réussite : 68.8%", lines)
+        self.assertIn("Gains clôturés : +177.5 pips", lines)
+        self.assertIn("Position ouverte : +5.8 pips", lines)
+        self.assertIn("Total affiché : +183.3 pips", lines)
 
     def test_transition_revalidates_only_entries_created_in_current_month(self):
         current = row("CURRENT", 1, 1, 0, fib_pct=60.0)
