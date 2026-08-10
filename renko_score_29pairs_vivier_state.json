@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-08-10 19:11",
+  "updated_at_paris": "2026-08-10 19:20",
   "pairs": {
     "GBPCAD": {
       "direction": 1,
       "entered_at_paris": "2026-08-05 18:19",
-      "last_seen_at_paris": "2026-08-10 19:11",
+      "last_seen_at_paris": "2026-08-10 19:20",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -18,11 +18,11 @@
       },
       "base_pct": 83.33333333333334,
       "weighted_pct": 41.66666666666667,
-      "daily_chg": 0.14568346280020442,
+      "daily_chg": 0.13877147368924767,
       "daily_sar_dir": -1,
       "daily_sar_value": 1.893802,
       "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 36.97555086024726,
+      "fib_pct_of_range": 36.58315725928147,
       "fib_source": "PREVIOUS",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 49.01901599758554,
@@ -40,10 +40,44 @@
       "sar_last_processed_time_utc": "2026-08-10T13:00:00+00:00",
       "sar_record_value": 1.87942,
       "sar_record_time_utc": "2026-08-07T20:00:00+00:00"
+    },
+    "USDCHF": {
+      "direction": 1,
+      "entered_at_paris": "2026-08-10 19:20",
+      "last_seen_at_paris": "2026-08-10 19:20",
+      "entry_px": {
+        "M": 1,
+        "W": 1,
+        "D": 0
+      },
+      "last_px": {
+        "M": 1,
+        "W": 1,
+        "D": 0
+      },
+      "base_pct": 83.33333333333334,
+      "weighted_pct": 66.66666666666667,
+      "daily_chg": 0.2524502524502439,
+      "daily_sar_dir": 1,
+      "daily_sar_value": 0.80566,
+      "fib_position": "Fibo <0.500",
+      "fib_pct_of_range": 46.29441624365448,
+      "fib_source": "PREVIOUS",
+      "entry_fib_position": "Fibo <0.500",
+      "entry_fib_pct_of_range": 46.29441624365448,
+      "entry_fib_source": "PREVIOUS",
+      "sar_dir": 1,
+      "fib_context_month_utc": "2026-07",
+      "fib_objective_active": true,
+      "fib_objective_carried": false,
+      "fib_objective_value": 0.8207,
+      "fib_objective_origin_month_utc": "2026-07",
+      "fib_objective_started_time_utc": "2026-08-10T17:00:00+00:00",
+      "sar_flame": false
     }
   },
   "pending_objectives": {},
   "objective_events": [],
-  "telegram_last_body_hash": "4a1821a6760a41ea927bc4120f3be706e8a8d1f51d259629b7a655dea2f1f8a4",
-  "telegram_last_sent_at_paris": "2026-08-10 16:15"
+  "telegram_last_body_hash": "a8255f4d9120c053f13d26ff8429af942e429b575d1f18c280fb597d41a919e9",
+  "telegram_last_sent_at_paris": "2026-08-10 19:19"
 }
