@@ -240,6 +240,76 @@ def _mom_arrow(v: float, eps: float = 0.005) -> str:
     return "▲" if v > eps else ("▼" if v < -eps else "▪")
 
 
+# Poids du score de momentum par devise (run-a-run / depuis 7h / jour).
+_MOM_WEIGHTS = (0.5, 0.3, 0.2)
+
+
+def _mom_score(r: dict) -> float:
+    wr, w7, wd = _MOM_WEIGHTS
+    return wr * r["d_run"] + w7 * r["d_7h"] + wd * (r["day"] or 0.0)
+
+
+def _mom_sig(r: dict) -> str:
+    """Signature 3 horizons d'une devise, ex. '▲▲▲' ou '▼▼▼'."""
+    return f"{_mom_arrow(r['d_run'])}{_mom_arrow(r['d_7h'])}{_mom_arrow(r['day'] or 0.0)}"
+
+
+def _aligned(r: dict, sign: int, eps: float = 0.005) -> bool:
+    """True si la devise est alignee sur les 3 horizons (run + 7h + jour)."""
+    day = r["day"]
+    if not isinstance(day, (int, float)):
+        return False
+    if sign > 0:
+        return r["d_run"] > eps and r["d_7h"] > eps and day > eps
+    return r["d_run"] < -eps and r["d_7h"] < -eps and day < -eps
+
+
+def _perfect_pair(strong: str, weak: str, universe: set[str]) -> tuple[str | None, str | None]:
+    """Retourne (paire canonique, sens) pour LONG strong / SHORT weak, si la
+    combinaison existe dans l'univers des paires reelles."""
+    if strong + weak in universe:
+        return strong + weak, "LONG"
+    if weak + strong in universe:
+        return weak + strong, "SHORT"
+    return None, None
+
+
+def _perfect_pairs_lines(rows: list[dict], top_n: int = 3) -> list[str]:
+    """🎯 Paire(s) parfaite(s) : base alignee haussiere sur les 3 horizons vs
+    quote alignee baissiere sur les 3 horizons, croisee avec l'univers reel."""
+    strongs = sorted([r for r in rows if _aligned(r, 1)], key=_mom_score, reverse=True)
+    weaks = sorted([r for r in rows if _aligned(r, -1)], key=_mom_score)
+    if not strongs or not weaks:
+        return []
+
+    try:
+        from .multilayer import PAIRS_ALL
+        universe = set(PAIRS_ALL)
+    except Exception:
+        universe = set()
+
+    perfect: list[tuple[float, str, str, dict, dict]] = []
+    seen: set[str] = set()
+    for s in strongs:
+        for w in weaks:
+            if s["cur"] == w["cur"]:
+                continue
+            pair, direction = _perfect_pair(s["cur"], w["cur"], universe)
+            if not pair or not direction or pair in seen:
+                continue
+            seen.add(pair)
+            perfect.append((_mom_score(s) - _mom_score(w), pair, direction, s, w))
+
+    if not perfect:
+        return []
+    perfect.sort(key=lambda x: x[0], reverse=True)
+
+    lines = ["🎯 PAIRE(S) PARFAITE(S)"]
+    for _, pair, direction, s, w in perfect[:top_n]:
+        lines.append(f"{direction} {pair}  ({s['cur']} {_mom_sig(s)} / {w['cur']} {_mom_sig(w)})")
+    return lines
+
+
 def build_index_momentum_lines(payload: dict | None, state_path: str | None = None) -> list[str]:
     """Section 📈 MOMENTUM INDEX : variation du NIVEAU de chaque indice devise sur
     3 horizons, triee par le momentum court terme (run-a-run) decroissant.
@@ -307,6 +377,12 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
             f"  /  {_mom_arrow(r['d_7h'])} {r['d_7h']:+.2f}"
             f"  /  {day_txt}"
         )
+
+    perfect = _perfect_pairs_lines(rows)
+    if perfect:
+        lines.append("")
+        lines.extend(perfect)
+
     return lines
 
 
