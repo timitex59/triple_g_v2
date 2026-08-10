@@ -236,15 +236,6 @@ def _save_index_chg_state(path: str, state: dict) -> None:
         pass  # non-fatal : la persistance ne doit jamais casser le run FIOS
 
 
-def _mom_arrow(v: float, eps: float = 0.005) -> str:
-    return "▲" if v > eps else ("▼" if v < -eps else "▪")
-
-
-def _mom_sig(r: dict) -> str:
-    """Signature 3 horizons d'une devise, ex. '▲▲▲' ou '▼▼▼'."""
-    return f"{_mom_arrow(r['d_run'])}{_mom_arrow(r['d_7h'])}{_mom_arrow(r['day'] or 0.0)}"
-
-
 def _align_strength(r: dict, sign: int, eps: float = 0.005) -> int | None:
     """Nombre d'horizons (run/7h/jour) alignes dans le sens `sign` (0..3), ou
     None si un horizon CONTREDIT le sens (on refuse tout signal contradictoire).
@@ -330,16 +321,25 @@ def _perfect_pairs_lines(rows: list[dict], pair_by_name: dict[str, dict]) -> tup
 
 def _pair_leaderboard_lines(pair_rows: list[dict], exclude: set[str],
                             top_n: int = 3, eps: float = 0.005) -> list[str]:
-    """🔝 Paires qui bougent le plus (run-a-run), hors paires deja listees en
-    parfaites -> decouvre ce que les indices n'ont pas flague."""
-    movers = [r for r in pair_rows if r["cur"] not in exclude and abs(r["d_run"]) > eps]
+    """🔝 Plus gros mouvements du jour, hors paires deja flaguees par l'indice ->
+    decouvre ce que les indices n'ont pas vu. Triees par |CHG%D| decroissant ;
+    icone selon le signe du CHG%D ; flamme 🔥 sur les paires alignees sur les 3
+    horizons (▲▲▲ ou ▼▼▼)."""
+    def _day(r: dict) -> float:
+        d = r["day"]
+        return d if isinstance(d, (int, float)) else 0.0
+
+    movers = [r for r in pair_rows if r["cur"] not in exclude and abs(_day(r)) > eps]
     if not movers:
         return []
-    movers.sort(key=lambda r: abs(r["d_run"]), reverse=True)
-    lines = ["🔝 TOP MOMENTUM PAIRES   run / 7h / jour"]
+    movers.sort(key=lambda r: abs(_day(r)), reverse=True)
+
+    lines = ["🔝 TOP MOMENTUM PAIRES", ""]
     for r in movers[:top_n]:
-        day_txt = f"{r['day']:+.2f}%" if isinstance(r["day"], (int, float)) else "--"
-        lines.append(f"{_mom_sig(r)} {r['cur']}  {r['d_run']:+.2f} / {r['d_7h']:+.2f} / {day_txt}")
+        icon = "🟢" if _day(r) > 0 else "🔴"
+        aligned3 = _align_strength(r, 1) == 3 or _align_strength(r, -1) == 3
+        flame = " 🔥" if aligned3 else ""
+        lines.append(f"{icon} {r['cur']}{flame}")
     return lines
 
 
