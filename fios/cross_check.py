@@ -267,17 +267,20 @@ def _perfect_pair(strong: str, weak: str, universe: set[str]) -> tuple[str | Non
     return None, None
 
 
-def _perfect_pairs_lines(rows: list[dict], pair_by_name: dict[str, dict]) -> tuple[list[str], set[str]]:
-    """Section unique des paires CONVERGENTES : l'indice designe une base
-    haussiere / quote baissiere (aucun horizon contradictoire), ET le momentum
-    PROPRE de la paire confirme le sens (>=2 horizons alignes). Triee par |CHG%D|
-    de la paire decroissant ; la flamme 🔥 marque les PARFAITES (3/3 des 2 cotes).
-    Retourne (lignes, tous les candidats indice) — le 2e sert a exclure du
-    leaderboard les paires deja flaguees."""
+# CHG%D a contre-sens (en %) pour considerer qu'une paire s'est INVERSEE
+# franchement (et doit alors quitter sa section malgre la pseudo-persistance).
+_REVERSAL_THR = 0.10
+
+
+def _convergent_now(rows: list[dict], pair_by_name: dict[str, dict]) -> tuple[dict[str, dict], set[str]]:
+    """{pair: {dir(+/-1), tier, chg_abs}} des paires CONVERGENTES ce cycle :
+    l'indice designe une base haussiere / quote baissiere (aucun horizon
+    contradictoire) ET le momentum PROPRE de la paire confirme (>=2 alignes).
+    Renvoie aussi `seen` (tous les candidats indice) pour exclure du top."""
     strongs = [(r, s) for r in rows if (s := _align_strength(r, 1)) and s >= 1]
     weaks = [(r, s) for r in rows if (s := _align_strength(r, -1)) and s >= 1]
     if not strongs or not weaks:
-        return [], set()
+        return {}, set()
 
     try:
         from .multilayer import PAIRS_ALL
@@ -285,8 +288,8 @@ def _perfect_pairs_lines(rows: list[dict], pair_by_name: dict[str, dict]) -> tup
     except Exception:
         universe = set()
 
+    out: dict[str, dict] = {}
     seen: set[str] = set()
-    shown: list[tuple[float, int, str, str]] = []  # (|CHG%D|, tier, pair, direction)
     for s, s_str in strongs:
         for w, w_str in weaks:
             if s["cur"] == w["cur"]:
@@ -295,52 +298,105 @@ def _perfect_pairs_lines(rows: list[dict], pair_by_name: dict[str, dict]) -> tup
             if not pair or not direction or pair in seen:
                 continue
             seen.add(pair)
-            # Convergence : le momentum PROPRE de la paire doit confirmer le sens.
             prow = pair_by_name.get(pair)
             if not prow:
                 continue
             sign = 1 if direction == "LONG" else -1
             st = _align_strength(prow, sign)
             if st is None or st < 2:
-                continue  # on n'affiche QUE les convergentes
+                continue  # non convergente ce cycle
             day = prow.get("day")
-            chg_abs = abs(day) if isinstance(day, (int, float)) else 0.0
-            shown.append((chg_abs, min(s_str, w_str), pair, direction))
-
-    if not shown:
-        return [], seen
-    shown.sort(key=lambda x: x[0], reverse=True)
-
-    lines = ["🎯 PAIRES CONVERGENTES", ""]
-    for _, tier, pair, direction in shown:
-        icon = "🟢" if direction == "LONG" else "🔴"
-        flame = " 🔥" if tier == 3 else ""
-        lines.append(f"{icon} {pair}{flame}")
-    return lines, seen
+            out[pair] = {"dir": sign, "tier": min(s_str, w_str),
+                         "chg_abs": abs(day) if isinstance(day, (int, float)) else 0.0}
+    return out, seen
 
 
-def _pair_leaderboard_lines(pair_rows: list[dict], exclude: set[str],
-                            top_n: int = 3, eps: float = 0.005) -> list[str]:
-    """🔝 Plus gros mouvements du jour, hors paires deja flaguees par l'indice ->
-    decouvre ce que les indices n'ont pas vu. Triees par |CHG%D| decroissant ;
-    icone selon le signe du CHG%D ; flamme 🔥 sur les paires alignees sur les 3
-    horizons (▲▲▲ ou ▼▼▼)."""
+def _top_now(pair_rows: list[dict], exclude: set[str],
+             top_n: int = 3, eps: float = 0.005) -> dict[str, dict]:
+    """{pair: {dir(+/-1 = signe CHG%D), aligned3, chg_abs}} des plus gros movers
+    du jour, hors paires deja flaguees par l'indice."""
     def _day(r: dict) -> float:
         d = r["day"]
         return d if isinstance(d, (int, float)) else 0.0
 
     movers = [r for r in pair_rows if r["cur"] not in exclude and abs(_day(r)) > eps]
-    if not movers:
-        return []
     movers.sort(key=lambda r: abs(_day(r)), reverse=True)
-
-    lines = ["🔝 TOP MOMENTUM PAIRES", ""]
+    out: dict[str, dict] = {}
     for r in movers[:top_n]:
-        icon = "🟢" if _day(r) > 0 else "🔴"
-        aligned3 = _align_strength(r, 1) == 3 or _align_strength(r, -1) == 3
-        flame = " 🔥" if aligned3 else ""
-        lines.append(f"{icon} {r['cur']}{flame}")
-    return lines
+        d = _day(r)
+        out[r["cur"]] = {
+            "dir": 1 if d > 0 else -1,
+            "aligned3": _align_strength(r, 1) == 3 or _align_strength(r, -1) == 3,
+            "chg_abs": abs(d),
+        }
+    return out
+
+
+def _render_memory_sections(conv_now: dict[str, dict], top_now: dict[str, dict],
+                            pair_by_name: dict[str, dict], prev_sections: dict
+                            ) -> tuple[list[str], list[str], dict]:
+    """Pseudo-persistance : une paire selectionnee reste dans SA section meme si
+    elle ne qualifie plus (marquee ⚠️ « deviee »). Elle en sort seulement si elle
+    MIGRE vers l'autre section (re-inscrite, sans ⚠️) ou si elle s'INVERSE
+    franchement (CHG%D a contre-sens > _REVERSAL_THR). Reset quotidien via l'etat
+    parent. Retourne (lignes conv, lignes top, nouvel etat des sections)."""
+    def cur_day(pair: str) -> float:
+        r = pair_by_name.get(pair)
+        d = r.get("day") if r else None
+        return d if isinstance(d, (int, float)) else 0.0
+
+    new_sections: dict[str, dict] = {}
+    conv_items: list[dict] = []   # {pair, dir, chg_abs, mark in "flame"/""/"warn"}
+    top_items: list[dict] = []
+    handled: set[str] = set()
+
+    # 1. Qualifiants ce cycle -> (re)placent la paire dans sa section, sans ⚠️.
+    #    Gere automatiquement la migration d'une section a l'autre.
+    for pair, info in conv_now.items():
+        new_sections[pair] = {"section": "conv", "dir": info["dir"]}
+        conv_items.append({"pair": pair, "dir": info["dir"], "chg_abs": info["chg_abs"],
+                           "mark": "flame" if info["tier"] == 3 else ""})
+        handled.add(pair)
+    for pair, info in top_now.items():
+        if pair in handled:
+            continue
+        new_sections[pair] = {"section": "top", "dir": info["dir"]}
+        top_items.append({"pair": pair, "dir": info["dir"], "chg_abs": info["chg_abs"],
+                          "mark": "flame" if info["aligned3"] else ""})
+        handled.add(pair)
+
+    # 2. Persistants non qualifiants -> gardes avec ⚠️, sauf inversion franche.
+    for pair, prev in (prev_sections or {}).items():
+        if pair in handled:
+            continue
+        prev_dir = int(prev.get("dir", 0))
+        sec = prev.get("section")
+        if sec not in ("conv", "top"):
+            continue
+        d = cur_day(pair)
+        d_sign = 1 if d > 0 else (-1 if d < 0 else 0)
+        if prev_dir != 0 and d_sign == -prev_dir and abs(d) > _REVERSAL_THR:
+            continue  # inversion franche -> sortie definitive
+        new_sections[pair] = {"section": sec, "dir": prev_dir}
+        item = {"pair": pair, "dir": prev_dir, "chg_abs": abs(d), "mark": "warn"}
+        (conv_items if sec == "conv" else top_items).append(item)
+
+    conv_items.sort(key=lambda x: x["chg_abs"], reverse=True)
+    top_items.sort(key=lambda x: x["chg_abs"], reverse=True)
+
+    def _render(title: str, items: list[dict]) -> list[str]:
+        if not items:
+            return []
+        out = [title, ""]
+        for it in items:
+            icon = "🟢" if it["dir"] == 1 else "🔴"
+            suffix = " 🔥" if it["mark"] == "flame" else (" ⚠️" if it["mark"] == "warn" else "")
+            out.append(f"{icon} {it['pair']}{suffix}")
+        return out
+
+    return (_render("🎯 PAIRES CONVERGENTES", conv_items),
+            _render("🔝 TOP MOMENTUM PAIRES", top_items),
+            new_sections)
 
 
 def _momentum_rows(items: dict, prev_items: dict) -> tuple[list[dict], dict]:
@@ -401,9 +457,13 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
     same_day = prev.get("date") == today
     cur_rows, new_curs = _momentum_rows(currencies, prev.get("currencies", {}) if same_day else {})
     pair_rows, new_pairs = _momentum_rows(pairs, prev.get("pairs", {}) if same_day else {})
-    _save_index_chg_state(path, {"date": today, "currencies": new_curs, "pairs": new_pairs})
-
     if not cur_rows:
+        _save_index_chg_state(path, {
+            "date": today,
+            "currencies": new_curs,
+            "pairs": new_pairs,
+            "sections": prev.get("sections", {}) if same_day else {},
+        })
         return []
 
     # Le bloc par-indice (8 devises) n'est plus envoye sur Telegram : il reste
@@ -411,15 +471,27 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
     # que les paires convergentes puis le top momentum.
     lines: list[str] = []
     pair_by_name = {r["cur"]: r for r in pair_rows}
-    perfect, shown = _perfect_pairs_lines(cur_rows, pair_by_name)
-    if perfect:
-        lines.extend(perfect)
+    conv_now, shown = _convergent_now(cur_rows, pair_by_name)
+    top_now = _top_now(pair_rows, shown)
+    conv_lines, top_lines, new_sections = _render_memory_sections(
+        conv_now,
+        top_now,
+        pair_by_name,
+        prev.get("sections", {}) if same_day else {},
+    )
+    _save_index_chg_state(path, {
+        "date": today,
+        "currencies": new_curs,
+        "pairs": new_pairs,
+        "sections": new_sections,
+    })
 
-    lead = _pair_leaderboard_lines(pair_rows, shown)
-    if lead:
+    if conv_lines:
+        lines.extend(conv_lines)
+    if top_lines:
         if lines:
             lines.append("")
-        lines.extend(lead)
+        lines.extend(top_lines)
 
     return lines
 
