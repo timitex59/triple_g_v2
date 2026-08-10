@@ -939,6 +939,65 @@ class VivierStateTests(unittest.TestCase):
         self.assertIn("Position ouverte : +5.8 pips", lines)
         self.assertIn("Total affiché : +183.3 pips", lines)
 
+    def test_vivier_confirmed_hourly_tracks_real_slots_without_duplicates(self):
+        active = {"pairs": {"EURUSD": {
+            "direction": 1,
+            "daily_chg": 0.10,
+            "daily_sar_dir": 1,
+        }}}
+        state, _ = update_vivier_pip_tracker(
+            {}, active, [pip_row("EURUSD", 1.1000, "2026-07-06 07:00+02:00")],
+            now=datetime(2026, 7, 6, 7, 17, tzinfo=PARIS),
+        )
+        state, _ = update_vivier_pip_tracker(
+            state, active, [pip_row("EURUSD", 1.1010, "2026-07-06 08:00+02:00")],
+            now=datetime(2026, 7, 6, 8, 17, tzinfo=PARIS),
+        )
+        # Relancer le meme snapshot ne doit pas compter deux observations.
+        state, _ = update_vivier_pip_tracker(
+            state, active, [pip_row("EURUSD", 1.1010, "2026-07-06 08:00+02:00")],
+            now=datetime(2026, 7, 6, 8, 30, tzinfo=PARIS),
+        )
+
+        current = pip_row("EURUSD", 1.1020, "2026-07-06 10:00+02:00")
+        current["h1_fib"]["_closed_h1_bars"] = [
+            pip_row("EURUSD", 1.1005, "2026-07-06 09:00+02:00")["h1_fib"]["_closed_h1_bars"][0],
+            current["h1_fib"]["_closed_h1_bars"][0],
+        ]
+        state, _ = update_vivier_pip_tracker(
+            state, active, [current],
+            now=datetime(2026, 7, 6, 10, 17, tzinfo=PARIS),
+        )
+
+        hourly = state["confirmed_hourly"]["2026"]
+        self.assertEqual(hourly["07-08"]["observations"], 1)
+        self.assertAlmostEqual(hourly["07-08"]["pips"], 10.0)
+        self.assertAlmostEqual(hourly["08-09"]["pips"], -5.0)
+        self.assertAlmostEqual(hourly["09-10"]["pips"], 15.0)
+
+    def test_vivier_general_lines_rank_only_mature_hourly_slots(self):
+        mature = {
+            "bucket": "10-11", "pips": 48.2, "observations": 12,
+            "win_rate_pct": 75.0, "avg_pips": 4.016,
+        }
+        weak = {
+            "bucket": "13-14", "pips": -18.7, "observations": 10,
+            "win_rate_pct": 30.0, "avg_pips": -1.87,
+        }
+        lines = vivier_pip_general_lines({"general": {
+            "year": 2026, "closed_trades": 16, "winning_trades": 11,
+            "losing_trades": 5, "flat_trades": 0, "win_rate_pct": 68.75,
+            "closed_pips": 177.5, "open_pips": 0.0,
+            "displayed_total_pips": 177.5, "best_hours": [mature],
+            "worst_hour": weak, "hourly_min_observations": 10,
+            "hourly_max_observations": 12,
+        }})
+
+        text = "\n".join(lines)
+        self.assertIn("🕒 MEILLEURS CRÉNEAUX", text)
+        self.assertIn("🥇 10h–11h : +48.2 pips", text)
+        self.assertIn("⚠️ PLUS FAIBLE 13h–14h : -18.7 pips", text)
+
     def test_transition_revalidates_only_entries_created_in_current_month(self):
         current = row("CURRENT", 1, 1, 0, fib_pct=60.0)
         current["h1_fib"].update({

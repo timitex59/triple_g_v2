@@ -106,7 +106,7 @@ VIVIER_PERFORMANCE_PATH = os.path.join(
 VIVIER_PIPS_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "renko_vivier_pips.json"
 )
-VIVIER_PIPS_VERSION = 2
+VIVIER_PIPS_VERSION = 3
 VIVIER_PIPS_START_HOUR_PARIS = 7
 VIVIER_PIPS_END_HOUR_PARIS = 23
 VIVIER_PIPS_DAY_RESULT_EPSILON = 0.05
@@ -2192,6 +2192,7 @@ def load_vivier_pips(path: str = VIVIER_PIPS_PATH) -> dict:
         "version": VIVIER_PIPS_VERSION,
         "open_segments": {},
         "open_confirmed_segments": {},
+        "confirmed_hourly": {},
         "days": {},
         "reports_sent": {"weekly": [], "monthly": []},
     }
@@ -2278,6 +2279,86 @@ def _pip_segment_value(segment: dict, price: float) -> float:
             * int(direction))
 
 
+def _pip_hourly_snapshots(row: dict | None, after: pd.Timestamp,
+                          cutoff: pd.Timestamp) -> list[tuple[pd.Timestamp, float]]:
+    """Clotures H1 uniques dans ``]after, cutoff]``, ordre chronologique."""
+    found: dict[str, tuple[pd.Timestamp, float]] = {}
+    bars = ((row or {}).get("h1_fib") or {}).get("_closed_h1_bars") or []
+    for bar in bars:
+        ts = _pip_timestamp(bar.get("time_utc"))
+        price = bar.get("close")
+        if (ts is None or not isinstance(price, (int, float))
+                or ts <= after or ts > cutoff):
+            continue
+        found[ts.isoformat()] = (ts, float(price))
+    current = _pip_row_snapshot(row)
+    if current and after < current[0] <= cutoff:
+        found[current[0].isoformat()] = current
+    return sorted(found.values(), key=lambda item: item[0])
+
+
+def _record_confirmed_hour(state: dict, segment: dict, start_ts: pd.Timestamp,
+                           end_ts: pd.Timestamp, start_price: float,
+                           end_price: float) -> None:
+    start_local = start_ts.tz_convert(PARIS_TZ)
+    end_local = end_ts.tz_convert(PARIS_TZ)
+    if (start_local.date() != end_local.date()
+            or end_local <= start_local
+            or end_ts - start_ts > pd.Timedelta(minutes=90)
+            or start_local.hour < VIVIER_PIPS_START_HOUR_PARIS
+            or start_local.hour >= VIVIER_PIPS_END_HOUR_PARIS):
+        return
+    pair = str(segment.get("pair") or "")
+    direction = int(segment.get("direction") or 0)
+    if not pair or direction not in (-1, 1):
+        return
+    pips = ((float(end_price) - float(start_price)) / vivier_pip_size(pair)
+            * direction)
+    year = str(start_local.year)
+    bucket = f"{start_local.hour:02d}-{(start_local.hour + 1):02d}"
+    stats = state.setdefault("confirmed_hourly", {}).setdefault(year, {}).setdefault(
+        bucket,
+        {"pips": 0.0, "observations": 0, "positive": 0, "negative": 0,
+         "flat": 0, "best_pips": None, "worst_pips": None, "samples": []},
+    )
+    stats["pips"] = float(stats.get("pips") or 0.0) + pips
+    stats["observations"] = int(stats.get("observations") or 0) + 1
+    samples = stats.setdefault("samples", [])
+    samples.append(pips)
+    del samples[:-2000]
+    if pips > VIVIER_PIPS_DAY_RESULT_EPSILON:
+        stats["positive"] = int(stats.get("positive") or 0) + 1
+    elif pips < -VIVIER_PIPS_DAY_RESULT_EPSILON:
+        stats["negative"] = int(stats.get("negative") or 0) + 1
+    else:
+        stats["flat"] = int(stats.get("flat") or 0) + 1
+    best = stats.get("best_pips")
+    worst = stats.get("worst_pips")
+    stats["best_pips"] = pips if best is None else max(float(best), pips)
+    stats["worst_pips"] = pips if worst is None else min(float(worst), pips)
+
+
+def _update_confirmed_hourly(state: dict, segment: dict, row: dict | None,
+                             cutoff_ts: pd.Timestamp, cutoff_price: float) -> None:
+    """Ajoute les intervalles H1 non encore vus d'un segment confirme."""
+    last_ts = _pip_timestamp(
+        segment.get("hourly_last_time_utc") or segment.get("start_time_utc")
+    )
+    last_price = segment.get("hourly_last_price", segment.get("start_price"))
+    if last_ts is None or not isinstance(last_price, (int, float)):
+        return
+    snapshots = _pip_hourly_snapshots(row, last_ts, cutoff_ts)
+    if not snapshots and cutoff_ts > last_ts:
+        snapshots = [(cutoff_ts, float(cutoff_price))]
+    for ts, price in snapshots:
+        _record_confirmed_hour(
+            state, segment, last_ts, ts, float(last_price), float(price)
+        )
+        last_ts, last_price = ts, float(price)
+    segment["hourly_last_time_utc"] = last_ts.isoformat()
+    segment["hourly_last_price"] = float(last_price)
+
+
 def _pip_day(state: dict, day_key: str) -> dict:
     return state.setdefault("days", {}).setdefault(day_key, {
         "date": day_key,
@@ -2310,6 +2391,8 @@ def _close_pip_segment(state: dict, pair: str, segment: dict,
     closed.pop("last_price", None)
     closed.pop("last_time_utc", None)
     closed.pop("current_pips", None)
+    closed.pop("hourly_last_price", None)
+    closed.pop("hourly_last_time_utc", None)
     day.setdefault(_pip_segments_key(confirmed), []).append(closed)
     state.setdefault(_pip_open_segments_key(confirmed), {}).pop(pair, None)
 
@@ -2570,6 +2653,39 @@ def _yearly_general_pip_report(state: dict, clock: datetime) -> dict:
         if float(item.get("pips") or 0.0) < -VIVIER_PIPS_DAY_RESULT_EPSILON
     )
     decided = winning + losing
+    hourly = []
+    for bucket, item in sorted(
+            ((state.get("confirmed_hourly") or {}).get(str(clock.year)) or {}).items()):
+        observations = int(item.get("observations") or 0)
+        if observations <= 0:
+            continue
+        samples = sorted(float(value) for value in (item.get("samples") or []))
+        if samples:
+            middle = len(samples) // 2
+            median = (samples[middle] if len(samples) % 2
+                      else (samples[middle - 1] + samples[middle]) / 2.0)
+        else:
+            median = float(item.get("pips") or 0.0) / observations
+        hourly.append({
+            "bucket": bucket,
+            "pips": float(item.get("pips") or 0.0),
+            "observations": observations,
+            "positive": int(item.get("positive") or 0),
+            "negative": int(item.get("negative") or 0),
+            "flat": int(item.get("flat") or 0),
+            "win_rate_pct": int(item.get("positive") or 0) / observations * 100.0,
+            "avg_pips": float(item.get("pips") or 0.0) / observations,
+            "median_pips": median,
+            "best_pips": item.get("best_pips"),
+            "worst_pips": item.get("worst_pips"),
+        })
+    eligible = [item for item in hourly if item["observations"] >= 10]
+    best_hours = sorted(
+        eligible, key=lambda item: (item["avg_pips"], item["pips"]), reverse=True
+    )[:3]
+    worst_hour = (min(
+        eligible, key=lambda item: (item["avg_pips"], item["pips"])
+    ) if len(eligible) >= 2 else None)
     return {
         "key": clock.date().isoformat(),
         "year": clock.year,
@@ -2581,6 +2697,12 @@ def _yearly_general_pip_report(state: dict, clock: datetime) -> dict:
         "closed_pips": closed_pips,
         "open_pips": open_pips,
         "displayed_total_pips": closed_pips + open_pips,
+        "hourly_min_observations": 10,
+        "hourly_max_observations": max(
+            (item["observations"] for item in hourly), default=0
+        ),
+        "best_hours": best_hours,
+        "worst_hour": worst_hour,
     }
 
 
@@ -2600,6 +2722,7 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
     state["version"] = VIVIER_PIPS_VERSION
     state.setdefault("open_segments", {})
     state.setdefault("open_confirmed_segments", {})
+    state.setdefault("confirmed_hourly", {})
     state.setdefault("days", {})
     reports_sent = state.setdefault("reports_sent", {})
     reports_sent.setdefault("weekly", [])
@@ -2636,6 +2759,11 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
                 historical = (
                     _pip_timestamp(segment.get("last_time_utc")) or cutoff,
                     float(segment.get("last_price", segment.get("start_price", 0.0))),
+                )
+            if confirmed:
+                _update_confirmed_hourly(
+                    state, segment, rows_by_pair.get(pair),
+                    historical[0], float(historical[1]),
                 )
             _close_pip_segment(
                 state, pair, segment, historical[0], historical[1],
@@ -2694,6 +2822,9 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
                 segment.get("last_price", segment.get("start_price")),
             ))
             if ts is not None and isinstance(price, (int, float)):
+                _update_confirmed_hourly(
+                    state, segment, rows_by_pair.get(pair), ts, float(price)
+                )
                 _close_pip_segment(
                     state, pair, segment, ts, float(price),
                     "CONFIRMED_EXIT", confirmed=True,
@@ -2755,6 +2886,9 @@ def update_vivier_pip_tracker(previous: dict | None, vivier_state: dict,
                     "start_price": float(price),
                 }
                 state["open_confirmed_segments"][pair] = segment
+            _update_confirmed_hourly(
+                state, segment, rows_by_pair.get(pair), ts, float(price)
+            )
             segment["last_time_utc"] = ts.isoformat()
             segment["last_price"] = float(price)
             segment["current_pips"] = _pip_segment_value(segment, float(price))
@@ -2953,6 +3087,33 @@ def vivier_pip_general_lines(report: dict | None) -> list[str]:
         f"Position ouverte : {_format_pips(general['open_pips'])} pips",
         f"Total affiché : {_format_pips(general['displayed_total_pips'])} pips",
     ])
+    best_hours = general.get("best_hours") or []
+    if best_hours:
+        lines.extend(["", "🕒 MEILLEURS CRÉNEAUX"])
+        medals = ("🥇", "🥈", "🥉")
+        for medal, item in zip(medals, best_hours):
+            start, end = item["bucket"].split("-")
+            lines.append(
+                f"{medal} {start}h–{end}h : {_format_pips(item['pips'])} pips · "
+                f"{item['observations']} obs. · {item['win_rate_pct']:.1f}% positives · "
+                f"moy. {_format_pips(item['avg_pips'])}"
+            )
+        worst = general.get("worst_hour")
+        if worst:
+            start, end = worst["bucket"].split("-")
+            lines.extend([
+                "",
+                f"⚠️ PLUS FAIBLE {start}h–{end}h : "
+                f"{_format_pips(worst['pips'])} pips · moy. "
+                f"{_format_pips(worst['avg_pips'])}",
+            ])
+    else:
+        minimum = int(general.get("hourly_min_observations") or 10)
+        current = int(general.get("hourly_max_observations") or 0)
+        lines.extend([
+            "",
+            f"🕒 CRÉNEAUX : collecte en cours ({current}/{minimum} observations minimum)",
+        ])
     return lines
 
 
