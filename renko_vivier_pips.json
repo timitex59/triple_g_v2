@@ -101,14 +101,15 @@
       "20-21": {
         "best_pips": 0.8000000000008001,
         "flat": 0,
-        "negative": 0,
-        "observations": 1,
-        "pips": 0.8000000000008001,
+        "negative": 1,
+        "observations": 2,
+        "pips": -5.499999999999394,
         "positive": 1,
         "samples": [
-          0.8000000000008001
+          0.8000000000008001,
+          -6.300000000000194
         ],
-        "worst_pips": 0.8000000000008001
+        "worst_pips": -6.300000000000194
       },
       "21-22": {
         "best_pips": -0.40000000000040004,
@@ -1573,13 +1574,13 @@
   },
   "open_confirmed_segments": {
     "USDCHF": {
-      "current_pips": 11.100000000000554,
+      "current_pips": 4.8000000000003595,
       "date": "2026-08-11",
       "direction": 1,
-      "hourly_last_price": 0.81181,
-      "hourly_last_time_utc": "2026-08-11T18:00:00+00:00",
-      "last_price": 0.81181,
-      "last_time_utc": "2026-08-11T18:00:00+00:00",
+      "hourly_last_price": 0.81118,
+      "hourly_last_time_utc": "2026-08-11T19:00:00+00:00",
+      "last_price": 0.81118,
+      "last_time_utc": "2026-08-11T19:00:00+00:00",
       "pair": "USDCHF",
       "start_price": 0.8107,
       "start_time_paris": "2026-08-11T17:00:00+02:00",
@@ -1588,22 +1589,22 @@
   },
   "open_segments": {
     "GBPCAD": {
-      "current_pips": -24.800000000000377,
+      "current_pips": -26.600000000001067,
       "date": "2026-08-11",
       "direction": 1,
-      "last_price": 1.87974,
-      "last_time_utc": "2026-08-11T18:00:00+00:00",
+      "last_price": 1.87956,
+      "last_time_utc": "2026-08-11T19:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.88222,
       "start_time_paris": "2026-08-11T07:00:00+02:00",
       "start_time_utc": "2026-08-11T05:00:00+00:00"
     },
     "USDCHF": {
-      "current_pips": 16.1,
+      "current_pips": 9.799999999999809,
       "date": "2026-08-11",
       "direction": 1,
-      "last_price": 0.81181,
-      "last_time_utc": "2026-08-11T18:00:00+00:00",
+      "last_price": 0.81118,
+      "last_time_utc": "2026-08-11T19:00:00+00:00",
       "pair": "USDCHF",
       "start_price": 0.8102,
       "start_time_paris": "2026-08-11T07:00:00+02:00",
@@ -1624,6 +1625,6 @@
       "2026-W32"
     ]
   },
-  "updated_at_paris": "2026-08-11T20:19:39.636553+02:00",
+  "updated_at_paris": "2026-08-11T21:15:49.083382+02:00",
   "version": 3
 }
