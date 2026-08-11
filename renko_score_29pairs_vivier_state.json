@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-08-11 17:21",
+  "updated_at_paris": "2026-08-11 18:15",
   "pairs": {
     "GBPCAD": {
       "direction": 1,
       "entered_at_paris": "2026-08-05 18:19",
-      "last_seen_at_paris": "2026-08-11 17:21",
+      "last_seen_at_paris": "2026-08-11 18:15",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -14,20 +14,20 @@
       "last_px": {
         "M": 1,
         "W": 1,
-        "D": 0
+        "D": -1
       },
-      "base_pct": 83.33333333333334,
+      "base_pct": 66.66666666666666,
       "weighted_pct": 0.0,
-      "daily_chg": -0.08496988879564868,
+      "daily_chg": -0.12320633875369767,
       "daily_sar_dir": -1,
       "daily_sar_value": 1.8923638,
       "fib_position": "Fibo <0.236",
-      "fib_pct_of_range": 12.640801001251099,
+      "fib_pct_of_range": 8.385481852314811,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 49.01901599758554,
       "entry_fib_source": "PREVIOUS",
-      "sar_dir": 1,
+      "sar_dir": -1,
       "fib_objective_active": true,
       "fib_objective_value": 1.90441,
       "fib_objective_origin_month_utc": "2026-07",
@@ -44,7 +44,7 @@
     "USDCHF": {
       "direction": 1,
       "entered_at_paris": "2026-08-11 00:56",
-      "last_seen_at_paris": "2026-08-11 17:21",
+      "last_seen_at_paris": "2026-08-11 18:15",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -56,12 +56,12 @@
         "D": 0
       },
       "base_pct": 83.33333333333334,
-      "weighted_pct": 41.66666666666667,
-      "daily_chg": 0.11847171487806803,
+      "weighted_pct": 0.0,
+      "daily_chg": 0.08638562543191862,
       "daily_sar_dir": 1,
       "daily_sar_value": 0.80566,
       "fib_position": "Fibo <0.786",
-      "fib_pct_of_range": 70.85427135678394,
+      "fib_pct_of_range": 67.587939698492,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 46.29441624365448,
@@ -76,11 +76,12 @@
       "sar_flame": false,
       "fib_objective_carried_from_month_utc": "2026-07",
       "fib_objective_carried_since_month_utc": "2026-08",
-      "fib_objective_carried_at_time_utc": "2026-08-11T05:00:00+00:00"
+      "fib_objective_carried_at_time_utc": "2026-08-11T05:00:00+00:00",
+      "sar_last_processed_time_utc": "2026-08-11T16:00:00+00:00"
     }
   },
   "pending_objectives": {},
   "objective_events": [],
-  "telegram_last_body_hash": "1e79da4f64f020be127986f97dabfa991e7fdf6c8f0dd916587ee87ee3e9eced",
-  "telegram_last_sent_at_paris": "2026-08-11 17:20"
+  "telegram_last_body_hash": "09397553d63e13bb21ca1abc4e19ed71760e9e7dbb81302fc9a4c2c2130c2c29",
+  "telegram_last_sent_at_paris": "2026-08-11 18:14"
 }
