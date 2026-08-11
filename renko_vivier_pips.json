@@ -1,6 +1,18 @@
 {
   "confirmed_hourly": {
     "2026": {
+      "10-11": {
+        "best_pips": -1.2000000000000899,
+        "flat": 0,
+        "negative": 1,
+        "observations": 1,
+        "pips": -1.2000000000000899,
+        "positive": 0,
+        "samples": [
+          -1.2000000000000899
+        ],
+        "worst_pips": -1.2000000000000899
+      },
       "19-20": {
         "best_pips": 4.999999999999449,
         "flat": 0,
@@ -1448,13 +1460,13 @@
   },
   "open_confirmed_segments": {
     "USDCHF": {
-      "current_pips": 0.0,
+      "current_pips": -1.2000000000000899,
       "date": "2026-08-11",
       "direction": 1,
-      "hourly_last_price": 0.81118,
-      "hourly_last_time_utc": "2026-08-11T08:00:00+00:00",
-      "last_price": 0.81118,
-      "last_time_utc": "2026-08-11T08:00:00+00:00",
+      "hourly_last_price": 0.81106,
+      "hourly_last_time_utc": "2026-08-11T09:00:00+00:00",
+      "last_price": 0.81106,
+      "last_time_utc": "2026-08-11T09:00:00+00:00",
       "pair": "USDCHF",
       "start_price": 0.81118,
       "start_time_paris": "2026-08-11T10:00:00+02:00",
@@ -1463,22 +1475,22 @@
   },
   "open_segments": {
     "GBPCAD": {
-      "current_pips": -2.5999999999992696,
+      "current_pips": -5.800000000000249,
       "date": "2026-08-11",
       "direction": 1,
-      "last_price": 1.88196,
-      "last_time_utc": "2026-08-11T08:00:00+00:00",
+      "last_price": 1.88164,
+      "last_time_utc": "2026-08-11T09:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.88222,
       "start_time_paris": "2026-08-11T07:00:00+02:00",
       "start_time_utc": "2026-08-11T05:00:00+00:00"
     },
     "USDCHF": {
-      "current_pips": 9.799999999999809,
+      "current_pips": 8.599999999999719,
       "date": "2026-08-11",
       "direction": 1,
-      "last_price": 0.81118,
-      "last_time_utc": "2026-08-11T08:00:00+00:00",
+      "last_price": 0.81106,
+      "last_time_utc": "2026-08-11T09:00:00+00:00",
       "pair": "USDCHF",
       "start_price": 0.8102,
       "start_time_paris": "2026-08-11T07:00:00+02:00",
@@ -1499,6 +1511,6 @@
       "2026-W32"
     ]
   },
-  "updated_at_paris": "2026-08-11T10:15:48.564971+02:00",
+  "updated_at_paris": "2026-08-11T11:12:36.853433+02:00",
   "version": 3
 }
