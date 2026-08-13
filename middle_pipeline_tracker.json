@@ -58,14 +58,15 @@
       "dropped_on": "2026-07-01"
     },
     "AVT": {
-      "streak": 6,
-      "days": 11,
+      "streak": 5,
+      "days": 10,
       "first_seen": "2026-06-23",
-      "last_seen": "2026-08-13",
-      "last_rank": 5,
+      "last_seen": "2026-08-12",
+      "last_rank": 4,
       "peak_rank": 3,
-      "last_rel": 9.67,
-      "active": true
+      "last_rel": 11.5,
+      "active": false,
+      "dropped_on": "2026-08-13"
     },
     "SMTC": {
       "streak": 1,
@@ -151,7 +152,7 @@
       "last_seen": "2026-08-13",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 83.77,
+      "last_rel": 81.24,
       "active": true
     },
     "QLYS": {
@@ -216,7 +217,7 @@
       "last_seen": "2026-08-13",
       "last_rank": 4,
       "peak_rank": 1,
-      "last_rel": 46.36,
+      "last_rel": 46.07,
       "active": true
     },
     "NTNX": {
@@ -226,19 +227,18 @@
       "last_seen": "2026-08-13",
       "last_rank": 3,
       "peak_rank": 1,
-      "last_rel": 38.44,
+      "last_rel": 38.4,
       "active": true
     },
     "BDC": {
-      "streak": 2,
-      "days": 3,
+      "streak": 3,
+      "days": 4,
       "first_seen": "2026-08-03",
-      "last_seen": "2026-08-12",
+      "last_seen": "2026-08-13",
       "last_rank": 5,
       "peak_rank": 4,
-      "last_rel": 16.01,
-      "active": false,
-      "dropped_on": "2026-08-13"
+      "last_rel": 17.74,
+      "active": true
     },
     "DBX": {
       "streak": 1,
@@ -269,16 +269,12 @@
       "last_seen": "2026-08-13",
       "last_rank": 2,
       "peak_rank": 2,
-      "last_rel": 30.77,
+      "last_rel": 30.64,
       "active": true
     }
   },
   "last_events": {
     "persistent": [
-      [
-        "AVT",
-        6
-      ],
       [
         "OKTA",
         5
@@ -286,6 +282,10 @@
       [
         "P",
         4
+      ],
+      [
+        "BDC",
+        3
       ],
       [
         "NTNX",
@@ -300,48 +300,40 @@
       "NTNX",
       "MANH"
     ],
-    "weakening": [
-      {
-        "ticker": "AVT",
-        "rank": 5,
-        "prev_rank": 4,
-        "rel": 9.67,
-        "prev_rel": 11.5
-      }
-    ],
+    "weakening": [],
     "dropped": [
       "QLYS",
-      "BDC"
+      "AVT"
     ],
     "durable": [
       [
         "OKTA",
         5,
-        83.77,
-        418.8
+        81.24,
+        406.2
       ],
       [
         "P",
         4,
-        30.77,
-        123.1
+        30.64,
+        122.6
       ],
       [
-        "AVT",
-        6,
-        9.67,
-        58.0
+        "BDC",
+        3,
+        17.74,
+        53.2
       ],
       [
         "MANH",
         1,
-        46.36,
-        46.4
+        46.07,
+        46.1
       ],
       [
         "NTNX",
         1,
-        38.44,
+        38.4,
         38.4
       ]
     ],
