@@ -16,6 +16,7 @@ from renko_full_alignment_29pairs import (
     select_mid_alignment_candidates,
     select_mid_sar_rows,
     update_mid_sar_history,
+    update_price_trends,
 )
 
 
@@ -28,6 +29,7 @@ def row(pair, m, w, d, daily_chg=None):
         "px": {"M": m, "W": w, "D": d},
         "asset_type": "PAIR",
         "h1_price": 1.23456,
+        "live_price": 1.23456,
         "daily_chg": daily_chg,
     }
 
@@ -49,6 +51,66 @@ def index_row(pair, m, w, d, daily_chg=None):
 
 
 class FullAlignmentScannerTests(unittest.TestCase):
+    def test_live_price_trends_compare_with_07h_and_previous_run(self):
+        first = row("AUDCHF", 1, 1, 1)
+        first["live_price"] = 0.57000
+        state, trends = update_price_trends(
+            {}, [first], datetime(2026, 7, 16, 7, 15, tzinfo=PARIS)
+        )
+        self.assertEqual(trends["AUDCHF"]["vs_07h"], "→")
+        self.assertEqual(trends["AUDCHF"]["vs_previous"], "→")
+
+        second = row("AUDCHF", 1, 1, 1)
+        second["live_price"] = 0.57120
+        state, trends = update_price_trends(
+            state, [second], datetime(2026, 7, 16, 8, 15, tzinfo=PARIS)
+        )
+        self.assertEqual(trends["AUDCHF"]["vs_07h"], "↑")
+        self.assertEqual(trends["AUDCHF"]["vs_previous"], "↑")
+
+        third = row("AUDCHF", 1, 1, 1)
+        third["live_price"] = 0.57080
+        _, trends = update_price_trends(
+            state, [third], datetime(2026, 7, 16, 9, 15, tzinfo=PARIS)
+        )
+        self.assertEqual(trends["AUDCHF"]["vs_07h"], "↑")
+        self.assertEqual(trends["AUDCHF"]["vs_previous"], "↓")
+
+    def test_live_price_trends_reset_07h_reference_each_day(self):
+        previous = {
+            "date": "2026-07-15",
+            "pairs": {"AUDJPY": {
+                "baseline_07h": 110.0, "baseline_ready": True, "previous": 111.0,
+            }},
+        }
+        current = row("AUDJPY", 1, 1, 1)
+        current["live_price"] = 112.386
+        state, trends = update_price_trends(
+            previous, [current], datetime(2026, 7, 16, 7, 15, tzinfo=PARIS)
+        )
+        self.assertEqual(state["pairs"]["AUDJPY"]["baseline_07h"], 112.386)
+        self.assertEqual(trends["AUDJPY"]["vs_07h"], "→")
+        self.assertEqual(trends["AUDJPY"]["vs_previous"], "→")
+
+    def test_message_uses_live_pair_price_and_arrows_but_keeps_indices(self):
+        pair = row("AUDCHF", 1, 1, 1, daily_chg=0.34)
+        pair["live_price"] = 0.57150
+        selected = select_full_alignment_rows([
+            pair,
+            index_row("AXY", 1, 1, 1, daily_chg=0.03),
+        ])
+        message = format_full_alignment_message(
+            selected,
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            price_trends={"AUDCHF": {
+                "price": 0.57150, "vs_07h": "↑", "vs_previous": "↓",
+            }},
+        )
+
+        self.assertIn("🟢 AUDCHF (0.57150) ↑↓", message)
+        self.assertNotIn("AUDCHF (+0.34%)", message)
+        self.assertIn("🟢 AUD (+0.03%)", message)
+
     def test_default_universe_includes_forex_indices(self):
         index_symbols = {asset["tv_symbol"] for asset in FOREX_INDEX_ASSETS}
 
@@ -284,11 +346,10 @@ class FullAlignmentScannerTests(unittest.TestCase):
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
-        self.assertIn("🟢 AUDJPY (+0.88%)", message)
-        self.assertNotIn("🟢 AUDJPY (+0.88%) ⚠️", message)
-        self.assertIn("🟢 NZDJPY (-0.03%) ⚠️", message)
-        self.assertIn("🟢 USDCAD (-0.01%) ⚠️", message)
-        self.assertIn("🟢 USDJPY (-0.00%) ⚠️", message)
+        self.assertIn("🟢 AUDJPY (1.235) →→", message)
+        self.assertIn("🟢 NZDJPY (1.235) →→", message)
+        self.assertIn("🟢 USDCAD (1.23456) →→", message)
+        self.assertIn("🟢 USDJPY (1.235) →→", message)
         self.assertNotIn("🌸🌸", message)
         self.assertIn("🔴 JPY (-0.44%)", message)
         self.assertIn("💱 AUTRES INDEX CHG%D", message)
@@ -311,8 +372,8 @@ class FullAlignmentScannerTests(unittest.TestCase):
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
-        self.assertIn("🟢 USDJPY (+0.01%) 🌸🌸", message)
-        self.assertNotIn("🟢 USDCAD (+0.01%) 🌸🌸", message)
+        self.assertIn("🟢 USDJPY (1.235) →→", message)
+        self.assertNotIn("🌸🌸", message)
         self.assertIn("🔴 JPY (-0.41%)", message)
 
     def test_message_warns_on_full_alignment_index_daily_chg_divergence(self):

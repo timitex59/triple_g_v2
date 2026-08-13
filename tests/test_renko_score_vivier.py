@@ -443,7 +443,8 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("🟢🔴 GBPJPY (+83% | <0.382)", message)
+        self.assertIn("🟢 GBPJPY", message)
+        self.assertNotIn("(+83% | <0.382)", message)
         self.assertNotIn("M-1", message)
         self.assertNotIn("M+ W+ D0", message)
 
@@ -461,7 +462,8 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("🟢⚪ GBPJPY (+83% | <0.382) 🔥", message)
+        self.assertIn("🟢 GBPJPY", message)
+        self.assertNotIn("(+83% | <0.382)", message)
 
     def test_telegram_shows_current_fibo_and_flame_kind(self):
         state = {
@@ -479,9 +481,10 @@ class VivierStateTests(unittest.TestCase):
 
         message = build_telegram_message([], [], vivier_state=state)
 
-        self.assertIn("EURJPY (+83% | <0.500)", message)
+        self.assertIn("🟢 EURJPY", message)
+        self.assertNotIn("(+83% | <0.500)", message)
         self.assertNotIn("<0.236→", message)
-        self.assertIn("🔥R", message)
+        self.assertNotIn("🔥R", message)
 
     def test_telegram_hides_near_alignment_section(self):
         state = {
@@ -498,7 +501,8 @@ class VivierStateTests(unittest.TestCase):
         message = build_telegram_message([], [], vivier_state=state)
 
         self.assertIn("VIVIER BULL", message)
-        self.assertIn("GBPJPY (+83% | <0.500)", message)
+        self.assertIn("🟢 GBPJPY", message)
+        self.assertNotIn("(+83% | <0.500)", message)
         self.assertNotIn("PROCHE ALIGNEMENT", message)
         self.assertNotIn("D restant", message)
 
@@ -548,10 +552,16 @@ class VivierStateTests(unittest.TestCase):
             }
         }
 
-        message = build_telegram_message([], [], vivier_state=state)
+        message = build_telegram_message(
+            [], [], vivier_state=state,
+            price_trends={
+                "GBPJPY": {"price": 215.123, "vs_07h": "↑", "vs_previous": "↓"},
+                "CADCHF": {"price": 0.58128, "vs_07h": "↓", "vs_previous": "↓"},
+            },
+        )
 
-        self.assertIn("🟢⚪ GBPJPY (+83% | <0.382)", message)
-        self.assertIn("🔴🔴 CADCHF (-83% | >0.618)", message)
+        self.assertIn("🟢 GBPJPY (215.123) ↑↓", message)
+        self.assertIn("🔴 CADCHF (0.58128) ↓↓", message)
 
     def test_daily_chg_sar_icon_requires_strict_chg_buffer(self):
         self.assertEqual(daily_chg_sar_icon(0.0500, 1), "⚪")
@@ -908,6 +918,14 @@ class VivierStateTests(unittest.TestCase):
         self.assertAlmostEqual(general["open_pips"], 0.0)
         self.assertAlmostEqual(general["displayed_total_pips"], 6.0)
         self.assertAlmostEqual(general["win_rate_pct"], 50.0)
+        self.assertAlmostEqual(general["winning_pips"], 10.0)
+        self.assertAlmostEqual(general["losing_pips"], -4.0)
+        self.assertAlmostEqual(general["pip_rate_pct"], 60.0)
+        self.assertAlmostEqual(general["profit_factor"], 2.5)
+        self.assertAlmostEqual(general["ns_score_pct"], (50.0 * 60.0) ** 0.5)
+        self.assertAlmostEqual(general["average_win_pips"], 10.0)
+        self.assertAlmostEqual(general["average_loss_pips"], 4.0)
+        self.assertAlmostEqual(general["gain_loss_ratio"], 2.5)
 
         mark_vivier_pip_reports_sent(state, report)
         state, repeated = update_vivier_pip_tracker(
@@ -926,15 +944,27 @@ class VivierStateTests(unittest.TestCase):
             "losing_trades": 5,
             "flat_trades": 0,
             "win_rate_pct": 68.75,
+            "winning_pips": 350.0,
+            "losing_pips": -172.5,
+            "pip_rate_pct": 50.7142857,
+            "profit_factor": 2.0289855,
+            "ns_score_pct": 59.044779,
+            "average_win_pips": 31.8181818,
+            "average_loss_pips": 34.5,
+            "gain_loss_ratio": 0.9222661,
             "closed_pips": 177.5,
             "open_pips": 5.8,
             "displayed_total_pips": 183.3,
         }})
 
         self.assertIn("16 trades clôturés", lines)
-        self.assertIn("🟢 11 gagnants", lines)
-        self.assertIn("🔴 5 perdants", lines)
-        self.assertIn("Taux de réussite : 68.8%", lines)
+        self.assertIn("🟢 11 gagnants (350.0 pips)", lines)
+        self.assertIn("🔴 5 perdants (-172.5 pips)", lines)
+        self.assertIn("NOG · Taux de réussite : 68.8%", lines)
+        self.assertIn("SEL · Taux de pips : 50.7%", lines)
+        self.assertIn("PF · Profit Factor : 2.03", lines)
+        self.assertIn("NS · Score de robustesse : 59.0%", lines)
+        self.assertIn("GAT · Ratio gain/perte moyen : 0.92", lines)
         self.assertIn("Gains clôturés : +177.5 pips", lines)
         self.assertIn("Position ouverte : +5.8 pips", lines)
         self.assertIn("Total affiché : +183.3 pips", lines)

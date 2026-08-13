@@ -72,11 +72,20 @@ class TestRenkoFibo50Strategy(unittest.TestCase):
             "AUDJPY": {"M": state_aud, "W": state_aud, "D": state_aud}
         }
 
-        report = format_telegram_fibo_50_report(results)
+        report = format_telegram_fibo_50_report(
+            results,
+            price_trends={
+                "EURUSD": {"price": 1.1900, "vs_07h": "↑", "vs_previous": "↓"},
+                "AUDJPY": {"price": 98.0, "vs_07h": "↓", "vs_previous": "↑"},
+            },
+        )
         self.assertIsNotNone(report)
         self.assertIn("RENKO FIBO 50%", report)
         self.assertIn("EURUSD", report)
         self.assertIn("AUDJPY", report)
+        self.assertIn("EURUSD (1.19000) ↑↓", report)
+        self.assertIn("AUDJPY (98.000) ↓↑", report)
+        self.assertNotIn("+0.50%", report)
 
     def test_format_telegram_fibo_50_report_suppress_empty(self):
         results = {

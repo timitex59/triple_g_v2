@@ -19,6 +19,8 @@ import os
 from datetime import datetime, timedelta, timezone
 
 import pytz
+from forex_price_trends import suffix as live_price_suffix
+from forex_price_trends import update as update_price_trends
 
 from . import config as cfg
 
@@ -336,7 +338,8 @@ def _top_now(pair_rows: list[dict], exclude: set[str],
 
 
 def _render_memory_sections(conv_now: dict[str, dict], top_now: dict[str, dict],
-                            pair_by_name: dict[str, dict], prev_sections: dict
+                            pair_by_name: dict[str, dict], prev_sections: dict,
+                            price_trends: dict | None = None,
                             ) -> tuple[list[str], list[str], dict]:
     """Pseudo-persistance : une paire selectionnee reste dans SA section meme si
     elle ne qualifie plus (marquee ⚠️ « deviee »). Elle en sort seulement si elle
@@ -393,8 +396,8 @@ def _render_memory_sections(conv_now: dict[str, dict], top_now: dict[str, dict],
         out = [title, ""]
         for it in items:
             icon = "🟢" if it["dir"] == 1 else "🔴"
-            suffix = " 🔥" if it["mark"] == "flame" else (" ⚠️" if it["mark"] == "warn" else "")
-            out.append(f"{icon} {it['pair']}{suffix}")
+            mark = " 🔥" if it["mark"] == "flame" else (" ⚠️" if it["mark"] == "warn" else "")
+            out.append(f"{icon} {it['pair']}{live_price_suffix(it['pair'], price_trends)}{mark}")
         return out
 
     return (_render("🎯 PAIRES CONVERGENTES", conv_items),
@@ -622,7 +625,8 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
     pairs = payload.get("pairs") or {}
 
     path = state_path or _INDEX_CHG_STATE
-    today = datetime.now(PARIS).strftime("%Y-%m-%d")
+    clock = datetime.now(PARIS)
+    today = clock.strftime("%Y-%m-%d")
     prev = _load_index_chg_state(path)
     same_day = prev.get("date") == today
     cur_rows, new_curs = _momentum_rows(currencies, prev.get("currencies", {}) if same_day else {})
@@ -642,6 +646,11 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
     # que les paires convergentes puis le top momentum.
     lines: list[str] = []
     pair_by_name = {r["cur"]: r for r in pair_rows}
+    trend_state, price_trends = update_price_trends(
+        prev.get("price_trends", {}),
+        {name: float(row["level"]) for name, row in pair_by_name.items()},
+        clock,
+    )
     conv_now, shown = _convergent_now(cur_rows, pair_by_name)
     top_now = _top_now(pair_rows, shown)
     conv_lines, top_lines, new_sections = _render_memory_sections(
@@ -649,6 +658,7 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
         top_now,
         pair_by_name,
         prev.get("sections", {}) if same_day else {},
+        price_trends,
     )
     tracking, pip_report = _update_section_pip_tracker(
         prev.get("tracking", {}), new_sections, pair_by_name, clock
@@ -666,6 +676,8 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
         "pairs": new_pairs,
         "sections": new_sections,
         "tracking": tracking,
+        "price_trends": trend_state,
+        "render_trends": price_trends,
     })
 
     if conv_lines:
@@ -678,7 +690,8 @@ def build_index_momentum_lines(payload: dict | None, state_path: str | None = No
     return lines
 
 
-def _format_vivier_chg_px_line(pair: str, entry: dict) -> str:
+def _format_vivier_chg_px_line(pair: str, entry: dict,
+                               price_trends: dict | None = None) -> str:
     """Format Vivier line: single icon (🟢 if both green, 🔴 if both red, ⚪ if mixed) + CHG%D + real M/W/D state tag."""
     from renko_score_29pairs_v16 import daily_chg_sar_icon, vivier_flame_label
     direction = int(entry.get("direction", 1))
@@ -700,12 +713,12 @@ def _format_vivier_chg_px_line(pair: str, entry: dict) -> str:
         return "+" if v == 1 else ("-" if v == -1 else "0")
     tag = f"M{_sign(px.get('M'))} W{_sign(px.get('W'))} D{_sign(px.get('D'))}"
 
-    line = f"{final_icon} {pair} ({chg_txt}) ({tag})"
+    line = f"{final_icon} {pair}{live_price_suffix(pair, price_trends)}"
     flame = vivier_flame_label(entry)
     return f"{line} {flame}" if flame else line
 
 
-def build_vivier_section() -> list[str]:
+def build_vivier_section(price_trends: dict | None = None) -> list[str]:
     """Charge l'état du VIVIER et génère la section VIVIER."""
     try:
         from renko_score_29pairs_v16 import load_vivier_state, vivier_groups
@@ -718,9 +731,9 @@ def build_vivier_section() -> list[str]:
 
         lines = ["📊 VIVIER"]
         for pair, entry in bull_vivier:
-            lines.append(_format_vivier_chg_px_line(pair, entry))
+            lines.append(_format_vivier_chg_px_line(pair, entry, price_trends))
         for pair, entry in bear_vivier:
-            lines.append(_format_vivier_chg_px_line(pair, entry))
+            lines.append(_format_vivier_chg_px_line(pair, entry, price_trends))
 
         return lines
     except Exception as exc:
@@ -802,11 +815,12 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
 
     lines: list[str] = []
 
-    vivier_lines = build_vivier_section()
+    idx_lines = build_index_momentum_lines(payload)
+    trend_snapshot = _load_index_chg_state(_INDEX_CHG_STATE).get("render_trends", {})
+    vivier_lines = build_vivier_section(trend_snapshot)
     if vivier_lines:
         lines.extend(vivier_lines)
 
-    idx_lines = build_index_momentum_lines(payload)
     if idx_lines:
         if lines:
             lines.append("")

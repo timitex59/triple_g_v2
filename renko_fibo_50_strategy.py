@@ -41,6 +41,10 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from ichimoku_v4 import PAIRS_29, send_telegram_message
+from forex_price_trends import load_state as load_price_trend_state
+from forex_price_trends import save_state as save_price_trend_state
+from forex_price_trends import suffix as live_price_suffix
+from forex_price_trends import update as update_price_trends
 from renko_score_29pairs_v16 import (
     atr,
     closed_renko_source,
@@ -52,6 +56,7 @@ from renko_score_29pairs_v16 import (
 PARIS_TZ = ZoneInfo("Europe/Paris")
 SCRIPT_DIR = Path(__file__).resolve().parent
 STATE_FILE = SCRIPT_DIR / "renko_fibo_50_state.json"
+PRICE_TREND_FILE = SCRIPT_DIR / "renko_fibo_50_price_trend_state.json"
 
 # Parabolic SAR applied to the Renko brick series.
 SAR_AF_START = 0.1
@@ -845,7 +850,8 @@ def build_sections(results: dict[str, dict[str, Fibo50AnchorState]],
 def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorState]],
                                    min_chg: float = DEFAULT_MIN_CHG,
                                    pips_state: dict | None = None,
-                                   periodic_lines: list[str] | None = None) -> str | None:
+                                   periodic_lines: list[str] | None = None,
+                                   price_trends: dict | None = None) -> str | None:
     """Formats the Telegram report: alignment sections plus the pip tracker."""
     daily_alignments, strict_alignments, mw_alignments = build_sections(results, min_chg)
 
@@ -864,7 +870,9 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
             continue
         lines.append(header)
         for pair, label, chg in sorted(rows, key=lambda r: r[0]):
-            lines.append(f"{_ICONS[label]} {pair} · {_fmt_chg(chg)}")
+            d_state = (results.get(pair) or {}).get("D")
+            fallback = d_state.live_price if d_state else None
+            lines.append(f"{_ICONS[label]} {pair}{live_price_suffix(pair, price_trends, fallback)}")
         lines.append("")
 
     if pips_state is not None:
@@ -981,6 +989,16 @@ def main():
     results = scan_all_pairs(length=args.length, candles=args.candles, workers=args.workers,
                              max_age_bricks=args.max_age_bricks)
     now_paris = datetime.now(PARIS_TZ)
+    live_prices = {
+        pair: float(d_state.live_price)
+        for pair, tf_map in results.items()
+        if (d_state := tf_map.get("D")) is not None
+        and isinstance(d_state.live_price, (int, float))
+    }
+    price_state, price_trends = update_price_trends(
+        load_price_trend_state(PRICE_TREND_FILE), live_prices, now_paris
+    )
+    save_price_trend_state(PRICE_TREND_FILE, price_state)
     pips_state = load_pips_state()
     _daily, full_alignment, _mw = build_sections(results, min_chg=args.min_chg)
     pips_state = update_pips_tracker(results, full_alignment, pips_state, now=now_paris)
@@ -989,8 +1007,9 @@ def main():
     save_pips_state(pips_state)          # positions and settled days, always
 
     report_text = format_telegram_fibo_50_report(results, min_chg=args.min_chg,
-                                                 pips_state=pips_state,
-                                                 periodic_lines=periodic_lines)
+                                                  pips_state=pips_state,
+                                                  periodic_lines=periodic_lines,
+                                                  price_trends=price_trends)
 
     if report_text:
         print("\n" + report_text + "\n")

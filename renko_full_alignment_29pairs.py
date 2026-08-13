@@ -38,6 +38,7 @@ MID_SAR_STATE_FILE = Path("renko_full_alignment_mid_sar_state.json")
 # Sidecar per-devise (force via index DXY/EXY/... + alignement M/W/D) lu par FIOS
 # pour croiser cette analyse avec sa force composite (confluence inter-systemes).
 INDEX_SIDECAR_FILE = Path("full_alignment_index.json")
+PRICE_TREND_STATE_FILE = Path("renko_full_alignment_price_trend_state.json")
 MID_SAR_WINDOW_START_HOUR = 7
 MID_SAR_WINDOW_END_HOUR = 23
 MID_SAR_ALLOWED_TF_PAIRS = {"M/W/D"}
@@ -99,6 +100,11 @@ def parse_args() -> argparse.Namespace:
         "--mid-sar-state-file",
         default=str(MID_SAR_STATE_FILE),
         help="JSON state file used to persist MID SAR detections between 07:00 and 23:00 Paris.",
+    )
+    parser.add_argument(
+        "--price-trend-state-file",
+        default=str(PRICE_TREND_STATE_FILE),
+        help="JSON state for pair live-price comparisons versus 07:00 and previous run.",
     )
     return parser.parse_args()
 
@@ -782,6 +788,103 @@ def _premium_currency_profile_suffix(row: dict) -> str:
     return " 🌸🌸" if row.get("premium_currency_profile") else ""
 
 
+def load_price_trend_state(path: str | Path) -> dict:
+    state_path = Path(path)
+    try:
+        loaded = json.loads(state_path.read_text(encoding="utf-8"))
+        return loaded if isinstance(loaded, dict) else {}
+    except (FileNotFoundError, json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_price_trend_state(path: str | Path, state: dict) -> None:
+    state_path = Path(path)
+    tmp_path = state_path.with_name(f"{state_path.name}.tmp")
+    tmp_path.write_text(
+        json.dumps(state, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    tmp_path.replace(state_path)
+
+
+def _price_arrow(current: float, reference: object) -> str:
+    if not isinstance(reference, (int, float)):
+        return "→"
+    tolerance = max(abs(current), abs(float(reference)), 1.0) * 1e-10
+    delta = current - float(reference)
+    if delta > tolerance:
+        return "↑"
+    if delta < -tolerance:
+        return "↓"
+    return "→"
+
+
+def update_price_trends(previous: dict | None, rows: list[dict],
+                        now: datetime) -> tuple[dict, dict[str, dict]]:
+    """Compare les prix live du run aux references 07h et run precedent.
+
+    Toutes les paires sont memorisees, pas seulement celles selectionnees, afin
+    qu'une nouvelle apparition ait deja une comparaison avec le cycle precedent.
+    La baseline devient le premier prix observe a partir de 07h Paris.
+    """
+    clock = now.astimezone(PARIS_TZ)
+    today = clock.date().isoformat()
+    old = previous if isinstance(previous, dict) else {}
+    same_day = old.get("date") == today
+    old_pairs = old.get("pairs", {}) if same_day else {}
+    trends: dict[str, dict] = {}
+    new_pairs: dict[str, dict] = {}
+    for row in rows:
+        if row.get("asset_type") == "INDEX":
+            continue
+        pair = str(row.get("pair") or "")
+        price = row.get("live_price")
+        if not pair or not isinstance(price, (int, float)) or price <= 0:
+            continue
+        price = float(price)
+        prior = old_pairs.get(pair) or {}
+        baseline = prior.get("baseline_07h")
+        baseline_ready = bool(prior.get("baseline_ready"))
+        if clock.hour >= 7 and not baseline_ready:
+            baseline = price
+            baseline_ready = True
+        previous_price = prior.get("previous")
+        trends[pair] = {
+            "price": price,
+            "vs_07h": _price_arrow(price, baseline),
+            "vs_previous": _price_arrow(price, previous_price),
+        }
+        new_pairs[pair] = {
+            "baseline_07h": baseline,
+            "baseline_ready": baseline_ready,
+            "previous": price,
+        }
+    return {
+        "version": 1,
+        "date": today,
+        "updated_at_paris": clock.isoformat(),
+        "pairs": new_pairs,
+    }, trends
+
+
+def _format_live_pair_price(pair: str, value: float) -> str:
+    if pair == "XAUUSD":
+        return f"{value:.2f}"
+    if pair.endswith("JPY"):
+        return f"{value:.3f}"
+    return f"{value:.5f}"
+
+
+def _live_pair_suffix(row: dict, price_trends: dict[str, dict] | None) -> str:
+    pair = str(row.get("pair") or "")
+    trend = (price_trends or {}).get(pair) or {}
+    price = trend.get("price", row.get("live_price"))
+    if not isinstance(price, (int, float)):
+        return ""
+    arrows = f"{trend.get('vs_07h', '→')}{trend.get('vs_previous', '→')}"
+    return f" ({_format_live_pair_price(pair, float(price))}) {arrows}"
+
+
 def _daily_chg_icon(value: object) -> str:
     if not isinstance(value, (int, float)):
         return "⚪"
@@ -837,6 +940,7 @@ def format_full_alignment_message(
     now: datetime | None = None,
     index_by_currency: dict[str, dict] | None = None,
     rows_by_pair: dict[str, dict] | None = None,
+    price_trends: dict[str, dict] | None = None,
 ) -> str:
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
     lines = ["📊 FULL ALIGNMENT M/W/D", ""]
@@ -850,9 +954,7 @@ def format_full_alignment_message(
             direction = int(row["full_alignment_direction"])
             icon = "🟢" if direction == 1 else "🔴"
             name = _asset_display_name(row)
-            warning = _daily_chg_warning_suffix(row, direction)
-            profile = _premium_currency_profile_suffix(row)
-            lines.append(f"{icon} {name}{_daily_chg_suffix(row)}{warning}{profile}")
+            lines.append(f"{icon} {name}{_live_pair_suffix(row, price_trends)}")
         if pair_rows and index_rows:
             lines.append("")
         for row in index_rows:
@@ -936,6 +1038,9 @@ def main() -> int:
     args = parse_args()
     now = datetime.now(PARIS_TZ)
     rows = scan_assets(assets_for_scope(args.assets), args.length, args.candles, args.max_streak)
+    price_state = load_price_trend_state(args.price_trend_state_file)
+    price_state, price_trends = update_price_trends(price_state, rows, now)
+    save_price_trend_state(args.price_trend_state_file, price_state)
     index_by_currency = _index_rows_by_currency(rows)
     write_index_sidecar(INDEX_SIDECAR_FILE, index_by_currency, rows, now)
     rows_by_pair = {str(row.get("pair")): row for row in rows}
@@ -977,6 +1082,7 @@ def main() -> int:
         now=now,
         index_by_currency=index_by_currency,
         rows_by_pair=rows_by_pair,
+        price_trends=price_trends,
     )
     print(message)
     if args.telegram:

@@ -22,6 +22,7 @@ import argparse
 import bisect
 import hashlib
 import json
+import math
 import os
 import statistics
 import sys
@@ -32,6 +33,10 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from ichimoku_v4 import PAIRS_29, fetch_tv_ohlc, send_telegram_message
+from forex_price_trends import load_state as load_price_trend_state
+from forex_price_trends import save_state as save_price_trend_state
+from forex_price_trends import suffix as live_price_suffix
+from forex_price_trends import update as update_price_trends
 from renko_forex_V2 import fetch_tv_renko_ohlc as fetch_tv_native_renko_ohlc
 
 
@@ -106,6 +111,9 @@ VIVIER_PERFORMANCE_PATH = os.path.join(
 VIVIER_PIPS_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "renko_vivier_pips.json"
 )
+VIVIER_PRICE_TREND_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "renko_vivier_price_trend_state.json"
+)
 VIVIER_PIPS_VERSION = 3
 VIVIER_PIPS_START_HOUR_PARIS = 7
 VIVIER_PIPS_END_HOUR_PARIS = 23
@@ -159,6 +167,8 @@ def parse_args():
     parser.add_argument("--vivier-events", default=VIVIER_EVENTS_PATH, help="Append-only VIVIER event journal.")
     parser.add_argument("--vivier-performance", default=VIVIER_PERFORMANCE_PATH, help="VIVIER performance tracker.")
     parser.add_argument("--vivier-pips", default=VIVIER_PIPS_PATH, help="Persistent daily/weekly/monthly VIVIER pip tracker.")
+    parser.add_argument("--price-trend-state", default=VIVIER_PRICE_TREND_PATH,
+                        help="Persistent live-price arrows for Telegram pair lines.")
     return parser.parse_args()
 
 
@@ -1523,16 +1533,12 @@ def _format_vivier_entry_line(pair: str, entry: dict, now: datetime | None = Non
     return f"{line} {flame}" if flame else line
 
 
-def _format_telegram_vivier_entry_line(pair: str, entry: dict) -> str:
+def _format_telegram_vivier_entry_line(pair: str, entry: dict,
+                                       price_trends: dict | None = None) -> str:
     """Compact Telegram line: current score, current Fibo and active flame."""
     direction = int(entry.get("direction", 1))
     icon = "🟢" if direction == 1 else "🔴"
-    chg_icon = daily_chg_sar_icon(entry.get("daily_chg"), entry.get("daily_sar_dir"))
-    score = vivier_base_score(entry)
-    current_fib = _strip_fibo_prefix(entry.get("fib_position"))
-    line = f"{icon}{chg_icon} {pair} ({score:+.0f}% | {current_fib})"
-    flame = vivier_flame_label(entry)
-    return f"{line} {flame}" if flame else line
+    return f"{icon} {pair}{live_price_suffix(pair, price_trends, entry.get('live_price'))}"
 
 
 def vivier_groups(state: dict) -> tuple[list[tuple[str, dict]], list[tuple[str, dict]]]:
@@ -2639,6 +2645,14 @@ def _yearly_general_pip_report(state: dict, clock: datetime) -> dict:
             segments.extend(day.get("confirmed_segments") or [])
 
     closed_pips = sum(float(item.get("pips") or 0.0) for item in segments)
+    winning_pips = sum(
+        float(item.get("pips") or 0.0) for item in segments
+        if float(item.get("pips") or 0.0) > VIVIER_PIPS_DAY_RESULT_EPSILON
+    )
+    losing_pips = sum(
+        float(item.get("pips") or 0.0) for item in segments
+        if float(item.get("pips") or 0.0) < -VIVIER_PIPS_DAY_RESULT_EPSILON
+    )
     open_segments = [
         item for item in (state.get("open_confirmed_segments") or {}).values()
         if str(item.get("date") or "").startswith(year_prefix)
@@ -2653,6 +2667,13 @@ def _yearly_general_pip_report(state: dict, clock: datetime) -> dict:
         if float(item.get("pips") or 0.0) < -VIVIER_PIPS_DAY_RESULT_EPSILON
     )
     decided = winning + losing
+    average_win_pips = winning_pips / winning if winning else 0.0
+    average_loss_pips = abs(losing_pips) / losing if losing else 0.0
+    win_rate_pct = (winning / decided * 100.0) if decided else 0.0
+    pip_rate_pct = (
+        (winning_pips - abs(losing_pips)) / winning_pips * 100.0
+        if winning_pips > 0.0 else 0.0
+    )
     hourly = []
     for bucket, item in sorted(
             ((state.get("confirmed_hourly") or {}).get(str(clock.year)) or {}).items()):
@@ -2693,7 +2714,23 @@ def _yearly_general_pip_report(state: dict, clock: datetime) -> dict:
         "winning_trades": winning,
         "losing_trades": losing,
         "flat_trades": len(segments) - decided,
-        "win_rate_pct": (winning / decided * 100.0) if decided else 0.0,
+        "win_rate_pct": win_rate_pct,
+        "winning_pips": winning_pips,
+        "losing_pips": losing_pips,
+        "pip_rate_pct": pip_rate_pct,
+        "profit_factor": (
+            winning_pips / abs(losing_pips) if losing_pips < 0.0 else None
+        ),
+        "ns_score_pct": (
+            math.sqrt(win_rate_pct * pip_rate_pct)
+            if win_rate_pct >= 0.0 and pip_rate_pct >= 0.0 else None
+        ),
+        "average_win_pips": average_win_pips,
+        "average_loss_pips": average_loss_pips,
+        "gain_loss_ratio": (
+            average_win_pips / average_loss_pips
+            if average_loss_pips > 0.0 else None
+        ),
         "closed_pips": closed_pips,
         "open_pips": open_pips,
         "displayed_total_pips": closed_pips + open_pips,
@@ -3073,16 +3110,36 @@ def vivier_pip_general_lines(report: dict | None) -> list[str]:
     general = (report or {}).get("general")
     if not general:
         return []
+    winning_pips = float(general.get("winning_pips") or 0.0)
+    losing_pips = float(general.get("losing_pips") or 0.0)
+    pip_rate_pct = general.get("pip_rate_pct")
+    if pip_rate_pct is None:
+        pip_rate_pct = (
+            (winning_pips - abs(losing_pips)) / winning_pips * 100.0
+            if winning_pips > 0.0 else 0.0
+        )
+    gain_loss_ratio = general.get("gain_loss_ratio")
+    profit_factor = general.get("profit_factor")
+    ns_score_pct = general.get("ns_score_pct")
     lines = [
         f"📋 BILAN GÉNÉRAL {general['year']}",
         f"{general['closed_trades']} trades clôturés",
-        f"🟢 {general['winning_trades']} gagnants",
-        f"🔴 {general['losing_trades']} perdants",
+        f"🟢 {general['winning_trades']} gagnants "
+        f"({winning_pips:.1f} pips)",
+        f"🔴 {general['losing_trades']} perdants "
+        f"({_format_pips(losing_pips)} pips)",
     ]
     if general.get("flat_trades"):
         lines.append(f"⚪ {general['flat_trades']} neutres")
     lines.extend([
-        f"Taux de réussite : {general['win_rate_pct']:.1f}%",
+        f"NOG · Taux de réussite : {general['win_rate_pct']:.1f}%",
+        f"SEL · Taux de pips : {float(pip_rate_pct):.1f}%",
+        "PF · Profit Factor : "
+        + (f"{float(profit_factor):.2f}" if profit_factor is not None else "N/D"),
+        "NS · Score de robustesse : "
+        + (f"{float(ns_score_pct):.1f}%" if ns_score_pct is not None else "N/D"),
+        "GAT · Ratio gain/perte moyen : "
+        + (f"{float(gain_loss_ratio):.2f}" if gain_loss_ratio is not None else "N/D"),
         f"Gains clôturés : {_format_pips(general['closed_pips'])} pips",
         f"Position ouverte : {_format_pips(general['open_pips'])} pips",
         f"Total affiché : {_format_pips(general['displayed_total_pips'])} pips",
@@ -3623,7 +3680,8 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
                            vivier_state: dict | None = None,
                            vivier_signals: list[dict] | None = None,
                            pip_report: dict | None = None,
-                           pip_state: dict | None = None) -> str | None:
+                           pip_state: dict | None = None,
+                           price_trends: dict | None = None) -> str | None:
     vivier_signals = vivier_signals or []
     vivier_state = vivier_state or {}
     bull_vivier, bear_vivier = vivier_groups(vivier_state)
@@ -3713,7 +3771,7 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
             lines.append("")
         lines.append(title)
         for pair, entry in entries:
-            lines.append(_format_telegram_vivier_entry_line(pair, entry))
+            lines.append(_format_telegram_vivier_entry_line(pair, entry, price_trends))
         has_content = True
 
     if intraday_pip_lines:
@@ -3805,6 +3863,15 @@ def main() -> int:
         now=run_now,
     )
     save_vivier_pips(pip_state, args.vivier_pips)
+    trend_prices = {
+        str(row.get("pair")): float(row["live_price"])
+        for row in rows
+        if row.get("pair") and isinstance(row.get("live_price"), (int, float))
+    }
+    price_state, price_trends = update_price_trends(
+        load_price_trend_state(args.price_trend_state), trend_prices, run_now
+    )
+    save_price_trend_state(args.price_trend_state, price_state)
     carry_telegram_metadata(previous_vivier, vivier_state)
     save_vivier_state(vivier_state, args.vivier_state)
     print_vivier_report(vivier_state, vivier_signals)
@@ -3829,6 +3896,7 @@ def main() -> int:
         vivier_signals=vivier_signals,
         pip_report=pip_report,
         pip_state=pip_state,
+        price_trends=price_trends,
     )
     if message is None:
         print("\nVIVIER vide ou aucune prise de position : aucun message Telegram envoyé.")
