@@ -926,6 +926,7 @@ class VivierStateTests(unittest.TestCase):
         self.assertAlmostEqual(general["average_win_pips"], 10.0)
         self.assertAlmostEqual(general["average_loss_pips"], 4.0)
         self.assertAlmostEqual(general["gain_loss_ratio"], 2.5)
+        self.assertAlmostEqual(general["max_drawdown_pips"], 4.0)
 
         mark_vivier_pip_reports_sent(state, report)
         state, repeated = update_vivier_pip_tracker(
@@ -952,6 +953,7 @@ class VivierStateTests(unittest.TestCase):
             "average_win_pips": 31.8181818,
             "average_loss_pips": 34.5,
             "gain_loss_ratio": 0.9222661,
+            "max_drawdown_pips": 48.7,
             "closed_pips": 177.5,
             "open_pips": 5.8,
             "displayed_total_pips": 183.3,
@@ -965,6 +967,7 @@ class VivierStateTests(unittest.TestCase):
         self.assertIn("PF · Profit Factor : 2.03", lines)
         self.assertIn("NS · Score de robustesse : 59.0%", lines)
         self.assertIn("GAT · Ratio gain/perte moyen : 0.92", lines)
+        self.assertIn("Max Drawdown clôturé : -48.7 pips", lines)
         self.assertIn("Gains clôturés : +177.5 pips", lines)
         self.assertIn("Position ouverte : +5.8 pips", lines)
         self.assertIn("Total affiché : +183.3 pips", lines)

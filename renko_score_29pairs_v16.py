@@ -2645,6 +2645,20 @@ def _yearly_general_pip_report(state: dict, clock: datetime) -> dict:
             segments.extend(day.get("confirmed_segments") or [])
 
     closed_pips = sum(float(item.get("pips") or 0.0) for item in segments)
+    # Courbe d'equite realisee: les clotures simultanees sont agregees afin
+    # que leur ordre arbitraire dans le JSON ne cree pas un faux drawdown.
+    closed_steps: dict[str, float] = {}
+    for index, item in enumerate(segments):
+        close_time = str(item.get("end_time_utc") or item.get("end_time_paris") or "")
+        key = close_time if close_time else f"~{index:09d}"
+        closed_steps[key] = closed_steps.get(key, 0.0) + float(item.get("pips") or 0.0)
+    equity = 0.0
+    equity_peak = 0.0
+    max_drawdown_pips = 0.0
+    for key in sorted(closed_steps):
+        equity += closed_steps[key]
+        equity_peak = max(equity_peak, equity)
+        max_drawdown_pips = max(max_drawdown_pips, equity_peak - equity)
     winning_pips = sum(
         float(item.get("pips") or 0.0) for item in segments
         if float(item.get("pips") or 0.0) > VIVIER_PIPS_DAY_RESULT_EPSILON
@@ -2734,6 +2748,7 @@ def _yearly_general_pip_report(state: dict, clock: datetime) -> dict:
         "closed_pips": closed_pips,
         "open_pips": open_pips,
         "displayed_total_pips": closed_pips + open_pips,
+        "max_drawdown_pips": max_drawdown_pips,
         "hourly_min_observations": 10,
         "hourly_max_observations": max(
             (item["observations"] for item in hourly), default=0
@@ -3140,6 +3155,7 @@ def vivier_pip_general_lines(report: dict | None) -> list[str]:
         + (f"{float(ns_score_pct):.1f}%" if ns_score_pct is not None else "N/D"),
         "GAT · Ratio gain/perte moyen : "
         + (f"{float(gain_loss_ratio):.2f}" if gain_loss_ratio is not None else "N/D"),
+        f"Max Drawdown clôturé : {-abs(float(general.get('max_drawdown_pips') or 0.0)):.1f} pips",
         f"Gains clôturés : {_format_pips(general['closed_pips'])} pips",
         f"Position ouverte : {_format_pips(general['open_pips'])} pips",
         f"Total affiché : {_format_pips(general['displayed_total_pips'])} pips",
