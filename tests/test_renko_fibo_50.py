@@ -102,6 +102,20 @@ class TestRenkoFibo50Strategy(unittest.TestCase):
         report = format_telegram_fibo_50_report(results)
         self.assertIsNone(report)
 
+    def test_daily_signal_alone_does_not_build_telegram_report(self):
+        daily = Fibo50AnchorState(
+            pair="EURUSD", tf="D", direction=1,
+            anchor_high=1.2000, anchor_low=1.1600, fibo_50=1.1800,
+            last_brick_open=1.1750, last_brick_close=1.1850,
+            px_vs_fibo=1, signal="BULL", three_brick_confirmed=True,
+            crossed_50=True, bricks_since_flip=3,
+            live_price=1.1900, daily_chg=0.5,
+        )
+
+        report = format_telegram_fibo_50_report({"EURUSD": {"D": daily}})
+
+        self.assertIsNone(report)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -855,7 +855,9 @@ def format_telegram_fibo_50_report(results: dict[str, dict[str, Fibo50AnchorStat
     """Formats the Telegram report: alignment sections plus the pip tracker."""
     daily_alignments, strict_alignments, mw_alignments = build_sections(results, min_chg)
 
-    if not (daily_alignments or strict_alignments or mw_alignments):
+    # DAILY et BIAIS M/W sont des pre-signaux: seuls, ils ne doivent plus
+    # construire un message Telegram. Une paire FULL ALIGNMENT est requise.
+    if not strict_alignments:
         return None
 
     now_paris = datetime.now(PARIS_TZ).strftime("%Y-%m-%d %H:%M")
@@ -1014,7 +1016,7 @@ def main():
     if report_text:
         print("\n" + report_text + "\n")
     else:
-        print("Aucun signal ou alignement Fibo 50% à signaler.")
+        print("Aucun FULL ALIGNMENT Fibo 50% : aucun message Telegram.")
 
     prev_state = load_previous_state()
     last_hash = prev_state.get("last_body_hash", "")
