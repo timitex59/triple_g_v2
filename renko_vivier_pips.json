@@ -1733,10 +1733,39 @@
           "start_time_utc": "2026-08-12T05:00:00+00:00"
         }
       ]
+    },
+    "2026-08-13": {
+      "confirmed_segments": [],
+      "date": "2026-08-13",
+      "finalized": false,
+      "segments": []
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {},
+  "open_segments": {
+    "GBPCAD": {
+      "current_pips": 0.0,
+      "date": "2026-08-13",
+      "direction": 1,
+      "last_price": 1.88182,
+      "last_time_utc": "2026-08-13T05:00:00+00:00",
+      "pair": "GBPCAD",
+      "start_price": 1.88182,
+      "start_time_paris": "2026-08-13T07:00:00+02:00",
+      "start_time_utc": "2026-08-13T05:00:00+00:00"
+    },
+    "USDCHF": {
+      "current_pips": 0.0,
+      "date": "2026-08-13",
+      "direction": 1,
+      "last_price": 0.81375,
+      "last_time_utc": "2026-08-13T05:00:00+00:00",
+      "pair": "USDCHF",
+      "start_price": 0.81375,
+      "start_time_paris": "2026-08-13T07:00:00+02:00",
+      "start_time_utc": "2026-08-13T05:00:00+00:00"
+    }
+  },
   "reports_sent": {
     "general_daily": [
       "2026-08-10",
@@ -1753,6 +1782,6 @@
       "2026-W32"
     ]
   },
-  "updated_at_paris": "2026-08-13T00:58:41.306986+02:00",
+  "updated_at_paris": "2026-08-13T07:15:47.945140+02:00",
   "version": 3
 }
