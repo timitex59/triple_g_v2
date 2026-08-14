@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-RSB Telegram Alert Engine (Forward Test Production Standard)
-============================================================
+RSB Telegram Alert Engine (Forward Test Production Standard & Backward Compatibility)
+=====================================================================================
 Génère la suite d'alertes Telegram officielles pour RSB-C1 (Cap 15, 0.10% risk) :
 1. WATCH Alert (1/2 confirmation runs)
 2. ENTRY Signal Alert (2/2 confirmation runs)
 3. CLOSED Trade Alert (Sortie SL, TP, Trailing, EOD, Invalidation)
 4. DAILY REPORT (Rapport consolidé de fin de journée)
+5. Fonctions de rétrocompatibilité (Replay multi-variantes).
 """
 
 from typing import List, Dict, Any, Optional
@@ -139,4 +140,50 @@ def format_daily_report(
         f"Capital :",
         f"<code>{start_capital:,.0f} € → {end_capital:,.0f} €</code>"
     ]
+    return "\n".join(lines)
+
+
+# -----------------------------------------------------------------------------
+# FONCTIONS DE RÉTROCOMPATIBILITÉ POUR REPLAY MULTI-RUN
+# -----------------------------------------------------------------------------
+
+def format_production_c1_alert(
+    state: RelativeStrengthState,
+    current_active_positions: int,
+    max_capacity: int = 15,
+    trade_id: str = ""
+) -> str:
+    """Rétrocompatibilité rsb_runner."""
+    return format_entry_alert(state, current_active_positions, max_capacity=max_capacity)
+
+
+def format_consolidated_eligible_alert(state: RelativeStrengthState, decisions: Dict[str, Any]) -> str:
+    """Rétrocompatibilité replay_day_multirun."""
+    dir_emoji = "🟢" if state.trade_direction == "LONG" else "🔴"
+    time_str = state.timestamp.split("T")[1][:5] if "T" in state.timestamp else state.timestamp
+
+    lines = [
+        "🔥 <b>07H-RSB · SIGNAL ÉLIGIBLE MULTI-POLITIQUES</b>",
+        f"{dir_emoji} <b>{state.pair} {state.trade_direction}</b>",
+        f"⏰ {time_str} Paris · Entry: <code>{state.current_price:.5f}</code>",
+        f"📊 <code>{state.directional_pips:+.1f} pips</code> depuis 07h · Zone: <b>{state.entry_zone}</b>",
+        "",
+        "<b>Matrice de Décision des Portefeuilles :</b>"
+    ]
+    for v_id, res in decisions.items():
+        if isinstance(res, tuple):
+            acc, reason = res
+        else:
+            acc, reason = res, ""
+        icon = "✅ TRADE OUVERT" if acc else f"⛔ REJETÉ ({reason})"
+        lines.append(f"  • {v_id:<8} : {icon}")
+
+    return "\n".join(lines)
+
+
+def format_daily_comparison_report(stats: Dict[str, Any]) -> str:
+    """Rétrocompatibilité multi-policy backtest."""
+    lines = ["📊 <b>RSB MULTI-POLICY DAILY REPORT</b>"]
+    for k, v in stats.items():
+        lines.append(f"• {k} : {v}")
     return "\n".join(lines)
