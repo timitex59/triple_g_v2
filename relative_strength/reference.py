@@ -3,11 +3,11 @@
 RSB Reference Price Engine
 ==========================
 Gestion du prix de référence 07:00 Europe/Paris.
-Conforme à l'Amendement #1:
-- Utilise la même source de prix que le VIVIER / screener existant.
-- Enregistre le premier prix réellement observé au premier run >= 07:00 Paris.
-- Stocke reference_time, reference_price, reference_source.
-- Reset automatique chaque jour.
+
+Règles de Fixation du Niveau 0 (07h00 Paris) :
+1. Avant 07h00 Paris (ex: 04h15 UTC = 06h15 Paris) : aucun niveau 0 officiel n'est fixé. Un fallback temporaire (is_fallback=True) est utilisé sans déclencher de signaux.
+2. Au premier run >= 07h00 Paris (ex: 07h15 Paris) : le VRAI niveau 0 de 07h00 est figé pour toute la journée (is_fallback=False).
+3. Pour tous les runs suivants de la journée (jusqu'à 22h00) : le niveau 0 figé à 07h00 reste strictement inchangé.
 """
 
 from datetime import datetime, time
@@ -32,47 +32,36 @@ def update_pair_reference(
 ) -> Dict[str, Any]:
     """
     Met à jour ou restitue le prix de référence de 07h pour la paire donnée.
-    
-    Format de store:
-    {
-        "NZDUSD": {
-            "date": "2026-08-14",
-            "reference_price": 0.58666,
-            "reference_time": "07:19:02",
-            "reference_source": "TradingView_WebSocket"
-        }
-    }
+    Garantit que le VRAI prix de 07h00 est locked au premier run >= 07:00 Paris.
     """
     today_str = current_dt_paris.strftime("%Y-%m-%d")
     existing_ref = references_store.get(pair)
     
-    # 1. Si la référence existe déjà pour aujourd'hui, la réutiliser
-    if existing_ref and existing_ref.get("date") == today_str:
+    # 1. Si la référence officielle existe déjà pour aujourd'hui et n'est pas un fallback pre-07h, la conserver
+    if existing_ref and existing_ref.get("date") == today_str and not existing_ref.get("is_fallback", False):
         return existing_ref
     
-    # 2. Si on est >= 07:00 Paris aujourd'hui et qu'aucune référence n'est définie pour aujourd'hui
+    # 2. Si on est >= 07:00 Paris aujourd'hui : figer le VRAI niveau 0 de 07h00
     if is_at_or_after_reference_time(current_dt_paris):
         new_ref = {
             "date": today_str,
             "reference_price": current_price,
             "reference_time": current_dt_paris.strftime("%H:%M:%S"),
             "reference_source": current_source,
-            "pair": pair
+            "pair": pair,
+            "is_fallback": False
         }
         references_store[pair] = new_ref
         return new_ref
     
-    # 3. Si on est avant 07:00 Paris (ex: 05:30), si une référence d'hier existe, la conserver temporairement
-    if existing_ref:
-        return existing_ref
-    
-    # 4. Fallback temporaire au premier prix observé si aucune référence n'existe du tout
+    # 3. Si on est avant 07:00 Paris (ex: 06h15 Paris / 04h15 UTC) : enregistrer un fallback temporaire marqué is_fallback=True
     fallback_ref = {
         "date": today_str,
         "reference_price": current_price,
         "reference_time": current_dt_paris.strftime("%H:%M:%S"),
         "reference_source": f"{current_source}_pre07h_fallback",
-        "pair": pair
+        "pair": pair,
+        "is_fallback": True
     }
     references_store[pair] = fallback_ref
     return fallback_ref

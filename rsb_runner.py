@@ -7,7 +7,9 @@
 Exécuteur temps réel pour la stratégie officielle de production :
 RSB-C1 (Sweet Spot 5-15p + Strict Re-Arm + Portfolio Capacity Cap 15).
 
-Suivi en arrière-plan (Shadow Mode) des autres variantes (A, B, C2, C3, C4).
+Règles de Fixation du Niveau 0 (07h00 Paris) :
+- Avant 07h00 Paris (ex: 04h15 UTC = 06h15 Paris) : le script s'exécute en mode attente, sans émettre de signaux et sans figer le niveau 0 officiel.
+- Au premier run >= 07h00 Paris (ex: 07h15 Paris) : le niveau 0 officiel de 07h00 est verrouillé pour toute la journée.
 """
 
 import sys
@@ -26,7 +28,7 @@ if SCRIPT_DIR not in sys.path:
 
 from relative_strength.config import ALL_28_PAIRS, PARIS_TZ, THRESHOLD_PIPS
 from relative_strength.models import RelativeStrengthState
-from relative_strength.reference import update_pair_reference
+from relative_strength.reference import update_pair_reference, is_at_or_after_reference_time
 from relative_strength.pip_engine import get_pip_size, calculate_pips, determine_directional_pips, update_excursion_metrics
 from relative_strength.threshold import evaluate_threshold_state, evaluate_entry_zone, evaluate_independent_flags, evaluate_trade_eligibility
 from relative_strength.persistence import update_persistence_counters
@@ -53,6 +55,10 @@ def run_07h_rsb_engine(send_telegram: bool = True, max_capacity: int = 15) -> Li
     
     print(f"🚀 [07H-RSB] Production Engine (RSB-C1 Cap {max_capacity}) — {now_paris.strftime('%Y-%m-%d %H:%M:%S')} Paris")
     print("=" * 80)
+    
+    is_post_07h = is_at_or_after_reference_time(now_paris)
+    if not is_post_07h:
+        print("⏰ Avant 07:00 Paris : En attente du premier run >= 07:00 Paris pour figer le niveau 0 officiel. Aucun signal émis.")
     
     previous_snapshot = load_rsb_state()
     prev_references = previous_snapshot.get("references", {})
@@ -81,8 +87,8 @@ def run_07h_rsb_engine(send_telegram: bool = True, max_capacity: int = 15) -> Li
         source = res.get("method", "TradingView_Socket") if res else "Fallback_Default"
             
         prices_map[pair] = cur_price
-        update_pair_reference(pair, now_paris, cur_price, source, references_store)
-        ref_price = references_store[pair]["reference_price"]
+        ref_info = update_pair_reference(pair, now_paris, cur_price, source, references_store)
+        ref_price = ref_info["reference_price"]
         pip_size = get_pip_size(pair)
         raw_market, _, _ = calculate_pips(cur_price, ref_price, pip_size)
         raw_pips_map[pair] = raw_market
@@ -133,6 +139,11 @@ def run_07h_rsb_engine(send_telegram: bool = True, max_capacity: int = 15) -> Li
         entry_zone = evaluate_entry_zone(directional_pips)
         trade_eligibility, is_eligible = evaluate_trade_eligibility(exclusive_state, entry_zone)
         
+        # Si on est avant 07h00 Paris, forcer l'éligibilité à False
+        if not is_post_07h:
+            is_eligible = False
+            trade_eligibility = "PRE_07H_WAITING"
+        
         base_curr = pair[:3]
         quote_curr = pair[3:]
         base_str = currency_strengths.get(base_curr, 50.0)
@@ -168,25 +179,26 @@ def run_07h_rsb_engine(send_telegram: bool = True, max_capacity: int = 15) -> Li
     # -------------------------------------------------------------
     # PORTEFEUILLE PRINCIPAL DE PRODUCTION (RSB-C1 CAP 15)
     # -------------------------------------------------------------
-    manager_c1 = ExecutionManagerC("C1", strict_rearm=True, use_invalidation_exit=True, use_pips_07h_pnl=True)
+    if is_post_07h:
+        manager_c1 = ExecutionManagerC("C1", strict_rearm=True, use_invalidation_exit=True, use_pips_07h_pnl=True)
 
-    eligible_c1_states = [s for s in states_list if s.is_eligible and s.entry_zone == "SWEET_SPOT"]
-    
-    for s in eligible_c1_states:
-        active_cnt = len(manager_c1.active_positions)
-        if active_cnt < max_capacity:
-            entries, rejections = manager_c1.process_run(copy.deepcopy(states_list), is_last_run_of_day=False)
-            accepted = any(e.pair == s.pair for e in entries)
-            if accepted:
+        eligible_c1_states = [s for s in states_list if s.is_eligible and s.entry_zone == "SWEET_SPOT"]
+        
+        for s in eligible_c1_states:
+            active_cnt = len(manager_c1.active_positions)
+            if active_cnt < max_capacity:
+                entries, rejections = manager_c1.process_run(copy.deepcopy(states_list), is_last_run_of_day=False)
+                accepted = any(e.pair == s.pair for e in entries)
+                if accepted:
+                    msg = format_production_c1_alert(s, active_cnt, max_capacity=max_capacity)
+                    print("\n" + msg)
+                    if send_telegram and send_telegram_message:
+                        send_telegram_message(msg)
+            else:
                 msg = format_production_c1_alert(s, active_cnt, max_capacity=max_capacity)
                 print("\n" + msg)
                 if send_telegram and send_telegram_message:
                     send_telegram_message(msg)
-        else:
-            msg = format_production_c1_alert(s, active_cnt, max_capacity=max_capacity)
-            print("\n" + msg)
-            if send_telegram and send_telegram_message:
-                send_telegram_message(msg)
 
     print(f"\n✅ Run RSB Production (RSB-C1 Cap {max_capacity}) terminé avec succès.")
     return states_list
