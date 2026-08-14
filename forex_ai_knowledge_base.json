@@ -1678,10 +1678,179 @@
       ],
       "telegram_sent": true,
       "timestamp": "2026-08-14T21:59:09.910192+02:00"
+    },
+    {
+      "features": {
+        "candidates": [
+          {
+            "contradiction": false,
+            "direction": "LONG",
+            "last_move_pips": -0.2,
+            "move_pips": -19.4,
+            "pair": "GBPUSD",
+            "persistence_runs": 8,
+            "price_observations": 8,
+            "price_status": "ADVERSE",
+            "score": 5.5,
+            "sources": [
+              "FIOS_CONV",
+              "FULL"
+            ]
+          },
+          {
+            "contradiction": false,
+            "direction": "LONG",
+            "last_move_pips": -0.6,
+            "move_pips": -7.2,
+            "pair": "NZDUSD",
+            "persistence_runs": 1,
+            "price_observations": 8,
+            "price_status": "ADVERSE",
+            "score": 4.78,
+            "sources": [
+              "FIOS_TOP"
+            ]
+          },
+          {
+            "contradiction": false,
+            "direction": "LONG",
+            "last_move_pips": 1.4,
+            "move_pips": 1.4,
+            "pair": "EURAUD",
+            "persistence_runs": 8,
+            "price_observations": 8,
+            "price_status": "FAVORABLE",
+            "score": 4.14,
+            "sources": [
+              "FIOS_CONV"
+            ]
+          },
+          {
+            "contradiction": false,
+            "direction": "SHORT",
+            "last_move_pips": -0.9,
+            "move_pips": 6.5,
+            "pair": "AUDCAD",
+            "persistence_runs": 8,
+            "price_observations": 8,
+            "price_status": "MIXED",
+            "score": 4.0,
+            "sources": [
+              "FIOS_CONV"
+            ]
+          },
+          {
+            "contradiction": false,
+            "direction": "SHORT",
+            "last_move_pips": 0.2,
+            "move_pips": -2.8,
+            "pair": "AUDNZD",
+            "persistence_runs": 8,
+            "price_observations": 8,
+            "price_status": "MIXED",
+            "score": 4.0,
+            "sources": [
+              "FIOS_TOP"
+            ]
+          },
+          {
+            "contradiction": false,
+            "direction": "LONG",
+            "last_move_pips": -2.2,
+            "move_pips": 1.7,
+            "pair": "CADJPY",
+            "persistence_runs": 8,
+            "price_observations": 8,
+            "price_status": "MIXED",
+            "score": 4.0,
+            "sources": [
+              "FIOS_CONV"
+            ]
+          },
+          {
+            "contradiction": false,
+            "direction": "LONG",
+            "last_move_pips": 0.4,
+            "move_pips": -11.4,
+            "pair": "EURUSD",
+            "persistence_runs": 7,
+            "price_observations": 8,
+            "price_status": "MIXED",
+            "score": 4.0,
+            "sources": [
+              "FIOS_CONV"
+            ]
+          },
+          {
+            "contradiction": false,
+            "direction": "LONG",
+            "last_move_pips": -0.5,
+            "move_pips": 3.5,
+            "pair": "NZDCHF",
+            "persistence_runs": 8,
+            "price_observations": 8,
+            "price_status": "MIXED",
+            "score": 4.0,
+            "sources": [
+              "FIOS_TOP"
+            ]
+          }
+        ],
+        "contradictions": [
+          "USDCHF"
+        ],
+        "currency_cross_confirmations": {
+          "AUD": 5,
+          "CAD": 4,
+          "CHF": 3,
+          "EUR": 4,
+          "GBP": 2,
+          "JPY": 4,
+          "NZD": 5,
+          "USD": 7
+        },
+        "currency_scores": {
+          "AUD": -3.0,
+          "CAD": 5.5,
+          "CHF": -1.5,
+          "EUR": 4.0,
+          "GBP": 5.5,
+          "JPY": -4.0,
+          "NZD": 10.0,
+          "USD": -16.5
+        },
+        "gold": [
+          {
+            "contradiction": false,
+            "direction": "LONG",
+            "last_move_pips": -176.0,
+            "move_pips": -1642.5,
+            "pair": "XAUUSD",
+            "persistence_runs": 8,
+            "price_observations": 8,
+            "price_status": "ADVERSE",
+            "score": 2.5,
+            "sources": [
+              "FIOS_TOP"
+            ]
+          }
+        ],
+        "runs_observed": 8,
+        "status": "OK",
+        "strongest_currency": "NZD",
+        "weakest_currency": "USD"
+      },
+      "message": "🤝 CONSENSUS IA (Claude x GPT-5)\n🔥 NZD fort · USD faible · 5 cross\n🎯 NZDUSD LONG · -7.2 pips · ↓ prix · 1 run · 1 moteur",
+      "reviewers": [
+        "claude",
+        "openai"
+      ],
+      "telegram_sent": true,
+      "timestamp": "2026-08-14T22:19:29.937729+02:00"
     }
   ],
-  "last_flash_hash": "72ad11811e8ab16cb89664733a38b1fe99ef6c63d0355ccf6ecde802d7929260",
-  "last_updated": "2026-08-14T21:59:32.842729+02:00",
+  "last_flash_hash": "307d82e77f731888c78d1f374e338e7840189fa318936fb5bd9c811c0b6f4e11",
+  "last_updated": "2026-08-14T22:19:52.445761+02:00",
   "observations": [
     {
       "currencies": {
@@ -4217,6 +4386,216 @@
           "fib_position": "Fibo <1"
         }
       }
+    },
+    {
+      "currencies": {
+        "AUD": {
+          "daily_chg": 0.36848072562356987,
+          "direction": 1
+        },
+        "CAD": {
+          "daily_chg": 0.39139188652561685,
+          "direction": 1
+        },
+        "CHF": {
+          "daily_chg": 0.1332522091277783,
+          "direction": 0
+        },
+        "EUR": {
+          "daily_chg": 0.3209159113578252,
+          "direction": 0
+        },
+        "GBP": {
+          "daily_chg": 0.36114200964033727,
+          "direction": 1
+        },
+        "JPY": {
+          "daily_chg": 0.0735307018593262,
+          "direction": 0
+        },
+        "NZD": {
+          "daily_chg": 0.6711409395973125,
+          "direction": 0
+        },
+        "USD": {
+          "daily_chg": -0.2971545203505794,
+          "direction": 0
+        }
+      },
+      "date": "2026-08-14",
+      "fibo_open": {},
+      "fibo_sections": {
+        "daily": [
+          {
+            "daily_chg": 0.24531978564964704,
+            "direction": "BULL",
+            "pair": "AUDCHF"
+          }
+        ],
+        "full_alignment": [],
+        "mw_bias": []
+      },
+      "fios_sections": {
+        "AUDCAD": {
+          "direction": -1,
+          "section": "conv"
+        },
+        "AUDNZD": {
+          "direction": -1,
+          "section": "top"
+        },
+        "AUDUSD": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "CADJPY": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "EURAUD": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "EURJPY": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "EURNZD": {
+          "direction": -1,
+          "section": "top"
+        },
+        "EURUSD": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "GBPUSD": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "NZDCHF": {
+          "direction": 1,
+          "section": "top"
+        },
+        "NZDJPY": {
+          "direction": 1,
+          "section": "top"
+        },
+        "NZDUSD": {
+          "direction": 1,
+          "section": "top"
+        },
+        "USDCAD": {
+          "direction": -1,
+          "section": "conv"
+        },
+        "USDCHF": {
+          "direction": -1,
+          "section": "conv"
+        },
+        "USDJPY": {
+          "direction": -1,
+          "section": "conv"
+        },
+        "XAUUSD": {
+          "direction": 1,
+          "section": "top"
+        }
+      },
+      "full_selected": {
+        "GBPUSD": {
+          "daily_chg": 0.35441536294209286,
+          "direction": 1,
+          "live_price": 1.35348,
+          "premium_currency_profile": true
+        }
+      },
+      "mwd_raw_alignment": {
+        "AUDCHF": {
+          "daily_chg": 0.24705964228547164,
+          "direction": 1,
+          "price": 0.57618,
+          "px_d": 1,
+          "px_m": 1,
+          "px_w": 1
+        },
+        "AUDJPY": {
+          "daily_chg": 0.24331548427773564,
+          "direction": 1,
+          "price": 112.885,
+          "px_d": 1,
+          "px_m": 1,
+          "px_w": 1
+        },
+        "GBPCHF": {
+          "daily_chg": 0.2531783905868643,
+          "direction": 1,
+          "price": 1.10082,
+          "px_d": 1,
+          "px_m": 1,
+          "px_w": 1
+        },
+        "GBPUSD": {
+          "daily_chg": 0.35441536294209286,
+          "direction": 1,
+          "price": 1.35348,
+          "px_d": 1,
+          "px_m": 1,
+          "px_w": 1
+        }
+      },
+      "prices": {
+        "AUDCAD": 0.98301,
+        "AUDCHF": 0.57618,
+        "AUDJPY": 112.885,
+        "AUDNZD": 1.20294,
+        "AUDUSD": 0.70836,
+        "CADCHF": 0.58614,
+        "CADJPY": 114.835,
+        "CHFJPY": 195.924,
+        "EURAUD": 1.63306,
+        "EURCAD": 1.60525,
+        "EURCHF": 0.94084,
+        "EURGBP": 0.85467,
+        "EURJPY": 184.344,
+        "EURNZD": 1.96448,
+        "EURUSD": 1.15682,
+        "GBPAUD": 1.91077,
+        "GBPCAD": 1.87827,
+        "GBPCHF": 1.10082,
+        "GBPJPY": 215.69,
+        "GBPNZD": 2.29848,
+        "GBPUSD": 1.35348,
+        "NZDCAD": 0.81714,
+        "NZDCHF": 0.47891,
+        "NZDJPY": 93.84,
+        "NZDUSD": 0.58884,
+        "USDCAD": 1.38772,
+        "USDCHF": 0.81336,
+        "USDJPY": 159.36,
+        "XAUUSD": 4373.715
+      },
+      "sources_generated_at": {
+        "fios": "2026-08-14",
+        "full_alignment": "2026-08-14T22:17:00.331706+02:00",
+        "vivier": "2026-08-14 22:16"
+      },
+      "timestamp": "2026-08-14T22:19:29.937729+02:00",
+      "vivier_pool": {
+        "GBPCAD": {
+          "base_pct": 66.66666666666666,
+          "daily_chg": -0.023420200987906446,
+          "daily_sar_dir": -1,
+          "direction": 1,
+          "fib_position": "Fibo <0.236"
+        },
+        "USDCHF": {
+          "base_pct": 83.33333333333334,
+          "daily_chg": -0.09089345812759021,
+          "daily_sar_dir": 1,
+          "direction": 1,
+          "fib_position": "Fibo <1"
+        }
+      }
     }
   ],
   "reports_sent": [],
@@ -4226,7 +4605,7 @@
       "summary": "📊 **RÉTROSPECTIVE 24H**\nAujourd'hui, aucune donnée n'a été analysée en raison de l'absence de runs récents. Par conséquent, il n'y a pas eu de mouvements majeurs détectés sur les paires de devises, ni de comportements notables sur l'or. La journée a été neutre sans impulsions significatives.\n\n📚 **LE"
     }
   ],
-  "total_runs_analyzed": 12,
+  "total_runs_analyzed": 13,
   "trade_ledger": [
     {
       "close_reason": "CONFIRMED_EXIT",
@@ -4968,6 +5347,19 @@
       "pips": 2.7,
       "section": "top",
       "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": 1,
+      "entry_price": 0.58888,
+      "entry_time": "2026-08-14T21:21:08.383253+02:00",
+      "exit_price": 0.58884,
+      "exit_time": "2026-08-14T22:19:29.330957+02:00",
+      "id": "FIOS_CONV:738b2e80bab6a421108d",
+      "pair": "NZDUSD",
+      "pips": -0.4,
+      "section": "conv",
+      "strategy": "FIOS_CONV"
     }
   ],
   "version": 2
