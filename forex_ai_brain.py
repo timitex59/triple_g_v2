@@ -13,6 +13,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
@@ -420,8 +421,11 @@ def _query_flash(provider: str, features: dict, api_key: str, timeout: float = 1
                      "messages": [{"role": "user", "content": prompt}]}, timeout)
                 if result := _extract_json(body["content"][0]["text"]):
                     result["reviewer"] = "claude"
+                    result["model"] = model
+                    print(f"Forex AI flash: Claude OK ({model})")
                     return result
-            except Exception:
+            except Exception as exc:
+                print(f"Warning: revue Claude {model} indisponible: {exc}")
                 continue
     else:
         models = [x.strip() for x in os.getenv(
@@ -521,8 +525,16 @@ def _extract_json(text: str) -> dict | None:
 
 def _post_json(url: str, headers: dict, payload: dict, timeout: float) -> dict:
     request = urllib.request.Request(url, data=json.dumps(payload).encode(), headers=headers, method="POST")
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return json.loads(response.read().decode())
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return json.loads(response.read().decode())
+    except urllib.error.HTTPError as exc:
+        raw = exc.read().decode("utf-8", "replace")
+        try:
+            detail = json.loads(raw).get("error", {}).get("message") or raw
+        except Exception:
+            detail = raw
+        raise RuntimeError(f"HTTP {exc.code}: {str(detail)[:500]}") from exc
 
 
 def _responses_text(body: dict) -> str:
@@ -556,15 +568,17 @@ def _query_openai_responses(user_prompt: str, instructions: str, models: list[st
                 body = _post_json(
                     "https://api.openai.com/v1/responses",
                     {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                    {"model": model, "instructions": instructions, "input": user_prompt,
+                    {"model": model, "instructions": instructions,
+                     "input": "Return only a valid JSON object.\n\n" + user_prompt,
                      "max_output_tokens": max_tokens, "reasoning": {"effort": effort},
                      "text": {"format": {"type": "json_object"}}, "store": False}, timeout)
                 text = _responses_text(body)
             if parsed := _extract_json(text):
                 parsed["model"] = model
+                print(f"Forex AI: OpenAI OK ({model})")
                 return parsed
         except Exception as exc:
-            print(f"Warning: revue OpenAI {model} indisponible: {type(exc).__name__}")
+            print(f"Warning: revue OpenAI {model} indisponible: {exc}")
     return None
 
 
@@ -581,6 +595,8 @@ def _query_claude(evidence_json: str, api_key: str, timeout: float = 20.0) -> di
                  "messages": [{"role": "user", "content": evidence_json}]}, timeout)
             if parsed := _extract_json(body["content"][0]["text"]):
                 parsed["reviewer"] = "claude"
+                parsed["model"] = model
+                print(f"Forex AI EOD: Claude OK ({model})")
                 return parsed
         except Exception as exc:
             print(f"Warning: revue Claude {model} indisponible: {type(exc).__name__}")

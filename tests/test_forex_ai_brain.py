@@ -217,6 +217,7 @@ class TestForexAIBrain(unittest.TestCase):
         url, _headers, payload, _timeout = post.call_args.args
         self.assertEqual(url, "https://api.openai.com/v1/responses")
         self.assertEqual(payload["reasoning"], {"effort": "medium"})
+        self.assertIn("JSON", payload["input"])
         self.assertFalse(payload["store"])
 
 
