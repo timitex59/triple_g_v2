@@ -1,14 +1,824 @@
 {
-  "version": 1,
-  "total_runs_analyzed": 0,
-  "last_updated": "2026-08-14T16:25:24.069664+02:00",
-  "accumulated_patterns": [],
-  "script_improvements": [
+  "daily_reports": [],
+  "last_updated": "2026-08-14T17:09:36.795402+02:00",
+  "observations": [
+    {
+      "currencies": {
+        "AUD": {
+          "daily_chg": 0.5307539682539649,
+          "direction": 1
+        },
+        "CAD": {
+          "daily_chg": 0.42469294059454255,
+          "direction": 1
+        },
+        "CHF": {
+          "daily_chg": 0.3863173764627399,
+          "direction": 0
+        },
+        "EUR": {
+          "daily_chg": 0.45491998785723864,
+          "direction": 0
+        },
+        "GBP": {
+          "daily_chg": 0.47979236188358904,
+          "direction": 1
+        },
+        "JPY": {
+          "daily_chg": 0.32761835492201835,
+          "direction": 0
+        },
+        "NZD": {
+          "daily_chg": 0.7822852990210679,
+          "direction": 0
+        },
+        "USD": {
+          "daily_chg": -0.4332252771441077,
+          "direction": 0
+        }
+      },
+      "date": "2026-08-14",
+      "fibo_open": {},
+      "fios_sections": {
+        "AUDCAD": {
+          "direction": -1,
+          "section": "conv"
+        },
+        "AUDNZD": {
+          "direction": -1,
+          "section": "top"
+        },
+        "AUDUSD": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "CADJPY": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "EURAUD": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "EURJPY": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "EURNZD": {
+          "direction": -1,
+          "section": "top"
+        },
+        "EURUSD": {
+          "direction": 1,
+          "section": "conv"
+        },
+        "GBPUSD": {
+          "direction": 1,
+          "section": "top"
+        },
+        "NZDCHF": {
+          "direction": 1,
+          "section": "top"
+        },
+        "NZDJPY": {
+          "direction": 1,
+          "section": "top"
+        },
+        "NZDUSD": {
+          "direction": 1,
+          "section": "top"
+        },
+        "USDCAD": {
+          "direction": -1,
+          "section": "top"
+        },
+        "USDCHF": {
+          "direction": -1,
+          "section": "conv"
+        },
+        "USDJPY": {
+          "direction": -1,
+          "section": "conv"
+        },
+        "XAUUSD": {
+          "direction": 1,
+          "section": "top"
+        }
+      },
+      "mwd_raw_alignment": {
+        "AUDCHF": {
+          "daily_chg": 0.14614795740830117,
+          "direction": 1,
+          "price": 0.5756,
+          "px_d": 1,
+          "px_m": 1,
+          "px_w": 1
+        },
+        "AUDJPY": {
+          "daily_chg": 0.1740504924030494,
+          "direction": 1,
+          "price": 112.807,
+          "px_d": 1,
+          "px_m": 1,
+          "px_w": 1
+        },
+        "GBPUSD": {
+          "daily_chg": 0.4641506636019821,
+          "direction": 1,
+          "price": 1.35496,
+          "px_d": 1,
+          "px_m": 1,
+          "px_w": 1
+        }
+      },
+      "prices": {
+        "AUDCAD": 0.98433,
+        "AUDCHF": 0.5756,
+        "AUDJPY": 112.807,
+        "AUDNZD": 1.20332,
+        "AUDUSD": 0.70938,
+        "CADCHF": 0.58478,
+        "CADJPY": 114.59,
+        "CHFJPY": 195.968,
+        "EURAUD": 1.63264,
+        "EURCAD": 1.60708,
+        "EURCHF": 0.93976,
+        "EURGBP": 0.85485,
+        "EURJPY": 184.168,
+        "EURNZD": 1.9646,
+        "EURUSD": 1.15825,
+        "GBPAUD": 1.90986,
+        "GBPCAD": 1.88006,
+        "GBPCHF": 1.09936,
+        "GBPJPY": 215.446,
+        "GBPNZD": 2.29829,
+        "GBPUSD": 1.35496,
+        "NZDCAD": 0.81809,
+        "NZDCHF": 0.47836,
+        "NZDJPY": 93.746,
+        "NZDUSD": 0.58956,
+        "USDCAD": 1.38759,
+        "USDCHF": 0.81136,
+        "USDJPY": 159.008,
+        "XAUUSD": 4388.01
+      },
+      "sources_generated_at": {
+        "fios": "2026-08-14",
+        "full_alignment": "2026-08-14T17:07:02.042727+02:00",
+        "vivier": "2026-08-14 17:07"
+      },
+      "timestamp": "2026-08-14T17:09:36.793642+02:00",
+      "vivier_pool": {
+        "GBPCAD": {
+          "base_pct": 66.66666666666666,
+          "daily_chg": 0.07238971214444026,
+          "daily_sar_dir": -1,
+          "direction": 1,
+          "fib_position": "Fibo <0.236"
+        },
+        "USDCHF": {
+          "base_pct": 83.33333333333334,
+          "daily_chg": -0.3414646129658296,
+          "daily_sar_dir": 1,
+          "direction": 1,
+          "fib_position": "Fibo <0.786"
+        }
+      }
+    }
+  ],
+  "reports_sent": [],
+  "suggestions": [
     {
       "date": "2026-08-14",
       "summary": "📊 **RÉTROSPECTIVE 24H**\nAujourd'hui, aucune donnée n'a été analysée en raison de l'absence de runs récents. Par conséquent, il n'y a pas eu de mouvements majeurs détectés sur les paires de devises, ni de comportements notables sur l'or. La journée a été neutre sans impulsions significatives.\n\n📚 **LE"
     }
   ],
-  "daily_summaries": [],
-  "history": []
+  "total_runs_analyzed": 1,
+  "trade_ledger": [
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 0.8097,
+      "entry_time": "2026-07-15T10:00:00+02:00",
+      "exit_price": 0.80902,
+      "exit_time": "2026-07-15T15:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:c01ee7ab8a7eb167987e",
+      "pair": "USDCHF",
+      "pips": -6.8,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 1.8886,
+      "entry_time": "2026-07-20T10:00:00+02:00",
+      "exit_price": 1.88914,
+      "exit_time": "2026-07-20T17:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:fc1781b692d16072fbcb",
+      "pair": "GBPCAD",
+      "pips": 5.4,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": 1,
+      "entry_price": 1.88892,
+      "entry_time": "2026-07-20T21:00:00+02:00",
+      "exit_price": 1.88966,
+      "exit_time": "2026-07-20T23:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:2505e1bdaec78f01761f",
+      "pair": "GBPCAD",
+      "pips": 7.4,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 1.8912,
+      "entry_time": "2026-07-21T07:00:00+02:00",
+      "exit_price": 1.88894,
+      "exit_time": "2026-07-21T11:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:5ecd20726bada86c9a1e",
+      "pair": "GBPCAD",
+      "pips": -22.6,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 0.81156,
+      "entry_time": "2026-07-21T16:00:00+02:00",
+      "exit_price": 0.81286,
+      "exit_time": "2026-07-21T23:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:e09d1b08846ff887ad12",
+      "pair": "USDCHF",
+      "pips": 13.0,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 0.81364,
+      "entry_time": "2026-07-22T17:00:00+02:00",
+      "exit_price": 0.81464,
+      "exit_time": "2026-07-22T21:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:9943c2d67b69c70cf43f",
+      "pair": "USDCHF",
+      "pips": 10.0,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 1.88025,
+      "entry_time": "2026-07-30T13:00:00+02:00",
+      "exit_price": 1.87916,
+      "exit_time": "2026-07-30T15:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:056f25dc23dbe204bd97",
+      "pair": "GBPCAD",
+      "pips": -10.9,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 1.88102,
+      "entry_time": "2026-07-30T16:00:00+02:00",
+      "exit_price": 1.88616,
+      "exit_time": "2026-07-30T23:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:1c1d8cd47f363c89a7b4",
+      "pair": "GBPCAD",
+      "pips": 51.4,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": 1,
+      "entry_price": 1.888,
+      "entry_time": "2026-07-31T17:00:00+02:00",
+      "exit_price": 1.88946,
+      "exit_time": "2026-07-31T23:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:de33b427fc9a622d8643",
+      "pair": "GBPCAD",
+      "pips": 14.6,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 1.88632,
+      "entry_time": "2026-08-04T08:00:00+02:00",
+      "exit_price": 1.88783,
+      "exit_time": "2026-08-04T10:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:7854793fd4730ebb2338",
+      "pair": "GBPCAD",
+      "pips": 15.1,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 1.88757,
+      "entry_time": "2026-08-04T13:00:00+02:00",
+      "exit_price": 1.89044,
+      "exit_time": "2026-08-04T15:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:d7fa0134588ad91a4215",
+      "pair": "GBPCAD",
+      "pips": 28.7,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "structure_broken",
+      "direction": 1,
+      "entry_price": 1.89392,
+      "entry_time": "2026-08-05",
+      "exit_price": 1.89459,
+      "exit_time": "2026-08-05T13:19:14.104894+02:00",
+      "id": "RENKO_FIBO_50:540d7e051e965a805921",
+      "pair": "GBPCAD",
+      "pips": 6.7,
+      "section": null,
+      "strategy": "RENKO_FIBO_50"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 1.88871,
+      "entry_time": "2026-08-06T16:00:00+02:00",
+      "exit_price": 1.88786,
+      "exit_time": "2026-08-06T17:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:b5ad5faa062173914d0b",
+      "pair": "GBPCAD",
+      "pips": -8.5,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 1.88606,
+      "entry_time": "2026-08-07T07:00:00+02:00",
+      "exit_price": 1.88666,
+      "exit_time": "2026-08-07T09:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:c49ebb5db9e5bd862960",
+      "pair": "GBPCAD",
+      "pips": 6.0,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 113.088,
+      "entry_time": "2026-08-07T16:00:00+02:00",
+      "exit_price": 113.076,
+      "exit_time": "2026-08-07T18:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:983d9c9bbddf4f31b487",
+      "pair": "CADJPY",
+      "pips": -1.2,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": 1,
+      "entry_price": 113.015,
+      "entry_time": "2026-08-07T22:00:00+02:00",
+      "exit_price": 113.202,
+      "exit_time": "2026-08-07T23:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:b3f809334e98c89cd29f",
+      "pair": "CADJPY",
+      "pips": 18.7,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "structure_broken",
+      "direction": 1,
+      "entry_price": 1.88196,
+      "entry_time": "2026-08-10",
+      "exit_price": 1.88386,
+      "exit_time": "2026-08-10T15:44:33.079818+02:00",
+      "id": "RENKO_FIBO_50:59f52ed59c7c47f87847",
+      "pair": "GBPCAD",
+      "pips": 19.0,
+      "section": null,
+      "strategy": "RENKO_FIBO_50"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 113.426,
+      "entry_time": "2026-08-10T07:00:00+02:00",
+      "exit_price": 113.998,
+      "exit_time": "2026-08-10T17:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:c8de8f7096435ebe3728",
+      "pair": "CADJPY",
+      "pips": 57.2,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 0.80962,
+      "entry_time": "2026-08-10T19:00:00+02:00",
+      "exit_price": 0.81032,
+      "exit_time": "2026-08-10T23:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:40c13d1ee70d9cefed0f",
+      "pair": "USDCHF",
+      "pips": 7.0,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 0.81118,
+      "entry_time": "2026-08-11T10:00:00+02:00",
+      "exit_price": 0.81102,
+      "exit_time": "2026-08-11T12:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:677d6815a3e1eb7fb1db",
+      "pair": "USDCHF",
+      "pips": -1.6,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 0.81102,
+      "entry_time": "2026-08-11T12:00:00+02:00",
+      "exit_price": 0.81094,
+      "exit_time": "2026-08-11T13:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:0dfb4a18a0c322f9cbe1",
+      "pair": "USDCHF",
+      "pips": -0.8,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 0.81094,
+      "entry_time": "2026-08-11T13:00:00+02:00",
+      "exit_price": 0.8107,
+      "exit_time": "2026-08-11T15:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:9a63178014efdf7f1933",
+      "pair": "USDCHF",
+      "pips": -2.4,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": 1,
+      "entry_price": 0.8107,
+      "entry_time": "2026-08-11T17:00:00+02:00",
+      "exit_price": 0.81092,
+      "exit_time": "2026-08-11T23:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:7bc04cc3532e9b8d5823",
+      "pair": "USDCHF",
+      "pips": 2.2,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 0.81213,
+      "entry_time": "2026-08-12T07:00:00+02:00",
+      "exit_price": 0.81254,
+      "exit_time": "2026-08-12T13:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:bb0b9ff4db3550f9aaac",
+      "pair": "USDCHF",
+      "pips": 4.1,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "CONFIRMED_EXIT",
+      "direction": 1,
+      "entry_price": 0.81141,
+      "entry_time": "2026-08-12T14:00:00+02:00",
+      "exit_price": 0.80974,
+      "exit_time": "2026-08-12T15:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:abd41b8ed19015f6280a",
+      "pair": "USDCHF",
+      "pips": -16.7,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": 1,
+      "entry_price": 0.81141,
+      "entry_time": "2026-08-12T17:00:00+02:00",
+      "exit_price": 0.8136,
+      "exit_time": "2026-08-12T23:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:8a5eca0382729bb7a307",
+      "pair": "USDCHF",
+      "pips": 21.9,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": -1,
+      "entry_price": 0.8144,
+      "entry_time": "2026-08-13T18:24:06.416771+02:00",
+      "exit_price": 0.81472,
+      "exit_time": "2026-08-13T19:25:36.074517+02:00",
+      "id": "FIOS_CONV:c0f1ebce7611c17ab24d",
+      "pair": "NZDCAD",
+      "pips": -3.2,
+      "section": "conv",
+      "strategy": "FIOS_CONV"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": 1,
+      "entry_price": 0.58374,
+      "entry_time": "2026-08-13T18:24:06.416771+02:00",
+      "exit_price": 0.58478,
+      "exit_time": "2026-08-13T22:19:34.502171+02:00",
+      "id": "FIOS_CONV:9fd3ba74c240a51bcd8d",
+      "pair": "CADCHF",
+      "pips": 10.4,
+      "section": "conv",
+      "strategy": "FIOS_CONV"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": 1,
+      "entry_price": 0.81458,
+      "entry_time": "2026-08-13T22:00:00+02:00",
+      "exit_price": 0.81414,
+      "exit_time": "2026-08-13T23:00:00+02:00",
+      "id": "VIVIER_CONFIRMED:c42d69bbdb0678e03c0f",
+      "pair": "USDCHF",
+      "pips": -4.4,
+      "section": null,
+      "strategy": "VIVIER_CONFIRMED"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": -1,
+      "entry_price": 4370.02,
+      "entry_time": "2026-08-13T17:49:45.033933+02:00",
+      "exit_price": 4351.27,
+      "exit_time": "2026-08-13T23:04:50.791642+02:00",
+      "id": "FIOS_TOP_XAUUSD:efc0893d16c0d4f89457",
+      "pair": "XAUUSD",
+      "pips": 1875.0,
+      "section": "top",
+      "strategy": "FIOS_TOP_XAUUSD"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": 1,
+      "entry_price": 2.3076,
+      "entry_time": "2026-08-13T17:49:45.033933+02:00",
+      "exit_price": 2.3052,
+      "exit_time": "2026-08-13T23:04:50.791642+02:00",
+      "id": "FIOS_TOP:483a9fc9cbe34e26f1e8",
+      "pair": "GBPNZD",
+      "pips": -24.0,
+      "section": "top",
+      "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": -1,
+      "entry_price": 0.58486,
+      "entry_time": "2026-08-13T17:49:45.033933+02:00",
+      "exit_price": 0.58507,
+      "exit_time": "2026-08-13T23:04:50.791642+02:00",
+      "id": "FIOS_TOP:05b31190c099be94989d",
+      "pair": "NZDUSD",
+      "pips": -2.1,
+      "section": "top",
+      "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": -1,
+      "entry_price": 1.87928,
+      "entry_time": "2026-08-13T18:24:06.416771+02:00",
+      "exit_price": 1.87872,
+      "exit_time": "2026-08-13T23:04:50.791642+02:00",
+      "id": "FIOS_CONV:31bcd4a273b53d57b4cf",
+      "pair": "GBPCAD",
+      "pips": 5.6,
+      "section": "conv",
+      "strategy": "FIOS_CONV"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": -1,
+      "entry_price": 0.9832,
+      "entry_time": "2026-08-13T18:24:06.416771+02:00",
+      "exit_price": 0.98344,
+      "exit_time": "2026-08-13T23:04:50.791642+02:00",
+      "id": "FIOS_CONV:a16d5d464a1c24f0c04c",
+      "pair": "AUDCAD",
+      "pips": -2.4,
+      "section": "conv",
+      "strategy": "FIOS_CONV"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": 1,
+      "entry_price": 1.97232,
+      "entry_time": "2026-08-13T18:24:06.416771+02:00",
+      "exit_price": 1.9706,
+      "exit_time": "2026-08-13T23:04:50.791642+02:00",
+      "id": "FIOS_TOP:7edec8ce335e4d3aac68",
+      "pair": "EURNZD",
+      "pips": -17.2,
+      "section": "top",
+      "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": 1,
+      "entry_price": 114.48,
+      "entry_time": "2026-08-13T19:25:36.074517+02:00",
+      "exit_price": 114.514,
+      "exit_time": "2026-08-13T23:04:50.791642+02:00",
+      "id": "FIOS_CONV:441f89a9d681dc9b7fac",
+      "pair": "CADJPY",
+      "pips": 3.4,
+      "section": "conv",
+      "strategy": "FIOS_CONV"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": -1,
+      "entry_price": 0.81472,
+      "entry_time": "2026-08-13T19:25:36.074517+02:00",
+      "exit_price": 0.81508,
+      "exit_time": "2026-08-13T23:04:50.791642+02:00",
+      "id": "FIOS_TOP:53797c96e2de40288c3f",
+      "pair": "NZDCAD",
+      "pips": -3.6,
+      "section": "top",
+      "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": -1,
+      "entry_price": 0.47558,
+      "entry_time": "2026-08-13T19:25:36.074517+02:00",
+      "exit_price": 0.47634,
+      "exit_time": "2026-08-13T23:04:50.791642+02:00",
+      "id": "FIOS_TOP:06e067e4bf3df07d54b6",
+      "pair": "NZDCHF",
+      "pips": -7.6,
+      "section": "top",
+      "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "DAY_END",
+      "direction": 1,
+      "entry_price": 0.58478,
+      "entry_time": "2026-08-13T22:19:34.502171+02:00",
+      "exit_price": 0.58448,
+      "exit_time": "2026-08-13T23:04:50.791642+02:00",
+      "id": "FIOS_TOP:1dfbc218d327e47e296b",
+      "pair": "CADCHF",
+      "pips": -3.0,
+      "section": "top",
+      "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "SECTION_EXIT",
+      "direction": -1,
+      "entry_price": 4319.585,
+      "entry_time": "2026-08-14T07:19:19.167146+02:00",
+      "exit_price": 4366.51,
+      "exit_time": "2026-08-14T13:58:53.324065+02:00",
+      "id": "FIOS_TOP_XAUUSD:e92d503e88a451c78ad0",
+      "pair": "XAUUSD",
+      "pips": -4692.5,
+      "section": "top",
+      "strategy": "FIOS_TOP_XAUUSD"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": 1,
+      "entry_price": 0.58666,
+      "entry_time": "2026-08-14T07:19:19.167146+02:00",
+      "exit_price": 0.58876,
+      "exit_time": "2026-08-14T14:19:48.479808+02:00",
+      "id": "FIOS_TOP:40bc25555440bda4cb14",
+      "pair": "NZDUSD",
+      "pips": 21.0,
+      "section": "top",
+      "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": -1,
+      "entry_price": 159.314,
+      "entry_time": "2026-08-14T07:19:19.167146+02:00",
+      "exit_price": 159.0,
+      "exit_time": "2026-08-14T14:19:48.479808+02:00",
+      "id": "FIOS_TOP:f8543573bb9019bc3df2",
+      "pair": "USDJPY",
+      "pips": 31.4,
+      "section": "top",
+      "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": 1,
+      "entry_price": 0.58876,
+      "entry_time": "2026-08-14T14:19:48.479808+02:00",
+      "exit_price": 0.58868,
+      "exit_time": "2026-08-14T15:19:56.584923+02:00",
+      "id": "FIOS_CONV:c312b50343efa284376b",
+      "pair": "NZDUSD",
+      "pips": -0.8,
+      "section": "conv",
+      "strategy": "FIOS_CONV"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": 1,
+      "entry_price": 0.70624,
+      "entry_time": "2026-08-14T07:19:19.167146+02:00",
+      "exit_price": 0.70906,
+      "exit_time": "2026-08-14T15:42:33.234031+02:00",
+      "id": "FIOS_TOP:e2a0b3c66e413287c608",
+      "pair": "AUDUSD",
+      "pips": 28.2,
+      "section": "top",
+      "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": 1,
+      "entry_price": 0.58868,
+      "entry_time": "2026-08-14T15:19:56.584923+02:00",
+      "exit_price": 0.58948,
+      "exit_time": "2026-08-14T15:42:33.234031+02:00",
+      "id": "FIOS_TOP:3bfc183afc5667fccda1",
+      "pair": "NZDUSD",
+      "pips": 8.0,
+      "section": "top",
+      "strategy": "FIOS_TOP"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": -1,
+      "entry_price": 1.39168,
+      "entry_time": "2026-08-14T07:19:19.167146+02:00",
+      "exit_price": 1.38738,
+      "exit_time": "2026-08-14T16:19:48.127811+02:00",
+      "id": "FIOS_CONV:611f2f551e3f56d349c2",
+      "pair": "USDCAD",
+      "pips": 43.0,
+      "section": "conv",
+      "strategy": "FIOS_CONV"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": 1,
+      "entry_price": 1.35376,
+      "entry_time": "2026-08-14T14:19:48.479808+02:00",
+      "exit_price": 1.35496,
+      "exit_time": "2026-08-14T17:09:34.368488+02:00",
+      "id": "FIOS_CONV:cfe1277afb337f79ece0",
+      "pair": "GBPUSD",
+      "pips": 12.0,
+      "section": "conv",
+      "strategy": "FIOS_CONV"
+    },
+    {
+      "close_reason": "MIGRATION",
+      "direction": 1,
+      "entry_price": 0.58948,
+      "entry_time": "2026-08-14T15:42:33.234031+02:00",
+      "exit_price": 0.58956,
+      "exit_time": "2026-08-14T17:09:34.368488+02:00",
+      "id": "FIOS_CONV:22278a455437d860335c",
+      "pair": "NZDUSD",
+      "pips": 0.8,
+      "section": "conv",
+      "strategy": "FIOS_CONV"
+    }
+  ],
+  "version": 2
 }
