@@ -33,6 +33,10 @@ MAX_OBSERVATIONS = 1000
 MAX_TRADES = 5000
 MAX_DAILY_REPORTS = 400
 MIN_SAMPLE_FOR_SUGGESTION = 20
+FLASH_CLAUDE_MODELS = "claude-sonnet-4-20250514,claude-3-7-sonnet-latest"
+EOD_CLAUDE_MODELS = "claude-opus-4-1-20250805,claude-sonnet-4-20250514"
+FLASH_OPENAI_MODELS = "gpt-5.1,gpt-5,gpt-4o"
+EOD_OPENAI_MODELS = "gpt-5-pro,gpt-5.1,gpt-5"
 SOURCE_FILES = {
     "full_alignment": "full_alignment_index.json",
     "vivier_state": "renko_score_29pairs_vivier_state.json",
@@ -404,8 +408,10 @@ confluence entre moteurs, persistance multi-run, puis absence de contradiction. 
 def _query_flash(provider: str, features: dict, api_key: str, timeout: float = 12.0) -> dict | None:
     prompt = json.dumps(features, ensure_ascii=False, sort_keys=True)
     if provider == "claude":
-        models = [x.strip() for x in os.getenv("FOREX_BRAIN_CLAUDE_MODELS",
-                  "claude-3-7-sonnet-latest,claude-3-5-sonnet-latest").split(",") if x.strip()]
+        models = [x.strip() for x in os.getenv(
+            "FOREX_BRAIN_FLASH_CLAUDE_MODELS",
+            os.getenv("FOREX_BRAIN_CLAUDE_MODELS", FLASH_CLAUDE_MODELS),
+        ).split(",") if x.strip()]
         for model in models:
             try:
                 body = _post_json("https://api.anthropic.com/v1/messages",
@@ -418,20 +424,14 @@ def _query_flash(provider: str, features: dict, api_key: str, timeout: float = 1
             except Exception:
                 continue
     else:
-        models = [x.strip() for x in os.getenv("FOREX_BRAIN_OPENAI_MODELS", "gpt-4o,gpt-4o-mini").split(",") if x.strip()]
-        for model in models:
-            try:
-                body = _post_json("https://api.openai.com/v1/chat/completions",
-                    {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                    {"model": model, "temperature": 0, "max_tokens": 250,
-                     "response_format": {"type": "json_object"},
-                     "messages": [{"role": "system", "content": FLASH_PROMPT},
-                                  {"role": "user", "content": prompt}]}, timeout)
-                if result := _extract_json(body["choices"][0]["message"]["content"]):
-                    result["reviewer"] = "openai"
-                    return result
-            except Exception:
-                continue
+        models = [x.strip() for x in os.getenv(
+            "FOREX_BRAIN_FLASH_OPENAI_MODELS",
+            os.getenv("FOREX_BRAIN_OPENAI_MODELS", FLASH_OPENAI_MODELS),
+        ).split(",") if x.strip()]
+        if result := _query_openai_responses(prompt, FLASH_PROMPT, models, api_key,
+                                             max_tokens=800, reasoning="medium", timeout=timeout):
+            result["reviewer"] = "openai"
+            return result
     return None
 
 
@@ -470,7 +470,7 @@ def format_flash_consensus(features: dict, reviews: list[dict]) -> str | None:
                      and valid[0].get("strongest_currency") == valid[1].get("strongest_currency")
                      and valid[0].get("weakest_currency") == valid[1].get("weakest_currency"))
     if shared_pair or shared_regime:
-        header = "🤝 CONSENSUS IA (Claude x Codex)"
+        header = "🤝 CONSENSUS IA (Claude x GPT-5)"
     elif valid:
         header = "🧠 SYNTHÈSE IA MULTI-SCREENER"
     else:
@@ -525,9 +525,54 @@ def _post_json(url: str, headers: dict, payload: dict, timeout: float) -> dict:
         return json.loads(response.read().decode())
 
 
+def _responses_text(body: dict) -> str:
+    if isinstance(body.get("output_text"), str):
+        return body["output_text"]
+    chunks = []
+    for item in body.get("output") or []:
+        for content in item.get("content") or []:
+            if content.get("type") == "output_text" and isinstance(content.get("text"), str):
+                chunks.append(content["text"])
+    return "\n".join(chunks)
+
+
+def _query_openai_responses(user_prompt: str, instructions: str, models: list[str],
+                            api_key: str, max_tokens: int, reasoning: str,
+                            timeout: float) -> dict | None:
+    """OpenAI frontier models via Responses API; legacy GPT-4o remains fallback."""
+    for model in models:
+        try:
+            if model.startswith("gpt-4"):
+                body = _post_json(
+                    "https://api.openai.com/v1/chat/completions",
+                    {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    {"model": model, "temperature": 0, "max_tokens": max_tokens,
+                     "response_format": {"type": "json_object"},
+                     "messages": [{"role": "system", "content": instructions},
+                                  {"role": "user", "content": user_prompt}]}, timeout)
+                text = body["choices"][0]["message"]["content"]
+            else:
+                effort = "high" if model.startswith("gpt-5-pro") else reasoning
+                body = _post_json(
+                    "https://api.openai.com/v1/responses",
+                    {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    {"model": model, "instructions": instructions, "input": user_prompt,
+                     "max_output_tokens": max_tokens, "reasoning": {"effort": effort},
+                     "text": {"format": {"type": "json_object"}}, "store": False}, timeout)
+                text = _responses_text(body)
+            if parsed := _extract_json(text):
+                parsed["model"] = model
+                return parsed
+        except Exception as exc:
+            print(f"Warning: revue OpenAI {model} indisponible: {type(exc).__name__}")
+    return None
+
+
 def _query_claude(evidence_json: str, api_key: str, timeout: float = 20.0) -> dict | None:
-    models = [x.strip() for x in os.getenv("FOREX_BRAIN_CLAUDE_MODELS",
-              "claude-3-7-sonnet-latest,claude-3-5-sonnet-latest").split(",") if x.strip()]
+    models = [x.strip() for x in os.getenv(
+        "FOREX_BRAIN_EOD_CLAUDE_MODELS",
+        os.getenv("FOREX_BRAIN_CLAUDE_MODELS", EOD_CLAUDE_MODELS),
+    ).split(",") if x.strip()]
     for model in models:
         try:
             body = _post_json("https://api.anthropic.com/v1/messages",
@@ -543,21 +588,15 @@ def _query_claude(evidence_json: str, api_key: str, timeout: float = 20.0) -> di
 
 
 def _query_openai(evidence_json: str, api_key: str, timeout: float = 20.0) -> dict | None:
-    models = [x.strip() for x in os.getenv("FOREX_BRAIN_OPENAI_MODELS", "gpt-4o,gpt-4o-mini").split(",") if x.strip()]
-    for model in models:
-        try:
-            body = _post_json("https://api.openai.com/v1/chat/completions",
-                {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-                {"model": model, "temperature": 0, "max_tokens": 900,
-                 "response_format": {"type": "json_object"},
-                 "messages": [{"role": "system", "content": SYSTEM_PROMPT},
-                              {"role": "user", "content": evidence_json}]}, timeout)
-            if parsed := _extract_json(body["choices"][0]["message"]["content"]):
-                parsed["reviewer"] = "openai"
-                return parsed
-        except Exception as exc:
-            print(f"Warning: revue OpenAI {model} indisponible: {type(exc).__name__}")
-    return None
+    models = [x.strip() for x in os.getenv(
+        "FOREX_BRAIN_EOD_OPENAI_MODELS",
+        os.getenv("FOREX_BRAIN_OPENAI_MODELS", EOD_OPENAI_MODELS),
+    ).split(",") if x.strip()]
+    parsed = _query_openai_responses(evidence_json, SYSTEM_PROMPT, models, api_key,
+                                     max_tokens=3000, reasoning="high", timeout=timeout)
+    if parsed:
+        parsed["reviewer"] = "openai"
+    return parsed
 
 
 def run_dual_review(evidence: dict) -> list[dict]:

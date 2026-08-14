@@ -7,7 +7,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 from forex_ai_brain import (
+    EOD_CLAUDE_MODELS,
+    EOD_OPENAI_MODELS,
+    FLASH_CLAUDE_MODELS,
+    FLASH_OPENAI_MODELS,
     PARIS,
+    _query_openai_responses,
+    _responses_text,
     _validated_suggestions,
     build_evidence,
     build_flash_features,
@@ -170,11 +176,11 @@ class TestForexAIBrain(unittest.TestCase):
              "best_pair": "NZDCHF", "direction": "LONG"},
         ]
         report = format_flash_consensus(features, agreement)
-        self.assertIn("CONSENSUS IA (Claude x Codex)", report)
+        self.assertIn("CONSENSUS IA (Claude x GPT-5)", report)
         self.assertIn("NZDCHF LONG · 3 runs · 2 moteurs", report)
         disagreement = [agreement[0], {**agreement[1], "best_pair": "NZDUSD", "weakest_currency": "USD"}]
         report = format_flash_consensus(features, disagreement)
-        self.assertNotIn("CONSENSUS IA (Claude x Codex)", report)
+        self.assertNotIn("CONSENSUS IA (Claude x GPT-5)", report)
         self.assertIn("SYNTHÈSE IA MULTI-SCREENER", report)
 
     @patch("forex_ai_brain.run_dual_review", return_value=[])
@@ -187,6 +193,31 @@ class TestForexAIBrain(unittest.TestCase):
         self.assertIn("aucun faux consensus", report)
         self.assertNotIn("CONSENSUS IA", report)
         self.assertFalse(kb["daily_reports"][-1]["telegram_sent"])
+
+    def test_frontier_models_are_the_default_reviewers(self):
+        self.assertTrue(FLASH_CLAUDE_MODELS.startswith("claude-sonnet-4-"))
+        self.assertTrue(EOD_CLAUDE_MODELS.startswith("claude-opus-4-1-"))
+        self.assertTrue(FLASH_OPENAI_MODELS.startswith("gpt-5.1"))
+        self.assertTrue(EOD_OPENAI_MODELS.startswith("gpt-5-pro"))
+
+    def test_responses_api_text_is_extracted(self):
+        body = {"output": [{"content": [
+            {"type": "output_text", "text": '{"best_pair":"NZDCHF"}'},
+        ]}]}
+        self.assertEqual(_responses_text(body), '{"best_pair":"NZDCHF"}')
+
+    @patch("forex_ai_brain._post_json")
+    def test_gpt5_uses_responses_api_with_reasoning(self, post):
+        post.return_value = {"output_text": '{"best_pair":"NZDCHF"}'}
+        result = _query_openai_responses(
+            "preuves", "instructions", ["gpt-5.1"], "secret",
+            max_tokens=300, reasoning="medium", timeout=12,
+        )
+        self.assertEqual(result["model"], "gpt-5.1")
+        url, _headers, payload, _timeout = post.call_args.args
+        self.assertEqual(url, "https://api.openai.com/v1/responses")
+        self.assertEqual(payload["reasoning"], {"effort": "medium"})
+        self.assertFalse(payload["store"])
 
 
 if __name__ == "__main__":
