@@ -5,6 +5,10 @@ Replay Multi-Run (Consolidé 6 Portefeuilles & Mode Verbose C1)
 Rejoue n'importe quelle journée passée (cadence 15m si disponible < 60d, ou H1).
 Alimente les 6 portefeuilles d'exécution (A, B, C1, C2, C3, C4) et affiche la matrice de décision consolidée.
 Option --verbose-trades pour journaliser chaque ENTRÉE et FERMETURE de C1.
+
+Corrections d'Audit de Fidélité :
+1. Compteur Active x/15 SÉQUENTIEL lors des entrées par batch.
+2. Clôture EOD strictement bornée à 22h00 Paris (heures 07h00 - 22h00).
 """
 
 import sys
@@ -86,11 +90,12 @@ def run_multi_run_replay():
         return
 
     sample_df = list(m_map.values())[0]
-    run_timestamps = [dt for dt in sample_df.index if dt.strftime("%Y-%m-%d") == target_date_str and dt.hour >= 7]
+    # Borner strictement la fenêtre de trading à [07:00, 22:00] Paris
+    run_timestamps = [dt for dt in sample_df.index if dt.strftime("%Y-%m-%d") == target_date_str and 7 <= dt.hour <= 22]
     run_timestamps.sort()
 
     if not run_timestamps:
-        print(f"⚠️ Aucune bougie ({interval_used}) trouvée pour la date {target_date_str} >= 07:00 Paris.")
+        print(f"⚠️ Aucune bougie ({interval_used}) trouvée pour la date {target_date_str} entre 07:00 et 22:00 Paris.")
         return
 
     print(f"\n🚀 REPLAY MULTI-RUN ({interval_used.upper()}) DU {target_date_str} ({len(run_timestamps)} RUNS)")
@@ -224,7 +229,6 @@ def run_multi_run_replay():
         # Traitement parallèle des 6 portefeuilles
         eligible_states = [s for s in states_list if s.is_eligible]
         
-        # Pour les timestamps clés de la journée, afficher le message consolidé
         if not verbose_trades and run_time_str in ["07:45", "08:15", "09:45", "11:00", "15:00"]:
             for s in eligible_states[:2]:
                 decisions = {}
@@ -243,10 +247,12 @@ def run_multi_run_replay():
             for v_id, mgr in managers.items():
                 entries, rejections = mgr.process_run(copy.deepcopy(states_list), is_last_run_of_day=is_last_run)
                 
-                # Mode Verbose C1
+                # Mode Verbose C1 : Affichage SÉQUENTIEL exact du compteur Active x/15
                 if verbose_trades and v_id == "RSB-C1":
-                    for entry in entries:
-                        print(f"🟢 [ENTRY RSB-C1] {run_time_str} | {entry.pair:<7} {entry.direction:<5} | Price: {entry.entry_price:.5f} | 07h Pips: {entry.entry_pips_07h:+.1f}p | Active: {len(mgr.active_positions)}/15")
+                    active_start = len(mgr.active_positions) - len(entries)
+                    for i, entry in enumerate(entries, start=1):
+                        seq_active = active_start + i
+                        print(f"🟢 [ENTRY RSB-C1] {run_time_str} | {entry.pair:<7} {entry.direction:<5} | Price: {entry.entry_price:.5f} | 07h Pips: {entry.entry_pips_07h:+.1f}p | Active: {seq_active}/15")
                     
                     new_closed = mgr.closed_trades[c1_closed_before_count:]
                     for cl in new_closed:
@@ -259,7 +265,6 @@ def run_multi_run_replay():
     for v_id, mgr in managers.items():
         print(f"  {v_id:<10} -> {len(mgr.closed_trades)} trades fermés, Pips totaux: {sum(t.exit_pips for t in mgr.closed_trades):+.1f}p")
 
-    # Si --verbose-trades est activé, afficher le détail complet de tous les trades C1
     if verbose_trades:
         c1_mgr = managers["RSB-C1"]
         print(f"\n📋 DÉTAIL COMPLET DES {len(c1_mgr.closed_trades)} TRADES EXÉCUTÉS SUR RSB-C1 LE {target_date_str} :")
