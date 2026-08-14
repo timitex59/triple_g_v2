@@ -442,6 +442,15 @@ best_pair et direction doivent recopier un candidat non contradictoire. Cherche:
 confluence entre moteurs, persistance multi-run, puis absence de contradiction. N'invente aucune paire ni donnée."""
 
 
+def _claude_payload(model: str, max_tokens: int, system: str, user: str) -> dict:
+    payload = {"model": model, "max_tokens": max_tokens, "system": system,
+               "messages": [{"role": "user", "content": user}]}
+    # Claude 5 rejects this legacy sampling parameter instead of ignoring it.
+    if not re.search(r"claude-(?:opus|sonnet|fable)-5(?:$|-)", model):
+        payload["temperature"] = 0
+    return payload
+
+
 def _query_flash(provider: str, features: dict, api_key: str, timeout: float = 12.0) -> dict | None:
     prompt = json.dumps(features, ensure_ascii=False, sort_keys=True)
     if provider == "claude":
@@ -454,8 +463,7 @@ def _query_flash(provider: str, features: dict, api_key: str, timeout: float = 1
             try:
                 body = _post_json("https://api.anthropic.com/v1/messages",
                     {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                    {"model": model, "max_tokens": 250, "temperature": 0, "system": FLASH_PROMPT,
-                     "messages": [{"role": "user", "content": prompt}]}, timeout)
+                    _claude_payload(model, 250, FLASH_PROMPT, prompt), timeout)
                 if result := _extract_json(body["content"][0]["text"]):
                     result["reviewer"] = "claude"
                     result["model"] = model
@@ -629,8 +637,7 @@ def _query_claude(evidence_json: str, api_key: str, timeout: float = 20.0) -> di
         try:
             body = _post_json("https://api.anthropic.com/v1/messages",
                 {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                {"model": model, "max_tokens": 900, "temperature": 0, "system": SYSTEM_PROMPT,
-                 "messages": [{"role": "user", "content": evidence_json}]}, timeout)
+                _claude_payload(model, 900, SYSTEM_PROMPT, evidence_json), timeout)
             if parsed := _extract_json(body["content"][0]["text"]):
                 parsed["reviewer"] = "claude"
                 parsed["model"] = model

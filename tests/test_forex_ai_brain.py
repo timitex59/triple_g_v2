@@ -13,6 +13,7 @@ from forex_ai_brain import (
     FLASH_OPENAI_MODELS,
     PARIS,
     _anthropic_candidates,
+    _claude_payload,
     _query_openai_responses,
     _responses_text,
     _validated_suggestions,
@@ -216,6 +217,12 @@ class TestForexAIBrain(unittest.TestCase):
         )
         self.assertEqual(flash[0], "claude-sonnet-4-5-20250929")
         self.assertEqual(eod[0], "claude-opus-4-1-20250805")
+
+    def test_claude5_payload_omits_deprecated_temperature(self):
+        newest = _claude_payload("claude-sonnet-5", 250, "system", "user")
+        older = _claude_payload("claude-sonnet-4-6", 250, "system", "user")
+        self.assertNotIn("temperature", newest)
+        self.assertEqual(older["temperature"], 0)
 
     def test_responses_api_text_is_extracted(self):
         body = {"output": [{"content": [
