@@ -804,9 +804,7 @@ def build_multilayer_section(composites: dict[str, dict], payload: dict | None) 
 
 def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> list[str]:
     """Message FIOS envoye sur Telegram. Ne contient plus que :
-      📊 VIVIER · 🎯 PAIRES CONVERGENTES · 🔝 TOP MOMENTUM PAIRES.
-    Le CLASSEMENT multicouche, la CONFLUENCE et RENKO FIBO 50% ne sont plus
-    envoyes (et ne sont donc plus calcules ici : plus de scan Fibo)."""
+      🤝 CONSENSUS IA · 📊 VIVIER · 🎯 PAIRES CONVERGENTES · 🔝 TOP MOMENTUM PAIRES."""
     if not payload:
         return []
     pairs = payload.get("pairs") or {}
@@ -825,5 +823,15 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
         if lines:
             lines.append("")
         lines.extend(idx_lines)
+
+    # ── Synthèse IA Flash Consensus ──
+    try:
+        from .ai_consensus import generate_ai_consensus
+        full_text = "\n".join(lines)
+        ai_lines = generate_ai_consensus(full_text)
+        if ai_lines:
+            lines = ai_lines + [""] + lines
+    except Exception as exc:
+        print(f"Warning: AI Consensus module failed: {exc}")
 
     return lines
