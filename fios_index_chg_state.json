@@ -3,7 +3,7 @@
   "currencies": {
     "USD": {
       "baseline": 99.949,
-      "prev": 99.859
+      "prev": 99.85
     },
     "EUR": {
       "baseline": 115.285,
@@ -37,99 +37,99 @@
   "pairs": {
     "AUDCAD": {
       "baseline": 0.98344,
-      "prev": 0.9828
+      "prev": 0.98293
     },
     "AUDCHF": {
       "baseline": 0.57475,
-      "prev": 0.57445
+      "prev": 0.57472
     },
     "AUDJPY": {
       "baseline": 112.608,
-      "prev": 112.515
+      "prev": 112.534
     },
     "AUDNZD": {
       "baseline": 1.20712,
-      "prev": 1.20384
+      "prev": 1.20423
     },
     "AUDUSD": {
       "baseline": 0.70604,
-      "prev": 0.70624
+      "prev": 0.7065
     },
     "CADCHF": {
       "baseline": 0.58444,
-      "prev": 0.5845
+      "prev": 0.5847
     },
     "CADJPY": {
       "baseline": 114.495,
-      "prev": 114.48
+      "prev": 114.485
     },
     "CHFJPY": {
       "baseline": 195.91,
-      "prev": 195.87
+      "prev": 195.806
     },
     "EURAUD": {
       "baseline": 1.63323,
-      "prev": 1.63398
+      "prev": 1.6335
     },
     "EURCAD": {
       "baseline": 1.60628,
-      "prev": 1.60593
+      "prev": 1.60576
     },
     "EURCHF": {
       "baseline": 0.93876,
-      "prev": 0.93866
+      "prev": 0.93888
     },
     "EURGBP": {
       "baseline": 0.855,
-      "prev": 0.85494
+      "prev": 0.85498
     },
     "EURJPY": {
       "baseline": 183.905,
-      "prev": 183.854
+      "prev": 183.828
     },
     "EURNZD": {
       "baseline": 1.97113,
-      "prev": 1.96706
+      "prev": 1.96727
     },
     "EURUSD": {
       "baseline": 1.15304,
-      "prev": 1.154
+      "prev": 1.1541
     },
     "GBPAUD": {
       "baseline": 1.91026,
-      "prev": 1.91112
+      "prev": 1.91064
     },
     "GBPCAD": {
       "baseline": 1.87874,
-      "prev": 1.87848
+      "prev": 1.87816
     },
     "GBPCHF": {
       "baseline": 1.09798,
-      "prev": 1.09795
+      "prev": 1.09814
     },
     "GBPJPY": {
       "baseline": 215.107,
-      "prev": 215.051
+      "prev": 215.016
     },
     "GBPNZD": {
       "baseline": 2.30552,
-      "prev": 2.3009
+      "prev": 2.30099
     },
     "GBPUSD": {
       "baseline": 1.34868,
-      "prev": 1.34984
+      "prev": 1.34988
     },
     "NZDCAD": {
       "baseline": 0.81486,
-      "prev": 0.81638
+      "prev": 0.81624
     },
     "NZDCHF": {
       "baseline": 0.47622,
-      "prev": 0.47718
+      "prev": 0.47726
     },
     "NZDJPY": {
       "baseline": 93.294,
-      "prev": 93.462
+      "prev": 93.444
     },
     "NZDUSD": {
       "baseline": 0.585,
@@ -137,19 +137,19 @@
     },
     "USDCAD": {
       "baseline": 1.39316,
-      "prev": 1.39168
+      "prev": 1.39144
     },
     "USDCHF": {
       "baseline": 0.81413,
-      "prev": 0.8134
+      "prev": 0.81354
     },
     "USDJPY": {
       "baseline": 159.494,
-      "prev": 159.314
+      "prev": 159.298
     },
     "XAUUSD": {
       "baseline": 4351.27,
-      "prev": 4319.585
+      "prev": 4321.98
     }
   },
   "sections": {
@@ -157,15 +157,7 @@
       "section": "conv",
       "dir": 1
     },
-    "EURAUD": {
-      "section": "conv",
-      "dir": 1
-    },
     "USDCAD": {
-      "section": "conv",
-      "dir": -1
-    },
-    "AUDCAD": {
       "section": "conv",
       "dir": -1
     },
@@ -179,6 +171,14 @@
     },
     "AUDNZD": {
       "section": "top",
+      "dir": -1
+    },
+    "EURAUD": {
+      "section": "conv",
+      "dir": 1
+    },
+    "AUDCAD": {
+      "section": "conv",
       "dir": -1
     },
     "AUDUSD": {
@@ -199,10 +199,10 @@
         "dir": 1,
         "date": "2026-08-14",
         "start_price": 1.154,
-        "last_price": 1.154,
+        "last_price": 1.1541,
         "start_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "last_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "current_pips": 0.0
+        "last_time_paris": "2026-08-14T07:48:02.934527+02:00",
+        "current_pips": 0.9999999999998899
       },
       "EURAUD": {
         "pair": "EURAUD",
@@ -210,10 +210,10 @@
         "dir": 1,
         "date": "2026-08-14",
         "start_price": 1.63398,
-        "last_price": 1.63398,
+        "last_price": 1.6335,
         "start_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "last_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "current_pips": 0.0
+        "last_time_paris": "2026-08-14T07:48:02.934527+02:00",
+        "current_pips": -4.8000000000003595
       },
       "USDCAD": {
         "pair": "USDCAD",
@@ -221,10 +221,10 @@
         "dir": -1,
         "date": "2026-08-14",
         "start_price": 1.39168,
-        "last_price": 1.39168,
+        "last_price": 1.39144,
         "start_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "last_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "current_pips": 0.0
+        "last_time_paris": "2026-08-14T07:48:02.934527+02:00",
+        "current_pips": 2.4000000000001798
       },
       "AUDCAD": {
         "pair": "AUDCAD",
@@ -232,10 +232,10 @@
         "dir": -1,
         "date": "2026-08-14",
         "start_price": 0.9828,
-        "last_price": 0.9828,
+        "last_price": 0.98293,
         "start_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "last_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "current_pips": 0.0
+        "last_time_paris": "2026-08-14T07:48:02.934527+02:00",
+        "current_pips": -1.2999999999996348
       },
       "XAUUSD": {
         "pair": "XAUUSD",
@@ -243,10 +243,10 @@
         "dir": -1,
         "date": "2026-08-14",
         "start_price": 4319.585,
-        "last_price": 4319.585,
+        "last_price": 4321.98,
         "start_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "last_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "current_pips": 0.0
+        "last_time_paris": "2026-08-14T07:48:02.934527+02:00",
+        "current_pips": -239.4999999999527
       },
       "NZDUSD": {
         "pair": "NZDUSD",
@@ -256,7 +256,7 @@
         "start_price": 0.58666,
         "last_price": 0.58666,
         "start_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "last_time_paris": "2026-08-14T07:19:19.167146+02:00",
+        "last_time_paris": "2026-08-14T07:48:02.934527+02:00",
         "current_pips": 0.0
       },
       "AUDNZD": {
@@ -265,10 +265,10 @@
         "dir": -1,
         "date": "2026-08-14",
         "start_price": 1.20384,
-        "last_price": 1.20384,
+        "last_price": 1.20423,
         "start_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "last_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "current_pips": 0.0
+        "last_time_paris": "2026-08-14T07:48:02.934527+02:00",
+        "current_pips": -3.8999999999989043
       },
       "AUDUSD": {
         "pair": "AUDUSD",
@@ -276,10 +276,10 @@
         "dir": 1,
         "date": "2026-08-14",
         "start_price": 0.70624,
-        "last_price": 0.70624,
+        "last_price": 0.7065,
         "start_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "last_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "current_pips": 0.0
+        "last_time_paris": "2026-08-14T07:48:02.934527+02:00",
+        "current_pips": 2.60000000000038
       },
       "USDJPY": {
         "pair": "USDJPY",
@@ -287,10 +287,10 @@
         "dir": -1,
         "date": "2026-08-14",
         "start_price": 159.314,
-        "last_price": 159.314,
+        "last_price": 159.298,
         "start_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "last_time_paris": "2026-08-14T07:19:19.167146+02:00",
-        "current_pips": 0.0
+        "last_time_paris": "2026-08-14T07:48:02.934527+02:00",
+        "current_pips": 1.5999999999991132
       }
     },
     "days": {
@@ -470,127 +470,127 @@
   "price_trends": {
     "version": 1,
     "date": "2026-08-14",
-    "updated_at_paris": "2026-08-14T07:19:19.167146+02:00",
+    "updated_at_paris": "2026-08-14T07:48:02.934527+02:00",
     "pairs": {
       "AUDCAD": {
         "baseline_07h": 0.9828,
         "baseline_ready": true,
-        "previous": 0.9828
+        "previous": 0.98293
       },
       "AUDCHF": {
         "baseline_07h": 0.57445,
         "baseline_ready": true,
-        "previous": 0.57445
+        "previous": 0.57472
       },
       "AUDJPY": {
         "baseline_07h": 112.515,
         "baseline_ready": true,
-        "previous": 112.515
+        "previous": 112.534
       },
       "AUDNZD": {
         "baseline_07h": 1.20384,
         "baseline_ready": true,
-        "previous": 1.20384
+        "previous": 1.20423
       },
       "AUDUSD": {
         "baseline_07h": 0.70624,
         "baseline_ready": true,
-        "previous": 0.70624
+        "previous": 0.7065
       },
       "CADCHF": {
         "baseline_07h": 0.5845,
         "baseline_ready": true,
-        "previous": 0.5845
+        "previous": 0.5847
       },
       "CADJPY": {
         "baseline_07h": 114.48,
         "baseline_ready": true,
-        "previous": 114.48
+        "previous": 114.485
       },
       "CHFJPY": {
         "baseline_07h": 195.87,
         "baseline_ready": true,
-        "previous": 195.87
+        "previous": 195.806
       },
       "EURAUD": {
         "baseline_07h": 1.63398,
         "baseline_ready": true,
-        "previous": 1.63398
+        "previous": 1.6335
       },
       "EURCAD": {
         "baseline_07h": 1.60593,
         "baseline_ready": true,
-        "previous": 1.60593
+        "previous": 1.60576
       },
       "EURCHF": {
         "baseline_07h": 0.93866,
         "baseline_ready": true,
-        "previous": 0.93866
+        "previous": 0.93888
       },
       "EURGBP": {
         "baseline_07h": 0.85494,
         "baseline_ready": true,
-        "previous": 0.85494
+        "previous": 0.85498
       },
       "EURJPY": {
         "baseline_07h": 183.854,
         "baseline_ready": true,
-        "previous": 183.854
+        "previous": 183.828
       },
       "EURNZD": {
         "baseline_07h": 1.96706,
         "baseline_ready": true,
-        "previous": 1.96706
+        "previous": 1.96727
       },
       "EURUSD": {
         "baseline_07h": 1.154,
         "baseline_ready": true,
-        "previous": 1.154
+        "previous": 1.1541
       },
       "GBPAUD": {
         "baseline_07h": 1.91112,
         "baseline_ready": true,
-        "previous": 1.91112
+        "previous": 1.91064
       },
       "GBPCAD": {
         "baseline_07h": 1.87848,
         "baseline_ready": true,
-        "previous": 1.87848
+        "previous": 1.87816
       },
       "GBPCHF": {
         "baseline_07h": 1.09795,
         "baseline_ready": true,
-        "previous": 1.09795
+        "previous": 1.09814
       },
       "GBPJPY": {
         "baseline_07h": 215.051,
         "baseline_ready": true,
-        "previous": 215.051
+        "previous": 215.016
       },
       "GBPNZD": {
         "baseline_07h": 2.3009,
         "baseline_ready": true,
-        "previous": 2.3009
+        "previous": 2.30099
       },
       "GBPUSD": {
         "baseline_07h": 1.34984,
         "baseline_ready": true,
-        "previous": 1.34984
+        "previous": 1.34988
       },
       "NZDCAD": {
         "baseline_07h": 0.81638,
         "baseline_ready": true,
-        "previous": 0.81638
+        "previous": 0.81624
       },
       "NZDCHF": {
         "baseline_07h": 0.47718,
         "baseline_ready": true,
-        "previous": 0.47718
+        "previous": 0.47726
       },
       "NZDJPY": {
         "baseline_07h": 93.462,
         "baseline_ready": true,
-        "previous": 93.462
+        "previous": 93.444
       },
       "NZDUSD": {
         "baseline_07h": 0.58666,
@@ -600,170 +600,170 @@
       "USDCAD": {
         "baseline_07h": 1.39168,
         "baseline_ready": true,
-        "previous": 1.39168
+        "previous": 1.39144
       },
       "USDCHF": {
         "baseline_07h": 0.8134,
         "baseline_ready": true,
-        "previous": 0.8134
+        "previous": 0.81354
       },
       "USDJPY": {
         "baseline_07h": 159.314,
         "baseline_ready": true,
-        "previous": 159.314
+        "previous": 159.298
       },
       "XAUUSD": {
         "baseline_07h": 4319.585,
         "baseline_ready": true,
-        "previous": 4319.585
+        "previous": 4321.98
       }
     }
   },
   "render_trends": {
     "AUDCAD": {
-      "price": 0.9828,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 0.98293,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "AUDCHF": {
-      "price": 0.57445,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 0.57472,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "AUDJPY": {
-      "price": 112.515,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 112.534,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "AUDNZD": {
-      "price": 1.20384,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 1.20423,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "AUDUSD": {
-      "price": 0.70624,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 0.7065,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "CADCHF": {
-      "price": 0.5845,
-      "vs_07h": "→",
+      "price": 0.5847,
+      "vs_07h": "↑",
       "vs_previous": "↑"
     },
     "CADJPY": {
-      "price": 114.48,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 114.485,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "CHFJPY": {
-      "price": 195.87,
-      "vs_07h": "→",
+      "price": 195.806,
+      "vs_07h": "↓",
       "vs_previous": "↓"
     },
     "EURAUD": {
-      "price": 1.63398,
-      "vs_07h": "→",
-      "vs_previous": "↑"
+      "price": 1.6335,
+      "vs_07h": "↓",
+      "vs_previous": "↓"
     },
     "EURCAD": {
-      "price": 1.60593,
-      "vs_07h": "→",
+      "price": 1.60576,
+      "vs_07h": "↓",
       "vs_previous": "↓"
     },
     "EURCHF": {
-      "price": 0.93866,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 0.93888,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "EURGBP": {
-      "price": 0.85494,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 0.85498,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "EURJPY": {
-      "price": 183.854,
-      "vs_07h": "→",
+      "price": 183.828,
+      "vs_07h": "↓",
       "vs_previous": "↓"
     },
     "EURNZD": {
-      "price": 1.96706,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 1.96727,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "EURUSD": {
-      "price": 1.154,
-      "vs_07h": "→",
+      "price": 1.1541,
+      "vs_07h": "↑",
       "vs_previous": "↑"
     },
     "GBPAUD": {
-      "price": 1.91112,
-      "vs_07h": "→",
-      "vs_previous": "↑"
+      "price": 1.91064,
+      "vs_07h": "↓",
+      "vs_previous": "↓"
     },
     "GBPCAD": {
-      "price": 1.87848,
-      "vs_07h": "→",
+      "price": 1.87816,
+      "vs_07h": "↓",
       "vs_previous": "↓"
     },
     "GBPCHF": {
-      "price": 1.09795,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 1.09814,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "GBPJPY": {
-      "price": 215.051,
-      "vs_07h": "→",
+      "price": 215.016,
+      "vs_07h": "↓",
       "vs_previous": "↓"
     },
     "GBPNZD": {
-      "price": 2.3009,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 2.30099,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "GBPUSD": {
-      "price": 1.34984,
-      "vs_07h": "→",
+      "price": 1.34988,
+      "vs_07h": "↑",
       "vs_previous": "↑"
     },
     "NZDCAD": {
-      "price": 0.81638,
-      "vs_07h": "→",
-      "vs_previous": "↑"
+      "price": 0.81624,
+      "vs_07h": "↓",
+      "vs_previous": "↓"
     },
     "NZDCHF": {
-      "price": 0.47718,
-      "vs_07h": "→",
+      "price": 0.47726,
+      "vs_07h": "↑",
       "vs_previous": "↑"
     },
     "NZDJPY": {
-      "price": 93.462,
-      "vs_07h": "→",
-      "vs_previous": "↑"
+      "price": 93.444,
+      "vs_07h": "↓",
+      "vs_previous": "↓"
     },
     "NZDUSD": {
       "price": 0.58666,
       "vs_07h": "→",
-      "vs_previous": "↑"
+      "vs_previous": "→"
     },
     "USDCAD": {
-      "price": 1.39168,
-      "vs_07h": "→",
+      "price": 1.39144,
+      "vs_07h": "↓",
       "vs_previous": "↓"
     },
     "USDCHF": {
-      "price": 0.8134,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 0.81354,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     },
     "USDJPY": {
-      "price": 159.314,
-      "vs_07h": "→",
+      "price": 159.298,
+      "vs_07h": "↓",
       "vs_previous": "↓"
     },
     "XAUUSD": {
-      "price": 4319.585,
-      "vs_07h": "→",
-      "vs_previous": "↓"
+      "price": 4321.98,
+      "vs_07h": "↑",
+      "vs_previous": "↑"
     }
   }
 }
