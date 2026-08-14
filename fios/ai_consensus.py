@@ -37,28 +37,37 @@ Exemple de format attendu :
 
 def _call_claude(report_text: str, api_key: str, timeout: float = 2.0) -> list[str] | None:
     """Appel API Anthropic Claude."""
-    try:
-        url = "https://api.anthropic.com/v1/messages"
-        headers = {
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        }
-        data = {
-            "model": "claude-3-5-haiku-20241022",
-            "max_tokens": 100,
-            "system": PROMPT_SYSTEM,
-            "messages": [{"role": "user", "content": f"Voici le rapport Forex à synthétiser en 2 lignes ultra-courtes:\n\n{report_text[:2500]}"}],
-        }
-        req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
-            text = body["content"][0]["text"].strip()
-            lines = [line.strip() for line in text.splitlines() if line.strip()]
-            return lines[:2] if len(lines) >= 2 else None
-    except Exception as exc:
-        print(f"Warning: Claude API call failed/timeout: {exc}")
-        return None
+    url = "https://api.anthropic.com/v1/messages"
+    headers = {
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+    }
+    candidate_models = [
+        "claude-3-5-haiku-latest",
+        "claude-3-5-sonnet-latest",
+        "claude-3-haiku-20240307",
+        "claude-3-5-haiku-20241022",
+    ]
+    for model_name in candidate_models:
+        try:
+            data = {
+                "model": model_name,
+                "max_tokens": 100,
+                "system": PROMPT_SYSTEM,
+                "messages": [{"role": "user", "content": f"Voici le rapport Forex à synthétiser en 2 lignes ultra-courtes:\n\n{report_text[:2500]}"}],
+            }
+            req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+                text = body["content"][0]["text"].strip()
+                lines = [line.strip() for line in text.splitlines() if line.strip()]
+                if len(lines) >= 2:
+                    return lines[:2]
+        except Exception:
+            continue
+    print("Warning: Claude API call failed on all candidate models.")
+    return None
 
 
 def _call_openai(report_text: str, api_key: str, timeout: float = 2.0) -> list[str] | None:
