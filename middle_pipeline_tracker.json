@@ -64,7 +64,7 @@
       "last_seen": "2026-08-14",
       "last_rank": 5,
       "peak_rank": 3,
-      "last_rel": 1.56,
+      "last_rel": 1.22,
       "active": true
     },
     "SMTC": {
@@ -149,21 +149,20 @@
       "days": 16,
       "first_seen": "2026-07-02",
       "last_seen": "2026-08-14",
-      "last_rank": 1,
+      "last_rank": 2,
       "peak_rank": 1,
-      "last_rel": 74.65,
+      "last_rel": 81.08,
       "active": true
     },
     "QLYS": {
-      "streak": 7,
-      "days": 14,
+      "streak": 1,
+      "days": 15,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-08-12",
+      "last_seen": "2026-08-14",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 97.18,
-      "active": false,
-      "dropped_on": "2026-08-13"
+      "last_rel": 110.11,
+      "active": true
     },
     "CXT": {
       "streak": 1,
@@ -210,14 +209,15 @@
       "dropped_on": "2026-08-07"
     },
     "MANH": {
-      "streak": 2,
-      "days": 4,
+      "streak": 1,
+      "days": 3,
       "first_seen": "2026-07-31",
-      "last_seen": "2026-08-14",
-      "last_rank": 3,
+      "last_seen": "2026-08-13",
+      "last_rank": 4,
       "peak_rank": 1,
-      "last_rel": 44.2,
-      "active": true
+      "last_rel": 46.07,
+      "active": false,
+      "dropped_on": "2026-08-14"
     },
     "NTNX": {
       "streak": 1,
@@ -237,7 +237,7 @@
       "last_seen": "2026-08-14",
       "last_rank": 4,
       "peak_rank": 4,
-      "last_rel": 14.41,
+      "last_rel": 14.27,
       "active": true
     },
     "DBX": {
@@ -267,9 +267,9 @@
       "days": 5,
       "first_seen": "2026-08-10",
       "last_seen": "2026-08-14",
-      "last_rank": 2,
+      "last_rank": 3,
       "peak_rank": 2,
-      "last_rel": 31.11,
+      "last_rel": 30.97,
       "active": true
     }
   },
@@ -288,8 +288,8 @@
         4
       ],
       [
-        "MANH",
-        2
+        "QLYS",
+        1
       ],
       [
         "AVT",
@@ -297,64 +297,66 @@
       ]
     ],
     "new": [
+      "QLYS",
       "AVT"
     ],
     "weakening": [
       {
         "ticker": "OKTA",
-        "rank": 1,
+        "rank": 2,
         "prev_rank": 1,
-        "rel": 74.65,
+        "rel": 81.08,
         "prev_rel": 81.24
       },
       {
-        "ticker": "MANH",
+        "ticker": "P",
         "rank": 3,
-        "prev_rank": 4,
-        "rel": 44.2,
-        "prev_rel": 46.07
+        "prev_rank": 2,
+        "rel": 30.97,
+        "prev_rel": 30.64
       },
       {
         "ticker": "BDC",
         "rank": 4,
         "prev_rank": 5,
-        "rel": 14.41,
+        "rel": 14.27,
         "prev_rel": 17.74
       }
     ],
     "dropped": [
+      "MANH",
       "NTNX"
     ],
     "durable": [
       [
         "OKTA",
         6,
-        74.65,
-        447.9
+        81.08,
+        486.5
       ],
       [
         "P",
         5,
-        31.11,
-        155.6
+        30.97,
+        154.8
       ],
       [
-        "MANH",
-        2,
-        44.2,
-        88.4
+        "QLYS",
+        1,
+        110.11,
+        110.1
       ],
       [
         "BDC",
         4,
-        14.41,
-        57.6
+        14.27,
+        57.1
       ],
       [
         "AVT",
         1,
-        1.56,
-        1.6
+        1.22,
+        1.2
       ]
     ],
     "switch": null
