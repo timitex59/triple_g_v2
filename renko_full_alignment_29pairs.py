@@ -1010,7 +1010,7 @@ def _sidecar_row(row: dict) -> dict:
 
 
 def write_index_sidecar(path: Path, index_by_currency: dict, rows: list[dict],
-                        now: datetime) -> None:
+                        now: datetime, selected_rows: list[dict] | None = None) -> None:
     """Ecrit un sidecar (daily_chg + px M/W/D + alignement strict) par devise ET
     par paire, lu par FIOS pour croiser avec sa force composite. Non-invasif :
     sans effet sur le message Telegram existant."""
@@ -1025,6 +1025,15 @@ def write_index_sidecar(path: Path, index_by_currency: dict, rows: list[dict],
         "source": "renko_full_alignment_29pairs.py",
         "currencies": currencies,
         "pairs": pairs,
+        "selected_pairs": {
+            str(row.get("pair")): {
+                "direction": full_alignment_direction(row),
+                "live_price": row.get("live_price"),
+                "daily_chg": row.get("daily_chg"),
+                "premium_currency_profile": bool(row.get("premium_currency_profile")),
+            }
+            for row in (selected_rows or []) if row.get("asset_type") != "INDEX"
+        },
     }
     try:
         path.write_text(
@@ -1042,7 +1051,6 @@ def main() -> int:
     price_state, price_trends = update_price_trends(price_state, rows, now)
     save_price_trend_state(args.price_trend_state_file, price_state)
     index_by_currency = _index_rows_by_currency(rows)
-    write_index_sidecar(INDEX_SIDECAR_FILE, index_by_currency, rows, now)
     rows_by_pair = {str(row.get("pair")): row for row in rows}
 
     index_daily_chg_rows = select_index_daily_chg_rows(rows)
@@ -1059,6 +1067,7 @@ def main() -> int:
     ]
     selected = filter_conflicting_currency_pairs(selected)
     selected = attach_premium_currency_profiles(selected, rows)
+    write_index_sidecar(INDEX_SIDECAR_FILE, index_by_currency, rows, now, selected)
 
     mid_candidates = select_mid_alignment_candidates(rows)
     mid_candidates = [

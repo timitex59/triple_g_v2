@@ -10,10 +10,12 @@ from forex_ai_brain import (
     PARIS,
     _validated_suggestions,
     build_evidence,
+    build_flash_features,
     calculate_trade_stats,
     collect_closed_trades,
     collect_market_snapshot,
     load_knowledge_base,
+    format_flash_consensus,
     record_run_observation,
     run_eod_analysis,
     save_knowledge_base,
@@ -60,6 +62,8 @@ class TestForexAIBrain(unittest.TestCase):
             "vivier_pips": self._write("vp.json", {}),
             "fibo_pips": self._write("fp.json", {"open": {
                 "GBPCAD": {"direction": 1, "entry_price": 1.88}}}),
+            "fibo_snapshot": self._write("fs.json", {"sections": {
+                "daily": [{"pair": "AUDJPY", "direction": "BEAR"}]}}),
             "fios": self._write("fios.json", {"date": "2026-08-14", "sections": {
                 "XAUUSD": {"section": "top", "dir": -1}},
                 "pairs": {"XAUUSD": {"level": 4300.0}}}),
@@ -69,6 +73,7 @@ class TestForexAIBrain(unittest.TestCase):
         self.assertEqual(snap["vivier_pool"]["USDCHF"]["direction"], 1)
         self.assertEqual(snap["fios_sections"]["XAUUSD"]["direction"], -1)
         self.assertEqual(snap["prices"]["XAUUSD"], 4300.0)
+        self.assertEqual(snap["fibo_sections"]["daily"][0]["pair"], "AUDJPY")
 
     def test_closed_trade_import_is_deduplicated_across_runs(self):
         paths = {
@@ -79,6 +84,7 @@ class TestForexAIBrain(unittest.TestCase):
                     "start_time_paris": "2026-08-14T07:00:00+02:00",
                     "end_time_paris": "2026-08-14T09:00:00+02:00", "pips": 12.0}]}}}),
             "fibo_pips": self._write("fp.json", {"closed": []}),
+            "fibo_snapshot": self._write("fs.json", {}),
             "fios": self._write("fios.json", {"tracking": {"days": {}}}),
         }
         trades = collect_closed_trades(paths)
@@ -125,6 +131,51 @@ class TestForexAIBrain(unittest.TestCase):
         accepted = _validated_suggestions(reviews, evidence, "2026-08-14")
         self.assertEqual(len(accepted), 1)
         self.assertEqual(accepted[0]["status"], "PROPOSED")
+
+    def test_flash_detects_multi_cross_currency_strength_and_persistence(self):
+        kb = load_knowledge_base(str(self.kb_file))
+        for hour in (8, 9, 10):
+            kb["observations"].append({
+                "timestamp": f"2026-08-14T{hour:02d}:00:00+02:00", "date": "2026-08-14",
+                "full_selected": {}, "vivier_pool": {}, "fibo_sections": {},
+                "fios_sections": {
+                    "NZDUSD": {"section": "top", "direction": 1},
+                    "NZDCHF": {"section": "top", "direction": 1},
+                    "EURNZD": {"section": "top", "direction": -1},
+                    "AUDNZD": {"section": "conv", "direction": -1},
+                },
+            })
+        features = build_flash_features(kb)
+        self.assertEqual(features["strongest_currency"], "NZD")
+        self.assertEqual(features["currency_cross_confirmations"]["NZD"], 4)
+        nzdusd = next(item for item in features["candidates"] if item["pair"] == "NZDUSD")
+        self.assertEqual(nzdusd["persistence_runs"], 3)
+
+    def test_consensus_label_requires_actual_agreement(self):
+        features = {
+            "status": "OK", "strongest_currency": "NZD", "weakest_currency": "CHF",
+            "currency_scores": {"NZD": 8, "CHF": -5, "USD": -3},
+            "currency_cross_confirmations": {"NZD": 4}, "contradictions": [], "gold": [],
+            "candidates": [{"pair": "NZDCHF", "direction": "LONG", "score": 8,
+                            "sources": ["FIOS_TOP", "FIBO_FULL"],
+                            "persistence_runs": 3, "contradiction": False},
+                           {"pair": "NZDUSD", "direction": "LONG", "score": 7,
+                            "sources": ["FIOS_TOP"], "persistence_runs": 3,
+                            "contradiction": False}],
+        }
+        agreement = [
+            {"reviewer": "claude", "strongest_currency": "NZD", "weakest_currency": "CHF",
+             "best_pair": "NZDCHF", "direction": "LONG"},
+            {"reviewer": "openai", "strongest_currency": "NZD", "weakest_currency": "CHF",
+             "best_pair": "NZDCHF", "direction": "LONG"},
+        ]
+        report = format_flash_consensus(features, agreement)
+        self.assertIn("CONSENSUS IA (Claude x Codex)", report)
+        self.assertIn("NZDCHF LONG · 3 runs · 2 moteurs", report)
+        disagreement = [agreement[0], {**agreement[1], "best_pair": "NZDUSD", "weakest_currency": "USD"}]
+        report = format_flash_consensus(features, disagreement)
+        self.assertNotIn("CONSENSUS IA (Claude x Codex)", report)
+        self.assertIn("SYNTHÈSE IA MULTI-SCREENER", report)
 
     @patch("forex_ai_brain.run_dual_review", return_value=[])
     def test_eod_without_api_never_claims_consensus(self, _review):

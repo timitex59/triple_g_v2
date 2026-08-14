@@ -6,15 +6,40 @@ tests/test_renko_fibo_50.py
 Unit tests for renko_fibo_50_strategy.py logic.
 """
 
+import json
+import tempfile
 import unittest
+from datetime import datetime
+from pathlib import Path
+from zoneinfo import ZoneInfo
 from renko_fibo_50_strategy import (
     Fibo50AnchorState,
     detect_fibo_50_level,
     format_telegram_fibo_50_report,
+    save_research_snapshot,
 )
 
 
 class TestRenkoFibo50Strategy(unittest.TestCase):
+
+    def test_research_snapshot_exposes_all_three_sections(self):
+        state = Fibo50AnchorState(
+            pair="EURUSD", tf="D", direction=1,
+            anchor_high=1.2, anchor_low=1.16, fibo_50=1.18,
+            last_brick_open=1.17, last_brick_close=1.19,
+            px_vs_fibo=1, signal="BULL", three_brick_confirmed=True,
+            crossed_50=True, bricks_since_flip=1, live_price=1.195, daily_chg=0.2,
+        )
+        sections = ([('EURUSD', 'BULL', 0.2)], [('EURUSD', 'BULL', 0.2)], [])
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "snapshot.json"
+            save_research_snapshot({"EURUSD": {"D": state}}, sections,
+                                   datetime(2026, 8, 14, 10,
+                                            tzinfo=ZoneInfo("Europe/Paris")), path)
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(payload["sections"]["daily"][0]["pair"], "EURUSD")
+        self.assertEqual(payload["sections"]["full_alignment"][0]["direction"], "BULL")
+        self.assertEqual(payload["prices"]["EURUSD"], 1.195)
 
     def test_detect_fibo_50_level_3_bricks_bull(self):
         # 5 red bricks followed by 5 green bricks

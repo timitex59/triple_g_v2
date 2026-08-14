@@ -824,14 +824,4 @@ def build_pairs_section(composites: dict[str, dict], payload: dict | None) -> li
             lines.append("")
         lines.extend(idx_lines)
 
-    # ── Synthèse IA Flash Consensus ──
-    try:
-        from .ai_consensus import generate_ai_consensus
-        full_text = "\n".join(lines)
-        ai_lines = generate_ai_consensus(full_text)
-        if ai_lines:
-            lines = ai_lines + [""] + lines
-    except Exception as exc:
-        print(f"Warning: AI Consensus module failed: {exc}")
-
     return lines

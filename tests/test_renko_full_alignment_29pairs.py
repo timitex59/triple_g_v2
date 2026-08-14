@@ -1,5 +1,8 @@
+import json
+import tempfile
 import unittest
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from renko_full_alignment_29pairs import (
@@ -17,6 +20,7 @@ from renko_full_alignment_29pairs import (
     select_mid_sar_rows,
     update_mid_sar_history,
     update_price_trends,
+    write_index_sidecar,
 )
 
 
@@ -51,6 +55,18 @@ def index_row(pair, m, w, d, daily_chg=None):
 
 
 class FullAlignmentScannerTests(unittest.TestCase):
+
+    def test_research_sidecar_exposes_only_final_selected_pairs(self):
+        rows = [row("EURUSD", 1, 1, 1, daily_chg=0.2),
+                row("GBPUSD", 1, 1, -1, daily_chg=0.1)]
+        selected = [rows[0]]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "sidecar.json"
+            write_index_sidecar(path, {}, rows,
+                                datetime(2026, 8, 14, 10, tzinfo=PARIS), selected)
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(list(payload["selected_pairs"]), ["EURUSD"])
+        self.assertEqual(payload["selected_pairs"]["EURUSD"]["direction"], 1)
     def test_live_price_trends_compare_with_07h_and_previous_run(self):
         first = row("AUDCHF", 1, 1, 1)
         first["live_price"] = 0.57000

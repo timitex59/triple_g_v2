@@ -57,6 +57,7 @@ PARIS_TZ = ZoneInfo("Europe/Paris")
 SCRIPT_DIR = Path(__file__).resolve().parent
 STATE_FILE = SCRIPT_DIR / "renko_fibo_50_state.json"
 PRICE_TREND_FILE = SCRIPT_DIR / "renko_fibo_50_price_trend_state.json"
+RESEARCH_SNAPSHOT_FILE = SCRIPT_DIR / "renko_fibo_50_snapshot.json"
 
 # Parabolic SAR applied to the Renko brick series.
 SAR_AF_START = 0.1
@@ -972,6 +973,30 @@ def save_current_state(state: dict, file_path: Path = STATE_FILE) -> None:
         print(f"Warning: Failed to save state file {file_path}: {e}")
 
 
+def save_research_snapshot(results: dict, sections: tuple[list, list, list],
+                           now: datetime, path: Path = RESEARCH_SNAPSHOT_FILE) -> None:
+    """Sidecar factuel lu par la synthèse indépendante multi-screener."""
+    daily, full, mw = sections
+    payload = {
+        "generated_at": now.isoformat(),
+        "sections": {
+            "daily": [{"pair": pair, "direction": label, "daily_chg": chg}
+                      for pair, label, chg in daily],
+            "full_alignment": [{"pair": pair, "direction": label, "daily_chg": chg}
+                               for pair, label, chg in full],
+            "mw_bias": [{"pair": pair, "direction": label, "daily_chg": chg}
+                        for pair, label, chg in mw],
+        },
+        "prices": {
+            pair: tf_map["D"].live_price for pair, tf_map in results.items()
+            if tf_map.get("D") and isinstance(tf_map["D"].live_price, (int, float))
+        },
+    }
+    tmp = path.with_suffix(f".tmp{os.getpid()}")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    os.replace(tmp, path)
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Scan 29 pairs for Renko ATR(14) Fibonacci 50% retracement signals.")
     parser.add_argument("--length", type=int, default=14, help="ATR length.")
@@ -1003,6 +1028,7 @@ def main():
     save_price_trend_state(PRICE_TREND_FILE, price_state)
     pips_state = load_pips_state()
     _daily, full_alignment, _mw = build_sections(results, min_chg=args.min_chg)
+    save_research_snapshot(results, (_daily, full_alignment, _mw), now_paris)
     pips_state = update_pips_tracker(results, full_alignment, pips_state, now=now_paris)
     pips_state = finalize_days(pips_state, now_paris)
     periodic_lines, emitted = periodic_pips_reports(pips_state, now_paris)

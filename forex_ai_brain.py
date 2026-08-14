@@ -38,6 +38,7 @@ SOURCE_FILES = {
     "vivier_state": "renko_score_29pairs_vivier_state.json",
     "vivier_pips": "renko_vivier_pips.json",
     "fibo_pips": "renko_fibo_50_pips.json",
+    "fibo_snapshot": "renko_fibo_50_snapshot.json",
     "fios": "fios_index_chg_state.json",
 }
 
@@ -54,7 +55,8 @@ def _read_json(path: str | Path) -> dict:
 def _empty_kb() -> dict:
     return {"version": KB_VERSION, "total_runs_analyzed": 0, "last_updated": None,
             "observations": [], "trade_ledger": [], "daily_reports": [],
-            "suggestions": [], "reports_sent": []}
+            "suggestions": [], "reports_sent": [], "flash_history": [],
+            "last_flash_hash": None}
 
 
 def load_knowledge_base(filepath: str = KNOWLEDGE_BASE_PATH) -> dict:
@@ -70,6 +72,8 @@ def load_knowledge_base(filepath: str = KNOWLEDGE_BASE_PATH) -> dict:
     kb["daily_reports"] = list(raw.get("daily_reports") or raw.get("daily_summaries") or [])
     kb["suggestions"] = list(raw.get("suggestions") or raw.get("script_improvements") or [])
     kb["reports_sent"] = list(raw.get("reports_sent") or [])
+    kb["flash_history"] = list(raw.get("flash_history") or [])
+    kb["last_flash_hash"] = raw.get("last_flash_hash")
     return kb
 
 
@@ -90,6 +94,8 @@ def collect_market_snapshot(now: datetime | None = None,
     full = _read_json(paths["full_alignment"])
     vivier = _read_json(paths["vivier_state"])
     fibo = _read_json(paths["fibo_pips"])
+    fibo_snapshot_path = paths.get("fibo_snapshot", "renko_fibo_50_snapshot.json")
+    fibo_snapshot = _read_json(fibo_snapshot_path) if Path(fibo_snapshot_path).exists() else {}
     fios = _read_json(paths["fios"])
     pairs = full.get("pairs") or {}
     currencies = full.get("currencies") or {}
@@ -120,7 +126,10 @@ def collect_market_snapshot(now: datetime | None = None,
                              "direction": data.get("full_alignment")}
                        for cur, data in currencies.items()},
         # Le sidecar est ecrit avant les filtres CHG/index du message Telegram.
-        "mwd_raw_alignment": strict, "vivier_pool": vivier_pairs,
+        "mwd_raw_alignment": strict,
+        "full_selected": dict(full.get("selected_pairs") or {}),
+        "vivier_pool": vivier_pairs,
+        "fibo_sections": dict(fibo_snapshot.get("sections") or {}),
         "fibo_open": {pair: {"direction": data.get("direction"),
                              "entry_price": data.get("entry_price"),
                              "open_pips": data.get("open_pips")}
@@ -282,6 +291,208 @@ def deterministic_findings(evidence: dict) -> list[str]:
                         f"NOG {stats['win_rate_pct']:.1f}%, PF {pf if pf is not None else 'N/D'}, "
                         f"DD -{stats['max_drawdown_pips']:.1f}.")
     return findings or ["Aucun trade clôturé exploitable dans les trackers."]
+
+
+def _signal_direction(value) -> int:
+    if value in (1, "BULL", "LONG", "BUY"):
+        return 1
+    if value in (-1, "BEAR", "SHORT", "SELL"):
+        return -1
+    return 0
+
+
+def snapshot_signals(snapshot: dict) -> list[dict]:
+    """Normalise les décisions courantes de tous les screeners."""
+    signals = []
+    weights = {"FULL": 3.0, "FIBO_FULL": 3.0, "FIBO_DAILY": 1.0,
+               "FIBO_MW": 1.0, "VIVIER_CONFIRMED": 2.0,
+               "VIVIER_POOL": 0.5, "FIOS_CONV": 2.0, "FIOS_TOP": 2.0}
+
+    def add(source, pair, direction):
+        direction = _signal_direction(direction)
+        if pair and direction:
+            signals.append({"source": source, "pair": pair, "direction": direction,
+                            "weight": weights[source]})
+
+    for pair, data in (snapshot.get("full_selected") or {}).items():
+        add("FULL", pair, data.get("direction"))
+    for pair, data in (snapshot.get("vivier_pool") or {}).items():
+        direction = _signal_direction(data.get("direction"))
+        confirmed = (direction and data.get("daily_sar_dir") == direction
+                     and isinstance(data.get("daily_chg"), (int, float))
+                     and float(data["daily_chg"]) * direction >= 0.05)
+        add("VIVIER_CONFIRMED" if confirmed else "VIVIER_POOL", pair, direction)
+    for section, source in (("full_alignment", "FIBO_FULL"),
+                            ("daily", "FIBO_DAILY"), ("mw_bias", "FIBO_MW")):
+        for data in (snapshot.get("fibo_sections") or {}).get(section) or []:
+            add(source, data.get("pair"), data.get("direction"))
+    for pair, data in (snapshot.get("fios_sections") or {}).items():
+        add("FIOS_CONV" if data.get("section") == "conv" else "FIOS_TOP",
+            pair, data.get("direction"))
+    return signals
+
+
+def build_flash_features(kb: dict, max_runs: int = 8) -> dict:
+    """Régime, persistance, contradictions et meilleure expression du run."""
+    observations = list(kb.get("observations") or [])
+    if not observations:
+        return {"status": "NO_DATA", "candidates": []}
+    today = observations[-1].get("date")
+    recent = [obs for obs in observations if obs.get("date") == today][-max_runs:]
+    current = snapshot_signals(recent[-1])
+    history_counts = {}
+    for obs in recent:
+        seen = set()
+        for signal in snapshot_signals(obs):
+            key = (signal["source"], signal["pair"], signal["direction"])
+            if key not in seen:
+                history_counts[key] = history_counts.get(key, 0) + 1
+                seen.add(key)
+    currency_scores, currency_crosses = {}, {}
+    pair_sources = {}
+    for signal in current:
+        pair, direction = signal["pair"], signal["direction"]
+        persistence = history_counts.get((signal["source"], pair, direction), 1)
+        pair_sources.setdefault(pair, []).append({**signal, "persistence_runs": persistence})
+        if pair == "XAUUSD" or len(pair) != 6:
+            continue
+        base, quote = pair[:3], pair[3:]
+        contribution = signal["weight"] * direction
+        currency_scores[base] = currency_scores.get(base, 0.0) + contribution
+        currency_scores[quote] = currency_scores.get(quote, 0.0) - contribution
+        currency_crosses.setdefault(base, set()).add(pair)
+        currency_crosses.setdefault(quote, set()).add(pair)
+    ranked = sorted(currency_scores, key=lambda cur: currency_scores[cur], reverse=True)
+    strongest = ranked[0] if ranked else None
+    weakest = ranked[-1] if ranked else None
+    candidates = []
+    for pair, items in pair_sources.items():
+        directions = {item["direction"] for item in items}
+        contradiction = len(directions) > 1
+        for direction in directions:
+            aligned = [item for item in items if item["direction"] == direction]
+            score = sum(item["weight"] for item in aligned)
+            persistence = max(item["persistence_runs"] for item in aligned)
+            score += min(persistence, 4) * 0.5
+            if contradiction:
+                score -= 3.0
+            if strongest and weakest and len(pair) == 6:
+                if (direction == 1 and pair[:3] == strongest and pair[3:] == weakest) or (
+                        direction == -1 and pair[3:] == strongest and pair[:3] == weakest):
+                    score += 3.0
+            candidates.append({"pair": pair, "direction": "LONG" if direction == 1 else "SHORT",
+                               "score": round(score, 2), "sources": sorted(x["source"] for x in aligned),
+                               "persistence_runs": persistence, "contradiction": contradiction})
+    candidates.sort(key=lambda item: (item["contradiction"], -item["score"], item["pair"]))
+    contradictions = [item["pair"] for item in candidates if item["contradiction"]]
+    return {
+        "status": "OK", "runs_observed": len(recent),
+        "strongest_currency": strongest, "weakest_currency": weakest,
+        "currency_scores": {cur: round(score, 2) for cur, score in currency_scores.items()},
+        "currency_cross_confirmations": {cur: len(pairs) for cur, pairs in currency_crosses.items()},
+        "candidates": candidates[:8], "contradictions": sorted(set(contradictions)),
+        "gold": [item for item in candidates if item["pair"] == "XAUUSD"][:1],
+    }
+
+
+FLASH_PROMPT = """Tu analyses un snapshot multi-screener Forex déjà calculé. Choisis uniquement parmi les valeurs fournies.
+Réponds en JSON strict: strongest_currency, weakest_currency, best_pair, direction, risk, confidence.
+best_pair et direction doivent recopier un candidat non contradictoire. Cherche: force/faiblesse multi-cross,
+confluence entre moteurs, persistance multi-run, puis absence de contradiction. N'invente aucune paire ni donnée."""
+
+
+def _query_flash(provider: str, features: dict, api_key: str, timeout: float = 12.0) -> dict | None:
+    prompt = json.dumps(features, ensure_ascii=False, sort_keys=True)
+    if provider == "claude":
+        models = [x.strip() for x in os.getenv("FOREX_BRAIN_CLAUDE_MODELS",
+                  "claude-3-7-sonnet-latest,claude-3-5-sonnet-latest").split(",") if x.strip()]
+        for model in models:
+            try:
+                body = _post_json("https://api.anthropic.com/v1/messages",
+                    {"x-api-key": api_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                    {"model": model, "max_tokens": 250, "temperature": 0, "system": FLASH_PROMPT,
+                     "messages": [{"role": "user", "content": prompt}]}, timeout)
+                if result := _extract_json(body["content"][0]["text"]):
+                    result["reviewer"] = "claude"
+                    return result
+            except Exception:
+                continue
+    else:
+        models = [x.strip() for x in os.getenv("FOREX_BRAIN_OPENAI_MODELS", "gpt-4o,gpt-4o-mini").split(",") if x.strip()]
+        for model in models:
+            try:
+                body = _post_json("https://api.openai.com/v1/chat/completions",
+                    {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                    {"model": model, "temperature": 0, "max_tokens": 250,
+                     "response_format": {"type": "json_object"},
+                     "messages": [{"role": "system", "content": FLASH_PROMPT},
+                                  {"role": "user", "content": prompt}]}, timeout)
+                if result := _extract_json(body["choices"][0]["message"]["content"]):
+                    result["reviewer"] = "openai"
+                    return result
+            except Exception:
+                continue
+    return None
+
+
+def run_flash_reviews(features: dict) -> list[dict]:
+    futures = []
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        if key := os.getenv("ANTHROPIC_API_KEY", "").strip():
+            futures.append(pool.submit(_query_flash, "claude", features, key))
+        if key := os.getenv("OPENAI_API_KEY", "").strip():
+            futures.append(pool.submit(_query_flash, "openai", features, key))
+        reviews = []
+        for future in as_completed(futures):
+            try:
+                if result := future.result():
+                    reviews.append(result)
+            except Exception:
+                pass
+    return reviews
+
+
+def format_flash_consensus(features: dict, reviews: list[dict]) -> str | None:
+    if features.get("status") != "OK" or not features.get("candidates"):
+        return None
+    allowed = {(item["pair"], item["direction"]) for item in features["candidates"]
+               if not item.get("contradiction")}
+    known_currencies = set((features.get("currency_scores") or {}).keys())
+    valid = [review for review in reviews
+             if (review.get("best_pair"), review.get("direction")) in allowed
+             and review.get("strongest_currency") in known_currencies
+             and review.get("weakest_currency") in known_currencies]
+    shared_pair = None
+    if len(valid) == 2 and valid[0].get("best_pair") == valid[1].get("best_pair") \
+            and valid[0].get("direction") == valid[1].get("direction"):
+        shared_pair = (valid[0]["best_pair"], valid[0]["direction"])
+    shared_regime = (len(valid) == 2
+                     and valid[0].get("strongest_currency") == valid[1].get("strongest_currency")
+                     and valid[0].get("weakest_currency") == valid[1].get("weakest_currency"))
+    if shared_pair or shared_regime:
+        header = "🤝 CONSENSUS IA (Claude x Codex)"
+    elif valid:
+        header = "🧠 SYNTHÈSE IA MULTI-SCREENER"
+    else:
+        header = "📊 SYNTHÈSE MULTI-SCREENER"
+    strong = (valid[0].get("strongest_currency") if shared_regime else features.get("strongest_currency"))
+    weak = (valid[0].get("weakest_currency") if shared_regime else features.get("weakest_currency"))
+    crosses = (features.get("currency_cross_confirmations") or {}).get(strong, 0)
+    line1 = f"🔥 {strong} fort · {weak} faible · {crosses} cross" if strong and weak else "⚡ Régime devises diffus"
+    choice = shared_pair or ((valid[0].get("best_pair"), valid[0].get("direction")) if valid else None)
+    if not choice:
+        top = next((item for item in features["candidates"] if not item.get("contradiction")), None)
+        choice = (top["pair"], top["direction"]) if top else None
+    if choice:
+        candidate = next(item for item in features["candidates"]
+                         if item["pair"] == choice[0] and item["direction"] == choice[1])
+        run_count = candidate["persistence_runs"]
+        source_count = len(candidate["sources"])
+        line2 = (f"🎯 {choice[0]} {choice[1]} · {run_count} run{'s' if run_count > 1 else ''} · "
+                 f"{source_count} moteur{'s' if source_count > 1 else ''}")
+    else:
+        line2 = "⚠️ Aucun cross assez propre"
+    return "\n".join((header, line1, line2))
 
 
 SYSTEM_PROMPT = """Tu es un auditeur quantitatif Forex prudent. Les statistiques JSON sont la seule source de vérité.
@@ -472,6 +683,26 @@ def main() -> int:
     now, kb = datetime.now(PARIS), load_knowledge_base(args.knowledge_base)
     record_run_observation(kb, collect_market_snapshot(now), collect_closed_trades())
     print(f"🧠 Forex Research: run {kb['total_runs_analyzed']}, {len(kb['trade_ledger'])} trades clôturés consolidés.")
+    features = build_flash_features(kb)
+    flash_reviews = run_flash_reviews(features)
+    flash = format_flash_consensus(features, flash_reviews)
+    if flash:
+        flash_hash = hashlib.sha256(flash.encode("utf-8")).hexdigest()
+        changed = flash_hash != kb.get("last_flash_hash")
+        print("\n" + flash)
+        sent = False
+        if changed and not args.no_telegram:
+            sent = send_telegram_message(flash)
+        elif not changed:
+            print("Consensus inchangé : Telegram ignoré.")
+        kb.setdefault("flash_history", []).append({
+            "timestamp": now.isoformat(), "message": flash,
+            "reviewers": [item.get("reviewer") for item in flash_reviews],
+            "telegram_sent": sent, "features": features,
+        })
+        kb["flash_history"] = kb["flash_history"][-400:]
+        if sent:
+            kb["last_flash_hash"] = flash_hash
     should_eod = args.eod or now.hour == 23
     already_sent = now.date().isoformat() in (kb.get("reports_sent") or [])
     if should_eod and (args.eod or not already_sent):
