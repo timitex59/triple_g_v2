@@ -4,13 +4,10 @@ RSB Multi-Policy Execution Framework (Version Audité & Plafonnement Stricte)
 =============================================================================
 Gestionnaires d'exécution pour les portefeuilles RSB-A, RSB-B, RSB-C1..C4.
 
-Corrections Audit Mathématique :
-1. Application STRICTE du plafonnement de capacité (max_capacity) À CHAQUE SIGNAL DANS LA BOUCLE.
-   Garantie mathématique : len(active_positions) <= max_capacity.
-2. Formule exacte du Risque Ouvert restant (Risk Remaining to SL) :
-   Initial Risk at Entry = 10.0 pips (1.0% capital à SL = -10p).
-   Remaining Risk to SL = max(0, 10.0 + current_pips_gain).
-3. Option max_capacity transmise au constructeur.
+Corrections Audit Mathématique & Motif de Rejet Auditable :
+1. Application STRICTE du plafonnement de capacité (max_capacity) À CHAQUE SIGNAL.
+2. Motif de rejet explicite avec le nom de la paire : POSITION_ALREADY_ACTIVE(pair=...).
+3. Saisie du motif de rejet clair et auditable.
 """
 
 import copy
@@ -255,7 +252,8 @@ class ExecutionManagerB(BaseExecutionManager):
             t_id = f"{timestamp_clean}-{s.pair}-{s.trade_direction}"
 
             if len(self.active_positions) > 0:
-                rej = RejectedSignal(t_id, self.variant_id, s.timestamp, s.pair, s.trade_direction, s.entry_zone, s.opportunity_rank, "POSITION_ALREADY_ACTIVE")
+                active_pair = self.active_positions[0].pair
+                rej = RejectedSignal(t_id, self.variant_id, s.timestamp, s.pair, s.trade_direction, s.entry_zone, s.opportunity_rank, f"POSITION_ALREADY_ACTIVE(active={active_pair})")
                 self.rejected_signals.append(rej)
                 new_rejections.append(rej)
             elif s != top_eligible:
@@ -300,23 +298,23 @@ class ExecutionManagerC(BaseExecutionManager):
             timestamp_clean = s.timestamp.replace(":", "").replace("-", "").replace("T", "_")[:13]
             t_id = f"{timestamp_clean}-{s.pair}-{s.trade_direction}"
 
-            # Check 1: Plafonnement strict de la capacité du portefeuille (Garantie mathématique len <= max_capacity)
+            # Check 1: Plafonnement strict de la capacité du portefeuille
             if self.max_capacity and len(self.active_positions) >= self.max_capacity:
-                rej = RejectedSignal(t_id, self.variant_id, s.timestamp, s.pair, s.trade_direction, s.entry_zone, s.opportunity_rank, "PORTFOLIO_CAPACITY_FULL")
+                rej = RejectedSignal(t_id, self.variant_id, s.timestamp, s.pair, s.trade_direction, s.entry_zone, s.opportunity_rank, f"PORTFOLIO_CAPACITY_FULL({len(self.active_positions)}/{self.max_capacity})")
                 self.rejected_signals.append(rej)
                 new_rejections.append(rej)
                 continue
 
-            # Check 2: Position déjà active sur cette paire ?
+            # Check 2: Position déjà active sur CETTE PAIRE
             if s.pair in active_pairs:
-                rej = RejectedSignal(t_id, self.variant_id, s.timestamp, s.pair, s.trade_direction, s.entry_zone, s.opportunity_rank, "POSITION_ALREADY_ACTIVE")
+                rej = RejectedSignal(t_id, self.variant_id, s.timestamp, s.pair, s.trade_direction, s.entry_zone, s.opportunity_rank, f"POSITION_ALREADY_ACTIVE(pair={s.pair})")
                 self.rejected_signals.append(rej)
                 new_rejections.append(rej)
                 continue
 
             # Check 3: Strict Re-Arming Rule
             if self.strict_rearm and self.disarmed_pairs.get(s.pair, False):
-                rej = RejectedSignal(t_id, self.variant_id, s.timestamp, s.pair, s.trade_direction, s.entry_zone, s.opportunity_rank, "WAITING_REARM")
+                rej = RejectedSignal(t_id, self.variant_id, s.timestamp, s.pair, s.trade_direction, s.entry_zone, s.opportunity_rank, f"WAITING_REARM({s.pair})")
                 self.rejected_signals.append(rej)
                 new_rejections.append(rej)
                 continue
