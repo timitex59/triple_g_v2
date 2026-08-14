@@ -56,8 +56,14 @@ def fetch_all_15m_history_yfinance(day_str: str = "2026-08-14") -> Dict[str, pd.
     return m15_map
 
 
+import argparse
+
 def run_multi_run_replay():
-    target_date_str = "2026-08-14"
+    parser = argparse.ArgumentParser(description="Replay Multi-Run 15M RSB Engine")
+    parser.add_argument("--date", type=str, default="2026-08-14", help="Date de replay (YYYY-MM-DD)")
+    args = parser.parse_args()
+
+    target_date_str = args.date
     m15_map = fetch_all_15m_history_yfinance(target_date_str)
     
     if not m15_map or len(m15_map) < len(ALL_28_PAIRS):
