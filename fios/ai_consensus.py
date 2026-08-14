@@ -35,8 +35,8 @@ Exemple de format attendu :
 """
 
 
-def _call_claude(report_text: str, api_key: str, timeout: float = 2.0) -> list[str] | None:
-    """Appel API Anthropic Claude."""
+def _call_claude(report_text: str, api_key: str, timeout: float = 2.5) -> list[str] | None:
+    """Appel API Anthropic Claude (Modèles les plus intelligents)."""
     url = "https://api.anthropic.com/v1/messages"
     headers = {
         "x-api-key": api_key,
@@ -44,10 +44,10 @@ def _call_claude(report_text: str, api_key: str, timeout: float = 2.0) -> list[s
         "content-type": "application/json",
     }
     candidate_models = [
-        "claude-3-5-haiku-latest",
+        "claude-3-7-sonnet-latest",
         "claude-3-5-sonnet-latest",
-        "claude-3-haiku-20240307",
-        "claude-3-5-haiku-20241022",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-haiku-latest",
     ]
     for model_name in candidate_models:
         try:
@@ -70,32 +70,42 @@ def _call_claude(report_text: str, api_key: str, timeout: float = 2.0) -> list[s
     return None
 
 
-def _call_openai(report_text: str, api_key: str, timeout: float = 2.0) -> list[str] | None:
-    """Appel API OpenAI / Codex (GPT-4o-mini)."""
-    try:
-        url = "https://api.openai.com/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
-        data = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "system", "content": PROMPT_SYSTEM},
-                {"role": "user", "content": f"Voici le rapport Forex à synthétiser en 2 lignes ultra-courtes:\n\n{report_text[:2500]}"},
-            ],
-            "max_tokens": 100,
-            "temperature": 0.3,
-        }
-        req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = json.loads(resp.read().decode("utf-8"))
-            text = body["choices"][0]["message"]["content"].strip()
-            lines = [line.strip() for line in text.splitlines() if line.strip()]
-            return lines[:2] if len(lines) >= 2 else None
-    except Exception as exc:
-        print(f"Warning: OpenAI API call failed/timeout: {exc}")
-        return None
+def _call_openai(report_text: str, api_key: str, timeout: float = 2.5) -> list[str] | None:
+    """Appel API OpenAI / Codex (GPT-4o & o3-mini - Modèles les plus intelligents)."""
+    url = "https://api.openai.com/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+    candidate_models = [
+        "gpt-4o",
+        "o3-mini",
+        "gpt-4o-2024-11-20",
+        "gpt-4o-mini",
+    ]
+    for model_name in candidate_models:
+        try:
+            data = {
+                "model": model_name,
+                "messages": [
+                    {"role": "system", "content": PROMPT_SYSTEM},
+                    {"role": "user", "content": f"Voici le rapport Forex à synthétiser en 2 lignes ultra-courtes:\n\n{report_text[:2500]}"},
+                ],
+                "max_tokens": 100,
+            }
+            if not model_name.startswith("o"):
+                data["temperature"] = 0.3
+            req = urllib.request.Request(url, data=json.dumps(data).encode("utf-8"), headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                body = json.loads(resp.read().decode("utf-8"))
+                text = body["choices"][0]["message"]["content"].strip()
+                lines = [line.strip() for line in text.splitlines() if line.strip()]
+                if len(lines) >= 2:
+                    return lines[:2]
+        except Exception:
+            continue
+    print("Warning: OpenAI API call failed on all candidate models.")
+    return None
 
 
 def _truncate_line(line: str, max_chars: int = 25) -> str:
