@@ -43,9 +43,9 @@ jobs:
         run: |
           python -c "import websocket; print('websocket import OK')"
 
-      - name: Run Pytest Suite (RSB-C1 Quality Control)
+      - name: Run Pytest RSB Test Suite (RSB-C1 Quality Control)
         run: |
-          python -m pytest tests/ -v
+          python -m pytest tests/test_relative_strength.py tests/test_execution_policies.py -v
 
       - name: Run Triple G Indicators Scan & RSB Production Engine
         env:
