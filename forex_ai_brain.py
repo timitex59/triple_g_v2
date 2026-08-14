@@ -45,7 +45,9 @@ SOURCE_FILES = {
     "fibo_pips": "renko_fibo_50_pips.json",
     "fibo_snapshot": "renko_fibo_50_snapshot.json",
     "fios": "fios_index_chg_state.json",
+    "rsb_state": "rsb_state.json",
 }
+
 _ANTHROPIC_MODELS_CACHE: list[str] | None = None
 
 
@@ -157,11 +159,14 @@ def collect_market_snapshot(now: datetime | None = None,
               if isinstance(data.get("live_price"), (int, float))}
     prices.update({pair: data.get("level") for pair, data in (fios.get("pairs") or {}).items()
                    if isinstance(data.get("level"), (int, float))})
+    rsb_state_path = paths.get("rsb_state", "rsb_state.json")
+    rsb = _read_json(rsb_state_path) if Path(rsb_state_path).exists() else {}
     return {
         "timestamp": now.isoformat(), "date": now.date().isoformat(),
         "sources_generated_at": {"full_alignment": full.get("generated_at"),
                                  "vivier": vivier.get("updated_at_paris"),
-                                 "fios": fios.get("date")},
+                                 "fios": fios.get("date"),
+                                 "rsb": rsb.get("timestamp")},
         "currencies": {cur: {"daily_chg": data.get("daily_chg"),
                              "direction": data.get("full_alignment")}
                        for cur, data in currencies.items()},
@@ -175,7 +180,9 @@ def collect_market_snapshot(now: datetime | None = None,
                              "open_pips": data.get("open_pips")}
                       for pair, data in (fibo.get("open") or {}).items()},
         "fios_sections": fios_sections, "prices": prices,
+        "rsb_pairs": dict(rsb.get("pairs") or {}),
     }
+
 
 
 def _trade_id(strategy: str, item: dict) -> str:
