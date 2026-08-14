@@ -46,6 +46,7 @@ SOURCE_FILES = {
     "fibo_snapshot": "renko_fibo_50_snapshot.json",
     "fios": "fios_index_chg_state.json",
 }
+_ANTHROPIC_MODELS_CACHE: list[str] | None = None
 
 
 def _read_json(path: str | Path) -> dict:
@@ -55,6 +56,41 @@ def _read_json(path: str | Path) -> dict:
     except Exception as exc:
         print(f"Warning: lecture impossible de {path}: {exc}")
         return {}
+
+
+def _available_anthropic_models(api_key: str, timeout: float = 10.0) -> list[str]:
+    """Return the models this exact API key can use, newest first."""
+    global _ANTHROPIC_MODELS_CACHE
+    if _ANTHROPIC_MODELS_CACHE is not None:
+        return list(_ANTHROPIC_MODELS_CACHE)
+    request = urllib.request.Request(
+        "https://api.anthropic.com/v1/models?limit=100",
+        headers={"x-api-key": api_key, "anthropic-version": "2023-06-01"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            rows = json.loads(response.read().decode()).get("data") or []
+        _ANTHROPIC_MODELS_CACHE = [row["id"] for row in rows if row.get("id")]
+    except Exception as exc:
+        print(f"Warning: catalogue Claude indisponible: {exc}")
+        _ANTHROPIC_MODELS_CACHE = []
+    return list(_ANTHROPIC_MODELS_CACHE)
+
+
+def _anthropic_candidates(configured: list[str], api_key: str, prefer: str,
+                          timeout: float) -> list[str]:
+    available = _available_anthropic_models(api_key, timeout)
+    if not available:
+        return configured
+    position = {model: index for index, model in enumerate(available)}
+    preferred = sorted(
+        available,
+        key=lambda model: (prefer not in model.lower(), position[model]),
+    )
+    candidates = [model for model in configured if model in position]
+    candidates.extend(model for model in preferred if model not in candidates)
+    print(f"Forex AI: modèles Claude accessibles: {', '.join(available)}")
+    return candidates
 
 
 def _empty_kb() -> dict:
@@ -413,6 +449,7 @@ def _query_flash(provider: str, features: dict, api_key: str, timeout: float = 1
             "FOREX_BRAIN_FLASH_CLAUDE_MODELS",
             os.getenv("FOREX_BRAIN_CLAUDE_MODELS", FLASH_CLAUDE_MODELS),
         ).split(",") if x.strip()]
+        models = _anthropic_candidates(models, api_key, prefer="sonnet", timeout=timeout)
         for model in models:
             try:
                 body = _post_json("https://api.anthropic.com/v1/messages",
@@ -587,6 +624,7 @@ def _query_claude(evidence_json: str, api_key: str, timeout: float = 20.0) -> di
         "FOREX_BRAIN_EOD_CLAUDE_MODELS",
         os.getenv("FOREX_BRAIN_CLAUDE_MODELS", EOD_CLAUDE_MODELS),
     ).split(",") if x.strip()]
+    models = _anthropic_candidates(models, api_key, prefer="opus", timeout=timeout)
     for model in models:
         try:
             body = _post_json("https://api.anthropic.com/v1/messages",

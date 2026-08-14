@@ -12,6 +12,7 @@ from forex_ai_brain import (
     FLASH_CLAUDE_MODELS,
     FLASH_OPENAI_MODELS,
     PARIS,
+    _anthropic_candidates,
     _query_openai_responses,
     _responses_text,
     _validated_suggestions,
@@ -199,6 +200,22 @@ class TestForexAIBrain(unittest.TestCase):
         self.assertTrue(EOD_CLAUDE_MODELS.startswith("claude-opus-4-1-"))
         self.assertTrue(FLASH_OPENAI_MODELS.startswith("gpt-5.1"))
         self.assertTrue(EOD_OPENAI_MODELS.startswith("gpt-5-pro"))
+
+    @patch("forex_ai_brain._available_anthropic_models")
+    def test_claude_uses_best_model_actually_available_to_key(self, available):
+        available.return_value = [
+            "claude-haiku-3-5-20241022",
+            "claude-sonnet-4-5-20250929",
+            "claude-opus-4-1-20250805",
+        ]
+        flash = _anthropic_candidates(
+            ["claude-sonnet-4-20250514"], "secret", "sonnet", 10,
+        )
+        eod = _anthropic_candidates(
+            ["claude-opus-4-20250514"], "secret", "opus", 10,
+        )
+        self.assertEqual(flash[0], "claude-sonnet-4-5-20250929")
+        self.assertEqual(eod[0], "claude-opus-4-1-20250805")
 
     def test_responses_api_text_is_extracted(self):
         body = {"output": [{"content": [
