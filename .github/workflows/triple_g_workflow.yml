@@ -23,13 +23,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      # - name: Download market cache
-      #   uses: actions/download-artifact@v4
-      #   with:
-      #     name: market-cache
-      #     path: .
-      #   continue-on-error: true
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -40,6 +33,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest pytest-asyncio yfinance requests pandas numpy
 
       - name: Verify dependency consistency
         run: |
@@ -49,7 +43,11 @@ jobs:
         run: |
           python -c "import websocket; print('websocket import OK')"
 
-      - name: Run Triple G Indicators Scan
+      - name: Run Pytest Suite (RSB-C1 Quality Control)
+        run: |
+          python -m pytest tests/ -v
+
+      - name: Run Triple G Indicators Scan & RSB Production Engine
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -79,12 +77,12 @@ jobs:
           ENABLE_TELEGRAM_RENKO_FOREX_V4: "false"
           ENABLE_TELEGRAM_TRACKER: "false"
           ENABLE_TELEGRAM_FIOS: "true"
+          ENABLE_TELEGRAM_RSB_C1: "true"
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
           OANDA_ENV: "practice"
           MYFXBOOK_EMAIL: ${{ secrets.MYFXBOOK_EMAIL }}
           MYFXBOOK_PASSWORD: ${{ secrets.MYFXBOOK_PASSWORD }}
-          # Optionnelles : sans elles le bilan reste factuel, sans faux contenu IA.
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
@@ -102,6 +100,9 @@ jobs:
             fi
           }
 
+          # 07H Relative Strength Breakout Production Engine (RSB-C1 Cap 15)
+          run_with_telegram "$ENABLE_TELEGRAM_RSB_C1" rsb_runner.py || echo "07H RSB Engine run failed (non-fatal)"
+
           run_with_telegram "$ENABLE_TELEGRAM_PX_RENKO_INDEX" px_renko_screener_index.py
           run_with_telegram "$ENABLE_TELEGRAM_PX_RENKO_INDEX_V2" px_renko_screener_index_V2.py
           if [ "$HOUR_MIN_PARIS" -ge 1800 ] && [ "$HOUR_MIN_PARIS" -lt 2100 ]; then
@@ -109,128 +110,61 @@ jobs:
           else
             echo "Skip renko_alignment_etf_V1.py outside 18:00-21:00 Europe/Paris"
           fi
-          # Le pipeline Nasdaq doit tourner AVANT ETF_V3: il ecrit
-          # nasdaq_top_ucits_etf.json (TOP 3 UCITS) que ETF_V3 fusionne dans son
-          # univers dans le meme run (pas de decalage d'un run). Fenetre 18-21
-          # qui couvre celle de ETF_V3 (18-21).
-          # Nasdaq + Mid-cap tournent SANS envoyer (--no-telegram): ils ecrivent
-          # leurs rapports (et le sidecar UCITS pour ETF_V3). combo_pipeline.py
-          # fusionne ensuite leurs rapports en UN seul message Telegram.
+
           if [ "$HOUR_MIN_PARIS" -ge 1800 ] && [ "$HOUR_MIN_PARIS" -lt 2100 ]; then
             run_with_telegram "$ENABLE_TELEGRAM_NASDAQ_PIPELINE" nasdaq_sector_pipeline.py --no-telegram
           else
             echo "Skip nasdaq_sector_pipeline.py outside 18:00-21:00 Europe/Paris"
           fi
-          # Variante mid-cap TECH (S&P MidCap 400, secteur Information Technology).
-          # Independante du pipeline Nasdaq; fenetre 19-21.
+
           if [ "$HOUR_MIN_PARIS" -ge 1900 ] && [ "$HOUR_MIN_PARIS" -lt 2100 ]; then
             run_with_telegram "$ENABLE_TELEGRAM_MIDDLE_PIPELINE" middle_pipeline.py --no-telegram
           else
             echo "Skip middle_pipeline.py outside 19:00-21:00 Europe/Paris"
           fi
-          # Message fusionne (Nasdaq TOP3 + Mid-cap TOP3 + UCITS) en 1 envoi/jour.
-          # Fenetre 19-21 (apres que les 2 rapports du jour soient ecrits).
+
           if [ "$HOUR_MIN_PARIS" -ge 1900 ] && [ "$HOUR_MIN_PARIS" -lt 2100 ]; then
             run_with_telegram "$ENABLE_TELEGRAM_COMBO" combo_pipeline.py
           else
             echo "Skip combo_pipeline.py outside 19:00-21:00 Europe/Paris"
           fi
-          # Crypto rotation: CoinMarketCap Top 100 intersecte avec Binance spot,
-          # puis scoring force relative vs BTC et validation Renko 3M/M/W.
+
           if [ "$HOUR_MIN_PARIS" -ge 1900 ] && [ "$HOUR_MIN_PARIS" -lt 2100 ]; then
             run_with_telegram "$ENABLE_TELEGRAM_BINANCE_CMC_TOP100_PIPELINE" binance_cmc_top100_pipeline.py --exchange auto
           else
             echo "Skip binance_cmc_top100_pipeline.py outside 19:00-21:00 Europe/Paris"
           fi
+
           if [ "$HOUR_MIN_PARIS" -ge 1800 ] && [ "$HOUR_MIN_PARIS" -lt 2100 ]; then
             run_with_telegram "$ENABLE_TELEGRAM_ETF_V3" renko_etf_strategy_V3.py
           else
             echo "Skip renko_etf_strategy_V3.py outside 18:00-21:00 Europe/Paris"
           fi
+
           run_with_telegram "$ENABLE_TELEGRAM_SAR_MTF_FOREX" sarenki_V1_forex.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V1" renko_forex_V1.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V2" renko_forex_V2.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_SCORE_29" renko_score_29pairs_v16.py
           run_with_telegram "$ENABLE_TELEGRAM_FULL_ALIGNMENT" renko_full_alignment_29pairs.py --telegram
-          # Renko Fibo 50%: SAR(0.1/0.1/0.2) sur briques + chaine Close > PX > Fibo 50%
-          # sur chaque TF, confirmee par le CHG% du jour. Le state file porte le hash
-          # de deduplication: sans lui le meme rapport repartirait a chaque run.
           run_with_telegram "$ENABLE_TELEGRAM_FIBO_50" renko_fibo_50_strategy.py --telegram
-          # DCA Euronext: ne tourne (et n'envoie) qu'a partir de 20:00 Paris;
-          # le script lui-meme dedoublonne pour n'envoyer qu'une fois par jour.
+
           if [ "$HOUR_MIN_PARIS" -ge 2000 ]; then
             run_with_telegram "$ENABLE_TELEGRAM_DCA" dca_euronext.py
           else
             echo "Skip dca_euronext.py before 20:00 Europe/Paris"
           fi
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V4" renko_forex_V4.py --force-telegram
-
-          # FIOS - confluence force devises (5 familles) x alignement RENKO M/W/D
-          # des paires. Meme frequence que VIVIER (chaque cycle du cron). Tourne
-          # APRES full_alignment (ligne plus haut) qui ecrit le sidecar frais.
-          # Non-fatal : un echec ne doit pas faire avorter le step (set -e) et
-          # empecher les scripts suivants de tourner. FIOS n'envoie que s'il y a
-          # au moins une paire alignee (sinon silence).
           run_with_telegram "$ENABLE_TELEGRAM_FIOS" -m fios.run || echo "FIOS run failed (non-fatal)"
 
-          # Forex AI Brain — Cerveau Independant Auto-Apprenant & Bilan 23h
           run_with_telegram "true" forex_ai_brain.py || echo "Forex AI Brain run failed (non-fatal)"
-
-          echo "---- px_renko_index_tracker_state.json after tracker ----"
-          if [ -f px_renko_index_tracker_state.json ]; then
-            cat px_renko_index_tracker_state.json
-          else
-            echo "px_renko_index_tracker_state.json missing"
-          fi
-
-          echo "---- git status after tracker ----"
-          git status --short
 
           run_with_telegram "$ENABLE_TELEGRAM_BREAK_LINE" break_line.py
           run_with_telegram "$ENABLE_TELEGRAM_ICHIMOKU" ichimoku_v4.py
           run_with_telegram "$ENABLE_TELEGRAM_CONSOLIDATION" triple_g_consolidation.py
-
           run_with_telegram "$ENABLE_TELEGRAM_BREAK_LINE_RENKO" break_line_renko_strategy.py --telegram
           run_with_telegram "$ENABLE_TELEGRAM_HEIKEN" heiken_ashi_aligned_v2.py
           run_with_telegram "$ENABLE_TELEGRAM_PX_RENKO_V4" px_renko_screener_v4.py
-
           run_with_telegram "$ENABLE_TELEGRAM_TRACKER" strategy_tracker.py
-
-
-          #python annual_NDX100_V1.py
-          #python BTC_strategy.py
-
-      # - name: Upload market cache
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: market-cache
-      #     path: market_cache.pkl
-      # python rubbeon_V3.py
-      #python last_sar_break_V3.py
-      #python allabove_V1.py
-      # python annual_V1.py
-      #python rubbeon_MTF_IMP.py
-      #python rubbeon_MTF_IMP_V2.py
-      #python sar_break_V3.py
-      #python index_power1h.py
-      #python fx_avg_all_V2.py
-      #python index_power.py
-      #python annual_V2.py
-      #python sms_tim_V2.py
-      #python minitrend.py
-      # python sar_break_V6.py
-      # python index_long_trend_V2.py
-      # python signal_v8.py
-      #python index_power.
-      #python annual_V1.py
-      #python signal_v7_28pairs.py --no-csv
-      #TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_lists_tracker.py --telegram
-
-      #TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python break_line.py
-      #TELEGRAM_BOT_TOKEN="" TELEGRAM_CHAT_ID="" python ichimoku_v4.
-      #TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_alignment_index_V4.py
-      #TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_ashi_alignment_29pairs.py --telegram
-      #TELEGRAM_BOT_TOKEN="$TG_BOT_TOKEN" TELEGRAM_CHAT_ID="$TG_CHAT_ID" python renko_alignment_index.py
 
       - name: Commit and Push History
         if: always()
@@ -238,29 +172,24 @@ jobs:
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
           BRANCH="${GITHUB_REF_NAME:-main}"
-          STATE_FILES="runner_history.json opportunity_stats.json trend_follower.json rubbeon_state.json rubbeon_MTF_IMP_state.json annual_v2_data.json annual_v2_state.json chg_cc_indices.json annual_ndx100_portfolio_state.json annual_ndx100_scan_state.json btc_dca_state.json signal_v7_exit_state.json break_line_state.json break_line_scan.json break_line_renko_state.json break_line_renko_scan.json renko_lists_tracker_state.json ichimoku_scan.json triple_g_consolidation.json heiken_ashi_scan.json strategy_tracker_state.json px_renko_index_scan.json px_renko_index_tracker_state.json px_renko_daily_follow.json px_renko_daily_follow_v2.json etf_v1_metrics_history.json renko_etf_strategy_v3_state.json renko_etf_strategy_v3_metrics.json renko_nasdaq_state.json renko_nasdaq_tracker.json renko_nasdaq_pnl_history.json renko_nasdaq_portfolio.json nasdaq_sector_pipeline_report.json nasdaq_sector_pipeline_report.txt nasdaq_top_ucits_etf.json nasdaq_pipeline_send.json combo_pipeline_send.json combo_top_assets.json middle_pipeline_report.json middle_pipeline_report.txt middle_pipeline_tracker.json sarenki_V1_forex_log.json renko_forex_v1_state.json renko_forex_v1_tracker.json renko_forex_v1_pnl_history.json renko_forex_v1_portfolio.json renko_forex_v1_spreads.json renko_forex_v2_state.json renko_forex_v2_tracker.json renko_forex_v2_pnl_history.json renko_forex_v2_portfolio.json renko_forex_v2_spreads.json renko_forex_v4_state.json renko_forex_v4_tracker.json renko_forex_v4_pnl_history.json renko_forex_v4_portfolio.json renko_forex_v4_spreads.json renko_score_29pairs_vivier_state.json renko_vivier_events.jsonl renko_vivier_performance.json renko_vivier_pips.json renko_vivier_price_trend_state.json renko_strength_history.json renko_intraday_live.json renko_full_alignment_mid_sar_state.json renko_full_alignment_price_trend_state.json dca_euronext_state.json renko_fibo_50_state.json renko_fibo_50_pips.json renko_fibo_50_price_trend_state.json renko_fibo_50_snapshot.json full_alignment_index.json fios_podium_state.json fios_index_chg_state.json forex_ai_knowledge_base.json"
+          STATE_FILES="runner_history.json opportunity_stats.json trend_follower.json rubbeon_state.json rubbeon_MTF_IMP_state.json annual_v2_data.json annual_v2_state.json chg_cc_indices.json annual_ndx100_portfolio_state.json annual_ndx100_scan_state.json btc_dca_state.json signal_v7_exit_state.json break_line_state.json break_line_scan.json break_line_renko_state.json break_line_renko_scan.json renko_lists_tracker_state.json ichimoku_scan.json triple_g_consolidation.json heiken_ashi_scan.json strategy_tracker_state.json px_renko_index_scan.json px_renko_index_tracker_state.json px_renko_daily_follow.json px_renko_daily_follow_v2.json etf_v1_metrics_history.json renko_etf_strategy_v3_state.json renko_etf_strategy_v3_metrics.json renko_nasdaq_state.json renko_nasdaq_tracker.json renko_nasdaq_pnl_history.json renko_nasdaq_portfolio.json nasdaq_sector_pipeline_report.json nasdaq_sector_pipeline_report.txt nasdaq_top_ucits_etf.json nasdaq_pipeline_send.json combo_pipeline_send.json combo_top_assets.json middle_pipeline_report.json middle_pipeline_report.txt middle_pipeline_tracker.json sarenki_V1_forex_log.json renko_forex_v1_state.json renko_forex_v1_tracker.json renko_forex_v1_pnl_history.json renko_forex_v1_portfolio.json renko_forex_v1_spreads.json renko_forex_v2_state.json renko_forex_v2_tracker.json renko_forex_v2_pnl_history.json renko_forex_v2_portfolio.json renko_forex_v2_spreads.json renko_forex_v4_state.json renko_forex_v4_tracker.json renko_forex_v4_pnl_history.json renko_forex_v4_portfolio.json renko_forex_v4_spreads.json renko_score_29pairs_vivier_state.json renko_vivier_events.jsonl renko_vivier_performance.json renko_vivier_pips.json renko_vivier_price_trend_state.json renko_strength_history.json renko_intraday_live.json renko_full_alignment_mid_sar_state.json renko_full_alignment_price_trend_state.json dca_euronext_state.json renko_fibo_50_state.json renko_fibo_50_pips.json renko_fibo_50_price_trend_state.json renko_fibo_50_snapshot.json full_alignment_index.json fios_podium_state.json fios_index_chg_state.json forex_ai_knowledge_base.json rsb_state.json rsb_audit_trail.jsonl"
 
-          # ── Save state files to /tmp before any git operation ──
           for f in $STATE_FILES; do
             [ -f "$f" ] && cp "$f" "/tmp/ci_state_$(basename $f)" 2>/dev/null || true
           done
 
-          # ── Abort any leftover rebase state from previous run ──
           if [ -d .git/rebase-merge ] || [ -d .git/rebase-apply ]; then
             echo "WARNING: rebase in progress, aborting..."
             git rebase --abort 2>/dev/null || true
           fi
 
-          # ── Fetch + reset to latest remote (clean base) ──
           git fetch origin "$BRANCH"
           git reset --hard "origin/$BRANCH"
 
-          # ── Restore our freshly-computed state files ──
           for f in $STATE_FILES; do
             [ -f "/tmp/ci_state_$(basename $f)" ] && cp "/tmp/ci_state_$(basename $f)" "$f" 2>/dev/null || true
           done
 
-          # ── Stage and commit if anything changed ──
           PUSH_OK=0
           for attempt in 1 2 3; do
             echo "---- git status before add (attempt $attempt) ----"
