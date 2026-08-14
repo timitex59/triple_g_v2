@@ -36,7 +36,7 @@ Exemple de format attendu :
 
 
 def _call_claude(report_text: str, api_key: str, timeout: float = 2.5) -> list[str] | None:
-    """Appel API Anthropic Claude (Modèles les plus intelligents)."""
+    """Appel API Anthropic Claude (Optimisé Rapport Qualité/Prix)."""
     url = "https://api.anthropic.com/v1/messages"
     headers = {
         "x-api-key": api_key,
@@ -44,10 +44,10 @@ def _call_claude(report_text: str, api_key: str, timeout: float = 2.5) -> list[s
         "content-type": "application/json",
     }
     candidate_models = [
-        "claude-3-7-sonnet-latest",
-        "claude-3-5-sonnet-latest",
-        "claude-3-5-sonnet-20241022",
         "claude-3-5-haiku-latest",
+        "claude-3-5-sonnet-latest",
+        "claude-3-5-haiku-20241022",
+        "claude-3-haiku-20240307",
     ]
     for model_name in candidate_models:
         try:
@@ -71,17 +71,17 @@ def _call_claude(report_text: str, api_key: str, timeout: float = 2.5) -> list[s
 
 
 def _call_openai(report_text: str, api_key: str, timeout: float = 2.5) -> list[str] | None:
-    """Appel API OpenAI / Codex (GPT-4o & o3-mini - Modèles les plus intelligents)."""
+    """Appel API OpenAI / Codex (Optimisé Rapport Qualité/Prix : GPT-4o-mini & GPT-4o)."""
     url = "https://api.openai.com/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
     candidate_models = [
+        "gpt-4o-mini",
         "gpt-4o",
         "o3-mini",
         "gpt-4o-2024-11-20",
-        "gpt-4o-mini",
     ]
     for model_name in candidate_models:
         try:
