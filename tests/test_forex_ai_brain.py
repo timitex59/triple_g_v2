@@ -159,6 +159,20 @@ class TestForexAIBrain(unittest.TestCase):
         nzdusd = next(item for item in features["candidates"] if item["pair"] == "NZDUSD")
         self.assertEqual(nzdusd["persistence_runs"], 3)
 
+    def test_flash_price_confirmation_is_soft_and_direction_aware(self):
+        kb = load_knowledge_base(str(self.kb_file))
+        for hour, price in ((8, 1.1000), (9, 1.1005), (10, 1.1008)):
+            kb["observations"].append({
+                "timestamp": f"2026-08-14T{hour:02d}:00:00+02:00", "date": "2026-08-14",
+                "full_selected": {"EURUSD": {"direction": 1}},
+                "vivier_pool": {}, "fibo_sections": {}, "fios_sections": {},
+                "prices": {"EURUSD": price},
+            })
+        candidate = build_flash_features(kb)["candidates"][0]
+        self.assertEqual(candidate["price_status"], "FAVORABLE")
+        self.assertEqual(candidate["move_pips"], 8.0)
+        self.assertGreater(candidate["score"], 4.5)
+
     def test_consensus_label_requires_actual_agreement(self):
         features = {
             "status": "OK", "strongest_currency": "NZD", "weakest_currency": "CHF",
@@ -179,7 +193,7 @@ class TestForexAIBrain(unittest.TestCase):
         ]
         report = format_flash_consensus(features, agreement)
         self.assertIn("CONSENSUS IA (Claude x GPT-5)", report)
-        self.assertIn("NZDCHF LONG · 3 runs · 2 moteurs", report)
+        self.assertIn("NZDCHF LONG · prix N/D · 3 runs · 2 moteurs", report)
         disagreement = [agreement[0], {**agreement[1], "best_pair": "NZDUSD", "weakest_currency": "USD"}]
         report = format_flash_consensus(features, disagreement)
         self.assertNotIn("CONSENSUS IA (Claude x GPT-5)", report)

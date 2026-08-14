@@ -153,11 +153,10 @@ def collect_market_snapshot(now: datetime | None = None,
                     for pair, data in (vivier.get("pairs") or {}).items()}
     fios_sections = {pair: {"section": data.get("section"), "direction": data.get("dir")}
                      for pair, data in (fios.get("sections") or {}).items()}
-    prices = {pair: data.get("level") for pair, data in (fios.get("pairs") or {}).items()
-              if isinstance(data.get("level"), (int, float))}
-    if not prices:
-        prices = {pair: data.get("live_price") for pair, data in pairs.items()
-                  if isinstance(data.get("live_price"), (int, float))}
+    prices = {pair: data.get("live_price") for pair, data in pairs.items()
+              if isinstance(data.get("live_price"), (int, float))}
+    prices.update({pair: data.get("level") for pair, data in (fios.get("pairs") or {}).items()
+                   if isinstance(data.get("level"), (int, float))})
     return {
         "timestamp": now.isoformat(), "date": now.date().isoformat(),
         "sources_generated_at": {"full_alignment": full.get("generated_at"),
@@ -342,6 +341,41 @@ def _signal_direction(value) -> int:
     return 0
 
 
+def _pip_size(pair: str) -> float:
+    return 0.01 if pair.endswith("JPY") or pair == "XAUUSD" else 0.0001
+
+
+def _price_confirmation(observations: list[dict], pair: str, direction: int) -> dict:
+    """Measure price travel over the current signal streak, without hard filtering."""
+    points = []
+    for observation in reversed(observations):
+        matching = any(signal["pair"] == pair and signal["direction"] == direction
+                       for signal in snapshot_signals(observation))
+        if not matching:
+            break
+        price = (observation.get("prices") or {}).get(pair)
+        if isinstance(price, (int, float)):
+            points.append(float(price))
+    points.reverse()
+    if len(points) < 2:
+        return {"price_status": "NO_DATA", "price_observations": len(points),
+                "move_pips": None, "last_move_pips": None}
+    pip = _pip_size(pair)
+    total = (points[-1] - points[0]) * direction / pip
+    last = (points[-1] - points[-2]) * direction / pip
+    tolerance = 0.2
+    if total > tolerance and last >= -tolerance:
+        status = "FAVORABLE"
+    elif total < -tolerance and last <= tolerance:
+        status = "ADVERSE"
+    elif abs(total) <= tolerance and abs(last) <= tolerance:
+        status = "FLAT"
+    else:
+        status = "MIXED"
+    return {"price_status": status, "price_observations": len(points),
+            "move_pips": round(total, 1), "last_move_pips": round(last, 1)}
+
+
 def snapshot_signals(snapshot: dict) -> list[dict]:
     """Normalise les décisions courantes de tous les screeners."""
     signals = []
@@ -381,14 +415,16 @@ def build_flash_features(kb: dict, max_runs: int = 8) -> dict:
     today = observations[-1].get("date")
     recent = [obs for obs in observations if obs.get("date") == today][-max_runs:]
     current = snapshot_signals(recent[-1])
+    current_keys = {(signal["source"], signal["pair"], signal["direction"])
+                    for signal in current}
     history_counts = {}
-    for obs in recent:
-        seen = set()
-        for signal in snapshot_signals(obs):
-            key = (signal["source"], signal["pair"], signal["direction"])
-            if key not in seen:
-                history_counts[key] = history_counts.get(key, 0) + 1
-                seen.add(key)
+    for key in current_keys:
+        for obs in reversed(recent):
+            keys = {(signal["source"], signal["pair"], signal["direction"])
+                    for signal in snapshot_signals(obs)}
+            if key not in keys:
+                break
+            history_counts[key] = history_counts.get(key, 0) + 1
     currency_scores, currency_crosses = {}, {}
     pair_sources = {}
     for signal in current:
@@ -415,6 +451,12 @@ def build_flash_features(kb: dict, max_runs: int = 8) -> dict:
             score = sum(item["weight"] for item in aligned)
             persistence = max(item["persistence_runs"] for item in aligned)
             score += min(persistence, 4) * 0.5
+            price = _price_confirmation(recent, pair, direction)
+            move = price.get("move_pips")
+            if price["price_status"] == "FAVORABLE":
+                score += min(abs(move) / 10.0, 1.5)
+            elif price["price_status"] == "ADVERSE":
+                score -= min(abs(move) / 10.0, 1.5)
             if contradiction:
                 score -= 3.0
             if strongest and weakest and len(pair) == 6:
@@ -423,7 +465,8 @@ def build_flash_features(kb: dict, max_runs: int = 8) -> dict:
                     score += 3.0
             candidates.append({"pair": pair, "direction": "LONG" if direction == 1 else "SHORT",
                                "score": round(score, 2), "sources": sorted(x["source"] for x in aligned),
-                               "persistence_runs": persistence, "contradiction": contradiction})
+                               "persistence_runs": persistence, "contradiction": contradiction,
+                               **price})
     candidates.sort(key=lambda item: (item["contradiction"], -item["score"], item["pair"]))
     contradictions = [item["pair"] for item in candidates if item["contradiction"]]
     return {
@@ -439,7 +482,8 @@ def build_flash_features(kb: dict, max_runs: int = 8) -> dict:
 FLASH_PROMPT = """Tu analyses un snapshot multi-screener Forex déjà calculé. Choisis uniquement parmi les valeurs fournies.
 Réponds en JSON strict: strongest_currency, weakest_currency, best_pair, direction, risk, confidence.
 best_pair et direction doivent recopier un candidat non contradictoire. Cherche: force/faiblesse multi-cross,
-confluence entre moteurs, persistance multi-run, puis absence de contradiction. N'invente aucune paire ni donnée."""
+confluence entre moteurs, validation souple par move_pips/price_status, persistance multi-run, puis absence de
+contradiction. Un prix ADVERSE pénalise sans interdire; NO_DATA reste neutre. N'invente aucune paire ni donnée."""
 
 
 def _claude_payload(model: str, max_tokens: int, system: str, user: str) -> dict:
@@ -537,7 +581,16 @@ def format_flash_consensus(features: dict, reviews: list[dict]) -> str | None:
                          if item["pair"] == choice[0] and item["direction"] == choice[1])
         run_count = candidate["persistence_runs"]
         source_count = len(candidate["sources"])
-        line2 = (f"🎯 {choice[0]} {choice[1]} · {run_count} run{'s' if run_count > 1 else ''} · "
+        move = candidate.get("move_pips")
+        status = candidate.get("price_status")
+        if isinstance(move, (int, float)):
+            price_part = f"{move:+.1f} pips"
+            price_part += {"FAVORABLE": " · ↑ prix", "ADVERSE": " · ↓ prix",
+                           "MIXED": " · ↕ prix", "FLAT": " · → prix"}.get(status, "")
+        else:
+            price_part = "prix N/D"
+        line2 = (f"🎯 {choice[0]} {choice[1]} · {price_part} · "
+                 f"{run_count} run{'s' if run_count > 1 else ''} · "
                  f"{source_count} moteur{'s' if source_count > 1 else ''}")
     else:
         line2 = "⚠️ Aucun cross assez propre"
