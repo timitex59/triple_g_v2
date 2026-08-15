@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-Rapport Quotidien des Pips RSB-C1 (Mode Causal Strict Anti-Lookahead)
-====================================================================
+Rapport Quotidien des Pips RSB-C1 (Filtrage par Paire Spécifique & Mode Causal)
+=============================================================================
 Élimine 100% du same-bar lookahead leakage :
 Signal à la CLÔTURE du bar t  ➔  ENTRÉE au OPEN du bar t+1
 
 Format d'affichage :
 YYYY-MM-DD : X trades fermés (+YYY.Y pips)
+Permet de cibler une paire spécifique (ex: --pair CHFJPY ou --pair EURUSD)
 """
 
 import sys
@@ -28,7 +29,7 @@ from relative_strength.config import ALL_28_PAIRS, PARIS_TZ
 from relative_strength.pip_engine import get_pip_size, calculate_pips
 
 
-def run_causal_single_day(date_str: str, df_cache: Dict[str, pd.DataFrame], timeframe: str) -> List[Dict[str, Any]]:
+def run_causal_single_day(date_str: str, df_cache: Dict[str, pd.DataFrame], timeframe: str, target_pair: str = "ALL") -> List[Dict[str, Any]]:
     sample_df = list(df_cache.values())[0]
     run_timestamps = [dt for dt in sample_df.index if dt.strftime("%Y-%m-%d") == date_str and 7 <= dt.hour <= 22]
     run_timestamps.sort()
@@ -54,6 +55,8 @@ def run_causal_single_day(date_str: str, df_cache: Dict[str, pd.DataFrame], time
         # 1. Traitement des ENTRÉES PENDING au OPEN du bar t_stamp
         for sig in pending_signals:
             pair = sig["pair"]
+            if target_pair != "ALL" and pair != target_pair:
+                continue
             if pair in [p["pair"] for p in active_positions]:
                 continue
             if len(active_positions) >= 15:
@@ -155,6 +158,9 @@ def run_causal_single_day(date_str: str, df_cache: Dict[str, pd.DataFrame], time
             for pair in ALL_28_PAIRS:
                 if pair not in raw_pips_map:
                     continue
+                if target_pair != "ALL" and pair != target_pair:
+                    continue
+
                 rp = raw_pips_map[pair]
                 tdir = "LONG" if rp > 0 else ("SHORT" if rp < 0 else "NEUTRAL")
                 dpips = rp if tdir == "LONG" else -rp
@@ -175,6 +181,8 @@ def run_causal_single_day(date_str: str, df_cache: Dict[str, pd.DataFrame], time
                         "pips_close": dpips
                     })
 
+    if target_pair != "ALL":
+        return [t for t in closed_trades if t["pair"] == target_pair]
     return closed_trades
 
 
@@ -182,6 +190,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Rapport Quotidien Causal RSB-C1")
     parser.add_argument("--start", type=str, default="2026-01-01", help="Date de début (YYYY-MM-DD)")
     parser.add_argument("--end", type=str, default="2026-08-14", help="Date de fin (YYYY-MM-DD)")
+    parser.add_argument("--pair", type=str, default="ALL", help="Paire spécifique (ex: CHFJPY, EURUSD, ou ALL)")
     parser.add_argument("--timeframe", type=str, default="1h", choices=["1h", "15m", "auto"], help="Intervalle (1h, 15m, auto)")
     return parser.parse_args()
 
@@ -191,8 +200,9 @@ def generate_daily_report():
     start_date = pd.to_datetime(args.start)
     end_date = pd.to_datetime(args.end)
     tf_choice = args.timeframe
+    target_pair = args.pair.upper()
 
-    print(f"📊 RAPPORT QUOTIDIEN CAUSAL RSB-C1 ({args.start} AU {args.end}) — TIMEFRAME: {tf_choice.upper()}")
+    print(f"📊 RAPPORT QUOTIDIEN CAUSAL RSB-C1 ({args.start} AU {args.end}) — PAIRE: {target_pair} | TIMEFRAME: {tf_choice.upper()}")
     print("=" * 75)
 
     tickers = [f"{p}=X" for p in ALL_28_PAIRS]
@@ -229,7 +239,7 @@ def generate_daily_report():
     while curr_dt <= end_date:
         if curr_dt.weekday() < 5:
             date_str = curr_dt.strftime("%Y-%m-%d")
-            trades = run_causal_single_day(date_str, df_cache, download_tf)
+            trades = run_causal_single_day(date_str, df_cache, download_tf, target_pair)
             count = len(trades)
             net_pips = sum(t["exit_pips"] for t in trades)
             sign = "+" if net_pips > 0 else ""
@@ -259,11 +269,11 @@ def generate_daily_report():
     avg_pips_day = (total_pips_all / active_days_count) if active_days_count > 0 else 0.0
     pct_pos_days = (positive_days_count / active_days_count * 100) if active_days_count > 0 else 0.0
     
-    print(f"🏆 CUMUL TOTAL CAUSAL RSB-C1 : {total_trades_all} trades fermés ({total_sign}{total_pips_all:.1f} pips)")
+    print(f"🏆 CUMUL TOTAL CAUSAL RSB-C1 ({target_pair}) : {total_trades_all} trades fermés ({total_sign}{total_pips_all:.1f} pips)")
     print(f"📊 Win Rate Trades : {win_rate:.1f}% ({winning_trades_all}W / {losing_trades_all}L)")
-    print(f"📅 Journées Gagnantes : {positive_days_count} / {active_days_count} ({pct_pos_days:.1f}% des jours)")
+    print(f"📅 Journées Gagnantes : {positive_days_count} / {active_days_count} ({pct_pos_days:.1f}% des jours actifs)")
     print(f"🔻 Journées Perdantes : {negative_days_count} jours | Neutres: {zero_days_count} jours")
-    print(f"📈 Moyenne par jour : {total_sign}{avg_pips_day:.1f} pips / jour de trading")
+    print(f"📈 Moyenne par jour : {total_sign}{avg_pips_day:.1f} pips / jour actif")
     print("=" * 75)
 
 
