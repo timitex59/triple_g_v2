@@ -5,10 +5,7 @@ Replay Multi-Run (Consolidé 6 Portefeuilles & Mode Verbose C1)
 Rejoue n'importe quelle journée passée (cadence 15m si disponible < 60d, ou H1).
 Alimente les 6 portefeuilles d'exécution (A, B, C1, C2, C3, C4) et affiche la matrice de décision consolidée.
 Option --verbose-trades pour journaliser chaque ENTRÉE et FERMETURE de C1.
-
-Corrections d'Audit de Fidélité :
-1. Compteur Active x/15 SÉQUENTIEL lors des entrées par batch.
-2. Clôture EOD strictement bornée à 22h00 Paris (heures 07h00 - 22h00).
+Option --timeframe (auto, 15m, 1h) pour forcer la résolution souhaitée.
 """
 
 import sys
@@ -40,21 +37,26 @@ from relative_strength.execution import ExecutionManagerA, ExecutionManagerB, Ex
 from relative_strength.alerts import format_consolidated_eligible_alert
 
 
-def fetch_all_history_yfinance(day_str: str) -> Dict[str, pd.DataFrame]:
+def fetch_all_history_yfinance(day_str: str, requested_tf: str = "auto") -> Dict[str, pd.DataFrame]:
     """Télécharge les données 15m (si disponible < 60d) ou H1 (fallback) pour la date cible exacte."""
     target_dt = pd.to_datetime(day_str)
     start_dt = target_dt - timedelta(days=2)
     end_dt = target_dt + timedelta(days=2)
     tickers = [f"{p}=X" for p in ALL_28_PAIRS]
 
-    # Essai 1 : Intervalle 15m (disponible sur les 60 derniers jours)
-    df_batch = yf.download(tickers, start=start_dt.strftime("%Y-%m-%d"), end=end_dt.strftime("%Y-%m-%d"), interval="15m", progress=False)
-    interval_used = "15m"
-
-    if df_batch.empty or df_batch["Close"].dropna().empty:
-        # Fallback Essai 2 : Intervalle H1 (disponible jusqu'à 730 jours)
+    if requested_tf.lower() == "1h":
         df_batch = yf.download(tickers, start=start_dt.strftime("%Y-%m-%d"), end=end_dt.strftime("%Y-%m-%d"), interval="1h", progress=False)
         interval_used = "1h"
+    elif requested_tf.lower() == "15m":
+        df_batch = yf.download(tickers, start=start_dt.strftime("%Y-%m-%d"), end=end_dt.strftime("%Y-%m-%d"), interval="15m", progress=False)
+        interval_used = "15m"
+    else:
+        # Auto: Essai 15m d'abord
+        df_batch = yf.download(tickers, start=start_dt.strftime("%Y-%m-%d"), end=end_dt.strftime("%Y-%m-%d"), interval="15m", progress=False)
+        interval_used = "15m"
+        if df_batch.empty or df_batch["Close"].dropna().empty:
+            df_batch = yf.download(tickers, start=start_dt.strftime("%Y-%m-%d"), end=end_dt.strftime("%Y-%m-%d"), interval="1h", progress=False)
+            interval_used = "1h"
     
     m_map: Dict[str, pd.DataFrame] = {}
     for pair in ALL_28_PAIRS:
@@ -77,13 +79,15 @@ def fetch_all_history_yfinance(day_str: str) -> Dict[str, pd.DataFrame]:
 def run_multi_run_replay():
     parser = argparse.ArgumentParser(description="Replay Multi-Run RSB Engine")
     parser.add_argument("--date", type=str, default="2026-08-14", help="Date de replay (YYYY-MM-DD)")
+    parser.add_argument("--timeframe", type=str, default="auto", choices=["auto", "15m", "1h"], help="Forcer le timeframe (auto, 15m, 1h)")
     parser.add_argument("--verbose-trades", action="store_true", help="Affiche le detail trade par trade (ENTRY/CLOSED) pour C1")
     args = parser.parse_args()
 
     target_date_str = args.date
     verbose_trades = args.verbose_trades
+    requested_tf = args.timeframe
 
-    m_map, interval_used = fetch_all_history_yfinance(target_date_str)
+    m_map, interval_used = fetch_all_history_yfinance(target_date_str, requested_tf)
     
     if not m_map or len(m_map) < len(ALL_28_PAIRS):
         print(f"❌ Données insuffisantes pour la date {target_date_str}.")
