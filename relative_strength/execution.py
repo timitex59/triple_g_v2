@@ -7,7 +7,7 @@ Gestionnaires d'exécution pour les portefeuilles RSB-A, RSB-B, RSB-C1..C4.
 Corrections Audit Mathématique & Motif de Rejet Auditable :
 1. Application STRICTE du plafonnement de capacité (max_capacity) À CHAQUE SIGNAL.
 2. Motif de rejet explicite avec le nom de la paire : POSITION_ALREADY_ACTIVE(pair=...).
-3. Saisie du motif de rejet clair et auditable.
+3. Interdiction STRICTE d'ouvrir de nouvelles positions lors du dernier run de la journée (is_last_run_of_day=True à 22h00).
 """
 
 import copy
@@ -170,13 +170,11 @@ class BaseExecutionManager:
                 self.disarmed_pairs[pos.pair] = True
                 continue
 
-            # 5. End of Day (22:00 Paris)
+            # 5. End of Day Clôture (Dernier run de la journée à 22h00 Paris)
             if is_last_run_of_day:
                 pos.exit_pips = pips_gain
                 pos.exit_reason = "END_OF_DAY"
                 pos.exit_time = s.timestamp
-                if pos.mfe_pips >= THRESHOLD_PIPS and pips_gain <= 0.0:
-                    pos.is_false_breakout = True
                 self.closed_trades.append(pos)
                 self.disarmed_pairs[pos.pair] = True
                 continue
@@ -187,19 +185,19 @@ class BaseExecutionManager:
 
 
 class ExecutionManagerA(BaseExecutionManager):
-    """🅰️ RSB-A : Setup Unique Quotidien (1 trade max par jour)."""
+    """🅰️ RSB-A : Daily Single-Trade Manager (1 seul trade par jour pour tout le portefeuille)."""
     def __init__(self, **kwargs):
         super().__init__("RSB-A", **kwargs)
         self.daily_entered = False
 
-    def reset_daily_state(self):
-        self.daily_entered = False
-
     def process_run(self, states: List[RelativeStrengthState], is_last_run_of_day: bool = False) -> Tuple[List[TradePosition], List[RejectedSignal]]:
         self.update_positions_and_check_exits(states, is_last_run_of_day)
-        
+
         new_entries = []
         new_rejections = []
+
+        if is_last_run_of_day:
+            return new_entries, new_rejections
 
         eligible_states = [s for s in states if s.is_eligible]
         eligible_states.sort(key=lambda s: s.opportunity_rank)
@@ -209,7 +207,7 @@ class ExecutionManagerA(BaseExecutionManager):
             timestamp_clean = s.timestamp.replace(":", "").replace("-", "").replace("T", "_")[:13]
             t_id = f"{timestamp_clean}-{s.pair}-{s.trade_direction}"
 
-            if self.daily_entered:
+            if self.daily_entered or len(self.active_positions) > 0:
                 rej = RejectedSignal(t_id, self.variant_id, s.timestamp, s.pair, s.trade_direction, s.entry_zone, s.opportunity_rank, "DAILY_TRADE_LIMIT_REACHED")
                 self.rejected_signals.append(rej)
                 new_rejections.append(rej)
@@ -242,6 +240,9 @@ class ExecutionManagerB(BaseExecutionManager):
 
         new_entries = []
         new_rejections = []
+
+        if is_last_run_of_day:
+            return new_entries, new_rejections
 
         eligible_states = [s for s in states if s.is_eligible]
         eligible_states.sort(key=lambda s: s.opportunity_rank)
@@ -288,10 +289,13 @@ class ExecutionManagerC(BaseExecutionManager):
 
         new_entries = []
         new_rejections = []
+
+        # Au dernier run de la journée (is_last_run_of_day=True à 22h00), fermer les trades mais NE PAS OUVRIR de nouvelles positions.
+        if is_last_run_of_day:
+            return new_entries, new_rejections
+
         active_pairs = {p.pair for p in self.active_positions}
-
         dynamic_exposures = get_directional_currency_exposures(self.active_positions)
-
         eligible_states = [s for s in states if s.is_eligible]
 
         for s in eligible_states:
@@ -351,13 +355,13 @@ class ExecutionManagerC(BaseExecutionManager):
             self.active_positions.append(pos)
             active_pairs.add(s.pair)
             
-            if pos.direction == "LONG":
+            if s.trade_direction == "LONG":
                 dynamic_exposures[s.base_currency] = dynamic_exposures.get(s.base_currency, 0) + 1
                 dynamic_exposures[s.quote_currency] = dynamic_exposures.get(s.quote_currency, 0) - 1
             else:
                 dynamic_exposures[s.base_currency] = dynamic_exposures.get(s.base_currency, 0) - 1
                 dynamic_exposures[s.quote_currency] = dynamic_exposures.get(s.quote_currency, 0) + 1
-
+                
             new_entries.append(pos)
 
         return new_entries, new_rejections
