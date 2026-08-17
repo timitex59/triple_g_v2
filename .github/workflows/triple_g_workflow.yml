@@ -78,6 +78,7 @@ jobs:
           ENABLE_TELEGRAM_TRACKER: "false"
           ENABLE_TELEGRAM_FIOS: "false"
           ENABLE_TELEGRAM_RSB_C1: "false"
+          ENABLE_TELEGRAM_FOREX_AI_BRAIN: "false"
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
           OANDA_ENV: "practice"
@@ -156,7 +157,7 @@ jobs:
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V4" renko_forex_V4.py --force-telegram
           run_with_telegram "$ENABLE_TELEGRAM_FIOS" -m fios.run || echo "FIOS run failed (non-fatal)"
 
-          run_with_telegram "true" forex_ai_brain.py || echo "Forex AI Brain run failed (non-fatal)"
+          run_with_telegram "$ENABLE_TELEGRAM_FOREX_AI_BRAIN" forex_ai_brain.py || echo "Forex AI Brain run failed (non-fatal)"
 
           run_with_telegram "$ENABLE_TELEGRAM_BREAK_LINE" break_line.py
           run_with_telegram "$ENABLE_TELEGRAM_ICHIMOKU" ichimoku_v4.py
