@@ -377,6 +377,23 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("🔴 EUR -0.05%", message)
         self.assertIn("🔴 JPY -0.44%", message)
 
+    def test_index_status_rows_are_sorted_by_absolute_tf_sign_sum(self):
+        scanned = [
+            index_row("SXY", 0, -1, 0, daily_chg=0.26),   # |0-1+0| = 1
+            index_row("AXY", 1, 1, 1, daily_chg=0.23),    # |1+1+1| = 3
+            index_row("ZXY", 0, 1, 1, daily_chg=0.19),    # |0+1+1| = 2
+            index_row("CXY", 1, 1, 1, daily_chg=-0.03),   # |1+1+1| = 3
+            index_row("JXY", -1, 0, -1, daily_chg=-0.11), # |-1+0-1| = 2
+        ]
+
+        status = all_index_status_rows(scanned)
+
+        # |somme| decroissant d'abord, puis CHG%D decroissant a egalite.
+        self.assertEqual(
+            [item["pair"] for item in status],
+            ["AXY", "CXY", "ZXY", "JXY", "SXY"],
+        )
+
     def test_index_status_rows_keep_every_scanned_index(self):
         scanned = [
             row("AUDJPY", 1, 1, 1, daily_chg=0.88),
@@ -387,7 +404,8 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         status = all_index_status_rows(scanned)
 
-        self.assertEqual([item["pair"] for item in status], ["AXY", "DXY", "JXY"])
+        # Cible: l'exhaustivite, pas l'ordre (couvert par le test de tri).
+        self.assertEqual(sorted(item["pair"] for item in status), ["AXY", "DXY", "JXY"])
         # Le filtre de qualite reste plus strict: il alimente encore la selection
         # des paires via valid_index_currencies.
         self.assertEqual(

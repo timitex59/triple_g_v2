@@ -425,14 +425,33 @@ def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None
     )
 
 
+def _px_sign_sum(row: dict) -> int:
+    """Somme des trois biais M/W/D (chaque TF vaut +1, 0 ou -1)."""
+    px = _px(row) or {}
+    total = 0
+    for tf in ("M", "W", "D"):
+        value = px.get(tf)
+        if isinstance(value, (int, float)):
+            total += int(value)
+    return total
+
+
 def all_index_status_rows(rows: list[dict]) -> list[dict]:
     """Tous les indices devises scannes, sans filtre de qualite: la section
     Telegram doit montrer le statut des 8 indices, y compris ceux ecartes de
-    `select_index_daily_chg_rows` (CHG%D negligeable ou TF incoherents)."""
+    `select_index_daily_chg_rows` (CHG%D negligeable ou TF incoherents).
+
+    Classement par |somme des signes M/W/D| decroissant (ex. M0 W- D0 -> 1):
+    les indices dont les trois TF pointent dans le meme sens remontent, les
+    indecis tombent en bas. Le CHG%D reste le critere secondaire."""
     index_rows = [row for row in rows if row.get("asset_type") == "INDEX"]
     return sorted(
         index_rows,
-        key=lambda row: (*_daily_chg_sort_key(row), str(row.get("pair") or "")),
+        key=lambda row: (
+            -abs(_px_sign_sum(row)),
+            *_daily_chg_sort_key(row),
+            str(row.get("pair") or ""),
+        ),
     )
 
 
