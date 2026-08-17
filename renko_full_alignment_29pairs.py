@@ -43,6 +43,13 @@ MID_SAR_WINDOW_START_HOUR = 7
 MID_SAR_WINDOW_END_HOUR = 23
 MID_SAR_ALLOWED_TF_PAIRS = {"M/W/D"}
 
+# Poids de la note streak par timeframe: un TF lent engage davantage (meme
+# echelle 3/2/1 que WEIGHTS dans renko_score_29pairs_v16.py).
+STREAK_TF_WEIGHTS = {"M": 3.0, "W": 2.0, "D": 1.0}
+# Renormalise la note ponderee sur -3..+3, l'echelle de la note non ponderee,
+# pour que les scores restent comparables d'une version a l'autre.
+STREAK_NOTE_NORMALIZER = 3.0 / sum(STREAK_TF_WEIGHTS.values())
+
 FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "DXY", "tv_symbol": "TVC:DXY", "asset_type": "INDEX", "currency": "USD"},
     {"pair": "EXY", "tv_symbol": "TVC:EXY", "asset_type": "INDEX", "currency": "EUR"},
@@ -425,15 +432,19 @@ def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None
     )
 
 
-def _streak_sign_sum(row: dict) -> int:
-    """Somme des notes streak M/W/D.
+def _streak_note(row: dict) -> float:
+    """Note streak M/W/D ponderee par timeframe.
 
     Chaque TF vaut le signe de son STATUS (BULL +1, BEAR -1), mais seulement si
-    le streak Renko dans ce sens est engage; un streak a 0 annule le TF. Ex.
-    GBPUSD M+(3) W+(0) D+(1) -> 1 + 0 + 1 = 2."""
+    le streak Renko dans ce sens est engage; un streak a 0 annule le TF. La
+    contribution est ensuite ponderee (Monthly 3, Weekly 2, Daily 1: un TF lent
+    engage davantage), puis renormalisee sur l'echelle -3..+3 pour rester
+    comparable a la note non ponderee.
+
+    Ex. GBPUSD M+(3) W+(0) D+(1) -> (3x1 + 2x0 + 1x1) / 2 = 2.0."""
     states = row.get("states") or {}
     bias = row.get("bias") or {}
-    total = 0
+    total = 0.0
     for tf in ("M", "W", "D"):
         state = states.get(tf)
         raw_direction = bias.get(tf)
@@ -442,20 +453,20 @@ def _streak_sign_sum(row: dict) -> int:
         direction = 1 if raw_direction == 1 else -1
         streak = state.green_streak if direction == 1 else state.red_streak
         if int(streak) > 0:
-            total += direction
-    return total
+            total += STREAK_TF_WEIGHTS[tf] * direction
+    return total * STREAK_NOTE_NORMALIZER
 
 
 def strength_score(row: dict) -> float | None:
     """Intensite d'un indice ou d'une paire: |note streak M/W/D| x |CHG%D|.
 
-    La note streak (cf. _streak_sign_sum) ne compte que les TF dont le streak
-    Renko confirme le STATUS: GBPUSD M+(3) W+(0) D+(1) vaut 2, pas 3. Le score
-    est une magnitude: le sens reste porte par l'icone 🟢/🔴 de la ligne."""
+    La note streak (cf. _streak_note) ne compte que les TF dont le streak Renko
+    confirme le STATUS, ponderes 3/2/1: GBPUSD M+(3) W+(0) D+(1) vaut 2.0, pas
+    3. Le score est une magnitude: le sens reste porte par l'icone 🟢/🔴."""
     chg = row.get("daily_chg")
     if not isinstance(chg, (int, float)):
         return None
-    return abs(_streak_sign_sum(row)) * abs(float(chg))
+    return abs(_streak_note(row)) * abs(float(chg))
 
 
 def _strength_sort_key(row: dict) -> tuple[int, float, str]:

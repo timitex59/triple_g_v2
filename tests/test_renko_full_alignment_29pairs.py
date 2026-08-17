@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from renko_full_alignment_29pairs import (
     FOREX_INDEX_ASSETS,
-    _streak_sign_sum,
+    _streak_note,
     all_index_status_rows,
     all_pair_status_rows,
     attach_premium_currency_profiles,
@@ -396,30 +396,42 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("🔴 JPY (-0.44%)", message)
         self.assertIn("💱 INDEX CHG%D", message)
         # Ligne compacte: seul le score d'intensite, sans CHG%D ni M/W/D.
-        self.assertIn("🟢 USD (+0.12)", message)   # |1| x 0.12
-        self.assertIn("🔴 EUR (+0.05)", message)   # |1| x 0.05
-        self.assertIn("🔴 JPY (+1.32)", message)   # |3| x 0.44
+        self.assertIn("🟢 USD (+0.12)", message)   # (3-2+1)/2 = 1.0 x 0.12
+        self.assertIn("🔴 EUR (+0.10)", message)   # (3+2-1)/2 = 2.0 x 0.05
+        self.assertIn("🔴 JPY (+1.32)", message)   # 3.0 x 0.44
         self.assertNotIn("USD +0.12%", message)
         self.assertNotIn("(M+ W- D+)", message)
 
     def test_streak_note_only_counts_timeframes_backed_by_a_streak(self):
         # GBPUSD sur TradingView: M+(3) W+(0) D+(1), STATUS BULL partout.
+        # (3x1 + 2x0 + 1x1) / 2 = 2.0
         gbpusd = row("GBPUSD", 1, 1, 1, streaks={"M": 3, "W": 0, "D": 1})
-        self.assertEqual(_streak_sign_sum(gbpusd), 2)
+        self.assertEqual(_streak_note(gbpusd), 2.0)
 
         # Monthly BEAR malgre un PX a 0, avec un streak rouge engage: M0(1) = -1.
+        # Le Monthly pese 3 contre 1 au Daily: (-3 + 0 + 1) / 2 = -1.0, la
+        # contradiction M vs D ne s'annule plus.
         mixed = row(
             "XAUUSD", 0, 1, 1,
             bias={"M": -1, "W": 1, "D": 1},
             streaks={"M": 1, "W": 0, "D": 3},
         )
-        self.assertEqual(_streak_sign_sum(mixed), 0)  # -1 + 0 + 1
+        self.assertEqual(_streak_note(mixed), -1.0)
 
         # Aucun streak engage -> note nulle malgre un alignement PX parfait.
         self.assertEqual(
-            _streak_sign_sum(row("EURUSD", 1, 1, 1, streaks={"M": 0, "W": 0, "D": 0})),
-            0,
+            _streak_note(row("EURUSD", 1, 1, 1, streaks={"M": 0, "W": 0, "D": 0})),
+            0.0,
         )
+        # Alignement complet: la normalisation ramene bien la note a 3.
+        self.assertEqual(_streak_note(row("AUDJPY", 1, 1, 1)), 3.0)
+
+    def test_streak_note_weights_monthly_above_daily(self):
+        monthly_only = row("EURUSD", 1, 0, 0, streaks={"W": 0, "D": 0})
+        daily_only = row("EURUSD", 0, 0, 1, streaks={"M": 0, "W": 0})
+
+        self.assertEqual(_streak_note(monthly_only), 1.5)   # 3 / 2
+        self.assertEqual(_streak_note(daily_only), 0.5)     # 1 / 2
 
     def test_strength_score_multiplies_streak_note_by_absolute_daily_chg(self):
         def score(*args, **kwargs):
