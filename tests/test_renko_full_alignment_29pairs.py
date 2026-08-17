@@ -388,10 +388,26 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         status = all_index_status_rows(scanned)
 
-        # |somme| decroissant d'abord, puis CHG%D decroissant a egalite.
+        # |somme| decroissant d'abord, puis |CHG%D| decroissant a egalite.
         self.assertEqual(
             [item["pair"] for item in status],
             ["AXY", "CXY", "ZXY", "JXY", "SXY"],
+        )
+
+    def test_index_status_tie_break_uses_absolute_daily_chg(self):
+        scanned = [
+            index_row("ZXY", 0, 1, 1, daily_chg=0.19),    # |2|, |0.19|
+            index_row("EXY", 0, 1, 1, daily_chg=0.08),    # |2|, |0.08|
+            index_row("JXY", -1, 0, -1, daily_chg=-0.11), # |2|, |0.11|
+        ]
+
+        status = all_index_status_rows(scanned)
+
+        # A |somme| egale, l'amplitude prime sur le sens: JXY (-0.11) doit
+        # passer devant EXY (+0.08).
+        self.assertEqual(
+            [item["pair"] for item in status],
+            ["ZXY", "JXY", "EXY"],
         )
 
     def test_index_status_rows_keep_every_scanned_index(self):

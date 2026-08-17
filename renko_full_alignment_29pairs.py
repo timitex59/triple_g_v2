@@ -443,13 +443,14 @@ def all_index_status_rows(rows: list[dict]) -> list[dict]:
 
     Classement par |somme des signes M/W/D| decroissant (ex. M0 W- D0 -> 1):
     les indices dont les trois TF pointent dans le meme sens remontent, les
-    indecis tombent en bas. Le CHG%D reste le critere secondaire."""
+    indecis tombent en bas. A egalite, |CHG%D| decroissant: on discrimine sur
+    l'amplitude du mouvement du jour, quel que soit son sens."""
     index_rows = [row for row in rows if row.get("asset_type") == "INDEX"]
     return sorted(
         index_rows,
         key=lambda row: (
             -abs(_px_sign_sum(row)),
-            *_daily_chg_sort_key(row),
+            *_abs_daily_chg_sort_key(row),
             str(row.get("pair") or ""),
         ),
     )
@@ -797,6 +798,15 @@ def _daily_chg_sort_key(row: dict) -> tuple[int, float]:
     value = row.get("daily_chg")
     if isinstance(value, (int, float)):
         return (0, -float(value))
+    return (1, 0.0)
+
+
+def _abs_daily_chg_sort_key(row: dict) -> tuple[int, float]:
+    """Tri par amplitude du CHG%D, sens ignore. Les lignes sans CHG%D finissent
+    en queue."""
+    value = row.get("daily_chg")
+    if isinstance(value, (int, float)):
+        return (0, -abs(float(value)))
     return (1, 0.0)
 
 
