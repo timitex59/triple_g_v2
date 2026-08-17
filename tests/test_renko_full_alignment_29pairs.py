@@ -8,11 +8,12 @@ from zoneinfo import ZoneInfo
 from renko_full_alignment_29pairs import (
     FOREX_INDEX_ASSETS,
     all_index_status_rows,
+    all_pair_status_rows,
     attach_premium_currency_profiles,
     assets_for_scope,
     format_full_alignment_message,
     full_alignment_direction,
-    index_strength_score,
+    strength_score,
     mid_alignment_candidate,
     raw_alignment_score,
     select_full_alignment_rows,
@@ -381,9 +382,9 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("USD +0.12%", message)
         self.assertNotIn("(M+ W- D+)", message)
 
-    def test_index_strength_score_multiplies_sign_sum_by_absolute_daily_chg(self):
+    def test_strength_score_multiplies_sign_sum_by_absolute_daily_chg(self):
         def score(*args, **kwargs):
-            value = index_strength_score(index_row(*args, **kwargs))
+            value = strength_score(index_row(*args, **kwargs))
             return round(value, 4) if value is not None else None
 
         self.assertEqual(score("AXY", 1, 1, 1, daily_chg=0.23), 0.69)
@@ -421,6 +422,38 @@ class FullAlignmentScannerTests(unittest.TestCase):
         status = all_index_status_rows(scanned)
 
         self.assertEqual([item["pair"] for item in status], ["CXY", "EXY"])
+
+    def test_pair_status_rows_cover_every_pair_sorted_by_strength_score(self):
+        scanned = [
+            row("EURUSD", 0, 1, 1, daily_chg=0.19),    # 2 x 0.19 = 0.38
+            row("GBPJPY", 1, 1, 1, daily_chg=0.23),    # 3 x 0.23 = 0.69
+            row("USDCHF", 0, 0, 0, daily_chg=0.42),    # 0 x 0.42 = 0.00
+            row("AUDCAD", -1, 0, -1, daily_chg=-0.11), # 2 x 0.11 = 0.22
+            index_row("AXY", 1, 1, 1, daily_chg=0.28), # ecarte: c'est un indice
+        ]
+
+        status = all_pair_status_rows(scanned)
+
+        self.assertEqual(
+            [item["pair"] for item in status],
+            ["GBPJPY", "EURUSD", "AUDCAD", "USDCHF"],
+        )
+
+    def test_message_lists_pair_status_section(self):
+        scanned = [
+            row("GBPJPY", 1, 1, 1, daily_chg=0.23),
+            row("USDCHF", 0, 0, 0, daily_chg=0.42),
+        ]
+
+        message = format_full_alignment_message(
+            [],
+            pair_status_rows=all_pair_status_rows(scanned),
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+        )
+
+        self.assertIn("💹 PAIRES CHG%D", message)
+        self.assertIn("🟢 GBPJPY (+0.69)", message)
+        self.assertIn("🟢 USDCHF (+0.00)", message)
 
     def test_index_status_rows_keep_every_scanned_index(self):
         scanned = [

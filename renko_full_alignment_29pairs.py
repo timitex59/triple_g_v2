@@ -436,8 +436,8 @@ def _px_sign_sum(row: dict) -> int:
     return total
 
 
-def index_strength_score(row: dict) -> float | None:
-    """Intensite d'un indice: |somme des signes M/W/D| x |CHG%D|.
+def strength_score(row: dict) -> float | None:
+    """Intensite d'un indice ou d'une paire: |somme des signes M/W/D| x |CHG%D|.
 
     Ex. AUD a M+ W+ D+ (somme 3) et +0.23% -> 3 x 0.23 = 0.69. Le score est une
     magnitude: le sens reste porte par l'icone 🟢/🔴 de la ligne."""
@@ -447,8 +447,8 @@ def index_strength_score(row: dict) -> float | None:
     return abs(_px_sign_sum(row)) * abs(float(chg))
 
 
-def _index_strength_sort_key(row: dict) -> tuple[int, float, str]:
-    score = index_strength_score(row)
+def _strength_sort_key(row: dict) -> tuple[int, float, str]:
+    score = strength_score(row)
     if score is None:
         return (1, 0.0, str(row.get("pair") or ""))
     return (0, -score, str(row.get("pair") or ""))
@@ -464,7 +464,14 @@ def all_index_status_rows(rows: list[dict]) -> list[dict]:
     valeur, donc un indice a 1 seul TF mais gros CHG%D peut devancer un indice
     aligne qui bouge peu."""
     index_rows = [row for row in rows if row.get("asset_type") == "INDEX"]
-    return sorted(index_rows, key=_index_strength_sort_key)
+    return sorted(index_rows, key=_strength_sort_key)
+
+
+def all_pair_status_rows(rows: list[dict]) -> list[dict]:
+    """Meme principe que `all_index_status_rows`, pour les 29 paires: statut de
+    toutes les paires scannees, classees par score d'intensite decroissant."""
+    pair_rows = [row for row in rows if row.get("asset_type") != "INDEX"]
+    return sorted(pair_rows, key=_strength_sort_key)
 
 
 def _index_rows_by_currency(rows: list[dict]) -> dict[str, dict]:
@@ -968,6 +975,18 @@ def _format_mid_sar_history_event(event: dict) -> str:
     return f"{icon} {name} 🔥 {tf_label}{suffix}"
 
 
+def _strength_status_lines(status_rows: list[dict]) -> list[str]:
+    """Lignes compactes `icone NOM (score)` d'une section de statut."""
+    lines: list[str] = []
+    for row in status_rows:
+        icon = _daily_chg_icon(row.get("daily_chg"))
+        name = _asset_display_name(row)
+        score = strength_score(row)
+        score_txt = f"{score:+.2f}" if score is not None else "n/a"
+        lines.append(f"{icon} {name} ({score_txt})")
+    return lines
+
+
 def format_full_alignment_message(
     rows: list[dict],
     mid_sar_rows: list[dict] | None = None,
@@ -975,6 +994,7 @@ def format_full_alignment_message(
     index_daily_chg_rows: list[dict] | None = None,
     now: datetime | None = None,
     index_status_rows: list[dict] | None = None,
+    pair_status_rows: list[dict] | None = None,
     index_by_currency: dict[str, dict] | None = None,
     rows_by_pair: dict[str, dict] | None = None,
     price_trends: dict[str, dict] | None = None,
@@ -1006,12 +1026,10 @@ def format_full_alignment_message(
         index_status_rows = index_daily_chg_rows
     if index_status_rows:
         lines.extend(["", "💱 INDEX CHG%D"])
-        for row in index_status_rows:
-            icon = _daily_chg_icon(row.get("daily_chg"))
-            name = _asset_display_name(row)
-            score = index_strength_score(row)
-            score_txt = f"{score:+.2f}" if score is not None else "n/a"
-            lines.append(f"{icon} {name} ({score_txt})")
+        lines.extend(_strength_status_lines(index_status_rows))
+    if pair_status_rows:
+        lines.extend(["", "💹 PAIRES CHG%D"])
+        lines.extend(_strength_status_lines(pair_status_rows))
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
@@ -1130,6 +1148,7 @@ def main() -> int:
         index_daily_chg_rows,
         now=now,
         index_status_rows=all_index_status_rows(rows),
+        pair_status_rows=all_pair_status_rows(rows),
         index_by_currency=index_by_currency,
         rows_by_pair=rows_by_pair,
         price_trends=price_trends,
