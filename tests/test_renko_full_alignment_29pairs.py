@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 from renko_full_alignment_29pairs import (
     FOREX_INDEX_ASSETS,
+    all_index_status_rows,
     attach_premium_currency_profiles,
     assets_for_scope,
     format_full_alignment_message,
@@ -341,7 +342,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("🔴 JPY", message)
         self.assertNotIn("🔥", message)
 
-    def test_message_adds_daily_chg_to_full_alignment_rows_and_lists_other_indices(self):
+    def test_message_adds_daily_chg_to_full_alignment_rows_and_lists_all_indices(self):
         rows = [
             row("AUDJPY", 1, 1, 1, daily_chg=0.88),
             row("NZDJPY", 1, 1, 1, daily_chg=-0.03),
@@ -350,15 +351,18 @@ class FullAlignmentScannerTests(unittest.TestCase):
             index_row("JXY", -1, -1, -1, daily_chg=-0.44),
         ]
         selected = attach_premium_currency_profiles(select_full_alignment_rows(rows), rows)
-        other_indices = select_index_daily_chg_rows([
+        # La section 💱 montre le statut de TOUS les indices scannes, meme ceux
+        # que le filtre de qualite ecarte (ici DXY: M+/W-/D+ incoherent) et ceux
+        # deja listes en alignement strict (ici JXY).
+        all_indices = all_index_status_rows([
             index_row("DXY", 1, -1, 1, daily_chg=0.12),
             index_row("EXY", 1, 1, -1, daily_chg=-0.05),
             index_row("JXY", -1, -1, -1, daily_chg=-0.44),
-        ], exclude_pairs={"JXY"})
+        ])
 
         message = format_full_alignment_message(
             selected,
-            index_daily_chg_rows=other_indices,
+            index_status_rows=all_indices,
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
@@ -368,10 +372,28 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("🟢 USDJPY (1.235) →→", message)
         self.assertNotIn("🌸🌸", message)
         self.assertIn("🔴 JPY (-0.44%)", message)
-        self.assertIn("💱 AUTRES INDEX CHG%D", message)
+        self.assertIn("💱 INDEX CHG%D", message)
         self.assertIn("🟢 USD +0.12%", message)
         self.assertIn("🔴 EUR -0.05%", message)
-        self.assertNotIn("JPY -0.44%", message)
+        self.assertIn("🔴 JPY -0.44%", message)
+
+    def test_index_status_rows_keep_every_scanned_index(self):
+        scanned = [
+            row("AUDJPY", 1, 1, 1, daily_chg=0.88),
+            index_row("DXY", 1, -1, 1, daily_chg=0.002),
+            index_row("JXY", -1, -1, -1, daily_chg=-0.44),
+            index_row("AXY", 1, 1, 1, daily_chg=0.28),
+        ]
+
+        status = all_index_status_rows(scanned)
+
+        self.assertEqual([item["pair"] for item in status], ["AXY", "DXY", "JXY"])
+        # Le filtre de qualite reste plus strict: il alimente encore la selection
+        # des paires via valid_index_currencies.
+        self.assertEqual(
+            [item["pair"] for item in select_index_daily_chg_rows(scanned)],
+            ["AXY", "JXY"],
+        )
 
     def test_message_marks_premium_currency_profile_with_double_flower(self):
         rows = [

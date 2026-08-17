@@ -425,6 +425,17 @@ def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None
     )
 
 
+def all_index_status_rows(rows: list[dict]) -> list[dict]:
+    """Tous les indices devises scannes, sans filtre de qualite: la section
+    Telegram doit montrer le statut des 8 indices, y compris ceux ecartes de
+    `select_index_daily_chg_rows` (CHG%D negligeable ou TF incoherents)."""
+    index_rows = [row for row in rows if row.get("asset_type") == "INDEX"]
+    return sorted(
+        index_rows,
+        key=lambda row: (*_daily_chg_sort_key(row), str(row.get("pair") or "")),
+    )
+
+
 def _index_rows_by_currency(rows: list[dict]) -> dict[str, dict]:
     return {
         str(row.get("currency")): row
@@ -938,6 +949,7 @@ def format_full_alignment_message(
     mid_sar_history: dict | None = None,
     index_daily_chg_rows: list[dict] | None = None,
     now: datetime | None = None,
+    index_status_rows: list[dict] | None = None,
     index_by_currency: dict[str, dict] | None = None,
     rows_by_pair: dict[str, dict] | None = None,
     price_trends: dict[str, dict] | None = None,
@@ -965,9 +977,11 @@ def format_full_alignment_message(
             lines.append(f"{icon} {name}{_daily_chg_suffix(row)}{warning}")
 
 
-    if index_daily_chg_rows:
+    if index_status_rows is None:
+        index_status_rows = index_daily_chg_rows
+    if index_status_rows:
         lines.extend(["", "💱 INDEX CHG%D"])
-        for row in index_daily_chg_rows:
+        for row in index_status_rows:
             icon = _daily_chg_icon(row.get("daily_chg"))
             name = _asset_display_name(row)
             px_str = _format_px(row)
@@ -1089,6 +1103,7 @@ def main() -> int:
         today_history,
         index_daily_chg_rows,
         now=now,
+        index_status_rows=all_index_status_rows(rows),
         index_by_currency=index_by_currency,
         rows_by_pair=rows_by_pair,
         price_trends=price_trends,
