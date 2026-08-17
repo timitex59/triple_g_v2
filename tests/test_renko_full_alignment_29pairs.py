@@ -12,6 +12,7 @@ from renko_full_alignment_29pairs import (
     assets_for_scope,
     format_full_alignment_message,
     full_alignment_direction,
+    index_strength_score,
     mid_alignment_candidate,
     raw_alignment_score,
     select_full_alignment_rows,
@@ -373,42 +374,53 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("🌸🌸", message)
         self.assertIn("🔴 JPY (-0.44%)", message)
         self.assertIn("💱 INDEX CHG%D", message)
-        self.assertIn("🟢 USD +0.12%", message)
-        self.assertIn("🔴 EUR -0.05%", message)
-        self.assertIn("🔴 JPY -0.44%", message)
+        # Ligne compacte: seul le score d'intensite, sans CHG%D ni M/W/D.
+        self.assertIn("🟢 USD (+0.12)", message)   # |1| x 0.12
+        self.assertIn("🔴 EUR (+0.05)", message)   # |1| x 0.05
+        self.assertIn("🔴 JPY (+1.32)", message)   # |3| x 0.44
+        self.assertNotIn("USD +0.12%", message)
+        self.assertNotIn("(M+ W- D+)", message)
 
-    def test_index_status_rows_are_sorted_by_absolute_tf_sign_sum(self):
+    def test_index_strength_score_multiplies_sign_sum_by_absolute_daily_chg(self):
+        def score(*args, **kwargs):
+            value = index_strength_score(index_row(*args, **kwargs))
+            return round(value, 4) if value is not None else None
+
+        self.assertEqual(score("AXY", 1, 1, 1, daily_chg=0.23), 0.69)
+        # Magnitude: un CHG%D negatif ne rend pas le score negatif.
+        self.assertEqual(score("CXY", 1, 1, 1, daily_chg=-0.03), 0.09)
+        self.assertEqual(score("SXY", 0, -1, 0, daily_chg=0.26), 0.26)
+        # Aucun TF engage -> score nul quel que soit le CHG%D.
+        self.assertEqual(score("DXY", 0, 0, 0, daily_chg=0.40), 0.0)
+        self.assertIsNone(score("EXY", 1, 1, 1))
+
+    def test_index_status_rows_are_sorted_by_strength_score(self):
         scanned = [
-            index_row("SXY", 0, -1, 0, daily_chg=0.26),   # |0-1+0| = 1
-            index_row("AXY", 1, 1, 1, daily_chg=0.23),    # |1+1+1| = 3
-            index_row("ZXY", 0, 1, 1, daily_chg=0.19),    # |0+1+1| = 2
-            index_row("CXY", 1, 1, 1, daily_chg=-0.03),   # |1+1+1| = 3
-            index_row("JXY", -1, 0, -1, daily_chg=-0.11), # |-1+0-1| = 2
+            index_row("SXY", 0, -1, 0, daily_chg=0.26),   # 1 x 0.26 = 0.26
+            index_row("AXY", 1, 1, 1, daily_chg=0.23),    # 3 x 0.23 = 0.69
+            index_row("ZXY", 0, 1, 1, daily_chg=0.19),    # 2 x 0.19 = 0.38
+            index_row("BXY", 1, 1, 1, daily_chg=0.08),    # 3 x 0.08 = 0.24
+            index_row("CXY", 1, 1, 1, daily_chg=-0.03),   # 3 x 0.03 = 0.09
+            index_row("JXY", -1, 0, -1, daily_chg=-0.11), # 2 x 0.11 = 0.22
         ]
 
         status = all_index_status_rows(scanned)
 
-        # |somme| decroissant d'abord, puis |CHG%D| decroissant a egalite.
+        # SXY (1 seul TF mais gros CHG%D) devance BXY (3 TF alignes, CHG%D faible).
         self.assertEqual(
             [item["pair"] for item in status],
-            ["AXY", "CXY", "ZXY", "JXY", "SXY"],
+            ["AXY", "ZXY", "SXY", "BXY", "JXY", "CXY"],
         )
 
-    def test_index_status_tie_break_uses_absolute_daily_chg(self):
+    def test_index_status_rows_without_daily_chg_go_last(self):
         scanned = [
-            index_row("ZXY", 0, 1, 1, daily_chg=0.19),    # |2|, |0.19|
-            index_row("EXY", 0, 1, 1, daily_chg=0.08),    # |2|, |0.08|
-            index_row("JXY", -1, 0, -1, daily_chg=-0.11), # |2|, |0.11|
+            index_row("EXY", 1, 1, 1),
+            index_row("CXY", 1, 1, 1, daily_chg=-0.03),
         ]
 
         status = all_index_status_rows(scanned)
 
-        # A |somme| egale, l'amplitude prime sur le sens: JXY (-0.11) doit
-        # passer devant EXY (+0.08).
-        self.assertEqual(
-            [item["pair"] for item in status],
-            ["ZXY", "JXY", "EXY"],
-        )
+        self.assertEqual([item["pair"] for item in status], ["CXY", "EXY"])
 
     def test_index_status_rows_keep_every_scanned_index(self):
         scanned = [

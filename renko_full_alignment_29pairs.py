@@ -436,24 +436,35 @@ def _px_sign_sum(row: dict) -> int:
     return total
 
 
+def index_strength_score(row: dict) -> float | None:
+    """Intensite d'un indice: |somme des signes M/W/D| x |CHG%D|.
+
+    Ex. AUD a M+ W+ D+ (somme 3) et +0.23% -> 3 x 0.23 = 0.69. Le score est une
+    magnitude: le sens reste porte par l'icone 🟢/🔴 de la ligne."""
+    chg = row.get("daily_chg")
+    if not isinstance(chg, (int, float)):
+        return None
+    return abs(_px_sign_sum(row)) * abs(float(chg))
+
+
+def _index_strength_sort_key(row: dict) -> tuple[int, float, str]:
+    score = index_strength_score(row)
+    if score is None:
+        return (1, 0.0, str(row.get("pair") or ""))
+    return (0, -score, str(row.get("pair") or ""))
+
+
 def all_index_status_rows(rows: list[dict]) -> list[dict]:
     """Tous les indices devises scannes, sans filtre de qualite: la section
     Telegram doit montrer le statut des 8 indices, y compris ceux ecartes de
     `select_index_daily_chg_rows` (CHG%D negligeable ou TF incoherents).
 
-    Classement par |somme des signes M/W/D| decroissant (ex. M0 W- D0 -> 1):
-    les indices dont les trois TF pointent dans le meme sens remontent, les
-    indecis tombent en bas. A egalite, |CHG%D| decroissant: on discrimine sur
-    l'amplitude du mouvement du jour, quel que soit son sens."""
+    Classement par score d'intensite decroissant (cf. index_strength_score):
+    l'alignement des TF et l'amplitude du jour sont combines en une seule
+    valeur, donc un indice a 1 seul TF mais gros CHG%D peut devancer un indice
+    aligne qui bouge peu."""
     index_rows = [row for row in rows if row.get("asset_type") == "INDEX"]
-    return sorted(
-        index_rows,
-        key=lambda row: (
-            -abs(_px_sign_sum(row)),
-            *_abs_daily_chg_sort_key(row),
-            str(row.get("pair") or ""),
-        ),
-    )
+    return sorted(index_rows, key=_index_strength_sort_key)
 
 
 def _index_rows_by_currency(rows: list[dict]) -> dict[str, dict]:
@@ -776,12 +787,6 @@ def attach_sar_break_states(rows: list[dict], h1_candles: int = 400) -> list[dic
     return rows
 
 
-def _format_px(row: dict) -> str:
-    px = _px(row) or {}
-    symbol = {1: "+", 0: "0", -1: "-"}
-    return " ".join(f"{tf}{symbol.get(px.get(tf), '?')}" for tf in ("M", "W", "D"))
-
-
 def _asset_display_name(row: dict) -> str:
     if row.get("asset_type") == "INDEX":
         return str(row.get("currency") or row["pair"])
@@ -798,15 +803,6 @@ def _daily_chg_sort_key(row: dict) -> tuple[int, float]:
     value = row.get("daily_chg")
     if isinstance(value, (int, float)):
         return (0, -float(value))
-    return (1, 0.0)
-
-
-def _abs_daily_chg_sort_key(row: dict) -> tuple[int, float]:
-    """Tri par amplitude du CHG%D, sens ignore. Les lignes sans CHG%D finissent
-    en queue."""
-    value = row.get("daily_chg")
-    if isinstance(value, (int, float)):
-        return (0, -abs(float(value)))
     return (1, 0.0)
 
 
@@ -1013,8 +1009,9 @@ def format_full_alignment_message(
         for row in index_status_rows:
             icon = _daily_chg_icon(row.get("daily_chg"))
             name = _asset_display_name(row)
-            px_str = _format_px(row)
-            lines.append(f"{icon} {name} {_format_signed_pct(row.get('daily_chg'))} ({px_str})")
+            score = index_strength_score(row)
+            score_txt = f"{score:+.2f}" if score is not None else "n/a"
+            lines.append(f"{icon} {name} ({score_txt})")
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
