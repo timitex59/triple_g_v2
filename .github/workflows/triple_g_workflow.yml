@@ -77,7 +77,7 @@ jobs:
           ENABLE_TELEGRAM_RENKO_FOREX_V4: "false"
           ENABLE_TELEGRAM_TRACKER: "false"
           ENABLE_TELEGRAM_FIOS: "false"
-          ENABLE_TELEGRAM_RSB_C1: "true"
+          ENABLE_TELEGRAM_RSB_C1: "false"
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           OANDA_API_TOKEN: ${{ secrets.OANDA_API_TOKEN }}
           OANDA_ENV: "practice"
