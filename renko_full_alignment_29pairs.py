@@ -822,35 +822,11 @@ def _asset_display_name(row: dict) -> str:
     return str(row["pair"])
 
 
-def _format_signed_pct(value: object) -> str:
-    if isinstance(value, (int, float)):
-        return f"{value:+.2f}%"
-    return "n/a"
-
-
 def _daily_chg_sort_key(row: dict) -> tuple[int, float]:
     value = row.get("daily_chg")
     if isinstance(value, (int, float)):
         return (0, -float(value))
     return (1, 0.0)
-
-
-def _daily_chg_suffix(row: dict) -> str:
-    daily_chg = row.get("daily_chg")
-    if not isinstance(daily_chg, (int, float)):
-        return ""
-    return f" ({_format_signed_pct(daily_chg)})"
-
-
-def _daily_chg_warning_suffix(row: dict, direction: int) -> str:
-    daily_chg = row.get("daily_chg")
-    if not isinstance(daily_chg, (int, float)) or direction == 0:
-        return ""
-    return " ⚠️" if daily_chg * direction < 0 else ""
-
-
-def _premium_currency_profile_suffix(row: dict) -> str:
-    return " 🌸🌸" if row.get("premium_currency_profile") else ""
 
 
 def load_price_trend_state(path: str | Path) -> dict:
@@ -932,24 +908,6 @@ def update_price_trends(previous: dict | None, rows: list[dict],
     }, trends
 
 
-def _format_live_pair_price(pair: str, value: float) -> str:
-    if pair == "XAUUSD":
-        return f"{value:.2f}"
-    if pair.endswith("JPY"):
-        return f"{value:.3f}"
-    return f"{value:.5f}"
-
-
-def _live_pair_suffix(row: dict, price_trends: dict[str, dict] | None) -> str:
-    pair = str(row.get("pair") or "")
-    trend = (price_trends or {}).get(pair) or {}
-    price = trend.get("price", row.get("live_price"))
-    if not isinstance(price, (int, float)):
-        return ""
-    arrows = f"{trend.get('vs_07h', '→')}{trend.get('vs_previous', '→')}"
-    return f" ({_format_live_pair_price(pair, float(price))}) {arrows}"
-
-
 def _daily_chg_icon(value: object) -> str:
     if not isinstance(value, (int, float)):
         return "⚪"
@@ -1010,7 +968,7 @@ def _strength_status_lines(status_rows: list[dict]) -> list[str]:
 
 
 def format_full_alignment_message(
-    rows: list[dict],
+    rows: list[dict] | None = None,
     mid_sar_rows: list[dict] | None = None,
     mid_sar_history: dict | None = None,
     index_daily_chg_rows: list[dict] | None = None,
@@ -1021,28 +979,16 @@ def format_full_alignment_message(
     rows_by_pair: dict[str, dict] | None = None,
     price_trends: dict[str, dict] | None = None,
 ) -> str:
+    """Message FULL MOMENTUM: statut de tous les indices puis de toutes les
+    paires, classes par score d'intensite.
+
+    La liste des paires en alignement strict M/W/D n'est plus rendue: elle
+    faisait doublon avec la section PAIRES, ou ces paires figurent deja avec
+    leur intensite. `rows` reste accepte pour compatibilite, mais n'est plus
+    affiche; la selection continue d'alimenter le sidecar et de conditionner
+    l'envoi Telegram cote main()."""
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
-    lines = ["📊 FULL ALIGNMENT M/W/D", ""]
-    if not rows:
-        lines.append("Aucune paire en alignement strict.")
-    else:
-        pair_rows = [row for row in rows if row.get("asset_type") != "INDEX"]
-        index_rows = [row for row in rows if row.get("asset_type") == "INDEX"]
-
-        for row in pair_rows:
-            direction = int(row["full_alignment_direction"])
-            icon = "🟢" if direction == 1 else "🔴"
-            name = _asset_display_name(row)
-            lines.append(f"{icon} {name}{_live_pair_suffix(row, price_trends)}")
-        if pair_rows and index_rows:
-            lines.append("")
-        for row in index_rows:
-            direction = int(row["full_alignment_direction"])
-            icon = "🟢" if direction == 1 else "🔴"
-            name = _asset_display_name(row)
-            warning = _daily_chg_warning_suffix(row, direction)
-            lines.append(f"{icon} {name}{_daily_chg_suffix(row)}{warning}")
-
+    lines = ["📊 FULL MOMENTUM"]
 
     if index_status_rows is None:
         index_status_rows = index_daily_chg_rows

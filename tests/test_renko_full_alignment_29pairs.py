@@ -131,13 +131,17 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertEqual(trends["AUDJPY"]["vs_07h"], "→")
         self.assertEqual(trends["AUDJPY"]["vs_previous"], "→")
 
-    def test_message_uses_live_pair_price_and_arrows_but_keeps_indices(self):
+    def test_message_no_longer_renders_the_strict_alignment_list(self):
+        """La liste des paires en alignement strict a ete retiree du message:
+        elle faisait doublon avec la section PAIRES, ou ces paires figurent
+        avec leur score d'intensite."""
         pair = row("AUDCHF", 1, 1, 1, daily_chg=0.34)
         pair["live_price"] = 0.57150
         selected = select_full_alignment_rows([
             pair,
             index_row("AXY", 1, 1, 1, daily_chg=0.03),
         ])
+
         message = format_full_alignment_message(
             selected,
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
@@ -146,9 +150,12 @@ class FullAlignmentScannerTests(unittest.TestCase):
             }},
         )
 
-        self.assertIn("🟢 AUDCHF (0.57150) ↑↓", message)
-        self.assertNotIn("AUDCHF (+0.34%)", message)
-        self.assertIn("🟢 AUD (+0.03%)", message)
+        self.assertIn("📊 FULL MOMENTUM", message)
+        self.assertNotIn("FULL ALIGNMENT", message)
+        # Ni prix live, ni fleches de tendance, ni CHG%D brut.
+        self.assertNotIn("0.57150", message)
+        self.assertNotIn("↑↓", message)
+        self.assertNotIn("(+0.03%)", message)
 
     def test_default_universe_includes_forex_indices(self):
         index_symbols = {asset["tv_symbol"] for asset in FOREX_INDEX_ASSETS}
@@ -330,37 +337,34 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertEqual(by_pair["GBPUSD"]["count"], 2)
 
     def test_message_is_compact(self):
-        selected = select_full_alignment_rows([row("GBPJPY", 1, 1, 1)])
         message = format_full_alignment_message(
-            selected,
+            select_full_alignment_rows([row("GBPJPY", 1, 1, 1)]),
+            pair_status_rows=all_pair_status_rows([row("GBPJPY", 1, 1, 1, daily_chg=0.10)]),
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
-        self.assertIn("📊 FULL ALIGNMENT M/W/D", message)
-        self.assertIn("🟢 GBPJPY", message)
+        self.assertIn("📊 FULL MOMENTUM", message)
+        self.assertIn("🟢 GBPJPY (+0.30)", message)
         self.assertNotIn("+100%", message)
         self.assertNotIn("M+/W+/D+", message)
         self.assertIn("2026-07-16 10:00 Paris", message)
 
-    def test_message_does_not_mark_full_alignment_sar_breaks_with_flame(self):
-        selected = select_full_alignment_rows([
-            row("GBPJPY", 1, 1, 1),
-            row("EURJPY", 1, 1, 1),
-            index_row("BXY", 1, 1, 1),
-            index_row("JXY", -1, -1, -1),
-        ])
-        by_pair = {item["pair"]: item for item in selected}
-        by_pair["GBPJPY"]["sar_break"] = {"last_bar_sar_break_direction": 1}
-        by_pair["EURJPY"]["sar_break"] = {"last_bar_sar_break_direction": -1}
-        by_pair["BXY"]["sar_break"] = {"last_bar_sar_break_direction": 1}
-        by_pair["JXY"]["sar_break"] = {"last_bar_sar_break_direction": -1}
+    def test_message_never_marks_sar_breaks_with_flame(self):
+        scanned = [
+            row("GBPJPY", 1, 1, 1, daily_chg=0.10),
+            index_row("JXY", -1, -1, -1, daily_chg=-0.44),
+        ]
+        for item in scanned:
+            item["sar_break"] = {"last_bar_sar_break_direction": 1}
+
         message = format_full_alignment_message(
-            selected,
+            select_full_alignment_rows(scanned),
+            index_status_rows=all_index_status_rows(scanned),
+            pair_status_rows=all_pair_status_rows(scanned),
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
         self.assertIn("🟢 GBPJPY", message)
-        self.assertIn("🟢 GBP", message)
         self.assertIn("🔴 JPY", message)
         self.assertNotIn("🔥", message)
 
@@ -388,12 +392,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
-        self.assertIn("🟢 AUDJPY (1.235) →→", message)
-        self.assertIn("🟢 NZDJPY (1.235) →→", message)
-        self.assertIn("🟢 USDCAD (1.23456) →→", message)
-        self.assertIn("🟢 USDJPY (1.235) →→", message)
         self.assertNotIn("🌸🌸", message)
-        self.assertIn("🔴 JPY (-0.44%)", message)
         self.assertIn("💱 INDEX CHG%D", message)
         # Ligne compacte: seul le score d'intensite, sans CHG%D ni M/W/D.
         self.assertIn("🟢 USD (+0.12)", message)   # (3-2+1)/2 = 1.0 x 0.12
@@ -529,142 +528,40 @@ class FullAlignmentScannerTests(unittest.TestCase):
             ["AXY", "JXY"],
         )
 
-    def test_message_marks_premium_currency_profile_with_double_flower(self):
-        rows = [
+    def test_message_drops_the_sections_that_were_removed(self):
+        """MID SAR, profil premium et avertissement de divergence ne sont plus
+        rendus: le message ne porte plus que les deux sections d'intensite."""
+        scanned = [
             row("USDJPY", 1, 1, 1, daily_chg=0.01),
-            row("USDCAD", 1, 1, 1, daily_chg=0.01),
             index_row("DXY", 1, -1, 1, daily_chg=0.20),
             index_row("JXY", -1, -1, -1, daily_chg=-0.41),
-            index_row("CXY", -1, 1, -1, daily_chg=-0.20),
         ]
-        selected = attach_premium_currency_profiles(select_full_alignment_rows(rows), rows)
+        selected = attach_premium_currency_profiles(
+            select_full_alignment_rows(scanned), scanned,
+        )
 
         message = format_full_alignment_message(
             selected,
-            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
-        )
-
-        self.assertIn("🟢 USDJPY (1.235) →→", message)
-        self.assertNotIn("🌸🌸", message)
-        self.assertIn("🔴 JPY (-0.41%)", message)
-
-    def test_message_warns_on_full_alignment_index_daily_chg_divergence(self):
-        selected = select_full_alignment_rows([
-            index_row("JXY", -1, -1, -1, daily_chg=0.02),
-            index_row("DXY", 1, 1, 1, daily_chg=0.20),
-        ])
-
-        message = format_full_alignment_message(
-            selected,
-            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
-        )
-
-        self.assertIn("🟢 USD (+0.20%)", message)
-        self.assertNotIn("🟢 USD (+0.20%) ⚠️", message)
-        self.assertIn("🔴 JPY (+0.02%) ⚠️", message)
-
-    def test_message_adds_mid_sar_section(self):
-        full_rows = select_full_alignment_rows([
-            row("GBPJPY", 1, 1, 1),
-            index_row("JXY", -1, -1, -1),
-        ])
-        mid_rows = select_mid_alignment_candidates([
-            row("GBPJPY", 1, 1, 1),
-            row("GBPUSD", 1, 1, -1),
-            row("EURUSD", 1, -1, 1),
-            index_row("JXY", -1, -1, 1),
-            index_row("SXY", 1, -1, -1),
-        ])
-        by_pair = {item["pair"]: item for item in mid_rows}
-        by_pair["GBPJPY"]["sar_break"] = {"last_bar_sar_break_direction": 1}
-        by_pair["GBPUSD"]["sar_break"] = {"last_bar_sar_break_direction": 1}
-        by_pair["EURUSD"]["sar_break"] = {"last_bar_sar_break_direction": 1}
-        by_pair["JXY"]["sar_break"] = {"last_bar_sar_break_direction": -1}
-        by_pair["SXY"]["sar_break"] = {"last_bar_sar_break_direction": -1}
-        mid_sar_rows = select_mid_sar_rows(mid_rows)
-
-        message = format_full_alignment_message(
-            full_rows,
-            mid_sar_rows,
-            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
-        )
-
-        self.assertIn("⚡ MID SAR", message)
-        self.assertIn("🟢 GBPJPY 🔥 M/W/D", message)
-        self.assertIn("🟢 GBPUSD 🔥 W/M", message)
-        self.assertIn("🔴 JPY 🔥 W/M", message)
-        self.assertNotIn("🟢 EURUSD 🔥 D/M", message)
-        self.assertNotIn("🔴 CHF 🔥 D/W", message)
-
-    def test_message_adds_mid_sar_daily_history(self):
-        message = format_full_alignment_message(
-            [],
-            [],
-            {
-                "events": [
-                    {
-                        "pair": "GBPUSD",
-                        "asset_type": "PAIR",
-                        "direction": 1,
-                        "tf_pairs": ["W/M"],
-                        "first_seen": "2026-07-16T08:00+02:00",
-                        "last_seen": "2026-07-16T10:00+02:00",
-                    },
-                    {
-                        "pair": "EURUSD",
-                        "asset_type": "PAIR",
-                        "direction": 1,
-                        "tf_pairs": ["D/M"],
-                        "first_seen": "2026-07-16T09:00+02:00",
-                        "last_seen": "2026-07-16T09:00+02:00",
-                    },
-                    {
-                        "pair": "JXY",
-                        "asset_type": "INDEX",
-                        "currency": "JPY",
-                        "direction": -1,
-                        "tf_pairs": ["M/W/D", "D/W"],
-                        "first_seen": "2026-07-16T11:00+02:00",
-                        "last_seen": "2026-07-16T11:00+02:00",
-                    },
-                    {
-                        "pair": "SXY",
-                        "asset_type": "INDEX",
-                        "currency": "CHF",
-                        "direction": -1,
-                        "tf_pairs": ["D/W"],
-                        "first_seen": "2026-07-16T12:00+02:00",
-                        "last_seen": "2026-07-16T12:00+02:00",
-                    },
-                ]
-            },
+            select_mid_sar_rows(select_mid_alignment_candidates(scanned)),
+            {"events": [{
+                "pair": "GBPUSD", "asset_type": "PAIR", "direction": 1,
+                "tf_pairs": ["W/M"],
+                "first_seen": "2026-07-16T08:00+02:00",
+                "last_seen": "2026-07-16T10:00+02:00",
+            }]},
+            index_status_rows=all_index_status_rows(scanned),
+            pair_status_rows=all_pair_status_rows(scanned),
             now=datetime(2026, 7, 16, 12, 0, tzinfo=PARIS),
         )
 
-        self.assertIn("📋 MID SAR 07H-23H", message)
-        self.assertIn("🟢 GBPUSD 🔥 W/M 08:00→10:00", message)
-        self.assertIn("🔴 JPY 🔥 M/W/D 11:00", message)
-        self.assertNotIn("🟢 EURUSD 🔥 D/M", message)
-        self.assertNotIn("🔴 CHF 🔥 D/W", message)
-
-    def test_message_groups_pairs_before_indices(self):
-        selected = select_full_alignment_rows([
-            index_row("BXY", 1, 1, 1),
-            row("GBPJPY", 1, 1, 1),
-            index_row("JXY", -1, -1, -1),
-            row("EURJPY", 1, 1, 1),
-        ])
-        message = format_full_alignment_message(
-            selected,
-            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+        self.assertNotIn("MID SAR", message)
+        self.assertNotIn("🌸🌸", message)
+        self.assertNotIn("⚠️", message)
+        self.assertNotIn("🔥", message)
+        self.assertEqual(
+            [line for line in message.splitlines() if line.startswith(("📊", "💱", "💹"))],
+            ["📊 FULL MOMENTUM", "💱 INDEX CHG%D", "💹 PAIRES CHG%D"],
         )
-
-        self.assertIn(
-            "🟢 EURJPY\n🟢 GBPJPY\n\n🟢 GBP\n🔴 JPY",
-            message,
-        )
-        self.assertNotIn("🟢 BXY", message)
-        self.assertNotIn("🔴 JXY", message)
 
 
 if __name__ == "__main__":
