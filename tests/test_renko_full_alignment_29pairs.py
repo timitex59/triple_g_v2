@@ -3,10 +3,12 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 from renko_full_alignment_29pairs import (
     FOREX_INDEX_ASSETS,
+    _streak_sign_sum,
     all_index_status_rows,
     all_pair_status_rows,
     attach_premium_currency_profiles,
@@ -30,10 +32,28 @@ from renko_full_alignment_29pairs import (
 PARIS = ZoneInfo("Europe/Paris")
 
 
-def row(pair, m, w, d, daily_chg=None):
+def row(pair, m, w, d, daily_chg=None, streaks=None, bias=None):
+    """Ligne de scan factice.
+
+    `bias` = STATUS BULL/BEAR par TF (defaut: le PX lui-meme) et `streaks` =
+    longueur du streak Renko dans le sens du STATUS (defaut: 1, donc engage).
+    Passer 0 sur un TF reproduit un `W+(0)`: statut haussier mais derniere
+    brique opposee."""
+    px = {"M": m, "W": w, "D": d}
+    bias = bias or dict(px)
+    streaks = {"M": 1, "W": 1, "D": 1} | (streaks or {})
+    states = {}
+    for tf in ("M", "W", "D"):
+        engaged = int(streaks[tf])
+        states[tf] = SimpleNamespace(
+            green_streak=engaged if bias[tf] == 1 else 0,
+            red_streak=engaged if bias[tf] == -1 else 0,
+        )
     return {
         "pair": pair,
-        "px": {"M": m, "W": w, "D": d},
+        "px": px,
+        "bias": bias,
+        "states": states,
         "asset_type": "PAIR",
         "h1_price": 1.23456,
         "live_price": 1.23456,
@@ -41,8 +61,8 @@ def row(pair, m, w, d, daily_chg=None):
     }
 
 
-def index_row(pair, m, w, d, daily_chg=None):
-    item = row(pair, m, w, d, daily_chg=daily_chg)
+def index_row(pair, m, w, d, daily_chg=None, streaks=None, bias=None):
+    item = row(pair, m, w, d, daily_chg=daily_chg, streaks=streaks, bias=bias)
     item["asset_type"] = "INDEX"
     item["currency"] = {
         "DXY": "USD",
@@ -382,7 +402,26 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("USD +0.12%", message)
         self.assertNotIn("(M+ W- D+)", message)
 
-    def test_strength_score_multiplies_sign_sum_by_absolute_daily_chg(self):
+    def test_streak_note_only_counts_timeframes_backed_by_a_streak(self):
+        # GBPUSD sur TradingView: M+(3) W+(0) D+(1), STATUS BULL partout.
+        gbpusd = row("GBPUSD", 1, 1, 1, streaks={"M": 3, "W": 0, "D": 1})
+        self.assertEqual(_streak_sign_sum(gbpusd), 2)
+
+        # Monthly BEAR malgre un PX a 0, avec un streak rouge engage: M0(1) = -1.
+        mixed = row(
+            "XAUUSD", 0, 1, 1,
+            bias={"M": -1, "W": 1, "D": 1},
+            streaks={"M": 1, "W": 0, "D": 3},
+        )
+        self.assertEqual(_streak_sign_sum(mixed), 0)  # -1 + 0 + 1
+
+        # Aucun streak engage -> note nulle malgre un alignement PX parfait.
+        self.assertEqual(
+            _streak_sign_sum(row("EURUSD", 1, 1, 1, streaks={"M": 0, "W": 0, "D": 0})),
+            0,
+        )
+
+    def test_strength_score_multiplies_streak_note_by_absolute_daily_chg(self):
         def score(*args, **kwargs):
             value = strength_score(index_row(*args, **kwargs))
             return round(value, 4) if value is not None else None
@@ -391,6 +430,10 @@ class FullAlignmentScannerTests(unittest.TestCase):
         # Magnitude: un CHG%D negatif ne rend pas le score negatif.
         self.assertEqual(score("CXY", 1, 1, 1, daily_chg=-0.03), 0.09)
         self.assertEqual(score("SXY", 0, -1, 0, daily_chg=0.26), 0.26)
+        # Un TF dont le streak ne confirme pas ne compte plus dans le score.
+        self.assertEqual(
+            score("BXY", 1, 1, 1, daily_chg=0.10, streaks={"W": 0}), 0.20,
+        )
         # Aucun TF engage -> score nul quel que soit le CHG%D.
         self.assertEqual(score("DXY", 0, 0, 0, daily_chg=0.40), 0.0)
         self.assertIsNone(score("EXY", 1, 1, 1))

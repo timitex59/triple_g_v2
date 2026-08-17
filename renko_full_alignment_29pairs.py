@@ -425,26 +425,37 @@ def select_index_daily_chg_rows(rows: list[dict], exclude_pairs: set[str] | None
     )
 
 
-def _px_sign_sum(row: dict) -> int:
-    """Somme des trois biais M/W/D (chaque TF vaut +1, 0 ou -1)."""
-    px = _px(row) or {}
+def _streak_sign_sum(row: dict) -> int:
+    """Somme des notes streak M/W/D.
+
+    Chaque TF vaut le signe de son STATUS (BULL +1, BEAR -1), mais seulement si
+    le streak Renko dans ce sens est engage; un streak a 0 annule le TF. Ex.
+    GBPUSD M+(3) W+(0) D+(1) -> 1 + 0 + 1 = 2."""
+    states = row.get("states") or {}
+    bias = row.get("bias") or {}
     total = 0
     for tf in ("M", "W", "D"):
-        value = px.get(tf)
-        if isinstance(value, (int, float)):
-            total += int(value)
+        state = states.get(tf)
+        raw_direction = bias.get(tf)
+        if state is None or raw_direction not in (-1, 1):
+            continue
+        direction = 1 if raw_direction == 1 else -1
+        streak = state.green_streak if direction == 1 else state.red_streak
+        if int(streak) > 0:
+            total += direction
     return total
 
 
 def strength_score(row: dict) -> float | None:
-    """Intensite d'un indice ou d'une paire: |somme des signes M/W/D| x |CHG%D|.
+    """Intensite d'un indice ou d'une paire: |note streak M/W/D| x |CHG%D|.
 
-    Ex. AUD a M+ W+ D+ (somme 3) et +0.23% -> 3 x 0.23 = 0.69. Le score est une
-    magnitude: le sens reste porte par l'icone 🟢/🔴 de la ligne."""
+    La note streak (cf. _streak_sign_sum) ne compte que les TF dont le streak
+    Renko confirme le STATUS: GBPUSD M+(3) W+(0) D+(1) vaut 2, pas 3. Le score
+    est une magnitude: le sens reste porte par l'icone 🟢/🔴 de la ligne."""
     chg = row.get("daily_chg")
     if not isinstance(chg, (int, float)):
         return None
-    return abs(_px_sign_sum(row)) * abs(float(chg))
+    return abs(_streak_sign_sum(row)) * abs(float(chg))
 
 
 def _strength_sort_key(row: dict) -> tuple[int, float, str]:
