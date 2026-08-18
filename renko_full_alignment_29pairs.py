@@ -50,6 +50,13 @@ STREAK_TF_WEIGHTS = {"M": 3.0, "W": 2.0, "D": 1.0}
 # pour que les scores restent comparables d'une version a l'autre.
 STREAK_NOTE_NORMALIZER = 3.0 / sum(STREAK_TF_WEIGHTS.values())
 
+# Marqueurs de synchronisation entre le moteur devise (attente) et le moteur
+# paire (realise). En dessous de SYNC_MIN_EXPECTED il n'y a pas assez d'ecart
+# entre les deux devises pour parler de setup, donc aucun marqueur.
+SYNC_MIN_EXPECTED = 0.30
+# Au-dela, la paire est consideree comme reellement engagee dans le mouvement.
+SYNC_MIN_REALIZED = 0.10
+
 FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "DXY", "tv_symbol": "TVC:DXY", "asset_type": "INDEX", "currency": "USD"},
     {"pair": "EXY", "tv_symbol": "TVC:EXY", "asset_type": "INDEX", "currency": "EUR"},
@@ -516,6 +523,26 @@ def currency_spread(row: dict, index_by_currency: dict[str, dict] | None) -> flo
     if base is None or quote is None:
         return None
     return base - quote
+
+
+def sync_marker(row: dict, index_by_currency: dict[str, dict] | None) -> str:
+    """Marqueur de synchronisation des deux moteurs pour une paire.
+
+    🎯 les deux moteurs disent la meme chose et la paire est deja engagee;
+    ⏳ le moteur devise a du carburant mais la paire n'a pas encore casse;
+    ⚠️ la paire va a l'inverse de ce que ses devises impliquent.
+    Rien quand l'ecart entre les deux devises est trop faible pour conclure."""
+    expected = currency_spread(row, index_by_currency)
+    realized = strength_score(row)
+    if expected is None or realized is None or abs(expected) < SYNC_MIN_EXPECTED:
+        return ""
+    chg = row.get("daily_chg")
+    if not isinstance(chg, (int, float)) or chg == 0:
+        return " ⏳"
+    same_direction = (chg > 0) == (expected > 0)
+    if not same_direction:
+        return " ⚠️"
+    return " 🎯" if realized >= SYNC_MIN_REALIZED else " ⏳"
 
 
 def all_index_status_rows(rows: list[dict]) -> list[dict]:
@@ -1015,7 +1042,8 @@ def _strength_status_lines(
         score_txt = f"{score:+.2f}" if score is not None else "n/a"
         spread = currency_spread(row, index_by_currency)
         spread_txt = f"/({spread:+.2f})" if spread is not None else ""
-        lines.append(f"{icon} {name} ({score_txt}){spread_txt}")
+        marker = sync_marker(row, index_by_currency)
+        lines.append(f"{icon} {name} ({score_txt}){spread_txt}{marker}")
     return lines
 
 

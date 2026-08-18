@@ -14,6 +14,7 @@ from renko_full_alignment_29pairs import (
     all_pair_status_rows,
     currency_spread,
     signed_strength,
+    sync_marker,
     attach_premium_currency_profiles,
     assets_for_scope,
     format_full_alignment_message,
@@ -561,6 +562,49 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("🟢 XAUUSD (+0.15)", lines)
         # Les indices ne portent pas de spread non plus.
         self.assertIn("🟢 AUD (+0.60)", lines)
+
+    def test_sync_marker_grades_the_two_engines(self):
+        aud = index_row("AXY", 1, 1, 1, daily_chg=0.20)      # +0.60
+        jpy = index_row("JXY", -1, -1, -1, daily_chg=-0.05)  # -0.15
+        nzd = index_row("ZXY", 1, 1, 1, daily_chg=0.06)      # +0.18
+        by_currency = {"AUD": aud, "JPY": jpy, "NZD": nzd}
+
+        # Attendu +0.75, paire haussière et engagée -> synchronisée.
+        engaged = row("AUDJPY", 1, 1, 1, daily_chg=0.09)
+        self.assertEqual(sync_marker(engaged, by_currency), " 🎯")
+
+        # Même carburant, mais aucun streak ne confirme -> en attente.
+        waiting = row(
+            "AUDJPY", 1, 1, 1, daily_chg=0.09,
+            streaks={"M": 0, "W": 0, "D": 0},
+        )
+        self.assertEqual(sync_marker(waiting, by_currency), " ⏳")
+
+        # La paire baisse alors que ses devises impliquent une hausse.
+        against = row("AUDJPY", 1, 1, 1, daily_chg=-0.09)
+        self.assertEqual(sync_marker(against, by_currency), " ⚠️")
+
+        # AUD +0.60 contre NZD +0.18: 0.42 d'ecart, deux devises fortes mais
+        # l'ecart reste au-dessus du seuil.
+        self.assertEqual(
+            sync_marker(row("AUDNZD", 1, 1, 1, daily_chg=0.10), by_currency), " 🎯",
+        )
+
+    def test_sync_marker_stays_silent_without_enough_spread(self):
+        nzd = index_row("ZXY", 1, 1, 1, daily_chg=0.06)   # +0.18
+        chf = index_row("SXY", 1, 1, 1, daily_chg=0.11)   # +0.33
+        by_currency = {"NZD": nzd, "CHF": chf}
+
+        # Ecart de 0.15 seulement: pas de setup, donc pas de marqueur.
+        self.assertEqual(
+            sync_marker(row("NZDCHF", 1, 1, 1, daily_chg=-0.02), by_currency), "",
+        )
+        # Un actif sans indice devise n'est jamais marque.
+        self.assertEqual(
+            sync_marker(row("XAUUSD", 1, 1, 1, daily_chg=0.50), by_currency), "",
+        )
+        # Un indice non plus.
+        self.assertEqual(sync_marker(chf, by_currency), "")
 
     def test_message_lists_pair_status_section(self):
         scanned = [
