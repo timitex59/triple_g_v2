@@ -558,7 +558,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
         lines = message.splitlines()
 
-        self.assertIn("🟢 AUDNZD (0.1638) 🎯", lines)
+        self.assertIn("🟢 AUDNZD (0.1638) (1.23456)", lines)
         # Plus de couple (realise)/(attendu) sur la ligne.
         self.assertNotIn("/(", message)
         # Les indices gardent leur score d'intensite.

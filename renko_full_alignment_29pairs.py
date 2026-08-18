@@ -1092,15 +1092,26 @@ def _format_mid_sar_history_event(event: dict) -> str:
     return f"{icon} {name} 🔥 {tf_label}{suffix}"
 
 
+def _format_close_price(price: float) -> str:
+    """Prix de cloture avec le nombre de decimales usuel FX: 3 pour les
+    paires cotees en JPY (prix >= 20), 5 sinon."""
+    decimals = 3 if price >= 20 else 5
+    return f"{price:.{decimals}f}"
+
+
 def _strength_status_lines(
     status_rows: list[dict],
     index_by_currency: dict[str, dict] | None = None,
+    show_close_price: bool = False,
 ) -> list[str]:
     """Lignes compactes `icone NOM (score)` d'une section de statut.
 
     Avec `index_by_currency`, les paires n'affichent plus leur seul score mais
     le produit realise x attendu (cf. `sync_product`), qui condense en un
-    nombre le carburant du moteur devise et l'execution de la paire."""
+    nombre le carburant du moteur devise et l'execution de la paire.
+
+    Avec `show_close_price`, le marqueur de synchronisation (🎯/⏳) est
+    remplace par le prix de cloture de l'actif entre parentheses."""
     lines: list[str] = []
     for row in status_rows:
         icon = _daily_chg_icon(row.get("daily_chg"))
@@ -1111,8 +1122,16 @@ def _strength_status_lines(
         else:
             score = strength_score(row)
             value_txt = f"{score:+.2f}" if score is not None else "n/a"
-        marker = sync_marker(row, index_by_currency)
-        lines.append(f"{icon} {name} ({value_txt}){marker}")
+        if show_close_price:
+            close_price = row.get("live_price")
+            suffix = (
+                f" ({_format_close_price(float(close_price))})"
+                if isinstance(close_price, (int, float))
+                else ""
+            )
+        else:
+            suffix = sync_marker(row, index_by_currency)
+        lines.append(f"{icon} {name} ({value_txt}){suffix}")
     return lines
 
 
@@ -1148,6 +1167,7 @@ def format_full_alignment_message(
         lines.extend(["", "💹 PAIRES CHG%D"])
         lines.extend(_strength_status_lines(
             pair_status_rows[:PAIR_SECTION_LIMIT], index_by_currency,
+            show_close_price=True,
         ))
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
