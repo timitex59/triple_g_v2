@@ -580,9 +580,10 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
         self.assertEqual(sync_marker(waiting, by_currency), " ⏳")
 
-        # La paire baisse alors que ses devises impliquent une hausse.
+        # La paire baisse alors que ses devises impliquent une hausse: elle
+        # est filtree en amont, donc jamais marquee.
         against = row("AUDJPY", 1, 1, 1, daily_chg=-0.09)
-        self.assertEqual(sync_marker(against, by_currency), " ⚠️")
+        self.assertEqual(sync_marker(against, by_currency), "")
 
         # AUD +0.60 contre NZD +0.18: 0.42 d'ecart, deux devises fortes mais
         # l'ecart reste au-dessus du seuil.
@@ -605,6 +606,40 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
         # Un indice non plus.
         self.assertEqual(sync_marker(chf, by_currency), "")
+
+    def test_pair_section_drops_divergent_and_empty_pairs(self):
+        aud = index_row("AXY", 1, 1, 1, daily_chg=0.20)      # +0.60
+        jpy = index_row("JXY", -1, -1, -1, daily_chg=-0.05)  # -0.15
+        nzd = index_row("ZXY", 1, 1, 1, daily_chg=0.06)      # +0.18
+        by_currency = {"AUD": aud, "JPY": jpy, "NZD": nzd}
+
+        scanned = [
+            # attendu +0.75, realise 3.0 x 0.09 = 0.27 -> produit 0.2025
+            row("AUDJPY", 1, 1, 1, daily_chg=0.09),
+            # attendu +0.42, realise 3.0 x 0.10 = 0.30 -> produit 0.126
+            row("AUDNZD", 1, 1, 1, daily_chg=0.10),
+            # baissiere alors que ses devises impliquent une hausse -> retiree
+            row("NZDJPY", 1, 1, 1, daily_chg=-0.09),
+            # aucun streak confirme: produit nul -> retiree
+            row("AUDNZD", 1, 1, 1, daily_chg=0.10, streaks={"M": 0, "W": 0, "D": 0}),
+            # realise non nul mais qui s'affiche +0.00 -> retiree aussi
+            row("AUDJPY", 1, 1, 1, daily_chg=0.001),
+        ]
+
+        kept = all_pair_status_rows(scanned, by_currency)
+
+        self.assertEqual([item["pair"] for item in kept], ["AUDJPY", "AUDNZD"])
+
+    def test_pair_section_keeps_every_pair_without_currency_indices(self):
+        scanned = [
+            row("AUDJPY", 1, 1, 1, daily_chg=0.09),
+            row("NZDJPY", 1, 1, 1, daily_chg=-0.09),
+        ]
+
+        self.assertEqual(
+            [item["pair"] for item in all_pair_status_rows(scanned)],
+            ["AUDJPY", "NZDJPY"],
+        )
 
     def test_message_lists_pair_status_section(self):
         scanned = [

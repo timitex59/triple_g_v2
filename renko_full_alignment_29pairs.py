@@ -525,23 +525,46 @@ def currency_spread(row: dict, index_by_currency: dict[str, dict] | None) -> flo
     return base - quote
 
 
+def is_engine_divergent(row: dict, index_by_currency: dict[str, dict] | None) -> bool:
+    """La paire contredit-elle son moteur devise ?
+
+    Le score realise est une magnitude, donc le signe du produit
+    realise x attendu est celui de l'attendu: une paire rouge avec un produit
+    positif (ou verte avec un produit negatif) va a l'inverse de ce que ses
+    devises impliquent. Ces paires sont retirees de la section."""
+    expected = currency_spread(row, index_by_currency)
+    if expected is None or expected == 0:
+        return False
+    chg = row.get("daily_chg")
+    if not isinstance(chg, (int, float)) or chg == 0:
+        return False
+    return (chg > 0) != (expected > 0)
+
+
+def sync_product(row: dict, index_by_currency: dict[str, dict] | None) -> float | None:
+    """Produit realise x |attendu|: recompense a la fois le carburant du moteur
+    devise et l'execution de la paire. Sert de classement de la section."""
+    expected = currency_spread(row, index_by_currency)
+    realized = strength_score(row)
+    if expected is None or realized is None:
+        return None
+    return realized * abs(expected)
+
+
 def sync_marker(row: dict, index_by_currency: dict[str, dict] | None) -> str:
     """Marqueur de synchronisation des deux moteurs pour une paire.
 
     🎯 les deux moteurs disent la meme chose et la paire est deja engagee;
-    ⏳ le moteur devise a du carburant mais la paire n'a pas encore casse;
-    ⚠️ la paire va a l'inverse de ce que ses devises impliquent.
-    Rien quand l'ecart entre les deux devises est trop faible pour conclure."""
+    ⏳ le moteur devise a du carburant mais la paire n'a pas encore casse.
+    Rien quand l'ecart entre les deux devises est trop faible pour conclure.
+    Les paires divergentes ne sont pas marquees: elles sont filtrees en amont
+    par `all_pair_status_rows`."""
     expected = currency_spread(row, index_by_currency)
     realized = strength_score(row)
     if expected is None or realized is None or abs(expected) < SYNC_MIN_EXPECTED:
         return ""
-    chg = row.get("daily_chg")
-    if not isinstance(chg, (int, float)) or chg == 0:
-        return " ⏳"
-    same_direction = (chg > 0) == (expected > 0)
-    if not same_direction:
-        return " ⚠️"
+    if is_engine_divergent(row, index_by_currency):
+        return ""
     return " 🎯" if realized >= SYNC_MIN_REALIZED else " ⏳"
 
 
@@ -558,11 +581,44 @@ def all_index_status_rows(rows: list[dict]) -> list[dict]:
     return sorted(index_rows, key=_strength_sort_key)
 
 
-def all_pair_status_rows(rows: list[dict]) -> list[dict]:
-    """Meme principe que `all_index_status_rows`, pour les 29 paires: statut de
-    toutes les paires scannees, classees par score d'intensite decroissant."""
+def all_pair_status_rows(
+    rows: list[dict],
+    index_by_currency: dict[str, dict] | None = None,
+) -> list[dict]:
+    """Statut des paires scannees, classees par intensite decroissante.
+
+    Avec `index_by_currency`, la section devient exploitable telle quelle: le
+    classement passe sur le produit realise x |attendu|, qui recompense a la
+    fois le carburant devise et l'execution de la paire, et deux familles de
+    lignes sont retirees:
+
+    - celles qui contredisent leur moteur devise (cf. `is_engine_divergent`);
+    - celles dont le produit est nul, c'est-a-dire sans streak Renko confirme
+      (realise 0) ou sans ecart entre les deux devises (attendu 0): il n'y a
+      rien a y lire. Le test porte sur les valeurs telles qu'affichees, a deux
+      decimales: une ligne qui montrerait 0.00 d'un cote ou de l'autre ne dit
+      rien de plus qu'un vrai zero."""
     pair_rows = [row for row in rows if row.get("asset_type") != "INDEX"]
-    return sorted(pair_rows, key=_strength_sort_key)
+    if not index_by_currency:
+        return sorted(pair_rows, key=_strength_sort_key)
+
+    kept: list[tuple[float, dict]] = []
+    for row in pair_rows:
+        if is_engine_divergent(row, index_by_currency):
+            continue
+        product = sync_product(row, index_by_currency)
+        if not product:
+            continue
+        realized = strength_score(row) or 0.0
+        expected = currency_spread(row, index_by_currency) or 0.0
+        if round(realized, 2) == 0.0 or round(expected, 2) == 0.0:
+            continue
+        kept.append((product, row))
+
+    return [
+        row for _, row in
+        sorted(kept, key=lambda item: (-item[0], str(item[1].get("pair") or "")))
+    ]
 
 
 def _index_rows_by_currency(rows: list[dict]) -> dict[str, dict]:
@@ -1196,7 +1252,7 @@ def main() -> int:
         index_daily_chg_rows,
         now=now,
         index_status_rows=all_index_status_rows(rows),
-        pair_status_rows=all_pair_status_rows(rows),
+        pair_status_rows=all_pair_status_rows(rows, index_by_currency),
         index_by_currency=index_by_currency,
         rows_by_pair=rows_by_pair,
         price_trends=price_trends,
