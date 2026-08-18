@@ -357,7 +357,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
 
         self.assertIn("📊 FULL MOMENTUM", message)
-        self.assertIn("🟢 GBPJPY (+0.30)", message)
+        self.assertIn("🟢 GBPJPY (1.23456)", message)
         self.assertNotIn("+100%", message)
         self.assertNotIn("M+/W+/D+", message)
         self.assertIn("2026-07-16 10:00 Paris", message)
@@ -541,12 +541,14 @@ class FullAlignmentScannerTests(unittest.TestCase):
             currency_spread(index_row("DXY", 1, 1, 1, daily_chg=0.10), index_by_currency),
         )
 
-    def test_message_shows_the_product_on_pair_lines(self):
-        """La ligne d'une paire condense les deux moteurs en un produit."""
+    def test_message_shows_only_the_close_price_on_pair_lines(self):
+        """La ligne d'une paire se limite au prix de cloture: plus de score,
+        de produit ni de marqueur de synchronisation."""
         aud = index_row("AXY", 1, 1, 1, daily_chg=0.20)      # +0.60
         nzd = index_row("ZXY", 1, 1, 1, daily_chg=0.06)      # +0.18
         by_currency = {"AUD": aud, "NZD": nzd}
-        # attendu +0.42, realise 3.0 x 0.13 = 0.39 -> produit 0.1638
+        # attendu +0.42, realise 3.0 x 0.13 = 0.39 -> produit 0.1638 (filtre
+        # de selection uniquement, ne doit plus apparaitre sur la ligne).
         audnzd = row("AUDNZD", 1, 1, 1, daily_chg=0.13)
 
         message = format_full_alignment_message(
@@ -558,8 +560,9 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
         lines = message.splitlines()
 
-        self.assertIn("🟢 AUDNZD (0.1638) (1.23456)", lines)
-        # Plus de couple (realise)/(attendu) sur la ligne.
+        self.assertIn("🟢 AUDNZD (1.23456)", lines)
+        self.assertNotIn("0.1638", message)
+        self.assertNotIn("🎯", message)
         self.assertNotIn("/(", message)
         # Les indices gardent leur score d'intensite.
         self.assertIn("🟢 AUD (+0.60)", lines)
@@ -702,8 +705,8 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
 
         self.assertIn("💹 PAIRES CHG%D", message)
-        self.assertIn("🟢 GBPJPY (+0.69)", message)
-        self.assertIn("🟢 USDCHF (+0.00)", message)
+        self.assertIn("🟢 GBPJPY (1.23456)", message)
+        self.assertIn("🟢 USDCHF (1.23456)", message)
 
     def test_index_status_rows_keep_every_scanned_index(self):
         scanned = [
