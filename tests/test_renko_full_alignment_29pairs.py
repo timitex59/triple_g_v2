@@ -264,6 +264,40 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
         self.assertEqual(trends["AUDCHF"]["trend_icon"], "")
 
+    def test_trend_pips_are_signed_in_favor_of_the_baseline_direction(self):
+        # Signal BEAR a 6H, prix qui baisse ensuite de 14 pips: en faveur du
+        # signal -> pips positifs malgre la baisse du prix brut.
+        bear_first = row("AUDUSD", -1, -1, -1, daily_chg=-0.20)
+        bear_first["live_price"] = 0.71004
+        state, _ = update_price_trends(
+            {}, [bear_first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
+        )
+        bear_later = row("AUDUSD", -1, -1, -1, daily_chg=-0.20)
+        bear_later["live_price"] = 0.70864
+        _, trends = update_price_trends(
+            state, [bear_later], datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
+        )
+        self.assertAlmostEqual(trends["AUDUSD"]["trend_pips"], 14.0, places=6)
+        self.assertEqual(trends["AUDUSD"]["trend_icon"], "✅")
+
+        # Signal BULL a 6H, prix qui monte ensuite de 8 pips: pips positifs.
+        bull_first = row("EURUSD", 1, 1, 1, daily_chg=0.20)
+        bull_first["live_price"] = 1.15000
+        state2, _ = update_price_trends(
+            {}, [bull_first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
+        )
+        bull_later = row("EURUSD", 1, 1, 1, daily_chg=0.20)
+        bull_later["live_price"] = 1.15080
+        _, trends2 = update_price_trends(
+            state2, [bull_later], datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
+        )
+        self.assertAlmostEqual(trends2["EURUSD"]["trend_pips"], 8.0, places=6)
+        self.assertEqual(trends2["EURUSD"]["trend_icon"], "✅")
+
     def test_message_shows_the_trend_icon_on_pair_lines(self):
         audnzd = row("AUDNZD", 1, 1, 1, daily_chg=0.10)
         audnzd["live_price"] = 1.20822
@@ -276,6 +310,31 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
 
         self.assertIn("🟢 AUDNZD (1.20822) ✅", message)
+
+    def test_message_shows_the_trend_pips_on_pair_lines(self):
+        audusd = row("AUDUSD", -1, -1, -1, daily_chg=-0.20)
+        audusd["live_price"] = 0.70864
+
+        message = format_full_alignment_message(
+            [],
+            pair_status_rows=all_pair_status_rows([audusd]),
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            price_trends={
+                "AUDUSD": {"price": 0.70864, "trend_icon": "✅", "trend_pips": 14.0},
+            },
+        )
+
+        self.assertIn("🔴 AUDUSD (0.70864) ✅ +14.0 pips", message)
+
+        # Sans trend_icon (pas de sens exploitable), aucun texte de pips.
+        message_no_trend = format_full_alignment_message(
+            [],
+            pair_status_rows=all_pair_status_rows([audusd]),
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            price_trends={"AUDUSD": {"price": 0.70864, "trend_icon": ""}},
+        )
+        self.assertIn("🔴 AUDUSD (0.70864)", message_no_trend)
+        self.assertNotIn("pips", message_no_trend)
 
     def test_message_no_longer_renders_the_strict_alignment_list(self):
         """La liste des paires en alignement strict a ete retiree du message:

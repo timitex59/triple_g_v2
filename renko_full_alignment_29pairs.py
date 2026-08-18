@@ -1021,18 +1021,35 @@ def _daily_chg_direction(value: object) -> int:
     return 0
 
 
-def _trend_continuation_icon(pair: str, current_price: float,
-                             baseline_price: object, baseline_direction: int) -> str:
-    """✅ si le prix est reste (ou n'est reparti que de peu) dans le sens du
-    premier signal du jour (6H Paris), ❌ s'il s'en est ecarte d'au moins
-    TREND_ICON_MIN_PIPS dans le sens oppose. Vide tant que le premier signal
-    n'a pas de sens exploitable (CHG%D neutre) ou n'a pas encore ete capture."""
+def _trend_delta_pips(pair: str, current_price: float, baseline_price: object,
+                      baseline_direction: int) -> float | None:
+    """Ecart en pips depuis le premier signal du jour, oriente EN FAVEUR de ce
+    signal: positif si le prix a avance dans le sens du signal (BEAR: une
+    baisse compte positif; BULL: une hausse compte positif), negatif s'il est
+    reparti contre. None si le sens du premier signal n'est pas exploitable
+    (CHG%D neutre) ou si la reference n'a pas encore ete capturee."""
     if baseline_direction not in (1, -1) or not isinstance(baseline_price, (int, float)):
-        return ""
+        return None
     delta_pips = (current_price - float(baseline_price)) / _pip_size(pair)
-    if baseline_direction == -1:
-        delta_pips = -delta_pips
+    return -delta_pips if baseline_direction == -1 else delta_pips
+
+
+def _trend_continuation_icon(delta_pips: float | None) -> str:
+    """✅ si le prix est reste (ou n'est reparti que de peu) dans le sens du
+    premier signal du jour, ❌ s'il s'en est ecarte d'au moins
+    TREND_ICON_MIN_PIPS dans le sens oppose. Vide sans ecart exploitable
+    (cf. `_trend_delta_pips`)."""
+    if delta_pips is None:
+        return ""
     return "❌" if delta_pips < -TREND_ICON_MIN_PIPS else "✅"
+
+
+def _format_trend_pips(delta_pips: float) -> str:
+    """Ecart en pips affiche, meme convention de precision que le tracker
+    VIVIER (`_format_pips`): un chiffre apres la virgule, signe explicite."""
+    if abs(delta_pips) < 0.05:
+        delta_pips = 0.0
+    return f"{delta_pips:+.1f} pips"
 
 
 def _default_h1_close_near_baseline_hour(tv_symbol: str, today_at_paris: datetime) -> float | None:
@@ -1116,13 +1133,13 @@ def update_price_trends(previous: dict | None, rows: list[dict],
             baseline_ready = True
             baseline_direction = _daily_chg_direction(row.get("daily_chg"))
         previous_price = prior.get("previous")
+        trend_pips = _trend_delta_pips(pair, price, baseline, baseline_direction)
         trends[pair] = {
             "price": price,
             "vs_06h": _price_arrow(price, baseline),
             "vs_previous": _price_arrow(price, previous_price),
-            "trend_icon": _trend_continuation_icon(
-                pair, price, baseline, baseline_direction,
-            ),
+            "trend_icon": _trend_continuation_icon(trend_pips),
+            "trend_pips": trend_pips,
         }
         new_pairs[pair] = {
             "baseline_price": baseline,
@@ -1206,8 +1223,9 @@ def _strength_status_lines(
 
     Avec `show_close_price`, la ligne se limite a `icone NOM (prix)`: ni le
     score/produit ni le marqueur de synchronisation (🎯/⏳) ne sont affiches.
-    `price_trends` y ajoute alors ✅/❌: le prix suit-il toujours (au moins
-    TREND_ICON_MIN_PIPS) le sens du premier signal du jour (6H Paris) ?"""
+    `price_trends` y ajoute alors ✅/❌ et l'ecart en pips depuis le premier
+    signal du jour (6H Paris), oriente en faveur de ce signal (cf.
+    `_trend_delta_pips`)."""
     lines: list[str] = []
     for row in status_rows:
         icon = _daily_chg_icon(row.get("daily_chg"))
@@ -1221,7 +1239,13 @@ def _strength_status_lines(
             )
             trend = (price_trends or {}).get(str(row.get("pair") or "")) or {}
             trend_icon = trend.get("trend_icon") or ""
-            trend_txt = f" {trend_icon}" if trend_icon else ""
+            trend_pips = trend.get("trend_pips")
+            pips_txt = (
+                f" {_format_trend_pips(trend_pips)}"
+                if trend_icon and isinstance(trend_pips, (int, float))
+                else ""
+            )
+            trend_txt = f" {trend_icon}{pips_txt}" if trend_icon else ""
             lines.append(f"{icon} {name}{value_txt}{trend_txt}")
             continue
         product = signed_sync_product(row, index_by_currency)
