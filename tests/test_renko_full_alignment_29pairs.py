@@ -137,6 +137,27 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertEqual(trends["AUDJPY"]["vs_06h"], "→")
         self.assertEqual(trends["AUDJPY"]["vs_previous"], "→")
 
+    def test_stale_baseline_ready_without_a_price_self_heals(self):
+        """Regression: un etat marque `baseline_ready` mais sans
+        `baseline_price` exploitable (ex: reliquat de l'ancien champ
+        `baseline_07h` avant renommage) ne doit pas rester bloque sans
+        reference pour le reste de la journee: le code doit recapturer."""
+        previous = {
+            "date": "2026-08-18",
+            "pairs": {"AUDJPY": {
+                "baseline_ready": True, "baseline_price": None,
+                "baseline_direction": 0, "previous": 112.0,
+            }},
+        }
+        current = row("AUDJPY", 1, 1, 1, daily_chg=0.20)
+        current["live_price"] = 112.500
+        state, trends = update_price_trends(
+            previous, [current], datetime(2026, 8, 18, 10, 0, tzinfo=PARIS)
+        )
+        self.assertEqual(state["pairs"]["AUDJPY"]["baseline_price"], 112.500)
+        self.assertEqual(state["pairs"]["AUDJPY"]["baseline_direction"], 1)
+        self.assertEqual(trends["AUDJPY"]["trend_icon"], "✅")
+
     def test_trend_icon_marks_continuation_and_reversal_with_pip_threshold(self):
         # Premier signal a 6H: CHG%D haussier -> reference haussiere figee.
         first = row("AUDCHF", 1, 1, 1, daily_chg=0.20)

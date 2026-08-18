@@ -1064,7 +1064,13 @@ def update_price_trends(previous: dict | None, rows: list[dict],
         price = float(price)
         prior = old_pairs.get(pair) or {}
         baseline = prior.get("baseline_price")
-        baseline_ready = bool(prior.get("baseline_ready"))
+        # `baseline_ready` sans `baseline_price` exploitable signale un etat
+        # d'avant le renommage baseline_07h -> baseline_price (ou tout etat
+        # corrompu): on force une nouvelle capture plutot que de rester bloque
+        # sans reference pour le reste de la journee.
+        baseline_ready = bool(prior.get("baseline_ready")) and isinstance(
+            baseline, (int, float),
+        )
         baseline_direction = prior.get("baseline_direction", 0)
         if clock.hour >= TREND_ICON_BASELINE_HOUR_PARIS and not baseline_ready:
             baseline = price
