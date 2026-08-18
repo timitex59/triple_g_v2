@@ -35,6 +35,7 @@ from renko_score_29pairs_v16 import (
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
 MID_SAR_STATE_FILE = Path("renko_full_alignment_mid_sar_state.json")
+PAIRS_OUT_STATE_FILE = Path("renko_full_alignment_pairs_out_state.json")
 # Sidecar per-devise (force via index DXY/EXY/... + alignement M/W/D) lu par FIOS
 # pour croiser cette analyse avec sa force composite (confluence inter-systemes).
 INDEX_SIDECAR_FILE = Path("full_alignment_index.json")
@@ -136,6 +137,11 @@ def parse_args() -> argparse.Namespace:
         "--price-trend-state-file",
         default=str(PRICE_TREND_STATE_FILE),
         help="JSON state for pair live-price comparisons versus 07:00 and previous run.",
+    )
+    parser.add_argument(
+        "--pairs-out-state-file",
+        default=str(PAIRS_OUT_STATE_FILE),
+        help="JSON state tracking pairs that left the PAIRES CHG%%D TOP5 today.",
     )
     return parser.parse_args()
 
@@ -1259,6 +1265,83 @@ def _strength_status_lines(
     return lines
 
 
+def update_pairs_out_state(
+    previous: dict | None, pair_status_rows: list[dict], now: datetime,
+) -> tuple[dict, list[dict]]:
+    """Suit les paires qui ont appartenu au TOP5 de PAIRES CHG%D aujourd'hui
+    et n'y sont plus.
+
+    Une paire entre dans PAIRES OUT des qu'elle quitte le TOP5 (classee 6e ou
+    plus loin, ou carrement retiree du filtre `all_pair_status_rows`) apres y
+    avoir figure au moins une fois depuis le debut de la journee. Elle y reste
+    tant qu'elle n'est pas revenue dans le TOP5: `out_since_paris` se
+    reinitialise a chaque nouvelle sortie (elle ne bouge pas tant que la
+    paire reste continuellement hors TOP5).
+
+    Chaque entree porte `warning=True` quand la paire est sortie du filtre
+    lui-meme (paire devenue divergente de ses devises, ou ecart devise sous
+    le seuil de setup: marge cassee). `warning=False` si elle est encore
+    filtree/valide, juste classee au-dela du TOP5 (encore dans la marge)."""
+    clock = now.astimezone(PARIS_TZ)
+    today = clock.date().isoformat()
+    old = previous if isinstance(previous, dict) else {}
+    same_day = old.get("date") == today
+    ever_top5 = set(old.get("ever_top5") or []) if same_day else set()
+    old_out_since = dict(old.get("out_since") or {}) if same_day else {}
+
+    filtered_pairs = [str(row.get("pair") or "") for row in pair_status_rows]
+    top5_now = set(filtered_pairs[:PAIR_SECTION_LIMIT])
+    still_filtered = set(filtered_pairs)
+
+    ever_top5 |= top5_now
+    out_pairs = ever_top5 - top5_now
+
+    out_since: dict[str, str] = {
+        pair: old_out_since.get(pair) or clock.strftime("%H:%M")
+        for pair in out_pairs
+    }
+
+    entries = sorted(
+        (
+            {
+                "pair": pair,
+                "warning": pair not in still_filtered,
+                "out_since_paris": out_since[pair],
+            }
+            for pair in out_pairs
+        ),
+        key=lambda item: (item["out_since_paris"], item["pair"]),
+    )
+
+    return {
+        "version": 1,
+        "date": today,
+        "ever_top5": sorted(ever_top5),
+        "out_since": out_since,
+    }, entries
+
+
+def _pairs_out_lines(
+    entries: list[dict], rows_by_pair: dict[str, dict] | None,
+) -> list[str]:
+    lines: list[str] = []
+    for entry in entries:
+        pair = str(entry.get("pair") or "")
+        row = (rows_by_pair or {}).get(pair) or {}
+        icon = _daily_chg_icon(row.get("daily_chg"))
+        close_price = row.get("live_price")
+        price_txt = (
+            f" ({_format_close_price(float(close_price))})"
+            if isinstance(close_price, (int, float))
+            else ""
+        )
+        warning_txt = " ⚠️" if entry.get("warning") else ""
+        since = entry.get("out_since_paris")
+        since_txt = f" (depuis {since})" if since else ""
+        lines.append(f"{icon} {pair}{price_txt}{warning_txt}{since_txt}")
+    return lines
+
+
 def format_full_alignment_message(
     rows: list[dict] | None = None,
     mid_sar_rows: list[dict] | None = None,
@@ -1270,6 +1353,7 @@ def format_full_alignment_message(
     index_by_currency: dict[str, dict] | None = None,
     rows_by_pair: dict[str, dict] | None = None,
     price_trends: dict[str, dict] | None = None,
+    pairs_out: list[dict] | None = None,
 ) -> str:
     """Message FULL MOMENTUM: statut de tous les indices puis de toutes les
     paires, classes par score d'intensite.
@@ -1278,7 +1362,11 @@ def format_full_alignment_message(
     faisait doublon avec la section PAIRES, ou ces paires figurent deja avec
     leur intensite. `rows` reste accepte pour compatibilite, mais n'est plus
     affiche; la selection continue d'alimenter le sidecar et de conditionner
-    l'envoi Telegram cote main()."""
+    l'envoi Telegram cote main().
+
+    `pairs_out` (cf. `update_pairs_out_state`) ajoute la section PAIRES OUT:
+    les paires qui ont appartenu au TOP5 aujourd'hui et n'y sont plus,
+    marquees ⚠️ si elles sont sorties du filtre lui-meme (marge cassee)."""
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
     lines = ["📊 FULL MOMENTUM"]
 
@@ -1293,6 +1381,9 @@ def format_full_alignment_message(
             pair_status_rows[:PAIR_SECTION_LIMIT], index_by_currency,
             show_close_price=True, price_trends=price_trends,
         ))
+    if pairs_out:
+        lines.extend(["", "📤 PAIRES OUT"])
+        lines.extend(_pairs_out_lines(pairs_out, rows_by_pair))
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
@@ -1405,6 +1496,9 @@ def main() -> int:
     save_mid_sar_history_state(args.mid_sar_state_file, history_state)
     index_status_rows = all_index_status_rows(rows)
     pair_status_rows = all_pair_status_rows(rows, index_by_currency)
+    pairs_out_state = load_price_trend_state(args.pairs_out_state_file)
+    pairs_out_state, pairs_out = update_pairs_out_state(pairs_out_state, pair_status_rows, now)
+    save_price_trend_state(args.pairs_out_state_file, pairs_out_state)
     message = format_full_alignment_message(
         selected,
         mid_sar_rows,
@@ -1416,6 +1510,7 @@ def main() -> int:
         index_by_currency=index_by_currency,
         rows_by_pair=rows_by_pair,
         price_trends=price_trends,
+        pairs_out=pairs_out,
     )
     print(message)
     if args.telegram:
@@ -1426,7 +1521,7 @@ def main() -> int:
         # au lieu de l'ancienne liste d'alignement strict M/W/D retiree de
         # l'affichage par le commit "retitle FULL MOMENTUM", qui pouvait le
         # laisser silencieux alors que le message avait du contenu.
-        if not index_status_rows and not pair_status_rows:
+        if not index_status_rows and not pair_status_rows and not pairs_out:
             print("Ni INDEX CHG%D ni PAIRES CHG%D n'ont de contenu : message Telegram ignoré.")
         else:
             send_telegram_message(message)
