@@ -1035,18 +1035,52 @@ def _trend_continuation_icon(pair: str, current_price: float,
     return "❌" if delta_pips < -TREND_ICON_MIN_PIPS else "✅"
 
 
+def _default_h1_close_near_baseline_hour(tv_symbol: str, today_at_paris: datetime) -> float | None:
+    """Cloture H1 la plus proche (au ou juste avant) de
+    TREND_ICON_BASELINE_HOUR_PARIS heure Paris, aujourd'hui.
+
+    Sert a reconstituer la vraie reference du premier signal meme quand la
+    capture live n'a lieu que plus tard dans la journee (run du matin manque,
+    etat corrompu a reparer, etc.): sans ce backfill, la reference serait
+    prise sur le prix courant au moment de la reparation, potentiellement tres
+    loin de 6H. Retourne None si la donnee H1 est indisponible ou insuffisante;
+    l'appelant retombe alors sur le prix live du run en cours."""
+    try:
+        df = fetch_tv_ohlc(tv_symbol, "60", 48)
+        if df is None or df.empty:
+            return None
+        target = today_at_paris.replace(
+            hour=TREND_ICON_BASELINE_HOUR_PARIS, minute=0, second=0, microsecond=0,
+        )
+        local_index = df.index.tz_convert(PARIS_TZ)
+        eligible = df.loc[local_index <= target]
+        if eligible.empty:
+            return None
+        return float(eligible["close"].iloc[-1])
+    except Exception:
+        return None
+
+
 def update_price_trends(previous: dict | None, rows: list[dict],
-                        now: datetime) -> tuple[dict, dict[str, dict]]:
+                        now: datetime,
+                        h1_close_lookup=None) -> tuple[dict, dict[str, dict]]:
     """Compare les prix live du run a la reference du premier signal du jour
     et au run precedent, et indique si le prix continue dans le sens de ce
     premier signal.
 
     Toutes les paires sont memorisees, pas seulement celles selectionnees, afin
     qu'une nouvelle apparition ait deja une comparaison avec le cycle precedent.
-    La baseline devient le premier prix observe a partir de
-    TREND_ICON_BASELINE_HOUR_PARIS (6H Paris), avec le sens du CHG%D a cet
-    instant comme reference de tendance pour `trend_icon`.
+    La baseline devient la cloture H1 la plus proche de
+    TREND_ICON_BASELINE_HOUR_PARIS (6H Paris) aujourd'hui (cf.
+    `_default_h1_close_near_baseline_hour`), avec repli sur le prix live du run
+    si cette cloture H1 est indisponible. Le sens du CHG%D au moment de la
+    capture sert de reference de tendance pour `trend_icon`.
+
+    `h1_close_lookup(tv_symbol, clock) -> float | None` est injectable pour les
+    tests; par defaut c'est `_default_h1_close_near_baseline_hour`, qui
+    interroge TradingView.
     """
+    h1_close_lookup = h1_close_lookup or _default_h1_close_near_baseline_hour
     clock = now.astimezone(PARIS_TZ)
     today = clock.date().isoformat()
     old = previous if isinstance(previous, dict) else {}
@@ -1073,7 +1107,12 @@ def update_price_trends(previous: dict | None, rows: list[dict],
         )
         baseline_direction = prior.get("baseline_direction", 0)
         if clock.hour >= TREND_ICON_BASELINE_HOUR_PARIS and not baseline_ready:
-            baseline = price
+            tv_symbol = str(row.get("tv_symbol") or "")
+            backfilled = h1_close_lookup(tv_symbol, clock) if tv_symbol else None
+            # Repli sur le prix live du run si la cloture H1 de 6H est
+            # indisponible (feed en panne, historique trop court, etc.): mieux
+            # vaut une reference approximative que pas de reference du tout.
+            baseline = backfilled if isinstance(backfilled, (int, float)) else price
             baseline_ready = True
             baseline_direction = _daily_chg_direction(row.get("daily_chg"))
         previous_price = prior.get("previous")
