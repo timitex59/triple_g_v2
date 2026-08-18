@@ -37,6 +37,13 @@ from renko_full_alignment_29pairs import (
 PARIS = ZoneInfo("Europe/Paris")
 
 
+def no_h1_backfill(_tv_symbol, _clock):
+    """Stub `h1_close_lookup`: simule une cloture H1 indisponible, pour garder
+    `update_price_trends` deterministe en test (aucun appel reseau) et
+    reproduire l'ancien comportement (repli sur le prix live du run)."""
+    return None
+
+
 def row(pair, m, w, d, daily_chg=None, streaks=None, bias=None):
     """Ligne de scan factice.
 
@@ -99,7 +106,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         first = row("AUDCHF", 1, 1, 1)
         first["live_price"] = 0.57000
         state, trends = update_price_trends(
-            {}, [first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS)
+            {}, [first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(trends["AUDCHF"]["vs_06h"], "→")
         self.assertEqual(trends["AUDCHF"]["vs_previous"], "→")
@@ -107,7 +114,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         second = row("AUDCHF", 1, 1, 1)
         second["live_price"] = 0.57120
         state, trends = update_price_trends(
-            state, [second], datetime(2026, 7, 16, 7, 15, tzinfo=PARIS)
+            state, [second], datetime(2026, 7, 16, 7, 15, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(trends["AUDCHF"]["vs_06h"], "↑")
         self.assertEqual(trends["AUDCHF"]["vs_previous"], "↑")
@@ -115,7 +122,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         third = row("AUDCHF", 1, 1, 1)
         third["live_price"] = 0.57080
         _, trends = update_price_trends(
-            state, [third], datetime(2026, 7, 16, 8, 15, tzinfo=PARIS)
+            state, [third], datetime(2026, 7, 16, 8, 15, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(trends["AUDCHF"]["vs_06h"], "↑")
         self.assertEqual(trends["AUDCHF"]["vs_previous"], "↓")
@@ -131,7 +138,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         current = row("AUDJPY", 1, 1, 1)
         current["live_price"] = 112.386
         state, trends = update_price_trends(
-            previous, [current], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS)
+            previous, [current], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(state["pairs"]["AUDJPY"]["baseline_price"], 112.386)
         self.assertEqual(trends["AUDJPY"]["vs_06h"], "→")
@@ -152,18 +159,52 @@ class FullAlignmentScannerTests(unittest.TestCase):
         current = row("AUDJPY", 1, 1, 1, daily_chg=0.20)
         current["live_price"] = 112.500
         state, trends = update_price_trends(
-            previous, [current], datetime(2026, 8, 18, 10, 0, tzinfo=PARIS)
+            previous, [current], datetime(2026, 8, 18, 10, 0, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(state["pairs"]["AUDJPY"]["baseline_price"], 112.500)
         self.assertEqual(state["pairs"]["AUDJPY"]["baseline_direction"], 1)
         self.assertEqual(trends["AUDJPY"]["trend_icon"], "✅")
+
+    def test_baseline_backfills_the_h1_close_near_6h_when_capture_is_delayed(self):
+        """Meme si la capture n'a lieu qu'en fin de journee (run du matin
+        manque, etat corrompu repare plus tard...), la reference doit etre la
+        cloture H1 proche de 6H fournie par `h1_close_lookup`, pas le prix du
+        moment de la reparation."""
+        calls = []
+
+        def stub_h1(tv_symbol, clock):
+            calls.append((tv_symbol, clock))
+            return 0.56800
+
+        now = datetime(2026, 8, 18, 21, 0, tzinfo=PARIS)
+        late = row("AUDCHF", 1, 1, 1, daily_chg=0.20)
+        late["tv_symbol"] = "OANDA:AUDCHF"
+        late["live_price"] = 0.58000  # tres different de la cloture H1 de 6H
+        state, _ = update_price_trends({}, [late], now, h1_close_lookup=stub_h1)
+
+        self.assertEqual(state["pairs"]["AUDCHF"]["baseline_price"], 0.56800)
+        self.assertEqual(calls, [("OANDA:AUDCHF", now)])
+
+    def test_baseline_falls_back_to_the_live_price_without_h1_data(self):
+        """Si `h1_close_lookup` ne trouve rien (feed en panne, historique
+        trop court), la capture retombe sur le prix live du run plutot que
+        de rester sans reference."""
+        current = row("AUDCHF", 1, 1, 1, daily_chg=0.20)
+        current["tv_symbol"] = "OANDA:AUDCHF"
+        current["live_price"] = 0.58000
+        state, _ = update_price_trends(
+            {}, [current], datetime(2026, 8, 18, 21, 0, tzinfo=PARIS),
+            h1_close_lookup=lambda *_: None,
+        )
+
+        self.assertEqual(state["pairs"]["AUDCHF"]["baseline_price"], 0.58000)
 
     def test_trend_icon_marks_continuation_and_reversal_with_pip_threshold(self):
         # Premier signal a 6H: CHG%D haussier -> reference haussiere figee.
         first = row("AUDCHF", 1, 1, 1, daily_chg=0.20)
         first["live_price"] = 0.57000
         state, trends = update_price_trends(
-            {}, [first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS)
+            {}, [first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(trends["AUDCHF"]["trend_icon"], "✅")
 
@@ -171,7 +212,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         up = row("AUDCHF", 1, 1, 1, daily_chg=0.20)
         up["live_price"] = 0.57080
         state, trends = update_price_trends(
-            state, [up], datetime(2026, 7, 16, 7, 0, tzinfo=PARIS)
+            state, [up], datetime(2026, 7, 16, 7, 0, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(trends["AUDCHF"]["trend_icon"], "✅")
 
@@ -179,7 +220,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         small_pullback = row("AUDCHF", 1, 1, 1, daily_chg=0.20)
         small_pullback["live_price"] = 0.57050
         state, trends = update_price_trends(
-            state, [small_pullback], datetime(2026, 7, 16, 7, 15, tzinfo=PARIS)
+            state, [small_pullback], datetime(2026, 7, 16, 7, 15, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(trends["AUDCHF"]["trend_icon"], "✅")
 
@@ -187,7 +228,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         reversal = row("AUDCHF", 1, 1, 1, daily_chg=0.20)
         reversal["live_price"] = 0.56910
         _, trends = update_price_trends(
-            state, [reversal], datetime(2026, 7, 16, 7, 30, tzinfo=PARIS)
+            state, [reversal], datetime(2026, 7, 16, 7, 30, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(trends["AUDCHF"]["trend_icon"], "❌")
 
@@ -196,14 +237,14 @@ class FullAlignmentScannerTests(unittest.TestCase):
         first = row("AUDJPY", -1, -1, -1, daily_chg=-0.15)
         first["live_price"] = 113.500
         state, _ = update_price_trends(
-            {}, [first], datetime(2026, 7, 16, 6, 5, tzinfo=PARIS)
+            {}, [first], datetime(2026, 7, 16, 6, 5, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
 
         # +3 pips (0.03): sous le seuil -> reste aligne.
         small_bounce = row("AUDJPY", -1, -1, -1, daily_chg=-0.15)
         small_bounce["live_price"] = 113.530
         state, trends = update_price_trends(
-            state, [small_bounce], datetime(2026, 7, 16, 6, 20, tzinfo=PARIS)
+            state, [small_bounce], datetime(2026, 7, 16, 6, 20, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(trends["AUDJPY"]["trend_icon"], "✅")
 
@@ -211,6 +252,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         _, trends = update_price_trends(
             state, [{**small_bounce, "live_price": 113.570}],
             datetime(2026, 7, 16, 6, 35, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
         )
         self.assertEqual(trends["AUDJPY"]["trend_icon"], "❌")
 
@@ -218,7 +260,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         neutral = row("AUDCHF", 1, 1, 1, daily_chg=0.0)
         neutral["live_price"] = 0.57000
         _, trends = update_price_trends(
-            {}, [neutral], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS)
+            {}, [neutral], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS), h1_close_lookup=no_h1_backfill
         )
         self.assertEqual(trends["AUDCHF"]["trend_icon"], "")
 
