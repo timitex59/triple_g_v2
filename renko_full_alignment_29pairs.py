@@ -1334,23 +1334,31 @@ def main() -> int:
     history_state = load_mid_sar_history_state(args.mid_sar_state_file)
     history_state, today_history = update_mid_sar_history(history_state, mid_sar_rows, now)
     save_mid_sar_history_state(args.mid_sar_state_file, history_state)
-    pair_rows = [row for row in selected if row.get("asset_type") != "INDEX"]
+    index_status_rows = all_index_status_rows(rows)
+    pair_status_rows = all_pair_status_rows(rows, index_by_currency)
     message = format_full_alignment_message(
         selected,
         mid_sar_rows,
         today_history,
         index_daily_chg_rows,
         now=now,
-        index_status_rows=all_index_status_rows(rows),
-        pair_status_rows=all_pair_status_rows(rows, index_by_currency),
+        index_status_rows=index_status_rows,
+        pair_status_rows=pair_status_rows,
         index_by_currency=index_by_currency,
         rows_by_pair=rows_by_pair,
         price_trends=price_trends,
     )
     print(message)
     if args.telegram:
-        if not pair_rows:
-            print("Aucune paire en alignement strict valide (>= 0.05%) : message Telegram ignoré.")
+        # INDEX CHG%D et PAIRES CHG%D sont deux sections independantes, chacune
+        # avec sa propre selection/calcul (cf. all_index_status_rows et
+        # all_pair_status_rows). Le gate suit desormais ce que le message
+        # affiche reellement: il envoie des que l'une des deux a du contenu,
+        # au lieu de l'ancienne liste d'alignement strict M/W/D retiree de
+        # l'affichage par le commit "retitle FULL MOMENTUM", qui pouvait le
+        # laisser silencieux alors que le message avait du contenu.
+        if not index_status_rows and not pair_status_rows:
+            print("Ni INDEX CHG%D ni PAIRES CHG%D n'ont de contenu : message Telegram ignoré.")
         else:
             send_telegram_message(message)
     return 0
