@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime
+import math
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -36,6 +37,10 @@ from renko_score_29pairs_v16 import (
 PARIS_TZ = ZoneInfo("Europe/Paris")
 MID_SAR_STATE_FILE = Path("renko_full_alignment_mid_sar_state.json")
 PAIRS_OUT_STATE_FILE = Path("renko_full_alignment_pairs_out_state.json")
+PERFORMANCE_STATE_FILE = Path("renko_full_alignment_performance_state.json")
+# Meme seuil que VIVIER_PIPS_DAY_RESULT_EPSILON: un trade clos en dessous ne
+# compte ni comme gagnant ni comme perdant (bruit de cloture).
+PERFORMANCE_FLAT_EPSILON_PIPS = 0.05
 # Sidecar per-devise (force via index DXY/EXY/... + alignement M/W/D) lu par FIOS
 # pour croiser cette analyse avec sa force composite (confluence inter-systemes).
 INDEX_SIDECAR_FILE = Path("full_alignment_index.json")
@@ -142,6 +147,11 @@ def parse_args() -> argparse.Namespace:
         "--pairs-out-state-file",
         default=str(PAIRS_OUT_STATE_FILE),
         help="JSON state tracking pairs that left the PAIRES CHG%%D TOP5 today.",
+    )
+    parser.add_argument(
+        "--performance-state-file",
+        default=str(PERFORMANCE_STATE_FILE),
+        help="JSON state tracking daily/weekly/monthly/yearly TOP5 pip performance.",
     )
     return parser.parse_args()
 
@@ -1342,6 +1352,224 @@ def _pairs_out_lines(
     return lines
 
 
+def update_performance_state(
+    previous: dict | None, ever_top5: object, price_trends: dict[str, dict] | None,
+    now: datetime,
+) -> tuple[dict, list[dict]]:
+    """Suit la performance des paires passees par le TOP5 de PAIRES CHG%D,
+    en 'trades papier': chacune s'ouvre au premier signal de 6H (meme
+    reference que le trend_icon, cf. update_price_trends) et se cloture au
+    changement de date Paris, avec pour resultat le dernier `trend_pips`
+    connu -- celui du run juste avant le rollover.
+
+    `open_pips` est reecrase avec la derniere valeur connue a chaque run:
+    inutile de deviner quel run est 'le dernier de la journee', le dernier
+    ecrasement avant le changement de date fait naturellement office de
+    cloture. Retourne l'etat mis a jour et la liste des trades qui viennent
+    d'etre clotures a ce run (vide la plupart du temps, non-vide uniquement
+    au premier run d'un nouveau jour)."""
+    clock = now.astimezone(PARIS_TZ)
+    today = clock.date().isoformat()
+    old = previous if isinstance(previous, dict) else {}
+    tracking_date = old.get("tracking_date")
+    closed_trades = list(old.get("closed_trades") or [])
+
+    newly_closed: list[dict] = []
+    if tracking_date and tracking_date != today:
+        for pair, pips in (old.get("open_pips") or {}).items():
+            if isinstance(pips, (int, float)):
+                trade = {
+                    "date": tracking_date,
+                    "pair": pair,
+                    "pips": float(pips),
+                    "closed_at_paris": clock.isoformat(),
+                }
+                closed_trades.append(trade)
+                newly_closed.append(trade)
+
+    open_pips: dict[str, float] = (
+        dict(old.get("open_pips") or {}) if tracking_date == today else {}
+    )
+    for pair in ever_top5 or []:
+        pips = ((price_trends or {}).get(pair) or {}).get("trend_pips")
+        if isinstance(pips, (int, float)):
+            open_pips[str(pair)] = float(pips)
+
+    return {
+        "version": 1,
+        "tracking_date": today,
+        "open_pips": open_pips,
+        "closed_trades": closed_trades,
+    }, newly_closed
+
+
+def _performance_period_totals(closed_trades: list[dict], date_keys: set[str]) -> dict:
+    pips = [
+        float(t["pips"]) for t in closed_trades
+        if str(t.get("date") or "") in date_keys
+    ]
+    winning = [p for p in pips if p > PERFORMANCE_FLAT_EPSILON_PIPS]
+    losing = [p for p in pips if p < -PERFORMANCE_FLAT_EPSILON_PIPS]
+    return {
+        "total_pips": sum(pips),
+        "winning_pips": sum(winning),
+        "losing_pips": sum(losing),
+        "winning_trades": len(winning),
+        "losing_trades": len(losing),
+        "trades": len(pips),
+    }
+
+
+def _performance_date_keys_between(start, end) -> set[str]:
+    days = (end - start).days
+    return {(start + timedelta(days=i)).isoformat() for i in range(max(days, 0) + 1)}
+
+
+def _performance_general_bilan(year_trades: list[dict], year: int) -> dict:
+    """Meme formules que `_yearly_general_pip_report` (VIVIER) pour rester
+    directement comparable: taux de reussite, taux de pips, profit factor,
+    score de robustesse (NS = sqrt(win_rate x pip_rate)), ratio gain/perte
+    moyen, et un drawdown max calcule sur la courbe d'equite realisee
+    (trades ordonnes par date/heure de cloture)."""
+    winning = [t for t in year_trades if float(t["pips"]) > PERFORMANCE_FLAT_EPSILON_PIPS]
+    losing = [t for t in year_trades if float(t["pips"]) < -PERFORMANCE_FLAT_EPSILON_PIPS]
+    decided = len(winning) + len(losing)
+    winning_pips = sum(float(t["pips"]) for t in winning)
+    losing_pips = sum(float(t["pips"]) for t in losing)  # <= 0
+    win_rate_pct = (len(winning) / decided * 100.0) if decided else 0.0
+    pip_rate_pct = (
+        (winning_pips - abs(losing_pips)) / winning_pips * 100.0
+        if winning_pips > 0.0 else 0.0
+    )
+    average_win_pips = winning_pips / len(winning) if winning else 0.0
+    average_loss_pips = abs(losing_pips) / len(losing) if losing else 0.0
+
+    ordered = sorted(
+        year_trades,
+        key=lambda t: str(t.get("closed_at_paris") or t.get("date") or ""),
+    )
+    equity = equity_peak = max_drawdown_pips = 0.0
+    for trade in ordered:
+        equity += float(trade["pips"])
+        equity_peak = max(equity_peak, equity)
+        max_drawdown_pips = max(max_drawdown_pips, equity_peak - equity)
+
+    return {
+        "year": year,
+        "closed_trades": len(year_trades),
+        "winning_trades": len(winning),
+        "losing_trades": len(losing),
+        "flat_trades": len(year_trades) - decided,
+        "win_rate_pct": win_rate_pct,
+        "winning_pips": winning_pips,
+        "losing_pips": losing_pips,
+        "pip_rate_pct": pip_rate_pct,
+        "profit_factor": (
+            winning_pips / abs(losing_pips) if losing_pips < 0.0 else None
+        ),
+        "ns_score_pct": (
+            math.sqrt(win_rate_pct * pip_rate_pct)
+            if win_rate_pct >= 0.0 and pip_rate_pct >= 0.0 else None
+        ),
+        "average_win_pips": average_win_pips,
+        "average_loss_pips": average_loss_pips,
+        "gain_loss_ratio": (
+            average_win_pips / average_loss_pips if average_loss_pips > 0.0 else None
+        ),
+        "closed_pips": sum(float(t["pips"]) for t in year_trades),
+        "max_drawdown_pips": max_drawdown_pips,
+    }
+
+
+def performance_report(state: dict, now: datetime) -> dict:
+    """Rapport DAILY/CUMULS + bilan general annuel a partir de l'etat
+    persiste par `update_performance_state`."""
+    clock = now.astimezone(PARIS_TZ)
+    today = clock.date()
+    closed_trades = state.get("closed_trades") or []
+    year_prefix = f"{today.year:04d}-"
+    year_trades = [
+        t for t in closed_trades if str(t.get("date") or "").startswith(year_prefix)
+    ]
+
+    week_start = today - timedelta(days=today.weekday())
+    month_start = today.replace(day=1)
+    year_start = today.replace(month=1, day=1)
+
+    open_pips_total = sum(
+        float(v) for v in (state.get("open_pips") or {}).values()
+        if isinstance(v, (int, float))
+    )
+
+    return {
+        "daily": _performance_period_totals(closed_trades, {today.isoformat()}),
+        "weekly": _performance_period_totals(
+            closed_trades, _performance_date_keys_between(week_start, today),
+        ),
+        "monthly": _performance_period_totals(
+            closed_trades, _performance_date_keys_between(month_start, today),
+        ),
+        "yearly": _performance_period_totals(
+            closed_trades, _performance_date_keys_between(year_start, today),
+        ),
+        "general": _performance_general_bilan(year_trades, today.year),
+        "open_pips_total": open_pips_total,
+    }
+
+
+def performance_report_lines(report: dict, newly_closed_count: int) -> list[str]:
+    """Lignes Telegram: DAILY/CUMULS a chaque run, BILAN GENERAL uniquement
+    au run qui vient de clore des trades (changement de jour) -- comme
+    VIVIER, ce pave complet n'a pas besoin d'etre repete a chaque cycle."""
+    daily = report["daily"]
+    weekly = report["weekly"]
+    monthly = report["monthly"]
+    yearly = report["yearly"]
+    lines = [
+        f"📈 PERF TOP5 — DAILY : {_format_trend_pips(daily['total_pips'])} "
+        f"({daily['trades']} trades)",
+        f"🟢 {_format_trend_pips(daily['winning_pips'])} | "
+        f"🔴 {_format_trend_pips(daily['losing_pips'])}",
+        "",
+        "📊 CUMULS TOP5",
+        f"Weekly : {_format_trend_pips(weekly['total_pips'])}",
+        f"Monthly : {_format_trend_pips(monthly['total_pips'])}",
+        f"🗓 YTD {report['general']['year']} : {_format_trend_pips(yearly['total_pips'])}",
+    ]
+    if newly_closed_count > 0:
+        general = report["general"]
+        profit_factor = general.get("profit_factor")
+        ns_score_pct = general.get("ns_score_pct")
+        gain_loss_ratio = general.get("gain_loss_ratio")
+        lines.extend([
+            "",
+            f"📋 BILAN GÉNÉRAL {general['year']}",
+            f"{general['closed_trades']} trades clôturés",
+            f"🟢 {general['winning_trades']} gagnants "
+            f"({general['winning_pips']:.1f} pips)",
+            f"🔴 {general['losing_trades']} perdants "
+            f"({_format_trend_pips(general['losing_pips'])})",
+        ])
+        if general.get("flat_trades"):
+            lines.append(f"⚪ {general['flat_trades']} neutres")
+        lines.extend([
+            f"NOG · Taux de réussite : {general['win_rate_pct']:.1f}%",
+            f"SEL · Taux de pips : {general['pip_rate_pct']:.1f}%",
+            "PF · Profit Factor : "
+            + (f"{float(profit_factor):.2f}" if profit_factor is not None else "N/D"),
+            "NS · Score de robustesse : "
+            + (f"{float(ns_score_pct):.1f}%" if ns_score_pct is not None else "N/D"),
+            "GAT · Ratio gain/perte moyen : "
+            + (f"{float(gain_loss_ratio):.2f}" if gain_loss_ratio is not None else "N/D"),
+            f"Max Drawdown clôturé : {-abs(float(general.get('max_drawdown_pips') or 0.0)):.1f} pips",
+            f"Gains clôturés : {_format_trend_pips(general['closed_pips'])}",
+            f"Position ouverte : {_format_trend_pips(report['open_pips_total'])}",
+            f"Total affiché : "
+            f"{_format_trend_pips(general['closed_pips'] + report['open_pips_total'])}",
+        ])
+    return lines
+
+
 def format_full_alignment_message(
     rows: list[dict] | None = None,
     mid_sar_rows: list[dict] | None = None,
@@ -1354,6 +1582,7 @@ def format_full_alignment_message(
     rows_by_pair: dict[str, dict] | None = None,
     price_trends: dict[str, dict] | None = None,
     pairs_out: list[dict] | None = None,
+    performance_lines: list[str] | None = None,
 ) -> str:
     """Message FULL MOMENTUM: statut de tous les indices puis de toutes les
     paires, classes par score d'intensite.
@@ -1366,7 +1595,12 @@ def format_full_alignment_message(
 
     `pairs_out` (cf. `update_pairs_out_state`) ajoute la section PAIRES OUT:
     les paires qui ont appartenu au TOP5 aujourd'hui et n'y sont plus,
-    marquees ⚠️ si elles sont sorties du filtre lui-meme (marge cassee)."""
+    marquees ⚠️ si elles sont sorties du filtre lui-meme (marge cassee).
+
+    `performance_lines` (cf. `performance_report_lines`) ajoute le suivi de
+    performance du TOP5: pips du jour, cumuls semaine/mois/annee, et un
+    bilan general complet (taux de reussite, profit factor, drawdown...) au
+    run qui vient de clore les trades de la veille."""
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
     lines = ["📊 FULL MOMENTUM"]
 
@@ -1384,6 +1618,9 @@ def format_full_alignment_message(
     if pairs_out:
         lines.extend(["", "📤 PAIRES OUT"])
         lines.extend(_pairs_out_lines(pairs_out, rows_by_pair))
+    if performance_lines:
+        lines.extend([""])
+        lines.extend(performance_lines)
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
@@ -1499,6 +1736,20 @@ def main() -> int:
     pairs_out_state = load_price_trend_state(args.pairs_out_state_file)
     pairs_out_state, pairs_out = update_pairs_out_state(pairs_out_state, pair_status_rows, now)
     save_price_trend_state(args.pairs_out_state_file, pairs_out_state)
+    performance_state = load_price_trend_state(args.performance_state_file)
+    performance_state, newly_closed = update_performance_state(
+        performance_state, pairs_out_state.get("ever_top5"), price_trends, now,
+    )
+    save_price_trend_state(args.performance_state_file, performance_state)
+    # Rien a montrer avant qu'une premiere paire n'ait jamais atteint le TOP5:
+    # evite une section vide (0 pip, 0 trade) au tout premier jour de suivi.
+    performance_lines = (
+        performance_report_lines(
+            performance_report(performance_state, now), len(newly_closed),
+        )
+        if performance_state.get("open_pips") or performance_state.get("closed_trades")
+        else []
+    )
     message = format_full_alignment_message(
         selected,
         mid_sar_rows,
@@ -1511,6 +1762,7 @@ def main() -> int:
         rows_by_pair=rows_by_pair,
         price_trends=price_trends,
         pairs_out=pairs_out,
+        performance_lines=performance_lines,
     )
     print(message)
     if args.telegram:
