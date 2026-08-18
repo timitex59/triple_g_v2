@@ -60,6 +60,14 @@ SYNC_MIN_REALIZED = 0.10
 # premieres lignes, le reste n'apporte plus de decision.
 PAIR_SECTION_LIMIT = 5
 
+# Heure Paris a partir de laquelle le premier prix observe du jour devient la
+# reference du "premier signal" pour l'icone de continuation de tendance.
+TREND_ICON_BASELINE_HOUR_PARIS = 6
+# Ecart minimum en pips depuis cette reference avant de considerer que le prix
+# est reellement reparti dans le sens oppose: sous ce seuil, un aller-retour
+# de quelques pips ne fait pas basculer l'icone.
+TREND_ICON_MIN_PIPS = 5.0
+
 FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "DXY", "tv_symbol": "TVC:DXY", "asset_type": "INDEX", "currency": "USD"},
     {"pair": "EXY", "tv_symbol": "TVC:EXY", "asset_type": "INDEX", "currency": "EUR"},
@@ -997,13 +1005,47 @@ def _price_arrow(current: float, reference: object) -> str:
     return "→"
 
 
+def _pip_size(pair: str) -> float:
+    """Taille de pip standard pour les paires du scanner (JPY = 0.01)."""
+    return 0.01 if pair.endswith("JPY") else 0.0001
+
+
+def _daily_chg_direction(value: object) -> int:
+    """Sens (+1/-1/0) du CHG%D, meme logique de signe que `_daily_chg_icon`."""
+    if not isinstance(value, (int, float)):
+        return 0
+    if value > 0:
+        return 1
+    if value < 0:
+        return -1
+    return 0
+
+
+def _trend_continuation_icon(pair: str, current_price: float,
+                             baseline_price: object, baseline_direction: int) -> str:
+    """✅ si le prix est reste (ou n'est reparti que de peu) dans le sens du
+    premier signal du jour (6H Paris), ❌ s'il s'en est ecarte d'au moins
+    TREND_ICON_MIN_PIPS dans le sens oppose. Vide tant que le premier signal
+    n'a pas de sens exploitable (CHG%D neutre) ou n'a pas encore ete capture."""
+    if baseline_direction not in (1, -1) or not isinstance(baseline_price, (int, float)):
+        return ""
+    delta_pips = (current_price - float(baseline_price)) / _pip_size(pair)
+    if baseline_direction == -1:
+        delta_pips = -delta_pips
+    return "❌" if delta_pips < -TREND_ICON_MIN_PIPS else "✅"
+
+
 def update_price_trends(previous: dict | None, rows: list[dict],
                         now: datetime) -> tuple[dict, dict[str, dict]]:
-    """Compare les prix live du run aux references 07h et run precedent.
+    """Compare les prix live du run a la reference du premier signal du jour
+    et au run precedent, et indique si le prix continue dans le sens de ce
+    premier signal.
 
     Toutes les paires sont memorisees, pas seulement celles selectionnees, afin
     qu'une nouvelle apparition ait deja une comparaison avec le cycle precedent.
-    La baseline devient le premier prix observe a partir de 07h Paris.
+    La baseline devient le premier prix observe a partir de
+    TREND_ICON_BASELINE_HOUR_PARIS (6H Paris), avec le sens du CHG%D a cet
+    instant comme reference de tendance pour `trend_icon`.
     """
     clock = now.astimezone(PARIS_TZ)
     today = clock.date().isoformat()
@@ -1021,24 +1063,30 @@ def update_price_trends(previous: dict | None, rows: list[dict],
             continue
         price = float(price)
         prior = old_pairs.get(pair) or {}
-        baseline = prior.get("baseline_07h")
+        baseline = prior.get("baseline_price")
         baseline_ready = bool(prior.get("baseline_ready"))
-        if clock.hour >= 7 and not baseline_ready:
+        baseline_direction = prior.get("baseline_direction", 0)
+        if clock.hour >= TREND_ICON_BASELINE_HOUR_PARIS and not baseline_ready:
             baseline = price
             baseline_ready = True
+            baseline_direction = _daily_chg_direction(row.get("daily_chg"))
         previous_price = prior.get("previous")
         trends[pair] = {
             "price": price,
-            "vs_07h": _price_arrow(price, baseline),
+            "vs_06h": _price_arrow(price, baseline),
             "vs_previous": _price_arrow(price, previous_price),
+            "trend_icon": _trend_continuation_icon(
+                pair, price, baseline, baseline_direction,
+            ),
         }
         new_pairs[pair] = {
-            "baseline_07h": baseline,
+            "baseline_price": baseline,
             "baseline_ready": baseline_ready,
+            "baseline_direction": baseline_direction,
             "previous": price,
         }
     return {
-        "version": 1,
+        "version": 2,
         "date": today,
         "updated_at_paris": clock.isoformat(),
         "pairs": new_pairs,
@@ -1103,6 +1151,7 @@ def _strength_status_lines(
     status_rows: list[dict],
     index_by_currency: dict[str, dict] | None = None,
     show_close_price: bool = False,
+    price_trends: dict[str, dict] | None = None,
 ) -> list[str]:
     """Lignes compactes `icone NOM (score)` d'une section de statut.
 
@@ -1111,7 +1160,9 @@ def _strength_status_lines(
     nombre le carburant du moteur devise et l'execution de la paire.
 
     Avec `show_close_price`, la ligne se limite a `icone NOM (prix)`: ni le
-    score/produit ni le marqueur de synchronisation (🎯/⏳) ne sont affiches."""
+    score/produit ni le marqueur de synchronisation (🎯/⏳) ne sont affiches.
+    `price_trends` y ajoute alors ✅/❌: le prix suit-il toujours (au moins
+    TREND_ICON_MIN_PIPS) le sens du premier signal du jour (6H Paris) ?"""
     lines: list[str] = []
     for row in status_rows:
         icon = _daily_chg_icon(row.get("daily_chg"))
@@ -1123,7 +1174,10 @@ def _strength_status_lines(
                 if isinstance(close_price, (int, float))
                 else ""
             )
-            lines.append(f"{icon} {name}{value_txt}")
+            trend = (price_trends or {}).get(str(row.get("pair") or "")) or {}
+            trend_icon = trend.get("trend_icon") or ""
+            trend_txt = f" {trend_icon}" if trend_icon else ""
+            lines.append(f"{icon} {name}{value_txt}{trend_txt}")
             continue
         product = signed_sync_product(row, index_by_currency)
         if product is not None:
@@ -1168,7 +1222,7 @@ def format_full_alignment_message(
         lines.extend(["", "💹 PAIRES CHG%D"])
         lines.extend(_strength_status_lines(
             pair_status_rows[:PAIR_SECTION_LIMIT], index_by_currency,
-            show_close_price=True,
+            show_close_price=True, price_trends=price_trends,
         ))
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)

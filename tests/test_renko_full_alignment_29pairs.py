@@ -95,46 +95,124 @@ class FullAlignmentScannerTests(unittest.TestCase):
             payload = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(list(payload["selected_pairs"]), ["EURUSD"])
         self.assertEqual(payload["selected_pairs"]["EURUSD"]["direction"], 1)
-    def test_live_price_trends_compare_with_07h_and_previous_run(self):
+    def test_live_price_trends_compare_with_06h_and_previous_run(self):
         first = row("AUDCHF", 1, 1, 1)
         first["live_price"] = 0.57000
         state, trends = update_price_trends(
-            {}, [first], datetime(2026, 7, 16, 7, 15, tzinfo=PARIS)
+            {}, [first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS)
         )
-        self.assertEqual(trends["AUDCHF"]["vs_07h"], "→")
+        self.assertEqual(trends["AUDCHF"]["vs_06h"], "→")
         self.assertEqual(trends["AUDCHF"]["vs_previous"], "→")
 
         second = row("AUDCHF", 1, 1, 1)
         second["live_price"] = 0.57120
         state, trends = update_price_trends(
-            state, [second], datetime(2026, 7, 16, 8, 15, tzinfo=PARIS)
+            state, [second], datetime(2026, 7, 16, 7, 15, tzinfo=PARIS)
         )
-        self.assertEqual(trends["AUDCHF"]["vs_07h"], "↑")
+        self.assertEqual(trends["AUDCHF"]["vs_06h"], "↑")
         self.assertEqual(trends["AUDCHF"]["vs_previous"], "↑")
 
         third = row("AUDCHF", 1, 1, 1)
         third["live_price"] = 0.57080
         _, trends = update_price_trends(
-            state, [third], datetime(2026, 7, 16, 9, 15, tzinfo=PARIS)
+            state, [third], datetime(2026, 7, 16, 8, 15, tzinfo=PARIS)
         )
-        self.assertEqual(trends["AUDCHF"]["vs_07h"], "↑")
+        self.assertEqual(trends["AUDCHF"]["vs_06h"], "↑")
         self.assertEqual(trends["AUDCHF"]["vs_previous"], "↓")
 
-    def test_live_price_trends_reset_07h_reference_each_day(self):
+    def test_live_price_trends_reset_06h_reference_each_day(self):
         previous = {
             "date": "2026-07-15",
             "pairs": {"AUDJPY": {
-                "baseline_07h": 110.0, "baseline_ready": True, "previous": 111.0,
+                "baseline_price": 110.0, "baseline_ready": True,
+                "baseline_direction": 1, "previous": 111.0,
             }},
         }
         current = row("AUDJPY", 1, 1, 1)
         current["live_price"] = 112.386
         state, trends = update_price_trends(
-            previous, [current], datetime(2026, 7, 16, 7, 15, tzinfo=PARIS)
+            previous, [current], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS)
         )
-        self.assertEqual(state["pairs"]["AUDJPY"]["baseline_07h"], 112.386)
-        self.assertEqual(trends["AUDJPY"]["vs_07h"], "→")
+        self.assertEqual(state["pairs"]["AUDJPY"]["baseline_price"], 112.386)
+        self.assertEqual(trends["AUDJPY"]["vs_06h"], "→")
         self.assertEqual(trends["AUDJPY"]["vs_previous"], "→")
+
+    def test_trend_icon_marks_continuation_and_reversal_with_pip_threshold(self):
+        # Premier signal a 6H: CHG%D haussier -> reference haussiere figee.
+        first = row("AUDCHF", 1, 1, 1, daily_chg=0.20)
+        first["live_price"] = 0.57000
+        state, trends = update_price_trends(
+            {}, [first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS)
+        )
+        self.assertEqual(trends["AUDCHF"]["trend_icon"], "✅")
+
+        # +8 pips depuis la reference: toujours dans le sens du signal.
+        up = row("AUDCHF", 1, 1, 1, daily_chg=0.20)
+        up["live_price"] = 0.57080
+        state, trends = update_price_trends(
+            state, [up], datetime(2026, 7, 16, 7, 0, tzinfo=PARIS)
+        )
+        self.assertEqual(trends["AUDCHF"]["trend_icon"], "✅")
+
+        # -3 pips: repli sous le seuil de 5 pips -> reste aligne.
+        small_pullback = row("AUDCHF", 1, 1, 1, daily_chg=0.20)
+        small_pullback["live_price"] = 0.57050
+        state, trends = update_price_trends(
+            state, [small_pullback], datetime(2026, 7, 16, 7, 15, tzinfo=PARIS)
+        )
+        self.assertEqual(trends["AUDCHF"]["trend_icon"], "✅")
+
+        # -9 pips depuis la reference (0.57000): au-dela du seuil -> retourne.
+        reversal = row("AUDCHF", 1, 1, 1, daily_chg=0.20)
+        reversal["live_price"] = 0.56910
+        _, trends = update_price_trends(
+            state, [reversal], datetime(2026, 7, 16, 7, 30, tzinfo=PARIS)
+        )
+        self.assertEqual(trends["AUDCHF"]["trend_icon"], "❌")
+
+    def test_trend_icon_handles_bearish_first_signal_and_jpy_pip_size(self):
+        # Premier signal baissier sur une paire JPY (pip = 0.01).
+        first = row("AUDJPY", -1, -1, -1, daily_chg=-0.15)
+        first["live_price"] = 113.500
+        state, _ = update_price_trends(
+            {}, [first], datetime(2026, 7, 16, 6, 5, tzinfo=PARIS)
+        )
+
+        # +3 pips (0.03): sous le seuil -> reste aligne.
+        small_bounce = row("AUDJPY", -1, -1, -1, daily_chg=-0.15)
+        small_bounce["live_price"] = 113.530
+        state, trends = update_price_trends(
+            state, [small_bounce], datetime(2026, 7, 16, 6, 20, tzinfo=PARIS)
+        )
+        self.assertEqual(trends["AUDJPY"]["trend_icon"], "✅")
+
+        # +7 pips (0.07): au-dela du seuil, a l'oppose du signal baissier.
+        _, trends = update_price_trends(
+            state, [{**small_bounce, "live_price": 113.570}],
+            datetime(2026, 7, 16, 6, 35, tzinfo=PARIS),
+        )
+        self.assertEqual(trends["AUDJPY"]["trend_icon"], "❌")
+
+    def test_trend_icon_stays_empty_without_a_directional_first_signal(self):
+        neutral = row("AUDCHF", 1, 1, 1, daily_chg=0.0)
+        neutral["live_price"] = 0.57000
+        _, trends = update_price_trends(
+            {}, [neutral], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS)
+        )
+        self.assertEqual(trends["AUDCHF"]["trend_icon"], "")
+
+    def test_message_shows_the_trend_icon_on_pair_lines(self):
+        audnzd = row("AUDNZD", 1, 1, 1, daily_chg=0.10)
+        audnzd["live_price"] = 1.20822
+
+        message = format_full_alignment_message(
+            [],
+            pair_status_rows=all_pair_status_rows([audnzd]),
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            price_trends={"AUDNZD": {"price": 1.20822, "trend_icon": "✅"}},
+        )
+
+        self.assertIn("🟢 AUDNZD (1.20822) ✅", message)
 
     def test_message_no_longer_renders_the_strict_alignment_list(self):
         """La liste des paires en alignement strict a ete retiree du message:
