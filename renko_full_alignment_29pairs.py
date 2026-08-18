@@ -476,6 +476,42 @@ def _strength_sort_key(row: dict) -> tuple[int, float, str]:
     return (0, -score, str(row.get("pair") or ""))
 
 
+def signed_strength(row: dict) -> float | None:
+    """Force signee: le score d'intensite, oriente par le sens du CHG%D.
+
+    C'est exactement ce que la ligne Telegram affiche: 🟢 AUD (+0.60) vaut
+    +0.60, 🔴 JPY (+0.15) vaut -0.15. Le lecteur peut donc refaire le calcul
+    de tete depuis le message."""
+    score = strength_score(row)
+    if score is None:
+        return None
+    chg = row.get("daily_chg")
+    return -score if isinstance(chg, (int, float)) and chg < 0 else score
+
+
+def currency_spread(row: dict, index_by_currency: dict[str, dict] | None) -> float | None:
+    """Attente du moteur devise pour une paire: force(base) - force(quote).
+
+    Une quote faible pousse la paire a la hausse autant qu'une base forte, donc
+    les deux effets se cumulent sur un axe signe: AUD +0.60 contre JPY -0.15
+    donne 0.60 - (-0.15) = +0.75. Renvoie None pour les indices et pour les
+    actifs sans indice devise (XAUUSD)."""
+    if not index_by_currency or row.get("asset_type") == "INDEX":
+        return None
+    currencies = _pair_currencies(str(row.get("pair") or ""))
+    if currencies is None:
+        return None
+    base_row = index_by_currency.get(currencies[0])
+    quote_row = index_by_currency.get(currencies[1])
+    if not base_row or not quote_row:
+        return None
+    base = signed_strength(base_row)
+    quote = signed_strength(quote_row)
+    if base is None or quote is None:
+        return None
+    return base - quote
+
+
 def all_index_status_rows(rows: list[dict]) -> list[dict]:
     """Tous les indices devises scannes, sans filtre de qualite: la section
     Telegram doit montrer le statut des 8 indices, y compris ceux ecartes de
@@ -955,15 +991,25 @@ def _format_mid_sar_history_event(event: dict) -> str:
     return f"{icon} {name} 🔥 {tf_label}{suffix}"
 
 
-def _strength_status_lines(status_rows: list[dict]) -> list[str]:
-    """Lignes compactes `icone NOM (score)` d'une section de statut."""
+def _strength_status_lines(
+    status_rows: list[dict],
+    index_by_currency: dict[str, dict] | None = None,
+) -> list[str]:
+    """Lignes compactes `icone NOM (score)` d'une section de statut.
+
+    Avec `index_by_currency`, chaque paire porte en plus l'attente du moteur
+    devise: `(realise)/(attendu)`. Comparer les deux mesure la synchronisation
+    des deux moteurs -- une paire a (+0.00)/(+0.75) a tout le carburant devise
+    mais n'a pas encore casse."""
     lines: list[str] = []
     for row in status_rows:
         icon = _daily_chg_icon(row.get("daily_chg"))
         name = _asset_display_name(row)
         score = strength_score(row)
         score_txt = f"{score:+.2f}" if score is not None else "n/a"
-        lines.append(f"{icon} {name} ({score_txt})")
+        spread = currency_spread(row, index_by_currency)
+        spread_txt = f"/({spread:+.2f})" if spread is not None else ""
+        lines.append(f"{icon} {name} ({score_txt}){spread_txt}")
     return lines
 
 
@@ -997,7 +1043,7 @@ def format_full_alignment_message(
         lines.extend(_strength_status_lines(index_status_rows))
     if pair_status_rows:
         lines.extend(["", "💹 PAIRES CHG%D"])
-        lines.extend(_strength_status_lines(pair_status_rows))
+        lines.extend(_strength_status_lines(pair_status_rows, index_by_currency))
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 

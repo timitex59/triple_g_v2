@@ -11,6 +11,8 @@ from renko_full_alignment_29pairs import (
     _streak_note,
     all_index_status_rows,
     all_pair_status_rows,
+    currency_spread,
+    signed_strength,
     attach_premium_currency_profiles,
     assets_for_scope,
     format_full_alignment_message,
@@ -492,6 +494,63 @@ class FullAlignmentScannerTests(unittest.TestCase):
             [item["pair"] for item in status],
             ["GBPJPY", "EURUSD", "AUDCAD", "USDCHF"],
         )
+
+    def test_currency_spread_cumulates_a_strong_base_and_a_weak_quote(self):
+        """AUD +0.60 face a un JPY faible (-0.15): les deux effets poussent
+        AUDJPY a la hausse, donc 0.60 - (-0.15) = +0.75."""
+        aud = index_row("AXY", 1, 1, 1, daily_chg=0.20)   # 3.0 x 0.20 = +0.60
+        jpy = index_row("JXY", -1, -1, -1, daily_chg=-0.05)  # 3.0 x 0.05 = -0.15
+        chf = index_row("SXY", 1, 1, 1, daily_chg=0.11)   # 3.0 x 0.11 = +0.33
+        index_by_currency = {"AUD": aud, "JPY": jpy, "CHF": chf}
+
+        self.assertAlmostEqual(signed_strength(aud) or 0.0, 0.60)
+        self.assertAlmostEqual(signed_strength(jpy) or 0.0, -0.15)
+
+        audjpy = currency_spread(row("AUDJPY", 1, 1, 1, daily_chg=0.08), index_by_currency)
+        self.assertAlmostEqual(audjpy or 0.0, 0.75)
+
+        # Deux devises de meme couleur: le cumul se ramene a un simple ecart.
+        audchf = currency_spread(row("AUDCHF", 1, 1, 1, daily_chg=0.04), index_by_currency)
+        self.assertAlmostEqual(audchf or 0.0, 0.27)
+
+        # Sens inverse pour la paire miroir.
+        jpyaud = currency_spread(row("JPYAUD", 1, 1, 1, daily_chg=0.01), index_by_currency)
+        self.assertAlmostEqual(jpyaud or 0.0, -0.75)
+
+    def test_currency_spread_is_absent_without_a_currency_index(self):
+        index_by_currency = {"USD": index_row("DXY", 1, 1, 1, daily_chg=0.10)}
+
+        # XAUUSD: l'or n'a pas d'indice devise.
+        self.assertIsNone(
+            currency_spread(row("XAUUSD", 1, 1, 1, daily_chg=0.50), index_by_currency),
+        )
+        # Un indice n'a pas de spread non plus.
+        self.assertIsNone(
+            currency_spread(index_row("DXY", 1, 1, 1, daily_chg=0.10), index_by_currency),
+        )
+
+    def test_message_shows_realized_over_expected_on_pair_lines(self):
+        """Ligne `(realise)/(attendu)`: (+0.00)/(+0.75) = tout le carburant
+        devise, mais la paire n'a pas encore casse."""
+        aud = index_row("AXY", 1, 1, 1, daily_chg=0.20)
+        jpy = index_row("JXY", -1, -1, -1, daily_chg=-0.05)
+        audjpy = row("AUDJPY", 1, 1, 1, daily_chg=-0.02, streaks={"M": 0, "W": 0, "D": 0})
+        gold = row("XAUUSD", 1, 1, 1, daily_chg=0.05)
+
+        message = format_full_alignment_message(
+            [],
+            index_status_rows=all_index_status_rows([aud, jpy]),
+            pair_status_rows=all_pair_status_rows([audjpy, gold]),
+            index_by_currency={"AUD": aud, "JPY": jpy},
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+        )
+
+        self.assertIn("🔴 AUDJPY (+0.00)/(+0.75)", message)
+        # Sans indice devise ni spread, la ligne garde son seul score realise.
+        lines = message.splitlines()
+        self.assertIn("🟢 XAUUSD (+0.15)", lines)
+        # Les indices ne portent pas de spread non plus.
+        self.assertIn("🟢 AUD (+0.60)", lines)
 
     def test_message_lists_pair_status_section(self):
         scanned = [
