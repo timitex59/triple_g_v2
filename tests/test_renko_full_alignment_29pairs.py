@@ -14,6 +14,7 @@ from renko_full_alignment_29pairs import (
     all_pair_status_rows,
     currency_spread,
     signed_strength,
+    signed_sync_product,
     sync_marker,
     attach_premium_currency_profiles,
     assets_for_scope,
@@ -540,28 +541,42 @@ class FullAlignmentScannerTests(unittest.TestCase):
             currency_spread(index_row("DXY", 1, 1, 1, daily_chg=0.10), index_by_currency),
         )
 
-    def test_message_shows_realized_over_expected_on_pair_lines(self):
-        """Ligne `(realise)/(attendu)`: (+0.00)/(+0.75) = tout le carburant
-        devise, mais la paire n'a pas encore casse."""
-        aud = index_row("AXY", 1, 1, 1, daily_chg=0.20)
-        jpy = index_row("JXY", -1, -1, -1, daily_chg=-0.05)
-        audjpy = row("AUDJPY", 1, 1, 1, daily_chg=-0.02, streaks={"M": 0, "W": 0, "D": 0})
-        gold = row("XAUUSD", 1, 1, 1, daily_chg=0.05)
+    def test_message_shows_the_product_on_pair_lines(self):
+        """La ligne d'une paire condense les deux moteurs en un produit."""
+        aud = index_row("AXY", 1, 1, 1, daily_chg=0.20)      # +0.60
+        nzd = index_row("ZXY", 1, 1, 1, daily_chg=0.06)      # +0.18
+        by_currency = {"AUD": aud, "NZD": nzd}
+        # attendu +0.42, realise 3.0 x 0.13 = 0.39 -> produit 0.1638
+        audnzd = row("AUDNZD", 1, 1, 1, daily_chg=0.13)
 
         message = format_full_alignment_message(
             [],
-            index_status_rows=all_index_status_rows([aud, jpy]),
-            pair_status_rows=all_pair_status_rows([audjpy, gold]),
-            index_by_currency={"AUD": aud, "JPY": jpy},
+            index_status_rows=all_index_status_rows([aud, nzd]),
+            pair_status_rows=all_pair_status_rows([audnzd], by_currency),
+            index_by_currency=by_currency,
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
-
-        self.assertIn("🔴 AUDJPY (+0.00)/(+0.75)", message)
-        # Sans indice devise ni spread, la ligne garde son seul score realise.
         lines = message.splitlines()
-        self.assertIn("🟢 XAUUSD (+0.15)", lines)
-        # Les indices ne portent pas de spread non plus.
+
+        self.assertIn("🟢 AUDNZD (0.1638) 🎯", lines)
+        # Plus de couple (realise)/(attendu) sur la ligne.
+        self.assertNotIn("/(", message)
+        # Les indices gardent leur score d'intensite.
         self.assertIn("🟢 AUD (+0.60)", lines)
+
+    def test_signed_product_is_negative_when_the_pair_fights_its_currencies(self):
+        eur = index_row("EXY", 1, 1, 1, daily_chg=0.06)   # +0.18
+        nzd = index_row("ZXY", 1, 1, 1, daily_chg=0.065)  # +0.195
+        by_currency = {"EUR": eur, "NZD": nzd}
+        # EURNZD monte alors que ses devises impliquent une baisse.
+        eurnzd = row("EURNZD", 1, 1, 1, daily_chg=0.01)
+
+        product = signed_sync_product(eurnzd, by_currency)
+
+        self.assertIsNotNone(product)
+        self.assertLess(product or 0.0, 0.0)
+        # Et la paire est donc retiree de la section.
+        self.assertEqual(all_pair_status_rows([eurnzd], by_currency), [])
 
     def test_sync_marker_grades_the_two_engines(self):
         aud = index_row("AXY", 1, 1, 1, daily_chg=0.20)      # +0.60

@@ -541,14 +541,23 @@ def is_engine_divergent(row: dict, index_by_currency: dict[str, dict] | None) ->
     return (chg > 0) != (expected > 0)
 
 
-def sync_product(row: dict, index_by_currency: dict[str, dict] | None) -> float | None:
-    """Produit realise x |attendu|: recompense a la fois le carburant du moteur
-    devise et l'execution de la paire. Sert de classement de la section."""
+def signed_sync_product(row: dict, index_by_currency: dict[str, dict] | None) -> float | None:
+    """Produit realise x attendu, avec le signe de l'attendu.
+
+    Le realise etant une magnitude, le signe du produit est celui du moteur
+    devise: negatif sur une paire verte (ou positif sur une paire rouge), il
+    signale que la paire va a l'inverse de ses devises."""
     expected = currency_spread(row, index_by_currency)
     realized = strength_score(row)
     if expected is None or realized is None:
         return None
-    return realized * abs(expected)
+    return realized * expected
+
+
+def sync_product(row: dict, index_by_currency: dict[str, dict] | None) -> float | None:
+    """Intensite du produit, sans le signe: sert de classement de la section."""
+    product = signed_sync_product(row, index_by_currency)
+    return None if product is None else abs(product)
 
 
 def sync_marker(row: dict, index_by_currency: dict[str, dict] | None) -> str:
@@ -1086,20 +1095,21 @@ def _strength_status_lines(
 ) -> list[str]:
     """Lignes compactes `icone NOM (score)` d'une section de statut.
 
-    Avec `index_by_currency`, chaque paire porte en plus l'attente du moteur
-    devise: `(realise)/(attendu)`. Comparer les deux mesure la synchronisation
-    des deux moteurs -- une paire a (+0.00)/(+0.75) a tout le carburant devise
-    mais n'a pas encore casse."""
+    Avec `index_by_currency`, les paires n'affichent plus leur seul score mais
+    le produit realise x attendu (cf. `sync_product`), qui condense en un
+    nombre le carburant du moteur devise et l'execution de la paire."""
     lines: list[str] = []
     for row in status_rows:
         icon = _daily_chg_icon(row.get("daily_chg"))
         name = _asset_display_name(row)
-        score = strength_score(row)
-        score_txt = f"{score:+.2f}" if score is not None else "n/a"
-        spread = currency_spread(row, index_by_currency)
-        spread_txt = f"/({spread:+.2f})" if spread is not None else ""
+        product = signed_sync_product(row, index_by_currency)
+        if product is not None:
+            value_txt = f"{product:.4f}"
+        else:
+            score = strength_score(row)
+            value_txt = f"{score:+.2f}" if score is not None else "n/a"
         marker = sync_marker(row, index_by_currency)
-        lines.append(f"{icon} {name} ({score_txt}){spread_txt}{marker}")
+        lines.append(f"{icon} {name} ({value_txt}){marker}")
     return lines
 
 
