@@ -60,24 +60,30 @@ FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "AXY", "tv_symbol": "TVC:AXY", "asset_type": "INDEX", "currency": "AUD"},
     {"pair": "ZXY", "tv_symbol": "TVC:ZXY", "asset_type": "INDEX", "currency": "NZD"},
 ]
+# XAUUSD est ecarte de ce scanner: l'or n'a pas d'indice devise, donc pas
+# d'attente du moteur devise a comparer, et sa volatilite en % ecrase l'echelle
+# des scores face aux paires de devises. PAIRS_29 reste intact: il est partage
+# par une quinzaine d'autres scripts.
+EXCLUDED_PAIRS = {"XAUUSD"}
 FOREX_PAIR_ASSETS: list[dict] = [
     {"pair": pair, "tv_symbol": f"OANDA:{pair}", "asset_type": "PAIR"}
     for pair in PAIRS_29
+    if pair not in EXCLUDED_PAIRS
 ]
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Scan the 29 OANDA FX pairs and/or currency indices for strict Monthly/Weekly/Daily "
-            "Renko full alignment."
+            "Scan the 28 OANDA FX pairs (XAUUSD excluded) and/or currency indices for "
+            "strict Monthly/Weekly/Daily Renko full alignment."
         )
     )
     parser.add_argument(
         "--assets",
         choices=("all", "pairs", "indices"),
         default="all",
-        help="Asset universe to scan. Default: all = 29 pairs + 8 forex indices.",
+        help="Asset universe to scan. Default: all = 28 pairs + 8 forex indices.",
     )
     parser.add_argument("--length", type=int, default=14, help="ATR Renko length.")
     parser.add_argument(

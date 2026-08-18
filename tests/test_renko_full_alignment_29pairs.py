@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from renko_full_alignment_29pairs import (
     FOREX_INDEX_ASSETS,
     _streak_note,
+    FOREX_PAIR_ASSETS,
     all_index_status_rows,
     all_pair_status_rows,
     currency_spread,
@@ -158,6 +159,14 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("0.57150", message)
         self.assertNotIn("↑↓", message)
         self.assertNotIn("(+0.03%)", message)
+
+    def test_universe_excludes_gold_and_keeps_28_pairs(self):
+        pairs = [asset["pair"] for asset in FOREX_PAIR_ASSETS]
+
+        self.assertNotIn("XAUUSD", pairs)
+        self.assertEqual(len(pairs), 28)
+        self.assertNotIn("XAUUSD", [a["pair"] for a in assets_for_scope("all")])
+        self.assertNotIn("XAUUSD", [a["pair"] for a in assets_for_scope("pairs")])
 
     def test_default_universe_includes_forex_indices(self):
         index_symbols = {asset["tv_symbol"] for asset in FOREX_INDEX_ASSETS}
@@ -520,7 +529,8 @@ class FullAlignmentScannerTests(unittest.TestCase):
     def test_currency_spread_is_absent_without_a_currency_index(self):
         index_by_currency = {"USD": index_row("DXY", 1, 1, 1, daily_chg=0.10)}
 
-        # XAUUSD: l'or n'a pas d'indice devise.
+        # Cas defensif: un actif sans indice devise (l'or est desormais hors
+        # univers, mais la fonction doit rester robuste).
         self.assertIsNone(
             currency_spread(row("XAUUSD", 1, 1, 1, daily_chg=0.50), index_by_currency),
         )
