@@ -1110,28 +1110,29 @@ def _strength_status_lines(
     le produit realise x attendu (cf. `sync_product`), qui condense en un
     nombre le carburant du moteur devise et l'execution de la paire.
 
-    Avec `show_close_price`, le marqueur de synchronisation (🎯/⏳) est
-    remplace par le prix de cloture de l'actif entre parentheses."""
+    Avec `show_close_price`, la ligne se limite a `icone NOM (prix)`: ni le
+    score/produit ni le marqueur de synchronisation (🎯/⏳) ne sont affiches."""
     lines: list[str] = []
     for row in status_rows:
         icon = _daily_chg_icon(row.get("daily_chg"))
         name = _asset_display_name(row)
+        if show_close_price:
+            close_price = row.get("live_price")
+            value_txt = (
+                f" ({_format_close_price(float(close_price))})"
+                if isinstance(close_price, (int, float))
+                else ""
+            )
+            lines.append(f"{icon} {name}{value_txt}")
+            continue
         product = signed_sync_product(row, index_by_currency)
         if product is not None:
             value_txt = f"{product:.4f}"
         else:
             score = strength_score(row)
             value_txt = f"{score:+.2f}" if score is not None else "n/a"
-        if show_close_price:
-            close_price = row.get("live_price")
-            suffix = (
-                f" ({_format_close_price(float(close_price))})"
-                if isinstance(close_price, (int, float))
-                else ""
-            )
-        else:
-            suffix = sync_marker(row, index_by_currency)
-        lines.append(f"{icon} {name} ({value_txt}){suffix}")
+        marker = sync_marker(row, index_by_currency)
+        lines.append(f"{icon} {name} ({value_txt}){marker}")
     return lines
 
 
