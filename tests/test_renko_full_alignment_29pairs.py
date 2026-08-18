@@ -1,7 +1,7 @@
 import json
 import tempfile
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
@@ -29,6 +29,7 @@ from renko_full_alignment_29pairs import (
     select_mid_alignment_candidates,
     select_mid_sar_rows,
     update_mid_sar_history,
+    update_pairs_out_state,
     update_price_trends,
     write_index_sidecar,
 )
@@ -961,6 +962,98 @@ class FullAlignmentScannerTests(unittest.TestCase):
             [line for line in message.splitlines() if line.startswith(("📊", "💱", "💹"))],
             ["📊 FULL MOMENTUM", "💱 INDEX CHG%D", "💹 PAIRES CHG%D"],
         )
+
+    def test_pairs_out_lists_rank_dropouts_without_warning(self):
+        day = datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+        run1 = [{"pair": f"P{i}"} for i in range(5)]  # P0..P4, tous dans le TOP5
+        state, entries1 = update_pairs_out_state({}, run1, day)
+        self.assertEqual(entries1, [])  # rien n'est encore sorti
+
+        # P4 retombe au 6e rang, remplace par P5 en tete du TOP5. Il reste
+        # present dans la liste filtree: pas de warning.
+        run2 = [{"pair": "P0"}, {"pair": "P1"}, {"pair": "P2"}, {"pair": "P3"},
+                {"pair": "P5"}, {"pair": "P4"}]
+        _, entries2 = update_pairs_out_state(state, run2, day + timedelta(minutes=30))
+
+        self.assertEqual([(e["pair"], e["warning"]) for e in entries2], [("P4", False)])
+        self.assertEqual(entries2[0]["out_since_paris"], "10:30")
+
+    def test_pairs_out_marks_warning_when_the_pair_leaves_the_filter_entirely(self):
+        day = datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+        first_run = [{"pair": f"P{i}"} for i in range(5)]
+        state, _ = update_pairs_out_state({}, first_run, day)
+
+        # P2 disparait completement du filtre (marge cassee), plus seulement
+        # classe plus bas: absent de la liste filtree elle-meme.
+        second_run = [{"pair": "P0"}, {"pair": "P1"}, {"pair": "P3"}, {"pair": "P4"}]
+        _, entries = update_pairs_out_state(state, second_run, day + timedelta(minutes=30))
+
+        self.assertEqual([e["pair"] for e in entries], ["P2"])
+        self.assertTrue(entries[0]["warning"])
+
+    def test_pairs_out_since_persists_until_return_then_resets_on_new_exit(self):
+        day = datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+        # P5 en tete du TOP5, P4 hors classement ce run-la.
+        run_p5_in = [{"pair": "P5"}, {"pair": "P0"}, {"pair": "P1"},
+                     {"pair": "P2"}, {"pair": "P3"}]
+        state, entries0 = update_pairs_out_state({}, run_p5_in, day)
+        self.assertEqual(entries0, [])
+
+        # P5 tombe au 6e rang, remplace par P4 en tete: toujours filtre,
+        # juste classe plus bas.
+        run_p5_out = [{"pair": "P0"}, {"pair": "P1"}, {"pair": "P2"},
+                      {"pair": "P3"}, {"pair": "P4"}, {"pair": "P5"}]
+        state, entries1 = update_pairs_out_state(state, run_p5_out, day + timedelta(minutes=15))
+        self.assertEqual(entries1[0]["pair"], "P5")
+        self.assertEqual(entries1[0]["out_since_paris"], "10:15")
+
+        # 30 min plus tard, toujours hors TOP5 -> horodatage inchange.
+        state, entries2 = update_pairs_out_state(state, run_p5_out, day + timedelta(minutes=45))
+        self.assertEqual(entries2[0]["out_since_paris"], "10:15")
+
+        # P5 revient dans le TOP5 -> disparait de PAIRES OUT.
+        state, entries3 = update_pairs_out_state(state, run_p5_in, day + timedelta(hours=1))
+        self.assertNotIn("P5", [e["pair"] for e in entries3])
+
+        # P5 ressort plus tard -> nouvel horodatage, pas l'ancien 10:15.
+        _, entries4 = update_pairs_out_state(state, run_p5_out, day + timedelta(hours=2))
+        p5_entry = next(e for e in entries4 if e["pair"] == "P5")
+        self.assertEqual(p5_entry["out_since_paris"], "12:00")
+
+    def test_pairs_out_state_resets_each_day(self):
+        previous = {
+            "date": "2026-07-15",
+            "ever_top5": ["P0", "P1", "P2", "P3", "P4", "P5"],
+            "out_since": {"P5": "10:00"},
+        }
+        run = [{"pair": f"P{i}"} for i in range(5)]  # P5 absent aujourd'hui
+
+        state, entries = update_pairs_out_state(
+            previous, run, datetime(2026, 7, 16, 9, 0, tzinfo=PARIS),
+        )
+
+        self.assertEqual(entries, [])
+        self.assertEqual(state["ever_top5"], ["P0", "P1", "P2", "P3", "P4"])
+
+    def test_message_renders_pairs_out_section(self):
+        rows_by_pair = {
+            "GBPCAD": {"daily_chg": -0.12, "live_price": 1.90500},
+            "NZDCAD": {"daily_chg": 0.05, "live_price": 0.81600},
+        }
+
+        message = format_full_alignment_message(
+            [],
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            rows_by_pair=rows_by_pair,
+            pairs_out=[
+                {"pair": "GBPCAD", "warning": False, "out_since_paris": "09:15"},
+                {"pair": "NZDCAD", "warning": True, "out_since_paris": "08:40"},
+            ],
+        )
+
+        self.assertIn("📤 PAIRES OUT", message)
+        self.assertIn("🔴 GBPCAD (1.90500) (depuis 09:15)", message)
+        self.assertIn("🟢 NZDCAD (0.81600) ⚠️ (depuis 08:40)", message)
 
 
 if __name__ == "__main__":
