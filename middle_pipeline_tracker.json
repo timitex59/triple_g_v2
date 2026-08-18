@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-17",
-  "prev_update": "2026-08-14",
+  "updated": "2026-08-18",
+  "prev_update": "2026-08-17",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -65,7 +65,8 @@
       "last_rank": 5,
       "peak_rank": 3,
       "last_rel": 4.98,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-08-18"
     },
     "SMTC": {
       "streak": 1,
@@ -145,23 +146,23 @@
       "dropped_on": "2026-07-31"
     },
     "OKTA": {
-      "streak": 7,
-      "days": 17,
+      "streak": 8,
+      "days": 18,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-08-17",
-      "last_rank": 2,
+      "last_seen": "2026-08-18",
+      "last_rank": 4,
       "peak_rank": 1,
-      "last_rel": 67.57,
+      "last_rel": 64.44,
       "active": true
     },
     "QLYS": {
-      "streak": 2,
-      "days": 16,
+      "streak": 3,
+      "days": 17,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-08-17",
+      "last_seen": "2026-08-18",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 98.29,
+      "last_rel": 98.16,
       "active": true
     },
     "CXT": {
@@ -231,13 +232,13 @@
       "dropped_on": "2026-08-14"
     },
     "BDC": {
-      "streak": 5,
-      "days": 6,
+      "streak": 6,
+      "days": 7,
       "first_seen": "2026-08-03",
-      "last_seen": "2026-08-17",
-      "last_rank": 4,
-      "peak_rank": 4,
-      "last_rel": 20.07,
+      "last_seen": "2026-08-18",
+      "last_rank": 3,
+      "peak_rank": 3,
+      "last_rel": 15.8,
       "active": true
     },
     "DBX": {
@@ -263,13 +264,23 @@
       "dropped_on": "2026-08-10"
     },
     "P": {
-      "streak": 6,
-      "days": 6,
+      "streak": 7,
+      "days": 7,
       "first_seen": "2026-08-10",
-      "last_seen": "2026-08-17",
-      "last_rank": 3,
+      "last_seen": "2026-08-18",
+      "last_rank": 2,
       "peak_rank": 2,
-      "last_rel": 34.01,
+      "last_rel": 41.72,
+      "active": true
+    },
+    "PATH": {
+      "streak": 1,
+      "days": 1,
+      "first_seen": "2026-08-18",
+      "last_seen": "2026-08-18",
+      "last_rank": 5,
+      "peak_rank": 5,
+      "last_rel": 37.35,
       "active": true
     }
   },
@@ -277,78 +288,82 @@
     "persistent": [
       [
         "OKTA",
+        8
+      ],
+      [
+        "P",
         7
       ],
       [
-        "P",
+        "BDC",
         6
       ],
       [
-        "BDC",
-        5
-      ],
-      [
         "QLYS",
-        2
+        3
       ],
       [
-        "AVT",
-        2
+        "PATH",
+        1
       ]
     ],
-    "new": [],
+    "new": [
+      "PATH"
+    ],
     "weakening": [
       {
-        "ticker": "QLYS",
-        "rank": 1,
-        "prev_rank": 1,
-        "rel": 98.29,
-        "prev_rel": 110.11
+        "ticker": "BDC",
+        "rank": 3,
+        "prev_rank": 4,
+        "rel": 15.8,
+        "prev_rel": 20.07
       },
       {
         "ticker": "OKTA",
-        "rank": 2,
+        "rank": 4,
         "prev_rank": 2,
-        "rel": 67.57,
-        "prev_rel": 81.08
+        "rel": 64.44,
+        "prev_rel": 67.57
       }
     ],
-    "dropped": [],
+    "dropped": [
+      "AVT"
+    ],
     "durable": [
       [
         "OKTA",
-        7,
-        67.57,
-        473.0
-      ],
-      [
-        "P",
-        6,
-        34.01,
-        204.1
+        8,
+        64.44,
+        515.5
       ],
       [
         "QLYS",
-        2,
-        98.29,
-        196.6
+        3,
+        98.16,
+        294.5
+      ],
+      [
+        "P",
+        7,
+        41.72,
+        292.0
       ],
       [
         "BDC",
-        5,
-        20.07,
-        100.3
+        6,
+        15.8,
+        94.8
       ],
       [
-        "AVT",
-        2,
-        4.98,
-        10.0
+        "PATH",
+        1,
+        37.35,
+        37.4
       ]
     ],
     "switch": null
   },
   "leader_raw": "Logiciels",
-  "leader_raw_days": 12,
+  "leader_raw_days": 13,
   "leader_confirmed": "Logiciels"
 }
