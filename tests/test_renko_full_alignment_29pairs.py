@@ -1,4 +1,5 @@
 import json
+import math
 import tempfile
 import unittest
 from datetime import datetime, timedelta
@@ -10,6 +11,7 @@ from renko_full_alignment_29pairs import (
     FOREX_INDEX_ASSETS,
     _streak_note,
     FOREX_PAIR_ASSETS,
+    _performance_general_bilan,
     all_index_status_rows,
     all_pair_status_rows,
     currency_spread,
@@ -20,6 +22,8 @@ from renko_full_alignment_29pairs import (
     assets_for_scope,
     format_full_alignment_message,
     full_alignment_direction,
+    performance_report,
+    performance_report_lines,
     strength_score,
     mid_alignment_candidate,
     raw_alignment_score,
@@ -30,6 +34,7 @@ from renko_full_alignment_29pairs import (
     select_mid_sar_rows,
     update_mid_sar_history,
     update_pairs_out_state,
+    update_performance_state,
     update_price_trends,
     write_index_sidecar,
 )
@@ -1054,6 +1059,136 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("📤 PAIRES OUT", message)
         self.assertIn("🔴 GBPCAD (1.90500) (depuis 09:15)", message)
         self.assertIn("🟢 NZDCAD (0.81600) ⚠️ (depuis 08:40)", message)
+
+    def test_performance_state_tracks_open_pips_and_closes_on_day_change(self):
+        day = datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+        price_trends = {"AUDNZD": {"trend_pips": 12.3}, "GBPJPY": {"trend_pips": -8.1}}
+        state, newly_closed = update_performance_state(
+            {}, ["AUDNZD", "GBPJPY"], price_trends, day,
+        )
+        self.assertEqual(newly_closed, [])
+        self.assertEqual(state["open_pips"], {"AUDNZD": 12.3, "GBPJPY": -8.1})
+        self.assertEqual(state["tracking_date"], "2026-07-16")
+
+        # Meme jour, plus tard: open_pips se met a jour (dernier ecrasement).
+        price_trends2 = {"AUDNZD": {"trend_pips": 20.0}, "GBPJPY": {"trend_pips": -15.0}}
+        state, newly_closed2 = update_performance_state(
+            state, ["AUDNZD", "GBPJPY"], price_trends2, day + timedelta(hours=10),
+        )
+        self.assertEqual(newly_closed2, [])
+        self.assertEqual(state["open_pips"], {"AUDNZD": 20.0, "GBPJPY": -15.0})
+
+        # Jour suivant: cloture avec les DERNIERES valeurs connues (20.0/-15.0),
+        # pas celles du tout premier run de la veille (12.3/-8.1).
+        next_day = datetime(2026, 7, 17, 6, 15, tzinfo=PARIS)
+        state, newly_closed3 = update_performance_state(state, [], {}, next_day)
+        self.assertEqual(
+            sorted((t["pair"], t["pips"]) for t in newly_closed3),
+            [("AUDNZD", 20.0), ("GBPJPY", -15.0)],
+        )
+        self.assertEqual(state["open_pips"], {})
+        self.assertEqual(state["tracking_date"], "2026-07-17")
+        self.assertEqual(len(state["closed_trades"]), 2)
+
+    def test_performance_general_bilan_matches_vivier_formulas(self):
+        trades = [
+            {"pair": "A", "pips": 10.0, "date": "2026-01-01",
+             "closed_at_paris": "2026-01-01T23:00:00+01:00"},
+            {"pair": "B", "pips": 5.0, "date": "2026-01-02",
+             "closed_at_paris": "2026-01-02T23:00:00+01:00"},
+            {"pair": "C", "pips": -8.0, "date": "2026-01-03",
+             "closed_at_paris": "2026-01-03T23:00:00+01:00"},
+            {"pair": "D", "pips": -2.0, "date": "2026-01-04",
+             "closed_at_paris": "2026-01-04T23:00:00+01:00"},
+        ]
+        bilan = _performance_general_bilan(trades, 2026)
+
+        self.assertEqual(bilan["closed_trades"], 4)
+        self.assertEqual(bilan["winning_trades"], 2)
+        self.assertEqual(bilan["losing_trades"], 2)
+        self.assertAlmostEqual(bilan["win_rate_pct"], 50.0)
+        self.assertAlmostEqual(bilan["winning_pips"], 15.0)
+        self.assertAlmostEqual(bilan["losing_pips"], -10.0)
+        self.assertAlmostEqual(bilan["profit_factor"], 1.5)
+        self.assertAlmostEqual(bilan["pip_rate_pct"], (15.0 - 10.0) / 15.0 * 100.0)
+        self.assertAlmostEqual(
+            bilan["ns_score_pct"], math.sqrt(50.0 * bilan["pip_rate_pct"]),
+        )
+        self.assertAlmostEqual(bilan["average_win_pips"], 7.5)
+        self.assertAlmostEqual(bilan["average_loss_pips"], 5.0)
+        self.assertAlmostEqual(bilan["gain_loss_ratio"], 1.5)
+        self.assertAlmostEqual(bilan["closed_pips"], 5.0)
+        # Courbe d'equite ordonnee: +10(peak10,dd0) +5(peak15,dd0)
+        # -8(equity7,dd8) -2(equity5,dd10).
+        self.assertAlmostEqual(bilan["max_drawdown_pips"], 10.0)
+
+    def test_performance_general_bilan_handles_no_losses(self):
+        trades = [{"pair": "A", "pips": 10.0, "date": "2026-01-01",
+                   "closed_at_paris": "2026-01-01T23:00:00+01:00"}]
+        bilan = _performance_general_bilan(trades, 2026)
+        self.assertIsNone(bilan["profit_factor"])
+        self.assertIsNone(bilan["gain_loss_ratio"])
+        self.assertAlmostEqual(bilan["win_rate_pct"], 100.0)
+
+    def test_performance_report_aggregates_daily_weekly_monthly_yearly(self):
+        state = {
+            "tracking_date": "2026-08-19",
+            "open_pips": {"EURUSD": 3.0},
+            "closed_trades": [
+                {"date": "2026-08-18", "pair": "AUDNZD", "pips": 12.3,
+                 "closed_at_paris": "2026-08-18T23:59:00+02:00"},
+                {"date": "2026-08-17", "pair": "GBPJPY", "pips": -5.0,
+                 "closed_at_paris": "2026-08-17T23:59:00+02:00"},
+                {"date": "2026-01-05", "pair": "USDJPY", "pips": 4.0,
+                 "closed_at_paris": "2026-01-05T23:59:00+01:00"},
+            ],
+        }
+        report = performance_report(state, datetime(2026, 8, 19, 10, 0, tzinfo=PARIS))
+
+        self.assertEqual(report["daily"]["trades"], 0)  # rien cloture le 19 lui-meme
+        self.assertAlmostEqual(report["weekly"]["total_pips"], 12.3 - 5.0)
+        self.assertAlmostEqual(report["monthly"]["total_pips"], 12.3 - 5.0)
+        self.assertAlmostEqual(report["yearly"]["total_pips"], 12.3 - 5.0 + 4.0)
+        self.assertAlmostEqual(report["open_pips_total"], 3.0)
+
+    def test_performance_lines_show_bilan_only_when_trades_just_closed(self):
+        state_before_close = {
+            "tracking_date": "2026-08-18",
+            "open_pips": {"AUDNZD": 12.3},
+            "closed_trades": [],
+        }
+        report = performance_report(
+            state_before_close, datetime(2026, 8, 18, 15, 0, tzinfo=PARIS),
+        )
+        lines_no_close = performance_report_lines(report, 0)
+        self.assertFalse(any("BILAN GÉNÉRAL" in line for line in lines_no_close))
+        self.assertTrue(any("DAILY" in line for line in lines_no_close))
+
+        state_after_close = {
+            "tracking_date": "2026-08-19",
+            "open_pips": {},
+            "closed_trades": [
+                {"date": "2026-08-18", "pair": "AUDNZD", "pips": 12.3,
+                 "closed_at_paris": "2026-08-18T23:59:00+02:00"},
+            ],
+        }
+        report2 = performance_report(
+            state_after_close, datetime(2026, 8, 19, 6, 15, tzinfo=PARIS),
+        )
+        lines_close = performance_report_lines(report2, 1)
+        self.assertTrue(any("BILAN GÉNÉRAL" in line for line in lines_close))
+        self.assertIn("PF · Profit Factor : N/D", lines_close)
+
+    def test_message_shows_performance_section(self):
+        message = format_full_alignment_message(
+            [],
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            performance_lines=[
+                "📈 PERF TOP5 — DAILY : +12.3 pips (1 trades)",
+                "🟢 +12.3 pips | 🔴 +0.0 pips",
+            ],
+        )
+        self.assertIn("📈 PERF TOP5 — DAILY : +12.3 pips (1 trades)", message)
 
 
 if __name__ == "__main__":
