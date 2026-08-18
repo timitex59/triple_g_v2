@@ -656,6 +656,39 @@ class FullAlignmentScannerTests(unittest.TestCase):
             ["AUDJPY", "NZDJPY"],
         )
 
+    def test_message_keeps_only_the_top_pairs(self):
+        by_currency = {
+            "AUD": index_row("AXY", 1, 1, 1, daily_chg=0.20),
+            "JPY": index_row("JXY", -1, -1, -1, daily_chg=-0.05),
+            "CAD": index_row("CXY", -1, -1, -1, daily_chg=-0.04),
+            "USD": index_row("DXY", -1, -1, -1, daily_chg=-0.03),
+            "CHF": index_row("SXY", -1, -1, -1, daily_chg=-0.02),
+            "NZD": index_row("ZXY", -1, -1, -1, daily_chg=-0.01),
+            "GBP": index_row("BXY", 1, 1, 1, daily_chg=0.08),
+        }
+        # Sept paires eligibles, d'intensite decroissante.
+        names = ["AUDJPY", "AUDCAD", "AUDUSD", "AUDCHF", "AUDNZD", "GBPJPY", "GBPCAD"]
+        scanned = [
+            row(name, 1, 1, 1, daily_chg=0.20 - index * 0.02)
+            for index, name in enumerate(names)
+        ]
+
+        message = format_full_alignment_message(
+            [],
+            pair_status_rows=all_pair_status_rows(scanned, by_currency),
+            index_by_currency=by_currency,
+            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+        )
+        lines = message.splitlines()
+        header = lines.index("💹 PAIRES CHG%D")
+        pair_lines = [
+            line for line in lines[header + 1:]
+            if line and not line.startswith("⏰")
+        ]
+
+        self.assertEqual(len(pair_lines), 5)
+        self.assertNotIn("GBPCAD", message)
+
     def test_message_lists_pair_status_section(self):
         scanned = [
             row("GBPJPY", 1, 1, 1, daily_chg=0.23),

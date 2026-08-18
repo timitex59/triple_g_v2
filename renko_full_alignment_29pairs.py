@@ -56,6 +56,9 @@ STREAK_NOTE_NORMALIZER = 3.0 / sum(STREAK_TF_WEIGHTS.values())
 SYNC_MIN_EXPECTED = 0.30
 # Au-dela, la paire est consideree comme reellement engagee dans le mouvement.
 SYNC_MIN_REALIZED = 0.10
+# La section paires est deja classee par produit decroissant: au-dela des
+# premieres lignes, le reste n'apporte plus de decision.
+PAIR_SECTION_LIMIT = 5
 
 FOREX_INDEX_ASSETS: list[dict] = [
     {"pair": "DXY", "tv_symbol": "TVC:DXY", "asset_type": "INDEX", "currency": "USD"},
@@ -1143,7 +1146,9 @@ def format_full_alignment_message(
         lines.extend(_strength_status_lines(index_status_rows))
     if pair_status_rows:
         lines.extend(["", "💹 PAIRES CHG%D"])
-        lines.extend(_strength_status_lines(pair_status_rows, index_by_currency))
+        lines.extend(_strength_status_lines(
+            pair_status_rows[:PAIR_SECTION_LIMIT], index_by_currency,
+        ))
     lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
