@@ -1124,7 +1124,9 @@ def update_price_trends(previous: dict | None, rows: list[dict],
 
     Chaque entree expose aussi `pips_vs_06h`: le meme ecart que `trend_pips`
     mais signe normalement (prix monte = positif), sans reorientation vers le
-    sens du premier signal. C'est la source de `eurusd_cross_check_lines`."""
+    sens du premier signal; et `pips_vs_previous_run`, le meme ecart mais
+    depuis le run precedent plutot que depuis 06h -- le T0 du run suivant est
+    toujours le prix de celui-ci. Les deux alimentent `eurusd_cross_check_lines`."""
     h1_close_lookup = h1_close_lookup or _default_h1_close_near_baseline_hour
     clock = now.astimezone(PARIS_TZ)
     today = clock.date().isoformat()
@@ -1171,6 +1173,15 @@ def update_price_trends(previous: dict | None, rows: list[dict],
             (price - float(baseline)) / _pip_size(pair)
             if isinstance(baseline, (int, float)) else None
         )
+        # Ecart brut depuis le run precedent (le T0 du run suivant est le
+        # prix de ce run-ci, cf. `new_pairs[pair]["previous"]` plus bas): sert
+        # a detecter un repli en cours meme quand `pips_vs_06h` reste engage
+        # dans le sens du jour. None au tout premier run du jour, faute de
+        # run precedent a comparer.
+        pips_vs_previous_run = (
+            (price - float(previous_price)) / _pip_size(pair)
+            if isinstance(previous_price, (int, float)) else None
+        )
         trends[pair] = {
             "price": price,
             "vs_06h": _price_arrow(price, baseline),
@@ -1178,6 +1189,7 @@ def update_price_trends(previous: dict | None, rows: list[dict],
             "trend_icon": _trend_continuation_icon(trend_pips),
             "trend_pips": trend_pips,
             "pips_vs_06h": pips_vs_06h,
+            "pips_vs_previous_run": pips_vs_previous_run,
         }
         new_pairs[pair] = {
             "baseline_price": baseline,
@@ -1674,18 +1686,20 @@ def currency_pip_sum(
     currency: str,
     rows_by_pair: dict[str, dict] | None,
     price_trends: dict[str, dict] | None,
+    field: str = "pips_vs_06h",
 ) -> tuple[float, int]:
-    """Somme des pips depuis la reference 06h Paris (`pips_vs_06h`, cf.
-    `update_price_trends`) de toutes les paires impliquant `currency`,
-    orientee dans le sens de force de cette devise: positive quand elle est
-    base et monte, negative quand elle est quote et monte (la devise en face
-    s'est renforcee a ses depens).
+    """Somme des pips (champ `field` de `price_trends`, cf. `update_price_trends`)
+    de toutes les paires impliquant `currency`, orientee dans le sens de force
+    de cette devise: positive quand elle est base et monte, negative quand
+    elle est quote et monte (la devise en face s'est renforcee a ses depens).
 
-    Contrairement a un simple CHG%D (qui repart de zero a chaque cloture
-    quotidienne), `pips_vs_06h` est porte par la baseline persistee dans
-    `renko_full_alignment_price_trend_state.json`: le meme point de depart
-    reste valable d'un run a l'autre sur toute la journee, donc cette somme
-    suit reellement l'ecart entre les deux devises en continu."""
+    Par defaut `field="pips_vs_06h"`: contrairement a un simple CHG%D (qui
+    repart de zero a chaque cloture quotidienne), c'est porte par la baseline
+    persistee dans `renko_full_alignment_price_trend_state.json` -- le meme
+    point de depart reste valable d'un run a l'autre sur toute la journee.
+    Avec `field="pips_vs_previous_run"`, la somme porte sur le run precedent
+    plutot que sur 06h: sert a reperer un repli en cours (cf.
+    `eurusd_cross_check_lines`)."""
     total = 0.0
     count = 0
     for row in (rows_by_pair or {}).values():
@@ -1696,7 +1710,7 @@ def currency_pip_sum(
         if currencies is None or currency not in currencies:
             continue
         trend = (price_trends or {}).get(pair) or {}
-        pips = trend.get("pips_vs_06h")
+        pips = trend.get(field)
         if not isinstance(pips, (int, float)):
             continue
         base, _quote = currencies
@@ -1714,19 +1728,41 @@ def eurusd_cross_check_lines(
     paires USD et des 7 paires EUR *depuis la reference 06h Paris*, suivie en
     continu run apres run par `update_price_trends` -- la meme reference que
     celle utilisee par PAIRES CHG%D, mais agregee ici par devise plutot
-    qu'affichee paire par paire."""
+    qu'affichee paire par paire.
+
+    Chaque ligne ajoute, entre parentheses, la meme somme mais *depuis le run
+    precedent* (des que celui-ci existe): un repli peut demarrer avant que le
+    solde depuis 06h ne bascule, donc ce second chiffre le rend visible plus
+    tot. La derniere ligne porte deux billes: la 1ere pour le sens depuis 06h,
+    la 2e pour le sens depuis le run precedent -- deux billes opposees
+    signalent un repli en cours malgre une tendance journaliere toujours
+    engagee."""
     usd_sum, usd_count = currency_pip_sum("USD", rows_by_pair, price_trends)
     eur_sum, eur_count = currency_pip_sum("EUR", rows_by_pair, price_trends)
     if usd_count == 0 or eur_count == 0:
         return []
-    diff = eur_sum - usd_sum
-    icon = "🟢" if diff > 0 else ("🔴" if diff < 0 else "⚪")
-    return [
-        "🧭 EURUSD CHECK",
-        f"Σ USD ({usd_count} paires) : {usd_sum:+.1f} pips",
-        f"Σ EUR ({eur_count} paires) : {eur_sum:+.1f} pips",
-        f"{icon} EURUSD",
-    ]
+    icon_06h = "🟢" if eur_sum > usd_sum else ("🔴" if eur_sum < usd_sum else "⚪")
+
+    usd_delta, usd_delta_count = currency_pip_sum(
+        "USD", rows_by_pair, price_trends, field="pips_vs_previous_run",
+    )
+    eur_delta, eur_delta_count = currency_pip_sum(
+        "EUR", rows_by_pair, price_trends, field="pips_vs_previous_run",
+    )
+    has_delta = usd_delta_count > 0 and eur_delta_count > 0
+
+    usd_line = f"Σ USD ({usd_count} paires) : {usd_sum:+.1f} pips"
+    eur_line = f"Σ EUR ({eur_count} paires) : {eur_sum:+.1f} pips"
+    if has_delta:
+        usd_line += f" ({usd_delta:+.1f} pips)"
+        eur_line += f" ({eur_delta:+.1f} pips)"
+
+    icons = icon_06h
+    if has_delta:
+        icon_run = "🟢" if eur_delta > usd_delta else ("🔴" if eur_delta < usd_delta else "⚪")
+        icons += icon_run
+
+    return ["🧭 EURUSD CHECK", usd_line, eur_line, f"{icons} EURUSD"]
 
 
 def format_full_alignment_message(

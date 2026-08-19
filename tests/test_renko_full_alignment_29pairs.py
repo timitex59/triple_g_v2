@@ -1314,6 +1314,26 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertAlmostEqual(trends["AUDUSD"]["trend_pips"], 14.0, places=6)
         self.assertAlmostEqual(trends["AUDUSD"]["pips_vs_06h"], -14.0, places=6)
 
+    def test_update_price_trends_exposes_pips_vs_previous_run(self):
+        """Le T0 du run suivant est le prix de celui-ci: `pips_vs_previous_run`
+        compare au run precedent (pas a 06h), et vaut None au tout premier run
+        du jour faute de run precedent."""
+        first = row("AUDUSD", -1, -1, -1, daily_chg=-0.20)
+        first["live_price"] = 0.71004
+        state, first_trends = update_price_trends(
+            {}, [first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
+        )
+        self.assertIsNone(first_trends["AUDUSD"]["pips_vs_previous_run"])
+
+        second = row("AUDUSD", -1, -1, -1, daily_chg=-0.20)
+        second["live_price"] = 0.70864  # -14 pips vs le run precedent
+        _, second_trends = update_price_trends(
+            state, [second], datetime(2026, 7, 16, 6, 30, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
+        )
+        self.assertAlmostEqual(second_trends["AUDUSD"]["pips_vs_previous_run"], -14.0, places=6)
+
     def test_currency_pip_sum_orients_pips_by_base_or_quote_role(self):
         """USD base (USDJPY) qui monte renforce l'USD (+); USD quote (EURUSD,
         AUDUSD) l'affaiblit quand elle monte et le renforce quand elle baisse."""
@@ -1362,6 +1382,24 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertEqual(count, 1)
         self.assertAlmostEqual(total, -50.0, places=6)
 
+    def test_currency_pip_sum_can_target_the_previous_run_field(self):
+        rows_by_pair = {
+            "USDJPY": {"pair": "USDJPY", "asset_type": "PAIR"},
+            "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
+        }
+        price_trends = {
+            "USDJPY": {"pips_vs_06h": 50.0, "pips_vs_previous_run": 4.0},
+            "EURUSD": {"pips_vs_06h": 50.0, "pips_vs_previous_run": -3.0},
+        }
+
+        total, count = currency_pip_sum(
+            "USD", rows_by_pair, price_trends, field="pips_vs_previous_run",
+        )
+
+        self.assertEqual(count, 2)
+        # USD base (USDJPY) +4 -> +4; USD quote (EURUSD) -3 -> +3.
+        self.assertAlmostEqual(total, 7.0, places=6)
+
     def _eurusd_check_fixture(self):
         """7 paires USD + 7 paires EUR, pips depuis 06h Paris orchestres pour
         un EUR fort / USD faible (valeurs reprises d'un run reel du
@@ -1397,6 +1435,40 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertTrue(lines[1].startswith("Σ USD (7 paires) : -"))
         self.assertTrue(lines[2].startswith("Σ EUR (7 paires) : +"))
         self.assertEqual(lines[3], "🟢 EURUSD")
+
+    def test_eurusd_cross_check_lines_omits_delta_on_the_first_run_of_the_day(self):
+        """Sans `pips_vs_previous_run` (aucun run precedent aujourd'hui: pas
+        encore de T0 a comparer), la section reste a une seule bille plutot
+        que d'afficher un delta absent."""
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+
+        lines = eurusd_cross_check_lines(rows_by_pair, price_trends)
+
+        self.assertEqual(lines[1], "Σ USD (7 paires) : -612.0 pips")
+        self.assertEqual(lines[2], "Σ EUR (7 paires) : +12.0 pips")
+        self.assertEqual(lines[3], "🟢 EURUSD")
+
+    def test_eurusd_cross_check_lines_adds_the_previous_run_delta_when_available(self):
+        """Le run precedent devient le T0 de celui-ci: chaque paire porte son
+        propre `pips_vs_previous_run`, agrege par devise comme pour 06h."""
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+        deltas = {
+            "EURUSD": 3.0, "GBPUSD": -1.0, "AUDUSD": 2.0, "NZDUSD": -2.0,
+            "USDCAD": 5.0, "USDCHF": -1.0, "USDJPY": 4.0,
+            "EURGBP": 1.0, "EURJPY": -3.0, "EURCHF": 0.0, "EURAUD": -2.0,
+            "EURNZD": 1.0, "EURCAD": -4.0,
+        }
+        for pair, delta in deltas.items():
+            price_trends[pair]["pips_vs_previous_run"] = delta
+
+        lines = eurusd_cross_check_lines(rows_by_pair, price_trends)
+
+        self.assertEqual(lines[1], "Σ USD (7 paires) : -612.0 pips (+6.0 pips)")
+        self.assertEqual(lines[2], "Σ EUR (7 paires) : +12.0 pips (-4.0 pips)")
+        # 06h toujours EUR fort (1ere bille 🟢), mais l'USD regagne du terrain
+        # plus vite que l'EUR depuis le run precedent (2e bille 🔴): repli en
+        # cours malgre une tendance journaliere toujours engagee.
+        self.assertEqual(lines[3], "🟢🔴 EURUSD")
 
     def test_eurusd_cross_check_lines_empty_without_price_trends(self):
         rows_by_pair, _ = self._eurusd_check_fixture()
