@@ -70,6 +70,19 @@ SYNC_MIN_REALIZED = 0.10
 # premieres lignes, le reste n'apporte plus de decision.
 PAIR_SECTION_LIMIT = 5
 
+# PERF TOP5: une position deja ouverte tolere de reculer jusqu'a ce rang
+# (toujours non-divergente, cf. all_pair_status_rows) avant cloture
+# (RANK_EXIT), plutot que de couper des qu'elle quitte le TOP5 stricte --
+# seule l'ENTREE reste conditionnee au TOP5 (PAIR_SECTION_LIMIT).
+PERFORMANCE_EXTENDED_RANK_LIMIT = 8
+# Trailing stop sur les positions ouvertes: s'arme des que le pic de gain
+# (last_pips) atteint ce seuil, puis cloture (TRAILING_STOP) si le gain
+# redonne plus de PERFORMANCE_TRAILING_STOP_PCT de ce pic. En % du pic
+# plutot qu'en pips fixes: s'adapte a l'amplitude propre a chaque paire
+# (une paire JPY bouge en pips bien plus large qu'une paire standard).
+PERFORMANCE_TRAILING_ARM_PIPS = 10.0
+PERFORMANCE_TRAILING_STOP_PCT = 0.30
+
 # Heure Paris a partir de laquelle le premier prix observe du jour devient la
 # reference du "premier signal" pour l'icone de continuation de tendance.
 TREND_ICON_BASELINE_HOUR_PARIS = 6
@@ -1466,7 +1479,7 @@ def _pairs_out_lines(
 
 def update_performance_state(
     previous: dict | None,
-    top5_now: object,
+    extended_now: object,
     ever_top5: object,
     price_trends: dict[str, dict] | None,
     now: datetime,
@@ -1475,26 +1488,35 @@ def update_performance_state(
     'trades papier' qui simulent un copy-trading reel plutot que la variation
     brute depuis 6H:
 
-    Ouverture: au 1er run ou une paire apparait dans le TOP5 (`ever_top5`),
-    au `trend_pips` de CE run (la reference d'entree), pas au signal de 6H
-    qui peut avoir couru des heures avant que la paire ne devienne visible.
-    Si elle apparait deja en ❌ (signal invalide avant meme d'etre vue),
-    aucun trader reel n'ouvrirait: la paire est marquee 'ignored', impact
-    0.0 pip, et ne sera plus jamais (re)ouverte ce jour-la.
+    Ouverture: au 1er run ou une paire apparait dans le TOP5 strict
+    (`ever_top5`), au `trend_pips` de CE run (la reference d'entree), pas au
+    signal de 6H qui peut avoir couru des heures avant que la paire ne
+    devienne visible. Si elle apparait deja en ❌ (signal invalide avant
+    meme d'etre vue), aucun trader reel n'ouvrirait: la paire est marquee
+    'ignored', impact 0.0 pip, et ne sera plus jamais (re)ouverte ce jour-la.
 
     Le gain courant d'une position ouverte est ensuite `trend_pips actuel -
     trend_pips d'entree`: comme `trend_pips` (cf. `update_price_trends`)
     partage la meme reference (baseline + sens) sur toute la journee, cette
     soustraction redonne exactement l'ecart de prix reel entre l'entree et
-    l'instant present, sans reconstruire le prix ni le sens a la main.
+    l'instant present, sans reconstruire le prix ni le sens a la main. Le
+    pic (`peak_pips`) de ce gain est memorise a chaque run pour le trailing
+    stop ci-dessous.
 
-    Fermeture, au premier des 3 evenements suivants:
-    - la paire montre ❌ pour la 1ere fois depuis l'ouverture (stop, prix de
-      ce run);
-    - la paire quitte le TOP5 (`pair not in top5_now`, meme logique que
-      PAIRES OUT: `ever_top5 - top5_now`);
-    - le changement de date Paris (fin de session): tout ce qui restait
-      ouvert se cloture au dernier `trend_pips` connu de la veille.
+    Fermeture, au premier des 4 evenements suivants:
+    - la paire montre ❌ pour la 1ere fois depuis l'ouverture
+      (STOP_FIRST_CROSS, prix de ce run);
+    - trailing stop (TRAILING_STOP): une fois le pic >=
+      PERFORMANCE_TRAILING_ARM_PIPS, le gain a redonne plus de
+      PERFORMANCE_TRAILING_STOP_PCT de ce pic;
+    - la paire quitte la fenetre tolerie `extended_now` (RANK_EXIT) -- plus
+      large que le TOP5 strict qui conditionne l'ENTREE (cf.
+      PERFORMANCE_EXTENDED_RANK_LIMIT): une position deja ouverte peut
+      reculer jusqu'a ce rang sans etre coupee, tant qu'elle reste
+      non-divergente (une paire devenue divergente est deja absente de
+      `extended_now`, cf. `all_pair_status_rows`);
+    - le changement de date Paris (SESSION_END): tout ce qui restait ouvert
+      se cloture au dernier `trend_pips` connu de la veille.
 
     Retourne l'etat mis a jour et la liste des trades clotures a ce run
     (vide la plupart du temps)."""
@@ -1527,7 +1549,7 @@ def update_performance_state(
                     _close(pair, last_pips, "SESSION_END")
         open_trades = {}
 
-    top5_set = set(top5_now or [])
+    extended_set = set(extended_now or [])
     for pair in set(ever_top5 or []) | set(open_trades):
         pair = str(pair)
         trend = (price_trends or {}).get(pair) or {}
@@ -1543,7 +1565,8 @@ def update_performance_state(
             if not isinstance(trend_pips, (int, float)):
                 continue  # pas encore de reference exploitable; on retente au run suivant
             open_trades[pair] = {
-                "status": "open", "entry_pips": float(trend_pips), "last_pips": 0.0,
+                "status": "open", "entry_pips": float(trend_pips),
+                "last_pips": 0.0, "peak_pips": 0.0,
             }
             continue
 
@@ -1552,12 +1575,19 @@ def update_performance_state(
 
         if isinstance(trend_pips, (int, float)):
             trade["last_pips"] = float(trend_pips) - trade["entry_pips"]
+            trade["peak_pips"] = max(trade.get("peak_pips", 0.0), trade["last_pips"])
 
         if trend_icon == "❌":
             _close(pair, trade["last_pips"], "STOP_FIRST_CROSS")
             trade["status"] = "closed"
-        elif pair not in top5_set:
-            _close(pair, trade["last_pips"], "TOP5_EXIT")
+        elif (
+            trade["peak_pips"] >= PERFORMANCE_TRAILING_ARM_PIPS
+            and trade["last_pips"] <= trade["peak_pips"] * (1.0 - PERFORMANCE_TRAILING_STOP_PCT)
+        ):
+            _close(pair, trade["last_pips"], "TRAILING_STOP")
+            trade["status"] = "closed"
+        elif pair not in extended_set:
+            _close(pair, trade["last_pips"], "RANK_EXIT")
             trade["status"] = "closed"
 
     return {
@@ -2082,9 +2112,12 @@ def main() -> int:
     pairs_out_state, pairs_out = update_pairs_out_state(pairs_out_state, pair_status_rows, now)
     save_price_trend_state(args.pairs_out_state_file, pairs_out_state)
     performance_state = load_price_trend_state(args.performance_state_file)
-    top5_now = [str(row.get("pair") or "") for row in pair_status_rows[:PAIR_SECTION_LIMIT]]
+    extended_now = [
+        str(row.get("pair") or "")
+        for row in pair_status_rows[:PERFORMANCE_EXTENDED_RANK_LIMIT]
+    ]
     performance_state, newly_closed = update_performance_state(
-        performance_state, top5_now, pairs_out_state.get("ever_top5"), price_trends, now,
+        performance_state, extended_now, pairs_out_state.get("ever_top5"), price_trends, now,
     )
     save_price_trend_state(args.performance_state_file, performance_state)
     # Rien a montrer avant qu'une premiere paire n'ait jamais atteint le TOP5:
