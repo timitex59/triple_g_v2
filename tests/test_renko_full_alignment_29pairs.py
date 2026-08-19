@@ -1099,35 +1099,119 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("🔴 GBPCAD (1.90500) (depuis 09:15)", message)
         self.assertIn("🟢 NZDCAD (0.81600) ⚠️ (depuis 08:40)", message)
 
-    def test_performance_state_tracks_open_pips_and_closes_on_day_change(self):
-        day = datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
-        price_trends = {"AUDNZD": {"trend_pips": 12.3}, "GBPJPY": {"trend_pips": -8.1}}
+    def test_performance_state_anchors_entry_to_first_top5_appearance_not_6h(self):
+        """Cas 1 (USDJPY, 19/08/2026, cf. l'analyse Antigravity): une paire
+        qui entre en cours de journee avec deja +23.4 pips accumules depuis
+        6H (CHG%D) ne doit pas compter ces +23.4 pips -- seul le mouvement
+        depuis son ENTREE reelle dans le TOP5 est un gain 'copy-trading'."""
+        entry_run = datetime(2026, 8, 19, 14, 18, tzinfo=PARIS)
         state, newly_closed = update_performance_state(
-            {}, ["AUDNZD", "GBPJPY"], price_trends, day,
+            {}, ["USDJPY"], ["USDJPY"],
+            {"USDJPY": {"trend_pips": 23.4, "trend_icon": "✅"}}, entry_run,
         )
         self.assertEqual(newly_closed, [])
-        self.assertEqual(state["open_pips"], {"AUDNZD": 12.3, "GBPJPY": -8.1})
-        self.assertEqual(state["tracking_date"], "2026-07-16")
+        self.assertEqual(state["open_trades"]["USDJPY"]["entry_pips"], 23.4)
+        self.assertEqual(state["open_trades"]["USDJPY"]["last_pips"], 0.0)
 
-        # Meme jour, plus tard: open_pips se met a jour (dernier ecrasement).
-        price_trends2 = {"AUDNZD": {"trend_pips": 20.0}, "GBPJPY": {"trend_pips": -15.0}}
+        later_run = datetime(2026, 8, 19, 15, 18, tzinfo=PARIS)
         state, newly_closed2 = update_performance_state(
-            state, ["AUDNZD", "GBPJPY"], price_trends2, day + timedelta(hours=10),
+            state, ["USDJPY"], ["USDJPY"],
+            {"USDJPY": {"trend_pips": 93.6, "trend_icon": "✅"}}, later_run,
         )
         self.assertEqual(newly_closed2, [])
-        self.assertEqual(state["open_pips"], {"AUDNZD": 20.0, "GBPJPY": -15.0})
+        # Gain reel depuis 14h18: 93.6 - 23.4 = +70.2, PAS +93.6 (le brut du bot).
+        self.assertAlmostEqual(state["open_trades"]["USDJPY"]["last_pips"], 70.2, places=6)
 
-        # Jour suivant: cloture avec les DERNIERES valeurs connues (20.0/-15.0),
-        # pas celles du tout premier run de la veille (12.3/-8.1).
-        next_day = datetime(2026, 7, 17, 6, 15, tzinfo=PARIS)
-        state, newly_closed3 = update_performance_state(state, [], {}, next_day)
-        self.assertEqual(
-            sorted((t["pair"], t["pips"]) for t in newly_closed3),
-            [("AUDNZD", 20.0), ("GBPJPY", -15.0)],
+    def test_performance_state_ignores_a_pair_entering_already_invalidated(self):
+        """Cas 2 (AUDUSD): une paire qui apparait pour la 1ere fois deja en
+        ❌ n'est jamais ouverte -- un trader reel ne prend pas un signal deja
+        casse. Impact 0.0 pip, et ca reste vrai meme si elle repasse en ✅
+        plus tard (une seule entree possible par paire et par jour)."""
+        run = datetime(2026, 8, 19, 15, 9, tzinfo=PARIS)
+        state, newly_closed = update_performance_state(
+            {}, ["AUDUSD"], ["AUDUSD"],
+            {"AUDUSD": {"trend_pips": -43.4, "trend_icon": "❌"}}, run,
         )
-        self.assertEqual(state["open_pips"], {})
-        self.assertEqual(state["tracking_date"], "2026-07-17")
-        self.assertEqual(len(state["closed_trades"]), 2)
+        self.assertEqual(newly_closed, [])
+        self.assertEqual(state["open_trades"]["AUDUSD"], {"status": "ignored", "last_pips": 0.0})
+
+        later = datetime(2026, 8, 19, 16, 0, tzinfo=PARIS)
+        state, newly_closed2 = update_performance_state(
+            state, ["AUDUSD"], ["AUDUSD"],
+            {"AUDUSD": {"trend_pips": 10.0, "trend_icon": "✅"}}, later,
+        )
+        self.assertEqual(newly_closed2, [])
+        self.assertEqual(state["open_trades"]["AUDUSD"]["status"], "ignored")
+
+    def test_performance_state_stops_on_first_cross_after_entry(self):
+        """Cas 3 (GBPAUD): plusieurs runs sans croix, puis une 1ere ❌ ->
+        cloture immediate, sur l'ecart reel depuis l'entree (pas depuis 6H)."""
+        t0 = datetime(2026, 8, 19, 6, 52, tzinfo=PARIS)
+        state, _ = update_performance_state(
+            {}, ["GBPAUD"], ["GBPAUD"],
+            {"GBPAUD": {"trend_pips": -1.6, "trend_icon": "✅"}}, t0,
+        )
+        for minutes, pips in [(26, -2.2), (60, 0.5), (86, -0.5)]:
+            t = t0 + timedelta(minutes=minutes)
+            state, newly_closed = update_performance_state(
+                state, ["GBPAUD"], ["GBPAUD"],
+                {"GBPAUD": {"trend_pips": pips, "trend_icon": "✅"}}, t,
+            )
+            self.assertEqual(newly_closed, [])
+            self.assertEqual(state["open_trades"]["GBPAUD"]["status"], "open")
+
+        t_stop = t0 + timedelta(hours=2, minutes=14)  # 09:06
+        state, newly_closed = update_performance_state(
+            state, ["GBPAUD"], ["GBPAUD"],
+            {"GBPAUD": {"trend_pips": -6.5, "trend_icon": "❌"}}, t_stop,
+        )
+        self.assertEqual(len(newly_closed), 1)
+        self.assertEqual(newly_closed[0]["pair"], "GBPAUD")
+        self.assertAlmostEqual(newly_closed[0]["pips"], -4.9, places=6)  # -6.5 - (-1.6)
+        self.assertEqual(newly_closed[0]["reason"], "STOP_FIRST_CROSS")
+        self.assertEqual(state["open_trades"]["GBPAUD"]["status"], "closed")
+
+    def test_performance_state_closes_on_top5_exit_before_any_cross(self):
+        """Cas 5 (USDCAD): la paire quitte le TOP5 avant toute ❌ -> cloture
+        immediate a ce run-la, pas d'attente de fin de journee."""
+        t0 = datetime(2026, 8, 19, 15, 58, tzinfo=PARIS)
+        state, _ = update_performance_state(
+            {}, ["USDCAD"], ["USDCAD"],
+            {"USDCAD": {"trend_pips": 59.0, "trend_icon": "✅"}}, t0,
+        )
+        t1 = t0 + timedelta(minutes=55)
+        state, newly_closed = update_performance_state(
+            state, [], ["USDCAD"],  # top5_now ne contient plus USDCAD
+            {"USDCAD": {"trend_pips": 68.0, "trend_icon": "✅"}}, t1,
+        )
+        self.assertEqual(len(newly_closed), 1)
+        self.assertAlmostEqual(newly_closed[0]["pips"], 9.0, places=6)  # 68.0 - 59.0
+        self.assertEqual(newly_closed[0]["reason"], "TOP5_EXIT")
+
+    def test_performance_state_closes_all_open_trades_at_session_end(self):
+        """Cas 4 (USDCHF): jamais de ❌, jamais sortie du TOP5 -> cloture au
+        changement de date, sur le dernier ecart connu depuis l'entree."""
+        t0 = datetime(2026, 8, 19, 15, 9, tzinfo=PARIS)
+        state, _ = update_performance_state(
+            {}, ["USDCHF"], ["USDCHF"],
+            {"USDCHF": {"trend_pips": 50.6, "trend_icon": "✅"}}, t0,
+        )
+        t1 = datetime(2026, 8, 19, 18, 21, tzinfo=PARIS)
+        state, newly_closed = update_performance_state(
+            state, ["USDCHF"], ["USDCHF"],
+            {"USDCHF": {"trend_pips": 118.4, "trend_icon": "✅"}}, t1,
+        )
+        self.assertEqual(newly_closed, [])
+        self.assertAlmostEqual(state["open_trades"]["USDCHF"]["last_pips"], 67.8, places=6)
+
+        next_day = datetime(2026, 8, 20, 6, 15, tzinfo=PARIS)
+        state, newly_closed2 = update_performance_state(state, [], [], {}, next_day)
+        self.assertEqual(len(newly_closed2), 1)
+        self.assertEqual(newly_closed2[0]["pair"], "USDCHF")
+        self.assertAlmostEqual(newly_closed2[0]["pips"], 67.8, places=6)
+        self.assertEqual(newly_closed2[0]["reason"], "SESSION_END")
+        self.assertEqual(state["open_trades"], {})
+        self.assertEqual(state["tracking_date"], "2026-08-20")
 
     def test_performance_general_bilan_matches_vivier_formulas(self):
         trades = [
@@ -1172,7 +1256,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
     def test_performance_report_aggregates_daily_weekly_monthly_yearly(self):
         state = {
             "tracking_date": "2026-08-19",
-            "open_pips": {"EURUSD": 3.0},
+            "open_trades": {"EURUSD": {"status": "open", "last_pips": 3.0}},
             "closed_trades": [
                 {"date": "2026-08-18", "pair": "AUDNZD", "pips": 12.3,
                  "closed_at_paris": "2026-08-18T23:59:00+02:00"},
@@ -1193,7 +1277,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
     def test_performance_lines_show_bilan_only_when_trades_just_closed(self):
         state_before_close = {
             "tracking_date": "2026-08-18",
-            "open_pips": {"AUDNZD": 12.3},
+            "open_trades": {"AUDNZD": {"status": "open", "last_pips": 12.3}},
             "closed_trades": [],
         }
         report = performance_report(
@@ -1205,7 +1289,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         state_after_close = {
             "tracking_date": "2026-08-19",
-            "open_pips": {},
+            "open_trades": {},
             "closed_trades": [
                 {"date": "2026-08-18", "pair": "AUDNZD", "pips": 12.3,
                  "closed_at_paris": "2026-08-18T23:59:00+02:00"},

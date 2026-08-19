@@ -1465,52 +1465,105 @@ def _pairs_out_lines(
 
 
 def update_performance_state(
-    previous: dict | None, ever_top5: object, price_trends: dict[str, dict] | None,
+    previous: dict | None,
+    top5_now: object,
+    ever_top5: object,
+    price_trends: dict[str, dict] | None,
     now: datetime,
 ) -> tuple[dict, list[dict]]:
-    """Suit la performance des paires passees par le TOP5 de PAIRES CHG%D,
-    en 'trades papier': chacune s'ouvre au premier signal de 6H (meme
-    reference que le trend_icon, cf. update_price_trends) et se cloture au
-    changement de date Paris, avec pour resultat le dernier `trend_pips`
-    connu -- celui du run juste avant le rollover.
+    """Suit la performance des paires passees par le TOP5 de PAIRES CHG%D, en
+    'trades papier' qui simulent un copy-trading reel plutot que la variation
+    brute depuis 6H:
 
-    `open_pips` est reecrase avec la derniere valeur connue a chaque run:
-    inutile de deviner quel run est 'le dernier de la journee', le dernier
-    ecrasement avant le changement de date fait naturellement office de
-    cloture. Retourne l'etat mis a jour et la liste des trades qui viennent
-    d'etre clotures a ce run (vide la plupart du temps, non-vide uniquement
-    au premier run d'un nouveau jour)."""
+    Ouverture: au 1er run ou une paire apparait dans le TOP5 (`ever_top5`),
+    au `trend_pips` de CE run (la reference d'entree), pas au signal de 6H
+    qui peut avoir couru des heures avant que la paire ne devienne visible.
+    Si elle apparait deja en ❌ (signal invalide avant meme d'etre vue),
+    aucun trader reel n'ouvrirait: la paire est marquee 'ignored', impact
+    0.0 pip, et ne sera plus jamais (re)ouverte ce jour-la.
+
+    Le gain courant d'une position ouverte est ensuite `trend_pips actuel -
+    trend_pips d'entree`: comme `trend_pips` (cf. `update_price_trends`)
+    partage la meme reference (baseline + sens) sur toute la journee, cette
+    soustraction redonne exactement l'ecart de prix reel entre l'entree et
+    l'instant present, sans reconstruire le prix ni le sens a la main.
+
+    Fermeture, au premier des 3 evenements suivants:
+    - la paire montre ❌ pour la 1ere fois depuis l'ouverture (stop, prix de
+      ce run);
+    - la paire quitte le TOP5 (`pair not in top5_now`, meme logique que
+      PAIRES OUT: `ever_top5 - top5_now`);
+    - le changement de date Paris (fin de session): tout ce qui restait
+      ouvert se cloture au dernier `trend_pips` connu de la veille.
+
+    Retourne l'etat mis a jour et la liste des trades clotures a ce run
+    (vide la plupart du temps)."""
     clock = now.astimezone(PARIS_TZ)
     today = clock.date().isoformat()
     old = previous if isinstance(previous, dict) else {}
     tracking_date = old.get("tracking_date")
+    same_day = tracking_date == today
     closed_trades = list(old.get("closed_trades") or [])
-
     newly_closed: list[dict] = []
-    if tracking_date and tracking_date != today:
-        for pair, pips in (old.get("open_pips") or {}).items():
-            if isinstance(pips, (int, float)):
-                trade = {
-                    "date": tracking_date,
-                    "pair": pair,
-                    "pips": float(pips),
-                    "closed_at_paris": clock.isoformat(),
-                }
-                closed_trades.append(trade)
-                newly_closed.append(trade)
 
-    open_pips: dict[str, float] = (
-        dict(old.get("open_pips") or {}) if tracking_date == today else {}
-    )
-    for pair in ever_top5 or []:
-        pips = ((price_trends or {}).get(pair) or {}).get("trend_pips")
-        if isinstance(pips, (int, float)):
-            open_pips[str(pair)] = float(pips)
+    def _close(pair: str, pips: float, reason: str) -> None:
+        trade = {
+            "date": today, "pair": pair, "pips": round(float(pips), 1),
+            "closed_at_paris": clock.isoformat(), "reason": reason,
+        }
+        closed_trades.append(trade)
+        newly_closed.append(trade)
+
+    open_trades: dict[str, dict] = dict(old.get("open_trades") or {}) if same_day else {}
+
+    if tracking_date and not same_day:
+        # Fin de la session precedente: tout ce qui restait ouvert se
+        # cloture au dernier trend_pips connu (le run juste avant le
+        # rollover), comme un trader qui solde a la fin de sa journee.
+        for pair, trade in (old.get("open_trades") or {}).items():
+            if trade.get("status") == "open":
+                last_pips = trade.get("last_pips")
+                if isinstance(last_pips, (int, float)):
+                    _close(pair, last_pips, "SESSION_END")
+        open_trades = {}
+
+    top5_set = set(top5_now or [])
+    for pair in set(ever_top5 or []) | set(open_trades):
+        pair = str(pair)
+        trend = (price_trends or {}).get(pair) or {}
+        trend_pips = trend.get("trend_pips")
+        trend_icon = trend.get("trend_icon")
+
+        trade = open_trades.get(pair)
+        if trade is None:
+            # 1ere apparition de cette paire dans le TOP5 aujourd'hui.
+            if trend_icon == "❌":
+                open_trades[pair] = {"status": "ignored", "last_pips": 0.0}
+                continue
+            if not isinstance(trend_pips, (int, float)):
+                continue  # pas encore de reference exploitable; on retente au run suivant
+            open_trades[pair] = {
+                "status": "open", "entry_pips": float(trend_pips), "last_pips": 0.0,
+            }
+            continue
+
+        if trade.get("status") != "open":
+            continue  # deja 'ignored' ou 'closed': plus qu'un trade par paire et par jour
+
+        if isinstance(trend_pips, (int, float)):
+            trade["last_pips"] = float(trend_pips) - trade["entry_pips"]
+
+        if trend_icon == "❌":
+            _close(pair, trade["last_pips"], "STOP_FIRST_CROSS")
+            trade["status"] = "closed"
+        elif pair not in top5_set:
+            _close(pair, trade["last_pips"], "TOP5_EXIT")
+            trade["status"] = "closed"
 
     return {
-        "version": 1,
+        "version": 2,
         "tracking_date": today,
-        "open_pips": open_pips,
+        "open_trades": open_trades,
         "closed_trades": closed_trades,
     }, newly_closed
 
@@ -1609,8 +1662,9 @@ def performance_report(state: dict, now: datetime) -> dict:
     year_start = today.replace(month=1, day=1)
 
     open_pips_total = sum(
-        float(v) for v in (state.get("open_pips") or {}).values()
-        if isinstance(v, (int, float))
+        float(trade.get("last_pips") or 0.0)
+        for trade in (state.get("open_trades") or {}).values()
+        if trade.get("status") == "open" and isinstance(trade.get("last_pips"), (int, float))
     )
 
     return {
@@ -2009,8 +2063,9 @@ def main() -> int:
     pairs_out_state, pairs_out = update_pairs_out_state(pairs_out_state, pair_status_rows, now)
     save_price_trend_state(args.pairs_out_state_file, pairs_out_state)
     performance_state = load_price_trend_state(args.performance_state_file)
+    top5_now = [str(row.get("pair") or "") for row in pair_status_rows[:PAIR_SECTION_LIMIT]]
     performance_state, newly_closed = update_performance_state(
-        performance_state, pairs_out_state.get("ever_top5"), price_trends, now,
+        performance_state, top5_now, pairs_out_state.get("ever_top5"), price_trends, now,
     )
     save_price_trend_state(args.performance_state_file, performance_state)
     # Rien a montrer avant qu'une premiere paire n'ait jamais atteint le TOP5:
@@ -2019,7 +2074,7 @@ def main() -> int:
         performance_report_lines(
             performance_report(performance_state, now), len(newly_closed),
         )
-        if performance_state.get("open_pips") or performance_state.get("closed_trades")
+        if performance_state.get("open_trades") or performance_state.get("closed_trades")
         else []
     )
     message = format_full_alignment_message(
