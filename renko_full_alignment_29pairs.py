@@ -1981,9 +1981,7 @@ def format_full_alignment_message(
     rows: list[dict] | None = None,
     mid_sar_rows: list[dict] | None = None,
     mid_sar_history: dict | None = None,
-    index_daily_chg_rows: list[dict] | None = None,
     now: datetime | None = None,
-    index_status_rows: list[dict] | None = None,
     pair_status_rows: list[dict] | None = None,
     index_by_currency: dict[str, dict] | None = None,
     rows_by_pair: dict[str, dict] | None = None,
@@ -1993,8 +1991,13 @@ def format_full_alignment_message(
     streaky: list[dict] | None = None,
     performance_open_trades: dict[str, dict] | None = None,
 ) -> str:
-    """Message FULL MOMENTUM: statut de tous les indices puis de toutes les
-    paires, classes par score d'intensite.
+    """Message FULL MOMENTUM: statut de toutes les paires, classees par score
+    d'intensite.
+
+    INDEX CHG%D et EURUSD CHECK ne sont plus rendus ici: ils font doublon
+    avec 📐 PAIRE_CHECK (`paire_check.py`), qui affiche deja les 8 devises et
+    le verdict EURUSD/CHFJPY/USDJPY dans un message dedie. `index_by_currency`
+    reste accepte et utilise (sync markers de PAIRES CHG%D).
 
     La liste des paires en alignement strict M/W/D n'est plus rendue: elle
     faisait doublon avec la section PAIRES, ou ces paires figurent deja avec
@@ -2018,24 +2021,10 @@ def format_full_alignment_message(
     `performance_open_trades` (cf. `update_performance_state`, champ
     `open_trades`) ajoute la section RANGS 6-8 (cf. `extended_rank_lines`):
     les paires classees juste sous le TOP5, marquees 🔓 si elles y portent
-    une position PERF TOP5 reellement ouverte.
-
-    EURUSD CHECK (cf. `eurusd_cross_check_lines`) resume en une ligne, par
-    bille, jusqu'a 3 sens EUR fort/USD faible independants -- INDEX (avec
-    `index_by_currency`), 06h et RUN (depuis `rows_by_pair`/`price_trends`) --
-    sans repeter les valeurs deja lisibles dans INDEX CHG%D et PAIRES CHG%D."""
+    une position PERF TOP5 reellement ouverte."""
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
     lines = ["📊 FULL MOMENTUM"]
 
-    if index_status_rows is None:
-        index_status_rows = index_daily_chg_rows
-    if index_status_rows:
-        lines.extend(["", "💱 INDEX CHG%D"])
-        lines.extend(_strength_status_lines(index_status_rows))
-    cross_check = eurusd_cross_check_lines(rows_by_pair, price_trends, index_by_currency)
-    if cross_check:
-        lines.extend([""])
-        lines.extend(cross_check)
     if pair_status_rows:
         lines.extend(["", "💹 PAIRES CHG%D"])
         lines.extend(_strength_status_lines(
@@ -2201,9 +2190,7 @@ def main() -> int:
         selected,
         mid_sar_rows,
         today_history,
-        index_daily_chg_rows,
         now=now,
-        index_status_rows=index_status_rows,
         pair_status_rows=pair_status_rows,
         index_by_currency=index_by_currency,
         rows_by_pair=rows_by_pair,
