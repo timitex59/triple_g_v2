@@ -1724,26 +1724,28 @@ def eurusd_cross_check_lines(
     price_trends: dict[str, dict] | None,
     index_by_currency: dict[str, dict] | None = None,
 ) -> list[str]:
-    """Section EURUSD CHECK: confirme (ou non) le sens EUR fort/USD faible (ou
-    l'inverse) lu sur INDEX CHG%D, recalcule depuis la somme des pips des 7
-    paires USD et des 7 paires EUR *depuis la reference 06h Paris*, suivie en
-    continu run apres run par `update_price_trends` -- la meme reference que
-    celle utilisee par PAIRES CHG%D, mais agregee ici par devise plutot
-    qu'affichee paire par paire.
+    """Section EURUSD CHECK, en 2 blocs qui confirment (ou non) le meme sens
+    EUR fort/USD faible (ou l'inverse) chacun a leur maniere:
 
+    INDEX (avec `index_by_currency`, sinon omis): les indices EUR/USD tels
+    qu'affiches par INDEX CHG%D (meme rendu, cf. `_strength_status_lines`),
+    suivis d'une bille qui conclut leur propre sens (cf. `signed_strength`) --
+    un angle independant des paires.
+
+    PAIRES: la somme des pips des 7 paires USD et des 7 paires EUR *depuis la
+    reference 06h Paris*, suivie en continu run apres run par
+    `update_price_trends` -- la meme reference que celle utilisee par PAIRES
+    CHG%D, mais agregee ici par devise plutot qu'affichee paire par paire.
     Chaque ligne ajoute, entre parentheses, la meme somme mais *depuis le run
     precedent* (des que celui-ci existe): un repli peut demarrer avant que le
     solde depuis 06h ne bascule, donc ce second chiffre le rend visible plus
-    tot. La 4e ligne porte deux billes: la 1ere pour le sens depuis 06h, la 2e
-    pour le sens depuis le run precedent -- deux billes opposees signalent un
-    repli en cours malgre une tendance journaliere toujours engagee.
+    tot. La derniere ligne porte deux billes: la 1ere pour le sens depuis 06h,
+    la 2e pour le sens depuis le run precedent -- deux billes opposees
+    signalent un repli en cours malgre une tendance journaliere toujours
+    engagee.
 
-    Avec `index_by_currency`, deux lignes finales rappellent directement les
-    indices EUR/USD affiches par INDEX CHG%D (meme rendu que cette section,
-    cf. `_strength_status_lines`) et une derniere bille conclut leur propre
-    sens, pour comparer sans remonter au bloc INDEX CHG%D: un troisieme angle,
-    independant des paires, base sur le meme score que cette section (cf.
-    `signed_strength`)."""
+    PAIRES est le bloc obligatoire (fonction vide sans donnees exploitables
+    dessus); INDEX est additif et n'apparait que si EUR et USD y scorent."""
     usd_sum, usd_count = currency_pip_sum("USD", rows_by_pair, price_trends)
     eur_sum, eur_count = currency_pip_sum("EUR", rows_by_pair, price_trends)
     if usd_count == 0 or eur_count == 0:
@@ -1758,8 +1760,8 @@ def eurusd_cross_check_lines(
     )
     has_delta = usd_delta_count > 0 and eur_delta_count > 0
 
-    usd_line = f"Σ USD ({usd_count} paires) : {usd_sum:+.1f} pips"
-    eur_line = f"Σ EUR ({eur_count} paires) : {eur_sum:+.1f} pips"
+    usd_line = f"Σ USD : {usd_sum:+.1f} pips"
+    eur_line = f"Σ EUR : {eur_sum:+.1f} pips"
     if has_delta:
         usd_line += f" ({usd_delta:+.1f} pips)"
         eur_line += f" ({eur_delta:+.1f} pips)"
@@ -1769,8 +1771,9 @@ def eurusd_cross_check_lines(
         icon_run = "🟢" if eur_delta > usd_delta else ("🔴" if eur_delta < usd_delta else "⚪")
         icons += icon_run
 
-    lines = ["🧭 EURUSD CHECK", usd_line, eur_line, f"{icons} EURUSD"]
+    pairs_block = ["PAIRES", usd_line, eur_line, f"{icons} EURUSD"]
 
+    index_block: list[str] = []
     eur_index = (index_by_currency or {}).get("EUR")
     usd_index = (index_by_currency or {}).get("USD")
     if eur_index is not None and usd_index is not None:
@@ -1781,9 +1784,16 @@ def eurusd_cross_check_lines(
                 "🟢" if eur_index_strength > usd_index_strength
                 else ("🔴" if eur_index_strength < usd_index_strength else "⚪")
             )
-            lines.extend(_strength_status_lines([eur_index, usd_index]))
-            lines.append(f"{index_icon} EURUSD")
+            index_block = [
+                "INDEX", *_strength_status_lines([eur_index, usd_index]),
+                f"{index_icon} EURUSD",
+            ]
 
+    lines = ["🧭 EURUSD CHECK", ""]
+    if index_block:
+        lines.extend(index_block)
+        lines.append("")
+    lines.extend(pairs_block)
     return lines
 
 
