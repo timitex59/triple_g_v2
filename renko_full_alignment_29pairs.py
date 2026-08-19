@@ -82,6 +82,10 @@ PERFORMANCE_EXTENDED_RANK_LIMIT = 8
 # (une paire JPY bouge en pips bien plus large qu'une paire standard).
 PERFORMANCE_TRAILING_ARM_PIPS = 10.0
 PERFORMANCE_TRAILING_STOP_PCT = 0.30
+# Comme le DAY_END de VIVIER (VIVIER_PIPS_END_HOUR_PARIS): toute position
+# encore ouverte a cette heure Paris se cloture, quelle que soit sa
+# situation (❌, trailing stop ou rang), prioritaire sur ces autres regles.
+PERFORMANCE_FORCE_CLOSE_HOUR_PARIS = 23
 
 # Heure Paris a partir de laquelle le premier prix observe du jour devient la
 # reference du "premier signal" pour l'icone de continuation de tendance.
@@ -1503,7 +1507,12 @@ def update_performance_state(
     pic (`peak_pips`) de ce gain est memorise a chaque run pour le trailing
     stop ci-dessous.
 
-    Fermeture, au premier des 4 evenements suivants:
+    Fermeture, au premier des 5 evenements suivants:
+    - 23h Paris (SESSION_END, cf. PERFORMANCE_FORCE_CLOSE_HOUR_PARIS): comme
+      le DAY_END de VIVIER, TOUTE position encore ouverte a cette heure se
+      cloture, quelle que soit sa situation par ailleurs (❌, trailing stop
+      ou rang) -- prioritaire sur les 3 regles suivantes, et aucune nouvelle
+      position ne s'ouvre plus a partir de cette heure-la;
     - la paire montre ❌ pour la 1ere fois depuis l'ouverture
       (STOP_FIRST_CROSS, prix de ce run);
     - trailing stop (TRAILING_STOP): une fois le pic >=
@@ -1515,8 +1524,10 @@ def update_performance_state(
       reculer jusqu'a ce rang sans etre coupee, tant qu'elle reste
       non-divergente (une paire devenue divergente est deja absente de
       `extended_now`, cf. `all_pair_status_rows`);
-    - le changement de date Paris (SESSION_END): tout ce qui restait ouvert
-      se cloture au dernier `trend_pips` connu de la veille.
+    - le changement de date Paris sans qu'un run a 23h n'ait eu lieu
+      (SESSION_END aussi, filet de securite si le run de 23h a ete manque):
+      tout ce qui restait ouvert se cloture au dernier `trend_pips` connu de
+      la veille -- meme filet que VIVIER pour un run de 23h manque.
 
     Retourne l'etat mis a jour et la liste des trades clotures a ce run
     (vide la plupart du temps)."""
@@ -1539,15 +1550,17 @@ def update_performance_state(
     open_trades: dict[str, dict] = dict(old.get("open_trades") or {}) if same_day else {}
 
     if tracking_date and not same_day:
-        # Fin de la session precedente: tout ce qui restait ouvert se
-        # cloture au dernier trend_pips connu (le run juste avant le
-        # rollover), comme un trader qui solde a la fin de sa journee.
+        # Filet de securite si le run de 23h a ete manque (panne CI, etc.):
+        # tout ce qui restait ouvert se cloture au dernier trend_pips connu,
+        # comme le repli "missed 23:00 run" de VIVIER.
         for pair, trade in (old.get("open_trades") or {}).items():
             if trade.get("status") == "open":
                 last_pips = trade.get("last_pips")
                 if isinstance(last_pips, (int, float)):
                     _close(pair, last_pips, "SESSION_END")
         open_trades = {}
+
+    force_close_now = clock.hour >= PERFORMANCE_FORCE_CLOSE_HOUR_PARIS
 
     extended_set = set(extended_now or [])
     for pair in set(ever_top5 or []) | set(open_trades):
@@ -1558,7 +1571,11 @@ def update_performance_state(
 
         trade = open_trades.get(pair)
         if trade is None:
-            # 1ere apparition de cette paire dans le TOP5 aujourd'hui.
+            # 1ere apparition de cette paire dans le TOP5 aujourd'hui: pas de
+            # nouvelle position a l'heure de cloture forcee, ce serait pour
+            # la fermer dans la foulee.
+            if force_close_now:
+                continue
             if trend_icon == "❌":
                 open_trades[pair] = {"status": "ignored", "last_pips": 0.0}
                 continue
@@ -1577,7 +1594,10 @@ def update_performance_state(
             trade["last_pips"] = float(trend_pips) - trade["entry_pips"]
             trade["peak_pips"] = max(trade.get("peak_pips", 0.0), trade["last_pips"])
 
-        if trend_icon == "❌":
+        if force_close_now:
+            _close(pair, trade["last_pips"], "SESSION_END")
+            trade["status"] = "closed"
+        elif trend_icon == "❌":
             _close(pair, trade["last_pips"], "STOP_FIRST_CROSS")
             trade["status"] = "closed"
         elif (
