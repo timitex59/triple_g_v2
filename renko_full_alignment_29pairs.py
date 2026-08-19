@@ -1719,57 +1719,66 @@ def currency_pip_sum(
     return total, count
 
 
-def eurusd_cross_check_lines(
+def pair_check_lines(
+    pair: str,
     rows_by_pair: dict[str, dict] | None,
     price_trends: dict[str, dict] | None,
     index_by_currency: dict[str, dict] | None = None,
 ) -> list[str]:
-    """Section EURUSD CHECK: une ligne resumant, par bille, 3 sens EUR fort/USD
-    faible (ou l'inverse) independants, sans afficher les valeurs qui les
-    produisent (celles-ci restent lisibles ailleurs dans le message, dans
-    INDEX CHG%D et PAIRES CHG%D):
+    """Section `{PAIR} CHECK`: une ligne resumant, par bille, jusqu'a 3 sens
+    base-fort/quote-faible (ou l'inverse) independants pour `pair`, sans
+    afficher les valeurs qui les produisent (celles-ci restent lisibles
+    ailleurs dans le message, dans INDEX CHG%D et PAIRES CHG%D):
 
     INDEX (avec `index_by_currency`, sinon le segment est omis): les indices
-    EUR/USD eux-memes, via le meme score que INDEX CHG%D (cf.
-    `signed_strength`) -- un angle independant des paires.
+    des deux devises de `pair` eux-memes, via le meme score que INDEX CHG%D
+    (cf. `signed_strength`) -- un angle independant des paires.
 
-    06h: la somme des pips des 7 paires USD et des 7 paires EUR *depuis la
+    06h: la somme des pips des 7 paires de chaque devise de `pair` *depuis la
     reference 06h Paris*, suivie en continu run apres run par
     `update_price_trends` -- la meme reference que celle utilisee par PAIRES
     CHG%D, mais agregee ici par devise. C'est le seul segment obligatoire
-    (fonction vide sans donnees exploitables dessus).
+    (liste vide sans donnees exploitables dessus, ou si `pair` n'est pas une
+    paire de devises reconnue, cf. `_pair_currencies`).
 
     RUN (des qu'un run precedent existe aujourd'hui, sinon le segment est
     omis): la meme somme mais *depuis le run precedent* -- un repli peut
     demarrer avant que le solde 06h ne bascule, donc ce signal le rend
     visible plus tot. RUN qui diverge de 06h signale un repli en cours malgre
     une tendance journaliere toujours engagee."""
-    usd_sum, usd_count = currency_pip_sum("USD", rows_by_pair, price_trends)
-    eur_sum, eur_count = currency_pip_sum("EUR", rows_by_pair, price_trends)
-    if usd_count == 0 or eur_count == 0:
+    currencies = _pair_currencies(pair)
+    if currencies is None:
         return []
-    icon_06h = "🟢" if eur_sum > usd_sum else ("🔴" if eur_sum < usd_sum else "⚪")
+    base, quote = currencies
 
-    usd_delta, usd_delta_count = currency_pip_sum(
-        "USD", rows_by_pair, price_trends, field="pips_vs_previous_run",
+    base_sum, base_count = currency_pip_sum(base, rows_by_pair, price_trends)
+    quote_sum, quote_count = currency_pip_sum(quote, rows_by_pair, price_trends)
+    if base_count == 0 or quote_count == 0:
+        return []
+    icon_06h = "🟢" if base_sum > quote_sum else ("🔴" if base_sum < quote_sum else "⚪")
+
+    base_delta, base_delta_count = currency_pip_sum(
+        base, rows_by_pair, price_trends, field="pips_vs_previous_run",
     )
-    eur_delta, eur_delta_count = currency_pip_sum(
-        "EUR", rows_by_pair, price_trends, field="pips_vs_previous_run",
+    quote_delta, quote_delta_count = currency_pip_sum(
+        quote, rows_by_pair, price_trends, field="pips_vs_previous_run",
     )
     icon_run = None
-    if usd_delta_count > 0 and eur_delta_count > 0:
-        icon_run = "🟢" if eur_delta > usd_delta else ("🔴" if eur_delta < usd_delta else "⚪")
+    if base_delta_count > 0 and quote_delta_count > 0:
+        icon_run = (
+            "🟢" if base_delta > quote_delta else ("🔴" if base_delta < quote_delta else "⚪")
+        )
 
     icon_index = None
-    eur_index = (index_by_currency or {}).get("EUR")
-    usd_index = (index_by_currency or {}).get("USD")
-    if eur_index is not None and usd_index is not None:
-        eur_index_strength = signed_strength(eur_index)
-        usd_index_strength = signed_strength(usd_index)
-        if eur_index_strength is not None and usd_index_strength is not None:
+    base_index = (index_by_currency or {}).get(base)
+    quote_index = (index_by_currency or {}).get(quote)
+    if base_index is not None and quote_index is not None:
+        base_strength = signed_strength(base_index)
+        quote_strength = signed_strength(quote_index)
+        if base_strength is not None and quote_strength is not None:
             icon_index = (
-                "🟢" if eur_index_strength > usd_index_strength
-                else ("🔴" if eur_index_strength < usd_index_strength else "⚪")
+                "🟢" if base_strength > quote_strength
+                else ("🔴" if base_strength < quote_strength else "⚪")
             )
 
     segments = []
@@ -1779,7 +1788,18 @@ def eurusd_cross_check_lines(
     if icon_run is not None:
         segments.append(f"RUN {icon_run}")
 
-    return ["🧭 EURUSD CHECK", " · ".join(segments)]
+    return [f"🧭 {pair} CHECK", " · ".join(segments)]
+
+
+def eurusd_cross_check_lines(
+    rows_by_pair: dict[str, dict] | None,
+    price_trends: dict[str, dict] | None,
+    index_by_currency: dict[str, dict] | None = None,
+) -> list[str]:
+    """Section EURUSD CHECK affichee dans FULL MOMENTUM: fine enveloppe
+    EURUSD-only de `pair_check_lines`, la version generalisee utilisee par
+    PAIRE_CHECK (`paire_check.py`) pour EURUSD, CHFJPY, USDJPY, etc."""
+    return pair_check_lines("EURUSD", rows_by_pair, price_trends, index_by_currency)
 
 
 def format_full_alignment_message(
