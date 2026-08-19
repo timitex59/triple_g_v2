@@ -1273,8 +1273,10 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertEqual(state["open_trades"]["EURUSD"]["status"], "open")
 
     def test_performance_state_closes_all_open_trades_at_session_end(self):
-        """Cas 4 (USDCHF): jamais de ❌, jamais sortie du TOP5 -> cloture au
-        changement de date, sur le dernier ecart connu depuis l'entree."""
+        """Cas 4 (USDCHF): jamais de ❌, jamais sortie du TOP5, et le run de
+        23h Paris est manque (saute directement au lendemain 6h15) -> le
+        filet de securite cloture quand meme, sur le dernier ecart connu
+        depuis l'entree -- meme repli que VIVIER pour un run de 23h rate."""
         t0 = datetime(2026, 8, 19, 15, 9, tzinfo=PARIS)
         state, _ = update_performance_state(
             {}, ["USDCHF"], ["USDCHF"],
@@ -1294,8 +1296,37 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertEqual(newly_closed2[0]["pair"], "USDCHF")
         self.assertAlmostEqual(newly_closed2[0]["pips"], 67.8, places=6)
         self.assertEqual(newly_closed2[0]["reason"], "SESSION_END")
+
+    def test_performance_state_force_closes_everything_at_23h_paris(self):
+        """Comme le DAY_END de VIVIER (23h Paris): une position toujours
+        verte, toujours en tete du classement, sans trailing stop arme, se
+        cloture quand meme des que l'heure Paris atteint 23h -- prioritaire
+        sur toutes les autres regles."""
+        t0 = datetime(2026, 8, 19, 15, 0, tzinfo=PARIS)
+        state, _ = update_performance_state(
+            {}, ["EURUSD"], ["EURUSD"],
+            {"EURUSD": {"trend_pips": 20.0, "trend_icon": "✅"}}, t0,
+        )
+        t1 = datetime(2026, 8, 19, 23, 15, tzinfo=PARIS)
+        state, newly_closed = update_performance_state(
+            state, ["EURUSD"], ["EURUSD"],  # toujours 1ere, toujours ✅
+            {"EURUSD": {"trend_pips": 55.0, "trend_icon": "✅"}}, t1,
+        )
+        self.assertEqual(len(newly_closed), 1)
+        self.assertAlmostEqual(newly_closed[0]["pips"], 35.0, places=6)  # 55.0 - 20.0
+        self.assertEqual(newly_closed[0]["reason"], "SESSION_END")
+        self.assertEqual(state["open_trades"]["EURUSD"]["status"], "closed")
+
+    def test_performance_state_refuses_new_entries_at_23h_paris(self):
+        """A partir de 23h Paris, aucune nouvelle position ne s'ouvre -- ce
+        serait pour la refermer dans la foulee."""
+        run = datetime(2026, 8, 19, 23, 15, tzinfo=PARIS)
+        state, newly_closed = update_performance_state(
+            {}, ["GBPUSD"], ["GBPUSD"],
+            {"GBPUSD": {"trend_pips": 15.0, "trend_icon": "✅"}}, run,
+        )
+        self.assertEqual(newly_closed, [])
         self.assertEqual(state["open_trades"], {})
-        self.assertEqual(state["tracking_date"], "2026-08-20")
 
     def test_performance_general_bilan_matches_vivier_formulas(self):
         trades = [
