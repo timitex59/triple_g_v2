@@ -1470,6 +1470,31 @@ class FullAlignmentScannerTests(unittest.TestCase):
         # cours malgre une tendance journaliere toujours engagee.
         self.assertEqual(lines[3], "🟢🔴 EURUSD")
 
+    def test_eurusd_cross_check_lines_adds_the_index_lines_and_conclusion(self):
+        """`index_by_currency` ajoute un 3e angle: les indices EUR/USD bruts
+        (meme rendu qu'INDEX CHG%D) et leur propre conclusion EURUSD."""
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+        index_by_currency = {
+            "EUR": index_row("EXY", 1, 1, 1, daily_chg=1.54),
+            "USD": index_row("DXY", -1, -1, -1, daily_chg=-1.52),
+        }
+
+        lines = eurusd_cross_check_lines(rows_by_pair, price_trends, index_by_currency)
+
+        self.assertEqual(len(lines), 7)
+        self.assertTrue(lines[4].startswith("🟢 EUR ("))
+        self.assertTrue(lines[5].startswith("🔴 USD ("))
+        self.assertEqual(lines[6], "🟢 EURUSD")
+
+    def test_eurusd_cross_check_lines_omits_index_lines_without_index_by_currency(self):
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+
+        lines = eurusd_cross_check_lines(rows_by_pair, price_trends)
+
+        self.assertEqual(len(lines), 4)
+        self.assertEqual(lines, eurusd_cross_check_lines(rows_by_pair, price_trends, None))
+        self.assertEqual(lines, eurusd_cross_check_lines(rows_by_pair, price_trends, {}))
+
     def test_eurusd_cross_check_lines_empty_without_price_trends(self):
         rows_by_pair, _ = self._eurusd_check_fixture()
 
@@ -1479,23 +1504,28 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
     def test_message_shows_eurusd_check_section_after_index_block(self):
         rows_by_pair, price_trends = self._eurusd_check_fixture()
-        indices = [
-            index_row("DXY", 1, 1, 1, daily_chg=1.42),
-            index_row("EXY", 1, 1, 1, daily_chg=1.35),
-        ]
+        dxy = index_row("DXY", -1, -1, -1, daily_chg=-1.42)
+        exy = index_row("EXY", 1, 1, 1, daily_chg=1.35)
+        indices = [dxy, exy]
 
         message = format_full_alignment_message(
             [], now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
             index_status_rows=all_index_status_rows(indices),
             rows_by_pair=rows_by_pair,
             price_trends=price_trends,
+            index_by_currency={"USD": dxy, "EUR": exy},
         )
 
         self.assertIn("💱 INDEX CHG%D", message)
         self.assertIn("🧭 EURUSD CHECK", message)
         self.assertIn("🟢 EURUSD", message)
+        self.assertIn("🔴 USD (", message)
+        self.assertIn("🟢 EUR (", message)
         self.assertLess(message.index("💱 INDEX CHG%D"), message.index("🧭 EURUSD CHECK"))
         self.assertLess(message.index("🧭 EURUSD CHECK"), message.index("Σ USD (7 paires)"))
+        # Les 2 conclusions EURUSD (06h+run precedent, puis indices) sont bien
+        # dans le bloc EURUSD CHECK, pas fondues avec celle d'INDEX CHG%D.
+        self.assertEqual(message.count("🟢 EURUSD"), 2)
 
     def test_message_omits_eurusd_check_without_price_trends(self):
         """Avant la 1ere baseline 06h du jour (ou run isole sans price_trends

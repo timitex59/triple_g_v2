@@ -1722,6 +1722,7 @@ def currency_pip_sum(
 def eurusd_cross_check_lines(
     rows_by_pair: dict[str, dict] | None,
     price_trends: dict[str, dict] | None,
+    index_by_currency: dict[str, dict] | None = None,
 ) -> list[str]:
     """Section EURUSD CHECK: confirme (ou non) le sens EUR fort/USD faible (ou
     l'inverse) lu sur INDEX CHG%D, recalcule depuis la somme des pips des 7
@@ -1733,10 +1734,16 @@ def eurusd_cross_check_lines(
     Chaque ligne ajoute, entre parentheses, la meme somme mais *depuis le run
     precedent* (des que celui-ci existe): un repli peut demarrer avant que le
     solde depuis 06h ne bascule, donc ce second chiffre le rend visible plus
-    tot. La derniere ligne porte deux billes: la 1ere pour le sens depuis 06h,
-    la 2e pour le sens depuis le run precedent -- deux billes opposees
-    signalent un repli en cours malgre une tendance journaliere toujours
-    engagee."""
+    tot. La 4e ligne porte deux billes: la 1ere pour le sens depuis 06h, la 2e
+    pour le sens depuis le run precedent -- deux billes opposees signalent un
+    repli en cours malgre une tendance journaliere toujours engagee.
+
+    Avec `index_by_currency`, deux lignes finales rappellent directement les
+    indices EUR/USD affiches par INDEX CHG%D (meme rendu que cette section,
+    cf. `_strength_status_lines`) et une derniere bille conclut leur propre
+    sens, pour comparer sans remonter au bloc INDEX CHG%D: un troisieme angle,
+    independant des paires, base sur le meme score que cette section (cf.
+    `signed_strength`)."""
     usd_sum, usd_count = currency_pip_sum("USD", rows_by_pair, price_trends)
     eur_sum, eur_count = currency_pip_sum("EUR", rows_by_pair, price_trends)
     if usd_count == 0 or eur_count == 0:
@@ -1762,7 +1769,22 @@ def eurusd_cross_check_lines(
         icon_run = "🟢" if eur_delta > usd_delta else ("🔴" if eur_delta < usd_delta else "⚪")
         icons += icon_run
 
-    return ["🧭 EURUSD CHECK", usd_line, eur_line, f"{icons} EURUSD"]
+    lines = ["🧭 EURUSD CHECK", usd_line, eur_line, f"{icons} EURUSD"]
+
+    eur_index = (index_by_currency or {}).get("EUR")
+    usd_index = (index_by_currency or {}).get("USD")
+    if eur_index is not None and usd_index is not None:
+        eur_index_strength = signed_strength(eur_index)
+        usd_index_strength = signed_strength(usd_index)
+        if eur_index_strength is not None and usd_index_strength is not None:
+            index_icon = (
+                "🟢" if eur_index_strength > usd_index_strength
+                else ("🔴" if eur_index_strength < usd_index_strength else "⚪")
+            )
+            lines.extend(_strength_status_lines([eur_index, usd_index]))
+            lines.append(f"{index_icon} EURUSD")
+
+    return lines
 
 
 def format_full_alignment_message(
@@ -1806,7 +1828,10 @@ def format_full_alignment_message(
     et `price_trends`, la somme des pips depuis la reference 06h Paris des 7
     paires USD et des 7 paires EUR: une confirmation independante de l'INDEX
     CHG%D, suivie en continu run apres run via la meme baseline persistee que
-    PAIRES CHG%D plutot que depuis les indices dedies (TVC:DXY, TVC:EXY)."""
+    PAIRES CHG%D plutot que depuis les indices dedies (TVC:DXY, TVC:EXY). Avec
+    `index_by_currency`, la section rappelle aussi les indices EUR/USD
+    eux-memes et leur propre conclusion, pour comparer les trois angles
+    (06h, run precedent, indices) sans remonter au bloc INDEX CHG%D."""
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
     lines = ["📊 FULL MOMENTUM"]
 
@@ -1815,7 +1840,7 @@ def format_full_alignment_message(
     if index_status_rows:
         lines.extend(["", "💱 INDEX CHG%D"])
         lines.extend(_strength_status_lines(index_status_rows))
-    cross_check = eurusd_cross_check_lines(rows_by_pair, price_trends)
+    cross_check = eurusd_cross_check_lines(rows_by_pair, price_trends, index_by_currency)
     if cross_check:
         lines.extend([""])
         lines.extend(cross_check)
