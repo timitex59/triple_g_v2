@@ -28,6 +28,8 @@ from renko_full_alignment_29pairs import (
     performance_report_lines,
     strength_score,
     mid_alignment_candidate,
+    pair_check_lines,
+    pair_check_signals,
     raw_alignment_score,
     select_full_alignment_rows,
     select_index_daily_chg_rows,
@@ -1528,6 +1530,55 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
 
         self.assertNotIn("🧭 EURUSD CHECK", message)
+
+    def test_pair_check_lines_generalizes_to_a_non_eurusd_pair(self):
+        """`pair_check_lines` est la version generalisee derriere EURUSD
+        CHECK: verifie qu'elle marche identiquement pour CHFJPY (base CHF,
+        quote JPY), utilisee par PAIRE_CHECK."""
+        rows_by_pair = {
+            "CHFJPY": {"pair": "CHFJPY", "asset_type": "PAIR"},
+            "USDCHF": {"pair": "USDCHF", "asset_type": "PAIR"},
+            "USDJPY": {"pair": "USDJPY", "asset_type": "PAIR"},
+        }
+        price_trends = {
+            "CHFJPY": {"pips_vs_06h": 40.0},   # CHF base +40 -> +40 ; JPY quote +40 -> -40
+            "USDCHF": {"pips_vs_06h": -10.0},  # CHF quote -10 -> +10
+            "USDJPY": {"pips_vs_06h": 20.0},   # JPY quote +20 -> -20
+        }
+        # CHF: +40 (CHFJPY) + 10 (USDCHF) = +50. JPY: -40 (CHFJPY) - 20 (USDJPY) = -60.
+        # CHF > JPY -> bille verte.
+
+        lines = pair_check_lines("CHFJPY", rows_by_pair, price_trends)
+
+        self.assertEqual(lines, ["🧭 CHFJPY CHECK", "06h 🟢"])
+
+    def test_pair_check_signals_is_the_labels_and_icons_behind_pair_check_lines(self):
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+        index_by_currency = {
+            "EUR": index_row("EXY", 1, 1, 1, daily_chg=1.44),
+            "USD": index_row("DXY", -1, -1, -1, daily_chg=-1.43),
+        }
+
+        self.assertEqual(
+            pair_check_signals("EURUSD", rows_by_pair, price_trends, index_by_currency),
+            [("INDEX", "🟢"), ("06h", "🟢")],
+        )
+        self.assertEqual(pair_check_signals("NOTAPAIR", rows_by_pair, price_trends), [])
+
+    def test_pair_check_lines_empty_for_an_unrecognized_pair(self):
+        rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
+        price_trends = {"EURUSD": {"pips_vs_06h": 10.0}}
+
+        self.assertEqual(pair_check_lines("XAUUSD", rows_by_pair, price_trends), [])
+        self.assertEqual(pair_check_lines("NOTAPAIR", rows_by_pair, price_trends), [])
+
+    def test_eurusd_cross_check_lines_delegates_to_pair_check_lines(self):
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+
+        self.assertEqual(
+            eurusd_cross_check_lines(rows_by_pair, price_trends),
+            pair_check_lines("EURUSD", rows_by_pair, price_trends),
+        )
 
 
 if __name__ == "__main__":
