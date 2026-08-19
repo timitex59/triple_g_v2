@@ -17,6 +17,7 @@ from renko_full_alignment_29pairs import (
     currency_pip_sum,
     currency_spread,
     eurusd_cross_check_lines,
+    extended_rank_lines,
     signed_strength,
     signed_sync_product,
     sync_marker,
@@ -929,13 +930,20 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
         lines = message.splitlines()
         header = lines.index("💹 PAIRES CHG%D")
-        pair_lines = [
-            line for line in lines[header + 1:]
-            if line and not line.startswith("⏰")
-        ]
+        # S'arrete a la 1ere ligne vide: isole le seul bloc PAIRES CHG%D
+        # (TOP5), sans deborder sur RANGS 6-8 qui affiche legitimement les
+        # paires suivantes juste apres.
+        blank = lines.index("", header + 1)
+        pair_lines = [line for line in lines[header + 1:blank] if line]
 
         self.assertEqual(len(pair_lines), 5)
-        self.assertNotIn("GBPCAD", message)
+        # GBPJPY (6e) et GBPCAD (7e) restent visibles, mais dans RANGS 6-8,
+        # pas dans le bloc PAIRES CHG%D lui-meme.
+        self.assertNotIn("GBPJPY", pair_lines)
+        self.assertNotIn("GBPCAD", "\n".join(pair_lines))
+        self.assertIn("🎯 RANGS 6-8", message)
+        self.assertIn("GBPJPY", message)
+        self.assertIn("GBPCAD", message)
 
     def test_message_lists_pair_status_section(self):
         scanned = [
@@ -1098,6 +1106,63 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("📤 PAIRES OUT", message)
         self.assertIn("🔴 GBPCAD (1.90500) (depuis 09:15)", message)
         self.assertIn("🟢 NZDCAD (0.81600) ⚠️ (depuis 08:40)", message)
+
+    def test_extended_rank_lines_shows_ranks_6_to_8_marking_open_positions(self):
+        rows = [
+            {"pair": f"TOP{i}", "daily_chg": 0.1, "live_price": 1.0} for i in range(5)
+        ] + [
+            {"pair": "CHFJPY", "daily_chg": 0.9, "live_price": 198.130},
+            {"pair": "NZDJPY", "daily_chg": -0.3, "live_price": 93.920},
+            {"pair": "EURJPY", "daily_chg": 0.4, "live_price": 184.600},
+            {"pair": "AUDJPY", "daily_chg": -0.2, "live_price": 112.800},  # 9e: hors fenetre
+        ]
+        open_trades = {
+            "CHFJPY": {"status": "open", "entry_pips": 10.0, "last_pips": 5.0},
+            "NZDJPY": {"status": "ignored", "last_pips": 0.0},
+        }
+
+        lines = extended_rank_lines(rows, open_trades)
+
+        self.assertEqual(lines[0], "🎯 RANGS 6-8")
+        self.assertEqual(lines[1], "🟢 CHFJPY (198.130) 🔓")  # position reellement ouverte
+        self.assertEqual(lines[2], "🔴 NZDJPY (93.920)")  # ignoree: pas de 🔓
+        self.assertEqual(lines[3], "🟢 EURJPY (184.600)")  # jamais ouverte: pas de 🔓
+        self.assertNotIn("AUDJPY", "\n".join(lines))  # 9e rang, hors fenetre
+
+    def test_extended_rank_lines_includes_trend_icon_and_pips(self):
+        rows = [{"pair": f"TOP{i}", "daily_chg": 0.1, "live_price": 1.0} for i in range(5)] + [
+            {"pair": "CHFJPY", "daily_chg": 0.9, "live_price": 198.130},
+        ]
+        price_trends = {"CHFJPY": {"trend_icon": "✅", "trend_pips": 12.3}}
+
+        lines = extended_rank_lines(rows, {}, price_trends)
+
+        self.assertEqual(lines[1], "🟢 CHFJPY (198.130) ✅ +12.3 pips")
+
+    def test_extended_rank_lines_empty_below_6_pairs(self):
+        rows = [{"pair": f"TOP{i}", "daily_chg": 0.1, "live_price": 1.0} for i in range(5)]
+
+        self.assertEqual(extended_rank_lines(rows, {}), [])
+
+    def test_message_renders_rank68_section_after_paires_chg(self):
+        pair_status_rows = [
+            {"pair": f"TOP{i}", "daily_chg": 0.1, "live_price": 1.0} for i in range(5)
+        ] + [{"pair": "CHFJPY", "daily_chg": 0.9, "live_price": 198.130}]
+
+        message = format_full_alignment_message(
+            [], now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            pair_status_rows=pair_status_rows,
+            performance_open_trades={
+                "CHFJPY": {"status": "open", "entry_pips": 10.0, "last_pips": 5.0},
+            },
+        )
+
+        self.assertIn("💹 PAIRES CHG%D", message)
+        self.assertIn("🎯 RANGS 6-8", message)
+        self.assertIn("🟢 CHFJPY (198.130) 🔓", message)
+        self.assertLess(
+            message.index("💹 PAIRES CHG%D"), message.index("🎯 RANGS 6-8"),
+        )
 
     def test_performance_state_anchors_entry_to_first_top5_appearance_not_6h(self):
         """Cas 1 (USDJPY, 19/08/2026, cf. l'analyse Antigravity): une paire

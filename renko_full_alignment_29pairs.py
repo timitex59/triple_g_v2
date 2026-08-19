@@ -1481,6 +1481,44 @@ def _pairs_out_lines(
     return lines
 
 
+def extended_rank_lines(
+    pair_status_rows: list[dict],
+    open_trades: dict[str, dict] | None,
+    price_trends: dict[str, dict] | None = None,
+) -> list[str]:
+    """Section RANGS 6-8: les paires classees juste sous le TOP5 strict,
+    dans la fenetre encore toleree par PERF TOP5 sans etre coupee (cf.
+    PERFORMANCE_EXTENDED_RANK_LIMIT). Meme rendu que PAIRES CHG%D (icone,
+    prix, ✅/❌ depuis 06h), plus 🔓 pour les paires qui y portent une
+    position PERF TOP5 reellement ouverte -- distingue 'juste bien classee'
+    de 'position en cours qu'on tolere de ne pas couper'. Vide s'il y a
+    moins de 6 paires valides ce run-la (aucune n'occupe ces rangs)."""
+    extra = pair_status_rows[PAIR_SECTION_LIMIT:PERFORMANCE_EXTENDED_RANK_LIMIT]
+    if not extra:
+        return []
+    lines = ["🎯 RANGS 6-8"]
+    for row in extra:
+        pair = str(row.get("pair") or "")
+        icon = _daily_chg_icon(row.get("daily_chg"))
+        close_price = row.get("live_price")
+        price_txt = (
+            f" ({_format_close_price(float(close_price))})"
+            if isinstance(close_price, (int, float)) else ""
+        )
+        trend = (price_trends or {}).get(pair) or {}
+        trend_icon = trend.get("trend_icon") or ""
+        trend_pips = trend.get("trend_pips")
+        pips_txt = (
+            f" {_format_trend_pips(trend_pips)}"
+            if trend_icon and isinstance(trend_pips, (int, float)) else ""
+        )
+        trend_txt = f" {trend_icon}{pips_txt}" if trend_icon else ""
+        trade = (open_trades or {}).get(pair) or {}
+        position_txt = " 🔓" if trade.get("status") == "open" else ""
+        lines.append(f"{icon} {pair}{price_txt}{trend_txt}{position_txt}")
+    return lines
+
+
 def update_performance_state(
     previous: dict | None,
     extended_now: object,
@@ -1953,6 +1991,7 @@ def format_full_alignment_message(
     pairs_out: list[dict] | None = None,
     performance_lines: list[str] | None = None,
     streaky: list[dict] | None = None,
+    performance_open_trades: dict[str, dict] | None = None,
 ) -> str:
     """Message FULL MOMENTUM: statut de tous les indices puis de toutes les
     paires, classes par score d'intensite.
@@ -1976,6 +2015,11 @@ def format_full_alignment_message(
     alignement strict M/W/D (meme biais sur les trois timeframes) avec un
     streak Renko actif sur chacun -- independant du classement PAIRES CHG%D.
 
+    `performance_open_trades` (cf. `update_performance_state`, champ
+    `open_trades`) ajoute la section RANGS 6-8 (cf. `extended_rank_lines`):
+    les paires classees juste sous le TOP5, marquees 🔓 si elles y portent
+    une position PERF TOP5 reellement ouverte.
+
     EURUSD CHECK (cf. `eurusd_cross_check_lines`) resume en une ligne, par
     bille, jusqu'a 3 sens EUR fort/USD faible independants -- INDEX (avec
     `index_by_currency`), 06h et RUN (depuis `rows_by_pair`/`price_trends`) --
@@ -1998,6 +2042,10 @@ def format_full_alignment_message(
             pair_status_rows[:PAIR_SECTION_LIMIT], index_by_currency,
             show_close_price=True, price_trends=price_trends,
         ))
+        rank68 = extended_rank_lines(pair_status_rows, performance_open_trades, price_trends)
+        if rank68:
+            lines.extend([""])
+            lines.extend(rank68)
     if streaky:
         lines.extend(["", "🔥 STREAKY"])
         lines.extend(_streaky_lines(streaky))
@@ -2163,6 +2211,7 @@ def main() -> int:
         pairs_out=pairs_out,
         performance_lines=performance_lines,
         streaky=streaky,
+        performance_open_trades=performance_state.get("open_trades"),
     )
     print(message)
     if args.telegram:
