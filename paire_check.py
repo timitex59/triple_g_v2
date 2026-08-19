@@ -1,6 +1,8 @@
-"""PAIRE_CHECK: le verdict compact INDEX/06h/RUN (cf. `pair_check_lines` dans
-renko_full_alignment_29pairs.py) pour un jeu de paires choisies, sans lancer
-le scan complet 29 paires + 8 indices de ce dernier.
+"""PAIRE_CHECK: une ligne par paire, billes seules (`EURUSD 🟢🟢🟢`), a partir
+des memes signaux INDEX/06h/RUN que `pair_check_lines` dans
+renko_full_alignment_29pairs.py (cf. `pair_check_signals`), pour un jeu de
+paires choisies -- sans lancer le scan complet 29 paires + 8 indices de ce
+dernier.
 
 Seules les devises impliquees par les paires suivies sont recuperees:
 - INDEX: renko M/W/D complet (cf. `compute_asset_score`) pour chacune de ces
@@ -27,7 +29,7 @@ from renko_full_alignment_29pairs import (
     _pair_currencies,
     compute_asset_score,
     load_price_trend_state,
-    pair_check_lines,
+    pair_check_signals,
     save_price_trend_state,
     update_price_trends,
 )
@@ -130,22 +132,34 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def pair_check_compact_line(
+    pair: str, rows_by_pair: dict[str, dict], price_trends: dict[str, dict],
+    index_by_currency: dict[str, dict],
+) -> str | None:
+    """`"{PAIR} {billes}"` (ex. `EURUSD 🟢🟢🟢`), billes seules dans l'ordre
+    INDEX/06h/RUN, sans label -- cf. `pair_check_signals` pour leur sens.
+    None si aucun signal n'est exploitable pour `pair`."""
+    signals = pair_check_signals(pair, rows_by_pair, price_trends, index_by_currency)
+    if not signals:
+        return None
+    return f"{pair} " + "".join(icon for _label, icon in signals)
+
+
 def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
                   price_trends: dict[str, dict], index_by_currency: dict[str, dict],
                   now: datetime) -> tuple[str, bool]:
     """Assemble le message PAIRE_CHECK. Renvoie (message, has_content): le 2e
     indique si au moins une paire a produit une ligne exploitable, pour
     conditionner l'envoi Telegram cote `main`."""
-    lines = ["📐 PAIRE_CHECK"]
-    has_content = False
-    for pair in pairs:
-        check = pair_check_lines(pair, rows_by_pair, price_trends, index_by_currency)
-        if not check:
-            continue
-        has_content = True
-        lines.extend(["", *check])
-    lines.extend(["", f"⏰ {now:%Y-%m-%d %H:%M} Paris"])
-    return "\n".join(lines), has_content
+    pair_lines = [
+        line for line in (
+            pair_check_compact_line(pair, rows_by_pair, price_trends, index_by_currency)
+            for pair in pairs
+        )
+        if line is not None
+    ]
+    lines = ["📐 PAIRE_CHECK", "", *pair_lines, "", f"⏰ {now:%Y-%m-%d %H:%M} Paris"]
+    return "\n".join(lines), bool(pair_lines)
 
 
 def main() -> int:

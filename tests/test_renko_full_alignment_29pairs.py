@@ -29,6 +29,7 @@ from renko_full_alignment_29pairs import (
     strength_score,
     mid_alignment_candidate,
     pair_check_lines,
+    pair_check_signals,
     raw_alignment_score,
     select_full_alignment_rows,
     select_index_daily_chg_rows,
@@ -1550,6 +1551,19 @@ class FullAlignmentScannerTests(unittest.TestCase):
         lines = pair_check_lines("CHFJPY", rows_by_pair, price_trends)
 
         self.assertEqual(lines, ["🧭 CHFJPY CHECK", "06h 🟢"])
+
+    def test_pair_check_signals_is_the_labels_and_icons_behind_pair_check_lines(self):
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+        index_by_currency = {
+            "EUR": index_row("EXY", 1, 1, 1, daily_chg=1.44),
+            "USD": index_row("DXY", -1, -1, -1, daily_chg=-1.43),
+        }
+
+        self.assertEqual(
+            pair_check_signals("EURUSD", rows_by_pair, price_trends, index_by_currency),
+            [("INDEX", "🟢"), ("06h", "🟢")],
+        )
+        self.assertEqual(pair_check_signals("NOTAPAIR", rows_by_pair, price_trends), [])
 
     def test_pair_check_lines_empty_for_an_unrecognized_pair(self):
         rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
