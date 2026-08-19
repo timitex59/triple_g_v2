@@ -18409,6 +18409,29 @@
       "reason": "MONTHLY_OR_SCORE_INVALID",
       "time_paris": "2026-08-19T15:00:00+02:00",
       "time_utc": "2026-08-19T13:00:00+00:00"
+    },
+    {
+      "base_pct": 83.33333333333334,
+      "complete": false,
+      "direction": 1,
+      "entered_at_paris": "2026-08-19 15:56",
+      "event_id": "e686645881d0c3aca4e4",
+      "event_type": "VIVIER_ENTRY",
+      "fib_pct_of_range": 47.00854700854683,
+      "fib_position": "Fibo <0.500",
+      "final_pct": 0.0,
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "objective_value": 0.57811,
+      "pair": "AUDCHF",
+      "price": 0.57288,
+      "px": {
+        "D": 0,
+        "M": 1,
+        "W": 1
+      },
+      "time_paris": "2026-08-19T15:00:00+02:00",
+      "time_utc": "2026-08-19T13:00:00+00:00"
     }
   ],
   "pair_profiles": {
@@ -18491,6 +18514,69 @@
         "profitable_within_4h_pct": 50.0,
         "profitable_within_72h_pct": 100.0,
         "signals": 2,
+        "status": "LEARNING"
+      }
+    },
+    "AUDCHF": {
+      "by_direction": {
+        "BULL": {
+          "break_even_pct": 0.02,
+          "complete_72h": 0,
+          "exit_window_h1": null,
+          "median_adverse_sar_h1": null,
+          "median_first_profitable_h1": null,
+          "median_first_stable_profitable_h1": null,
+          "median_objective_h1": null,
+          "median_peak_h1": null,
+          "minimum_complete_required": 20,
+          "objective_hit_rate_pct": null,
+          "objective_samples": 0,
+          "profitable_within_12h_pct": null,
+          "profitable_within_24h_pct": null,
+          "profitable_within_4h_pct": null,
+          "profitable_within_72h_pct": null,
+          "signals": 1,
+          "status": "LEARNING"
+        }
+      },
+      "by_signal": {
+        "VIVIER_ENTRY": {
+          "break_even_pct": 0.02,
+          "complete_72h": 0,
+          "exit_window_h1": null,
+          "median_adverse_sar_h1": null,
+          "median_first_profitable_h1": null,
+          "median_first_stable_profitable_h1": null,
+          "median_objective_h1": null,
+          "median_peak_h1": null,
+          "minimum_complete_required": 20,
+          "objective_hit_rate_pct": null,
+          "objective_samples": 0,
+          "profitable_within_12h_pct": null,
+          "profitable_within_24h_pct": null,
+          "profitable_within_4h_pct": null,
+          "profitable_within_72h_pct": null,
+          "signals": 1,
+          "status": "LEARNING"
+        }
+      },
+      "overall": {
+        "break_even_pct": 0.02,
+        "complete_72h": 0,
+        "exit_window_h1": null,
+        "median_adverse_sar_h1": null,
+        "median_first_profitable_h1": null,
+        "median_first_stable_profitable_h1": null,
+        "median_objective_h1": null,
+        "median_peak_h1": null,
+        "minimum_complete_required": 20,
+        "objective_hit_rate_pct": null,
+        "objective_samples": 0,
+        "profitable_within_12h_pct": null,
+        "profitable_within_24h_pct": null,
+        "profitable_within_4h_pct": null,
+        "profitable_within_72h_pct": null,
+        "signals": 1,
         "status": "LEARNING"
       }
     },
@@ -20286,7 +20372,7 @@
         "avg_mae_72h_pct": -0.6331706503494917,
         "avg_mfe_72h_pct": 0.46396692473440915,
         "complete": 77,
-        "count": 79,
+        "count": 80,
         "horizons": {
           "12h": {
             "avg_directional_pct": -0.08072653613545014,
@@ -20402,7 +20488,7 @@
       "avg_mae_72h_pct": -0.5634866725024578,
       "avg_mfe_72h_pct": 0.44420123690466,
       "complete": 252,
-      "count": 259,
+      "count": 260,
       "horizons": {
         "12h": {
           "avg_directional_pct": -0.06984598528825385,
@@ -20436,8 +20522,8 @@
         }
       }
     },
-    "total": 259
+    "total": 260
   },
-  "updated_at_utc": "2026-08-19T13:17:14.945213+00:00",
+  "updated_at_utc": "2026-08-19T13:56:59.181826+00:00",
   "version": 3
 }
