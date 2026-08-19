@@ -1121,7 +1121,10 @@ def update_price_trends(previous: dict | None, rows: list[dict],
     `h1_close_lookup(tv_symbol, clock) -> float | None` est injectable pour les
     tests; par defaut c'est `_default_h1_close_near_baseline_hour`, qui
     interroge TradingView.
-    """
+
+    Chaque entree expose aussi `pips_vs_06h`: le meme ecart que `trend_pips`
+    mais signe normalement (prix monte = positif), sans reorientation vers le
+    sens du premier signal. C'est la source de `eurusd_cross_check_lines`."""
     h1_close_lookup = h1_close_lookup or _default_h1_close_near_baseline_hour
     clock = now.astimezone(PARIS_TZ)
     today = clock.date().isoformat()
@@ -1159,12 +1162,22 @@ def update_price_trends(previous: dict | None, rows: list[dict],
             baseline_direction = _daily_chg_direction(row.get("daily_chg"))
         previous_price = prior.get("previous")
         trend_pips = _trend_delta_pips(pair, price, baseline, baseline_direction)
+        # Ecart brut vs la reference 06h, signe dans le sens normal du prix
+        # (positif = prix monte), a la difference de `trend_pips` qui est
+        # oriente dans le sens du premier signal du jour. Sert de source
+        # continue (run apres run, portee par la meme baseline persistee) a
+        # `eurusd_cross_check_lines`, qui la reoriente ensuite par devise.
+        pips_vs_06h = (
+            (price - float(baseline)) / _pip_size(pair)
+            if isinstance(baseline, (int, float)) else None
+        )
         trends[pair] = {
             "price": price,
             "vs_06h": _price_arrow(price, baseline),
             "vs_previous": _price_arrow(price, previous_price),
             "trend_icon": _trend_continuation_icon(trend_pips),
             "trend_pips": trend_pips,
+            "pips_vs_06h": pips_vs_06h,
         }
         new_pairs[pair] = {
             "baseline_price": baseline,
@@ -1657,6 +1670,65 @@ def performance_report_lines(report: dict, newly_closed_count: int) -> list[str]
     return lines
 
 
+def currency_pip_sum(
+    currency: str,
+    rows_by_pair: dict[str, dict] | None,
+    price_trends: dict[str, dict] | None,
+) -> tuple[float, int]:
+    """Somme des pips depuis la reference 06h Paris (`pips_vs_06h`, cf.
+    `update_price_trends`) de toutes les paires impliquant `currency`,
+    orientee dans le sens de force de cette devise: positive quand elle est
+    base et monte, negative quand elle est quote et monte (la devise en face
+    s'est renforcee a ses depens).
+
+    Contrairement a un simple CHG%D (qui repart de zero a chaque cloture
+    quotidienne), `pips_vs_06h` est porte par la baseline persistee dans
+    `renko_full_alignment_price_trend_state.json`: le meme point de depart
+    reste valable d'un run a l'autre sur toute la journee, donc cette somme
+    suit reellement l'ecart entre les deux devises en continu."""
+    total = 0.0
+    count = 0
+    for row in (rows_by_pair or {}).values():
+        if row.get("asset_type") == "INDEX":
+            continue
+        pair = str(row.get("pair") or "")
+        currencies = _pair_currencies(pair)
+        if currencies is None or currency not in currencies:
+            continue
+        trend = (price_trends or {}).get(pair) or {}
+        pips = trend.get("pips_vs_06h")
+        if not isinstance(pips, (int, float)):
+            continue
+        base, _quote = currencies
+        total += pips if base == currency else -pips
+        count += 1
+    return total, count
+
+
+def eurusd_cross_check_lines(
+    rows_by_pair: dict[str, dict] | None,
+    price_trends: dict[str, dict] | None,
+) -> list[str]:
+    """Section EURUSD CHECK: confirme (ou non) le sens EUR fort/USD faible (ou
+    l'inverse) lu sur INDEX CHG%D, recalcule depuis la somme des pips des 7
+    paires USD et des 7 paires EUR *depuis la reference 06h Paris*, suivie en
+    continu run apres run par `update_price_trends` -- la meme reference que
+    celle utilisee par PAIRES CHG%D, mais agregee ici par devise plutot
+    qu'affichee paire par paire."""
+    usd_sum, usd_count = currency_pip_sum("USD", rows_by_pair, price_trends)
+    eur_sum, eur_count = currency_pip_sum("EUR", rows_by_pair, price_trends)
+    if usd_count == 0 or eur_count == 0:
+        return []
+    diff = eur_sum - usd_sum
+    icon = "🟢" if diff > 0 else ("🔴" if diff < 0 else "⚪")
+    return [
+        "🧭 EURUSD CHECK",
+        f"Σ USD ({usd_count} paires) : {usd_sum:+.1f} pips",
+        f"Σ EUR ({eur_count} paires) : {eur_sum:+.1f} pips",
+        f"{icon} EURUSD",
+    ]
+
+
 def format_full_alignment_message(
     rows: list[dict] | None = None,
     mid_sar_rows: list[dict] | None = None,
@@ -1692,7 +1764,13 @@ def format_full_alignment_message(
 
     `streaky` (cf. `streaky_pairs`) ajoute la section STREAKY: les paires en
     alignement strict M/W/D (meme biais sur les trois timeframes) avec un
-    streak Renko actif sur chacun -- independant du classement PAIRES CHG%D."""
+    streak Renko actif sur chacun -- independant du classement PAIRES CHG%D.
+
+    EURUSD CHECK (cf. `eurusd_cross_check_lines`) recalcule, depuis `rows_by_pair`
+    et `price_trends`, la somme des pips depuis la reference 06h Paris des 7
+    paires USD et des 7 paires EUR: une confirmation independante de l'INDEX
+    CHG%D, suivie en continu run apres run via la meme baseline persistee que
+    PAIRES CHG%D plutot que depuis les indices dedies (TVC:DXY, TVC:EXY)."""
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
     lines = ["📊 FULL MOMENTUM"]
 
@@ -1701,6 +1779,10 @@ def format_full_alignment_message(
     if index_status_rows:
         lines.extend(["", "💱 INDEX CHG%D"])
         lines.extend(_strength_status_lines(index_status_rows))
+    cross_check = eurusd_cross_check_lines(rows_by_pair, price_trends)
+    if cross_check:
+        lines.extend([""])
+        lines.extend(cross_check)
     if pair_status_rows:
         lines.extend(["", "💹 PAIRES CHG%D"])
         lines.extend(_strength_status_lines(
