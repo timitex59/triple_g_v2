@@ -1,15 +1,16 @@
-"""PAIRE_CHECK: une ligne par paire, billes seules (`EURUSD 🟢🟢🟢`), a partir
-des memes signaux INDEX/06h/RUN que `pair_check_lines` dans
+"""PAIRE_CHECK: une section INDEX CHG%D identique a celle de FULL MOMENTUM
+(les 8 devises) suivie d'une ligne par paire, billes seules (`EURUSD 🟢🟢🟢`),
+a partir des memes signaux INDEX/06h/RUN que `pair_check_lines` dans
 renko_full_alignment_29pairs.py (cf. `pair_check_signals`), pour un jeu de
-paires choisies -- sans lancer le scan complet 29 paires + 8 indices de ce
-dernier.
+paires choisies -- sans lancer le scan complet 29 paires de ce dernier.
 
-Seules les devises impliquees par les paires suivies sont recuperees:
-- INDEX: renko M/W/D complet (cf. `compute_asset_score`) pour chacune de ces
-  devises seulement, pas les 8.
-- 06h / RUN: close Daily (prix + CHG%D) pour toutes les paires OANDA du
-  scanner qui impliquent au moins une de ces devises -- assez pour que
-  `currency_pip_sum` retrouve ses 7 paires par devise, sans le reste.
+- INDEX: renko M/W/D complet (cf. `compute_asset_score`) pour les 8 devises,
+  comme FULL MOMENTUM -- alimente a la fois la section INDEX CHG%D affichee
+  et le segment INDEX de chaque ligne PAIRES.
+- 06h / RUN: close Daily (prix + CHG%D) pour le sous-ensemble des 28 paires
+  OANDA du scanner qui impliquent au moins une devise des paires suivies --
+  assez pour que `currency_pip_sum` retrouve ses 7 paires par devise, sans
+  fetcher les 28.
 
 L'etat de reference 06h/run precedent (`update_price_trends`) est persiste
 dans son propre fichier, independant de celui de renko_full_alignment_29pairs
@@ -27,6 +28,8 @@ from renko_full_alignment_29pairs import (
     FOREX_PAIR_ASSETS,
     PARIS_TZ,
     _pair_currencies,
+    _strength_status_lines,
+    all_index_status_rows,
     compute_asset_score,
     load_price_trend_state,
     pair_check_signals,
@@ -86,22 +89,18 @@ def fetch_pair_row(pair: str) -> dict | None:
     }
 
 
-def fetch_index_by_currency(
-    currencies: set[str], length: int, candles: int, max_streak: int,
-) -> dict[str, dict]:
-    """Renko M/W/D complet (cf. `compute_asset_score`) pour chaque devise de
-    `currencies`, indexe par devise -- alimente le segment INDEX."""
-    index_by_currency: dict[str, dict] = {}
+def fetch_index_rows(length: int, candles: int, max_streak: int) -> list[dict]:
+    """Renko M/W/D complet (cf. `compute_asset_score`) pour les 8 devises --
+    alimente a la fois la section INDEX CHG%D et le segment INDEX de chaque
+    ligne PAIRES (via `index_by_currency`, construit par l'appelant)."""
+    rows: list[dict] = []
     for asset in FOREX_INDEX_ASSETS:
-        currency = str(asset.get("currency") or "")
-        if currency not in currencies:
-            continue
         row = compute_asset_score(asset, length, candles, max_streak)
         if row is not None:
-            index_by_currency[currency] = row
+            rows.append(row)
         else:
-            print(f"{currency} ({asset['pair']}): pas de donnees indice")
-    return index_by_currency
+            print(f"{asset.get('currency')} ({asset['pair']}): pas de donnees indice")
+    return rows
 
 
 def parse_args() -> argparse.Namespace:
@@ -145,12 +144,23 @@ def pair_check_compact_line(
     return f"{pair} " + "".join(icon for _label, icon in signals)
 
 
+def index_chg_lines(index_rows: list[dict]) -> list[str]:
+    """Section `💱 INDEX CHG%D`, identique a celle de FULL MOMENTUM (les 8
+    devises, memes icones/valeurs, cf. `all_index_status_rows` et
+    `_strength_status_lines`). Vide si `index_rows` l'est."""
+    sorted_rows = all_index_status_rows(index_rows)
+    if not sorted_rows:
+        return []
+    return ["💱 INDEX CHG%D", *_strength_status_lines(sorted_rows)]
+
+
 def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
                   price_trends: dict[str, dict], index_by_currency: dict[str, dict],
                   now: datetime) -> tuple[str, bool]:
     """Assemble le message PAIRE_CHECK. Renvoie (message, has_content): le 2e
     indique si au moins une paire a produit une ligne exploitable, pour
-    conditionner l'envoi Telegram cote `main`."""
+    conditionner l'envoi Telegram cote `main` (la section INDEX CHG%D seule
+    ne suffit pas a envoyer -- c'est un rappel, pas le coeur du message)."""
     pair_lines = [
         line for line in (
             pair_check_compact_line(pair, rows_by_pair, price_trends, index_by_currency)
@@ -158,7 +168,16 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
         )
         if line is not None
     ]
-    lines = ["📐 PAIRE_CHECK", "", *pair_lines, "", f"⏰ {now:%Y-%m-%d %H:%M} Paris"]
+
+    lines = ["📐 PAIRE_CHECK", ""]
+    index_lines = index_chg_lines(list(index_by_currency.values()))
+    if index_lines:
+        lines.extend(index_lines)
+        lines.append("")
+    if pair_lines:
+        lines.extend(["PAIRES", *pair_lines])
+        lines.append("")
+    lines.append(f"⏰ {now:%Y-%m-%d %H:%M} Paris")
     return "\n".join(lines), bool(pair_lines)
 
 
@@ -175,9 +194,8 @@ def main() -> int:
     new_state, price_trends = update_price_trends(state, rows, now)
     save_price_trend_state(args.state_file, new_state)
 
-    index_by_currency = fetch_index_by_currency(
-        currencies, args.length, args.candles, args.max_streak,
-    )
+    index_rows = fetch_index_rows(args.length, args.candles, args.max_streak)
+    index_by_currency = {str(row["currency"]): row for row in index_rows}
 
     message, has_content = build_message(
         args.pairs, rows_by_pair, price_trends, index_by_currency, now,
