@@ -41,6 +41,10 @@ PERFORMANCE_STATE_FILE = Path("renko_full_alignment_performance_state.json")
 # Meme seuil que VIVIER_PIPS_DAY_RESULT_EPSILON: un trade clos en dessous ne
 # compte ni comme gagnant ni comme perdant (bruit de cloture).
 PERFORMANCE_FLAT_EPSILON_PIPS = 0.05
+# Fenetre de fraicheur du declencheur SAR H1 (🎯) sur STREAKY: reste affiche
+# tant que la derniere cassure remonte a au plus N bougies H1 (0 = la bougie
+# la plus recente), pas uniquement sur le run exact ou elle s'est produite.
+STREAKY_SAR_CONFIRM_WINDOW_BARS = 2
 # Sidecar per-devise (force via index DXY/EXY/... + alignement M/W/D) lu par FIOS
 # pour croiser cette analyse avec sa force composite (confluence inter-systemes).
 INDEX_SIDECAR_FILE = Path("full_alignment_index.json")
@@ -297,6 +301,11 @@ def sar_break_state_from_close_sar(closes: list[float], sar_values: list[float])
         "last_sar_break_direction": int(last_event["direction"]) if last_event else 0,
         "last_sar_break_kind": str(last_event["kind"]) if last_event else "",
         "last_sar_break_level": float(last_event["level"]) if last_event else None,
+        # Anciennete en bougies H1 de la derniere cassure (0 = bougie la plus
+        # recente, 1 = l'avant-derniere, etc.). None sans cassure connue.
+        "bars_since_last_break": (
+            last_bar_index - int(last_event["index"]) if last_event is not None else None
+        ),
         "events": events,
     }
 
@@ -1275,6 +1284,84 @@ def _strength_status_lines(
     return lines
 
 
+def streaky_pairs(rows: list[dict]) -> list[dict]:
+    """Paires en alignement strict M/W/D (meme biais BULL ou BEAR sur les
+    trois timeframes) avec un streak Renko actif (non nul) sur chacun.
+
+    Le biais peut rester BULL/BEAR meme quand la derniere brique d'un TF est
+    opposee (cf. `f_effective_bias`): dans ce cas le streak dans le sens du
+    biais tombe a 0 (ex: 'W+(0)' - biais haussier mais aucune brique verte
+    consecutive en cours). Ces cas-la sont exclus ici: on ne garde que les
+    paires ou le streak est reellement engage sur les trois timeframes."""
+    matches: list[dict] = []
+    for row in rows:
+        if row.get("asset_type") == "INDEX":
+            continue
+        bias = row.get("bias") or {}
+        directions = {bias.get(tf) for tf in ("M", "W", "D")}
+        if len(directions) != 1:
+            continue
+        direction = directions.pop()
+        if direction not in (1, -1):
+            continue
+        states = row.get("states") or {}
+        streak_attr = "green_streak" if direction == 1 else "red_streak"
+        streaks: dict[str, int] = {}
+        for tf in ("M", "W", "D"):
+            streak = getattr(states.get(tf), streak_attr, 0)
+            if not streak:
+                break
+            streaks[tf] = int(streak)
+        else:
+            px = row.get("px") or {}
+            # Un TF au streak actif peut quand meme etre "porte" par
+            # l'historique plutot que confirme par le prix live: f_effective_bias
+            # ne suit le streak que quand px_state == 0 (prix encore a
+            # l'interieur de la derniere brique). Le px_state oppose au biais
+            # est structurellement impossible ici (le biais suivrait le px
+            # directement) -- seul 0 signale un TF "a risque".
+            carried_tfs = [tf for tf in ("M", "W", "D") if px.get(tf) != direction]
+            matches.append({
+                "pair": str(row.get("pair") or ""),
+                "direction": direction,
+                "streaks": streaks,
+                "px": {tf: px.get(tf, 0) for tf in ("M", "W", "D")},
+                "carried_tfs": carried_tfs,
+            })
+    matches.sort(key=lambda item: (-sum(item["streaks"].values()), item["pair"]))
+    return matches
+
+
+def streaky_sar_confirmed(sar_break: dict | None, direction: int) -> bool:
+    """True si la derniere cassure SAR H1 connue va dans le sens de
+    `direction` et remonte a au plus STREAKY_SAR_CONFIRM_WINDOW_BARS bougies
+    H1 (0 = la bougie la plus recente): le declencheur 🎯 reste donc affiche
+    quelques bougies apres l'evenement, pas uniquement au run exact ou il
+    s'est produit."""
+    sar_break = sar_break or {}
+    if sar_break.get("last_sar_break_direction") != direction:
+        return False
+    bars_since = sar_break.get("bars_since_last_break")
+    return isinstance(bars_since, int) and bars_since <= STREAKY_SAR_CONFIRM_WINDOW_BARS
+
+
+def _streaky_lines(entries: list[dict]) -> list[str]:
+    px_sign = {1: "+", -1: "-", 0: "0"}
+    lines: list[str] = []
+    for entry in entries:
+        icon = "🟢" if entry["direction"] == 1 else "🔴"
+        streaks = entry["streaks"]
+        px = entry.get("px") or {}
+        parts = " ".join(
+            f"{tf}{px_sign.get(px.get(tf), '0')}({streaks[tf]})"
+            for tf in ("M", "W", "D")
+        )
+        risk_txt = " ⚠️" if entry.get("carried_tfs") else ""
+        sar_txt = " 🎯" if entry.get("sar_confirmed") else ""
+        lines.append(f"{icon} {entry['pair']} {parts}{risk_txt}{sar_txt}")
+    return lines
+
+
 def update_pairs_out_state(
     previous: dict | None, pair_status_rows: list[dict], now: datetime,
 ) -> tuple[dict, list[dict]]:
@@ -1583,6 +1670,7 @@ def format_full_alignment_message(
     price_trends: dict[str, dict] | None = None,
     pairs_out: list[dict] | None = None,
     performance_lines: list[str] | None = None,
+    streaky: list[dict] | None = None,
 ) -> str:
     """Message FULL MOMENTUM: statut de tous les indices puis de toutes les
     paires, classes par score d'intensite.
@@ -1600,7 +1688,11 @@ def format_full_alignment_message(
     `performance_lines` (cf. `performance_report_lines`) ajoute le suivi de
     performance du TOP5: pips du jour, cumuls semaine/mois/annee, et un
     bilan general complet (taux de reussite, profit factor, drawdown...) au
-    run qui vient de clore les trades de la veille."""
+    run qui vient de clore les trades de la veille.
+
+    `streaky` (cf. `streaky_pairs`) ajoute la section STREAKY: les paires en
+    alignement strict M/W/D (meme biais sur les trois timeframes) avec un
+    streak Renko actif sur chacun -- independant du classement PAIRES CHG%D."""
     now = (now or datetime.now(PARIS_TZ)).astimezone(PARIS_TZ)
     lines = ["📊 FULL MOMENTUM"]
 
@@ -1615,6 +1707,9 @@ def format_full_alignment_message(
             pair_status_rows[:PAIR_SECTION_LIMIT], index_by_currency,
             show_close_price=True, price_trends=price_trends,
         ))
+    if streaky:
+        lines.extend(["", "🔥 STREAKY"])
+        lines.extend(_streaky_lines(streaky))
     if pairs_out:
         lines.extend(["", "📤 PAIRES OUT"])
         lines.extend(_pairs_out_lines(pairs_out, rows_by_pair))
@@ -1733,6 +1828,15 @@ def main() -> int:
     save_mid_sar_history_state(args.mid_sar_state_file, history_state)
     index_status_rows = all_index_status_rows(rows)
     pair_status_rows = all_pair_status_rows(rows, index_by_currency)
+    streaky = streaky_pairs(rows)
+    # Fetch H1 cible: seulement les quelques paires STREAKY, pas les 28.
+    streaky_sar_rows = [
+        rows_by_pair[m["pair"]] for m in streaky if m["pair"] in rows_by_pair
+    ]
+    attach_sar_break_states(streaky_sar_rows, args.sar_candles)
+    for match in streaky:
+        sar_break = (rows_by_pair.get(match["pair"]) or {}).get("sar_break")
+        match["sar_confirmed"] = streaky_sar_confirmed(sar_break, match["direction"])
     pairs_out_state = load_price_trend_state(args.pairs_out_state_file)
     pairs_out_state, pairs_out = update_pairs_out_state(pairs_out_state, pair_status_rows, now)
     save_price_trend_state(args.pairs_out_state_file, pairs_out_state)
@@ -1763,6 +1867,7 @@ def main() -> int:
         price_trends=price_trends,
         pairs_out=pairs_out,
         performance_lines=performance_lines,
+        streaky=streaky,
     )
     print(message)
     if args.telegram:
@@ -1773,7 +1878,7 @@ def main() -> int:
         # au lieu de l'ancienne liste d'alignement strict M/W/D retiree de
         # l'affichage par le commit "retitle FULL MOMENTUM", qui pouvait le
         # laisser silencieux alors que le message avait du contenu.
-        if not index_status_rows and not pair_status_rows and not pairs_out:
+        if not index_status_rows and not pair_status_rows and not pairs_out and not streaky:
             print("Ni INDEX CHG%D ni PAIRES CHG%D n'ont de contenu : message Telegram ignoré.")
         else:
             send_telegram_message(message)
