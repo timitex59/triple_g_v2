@@ -1719,33 +1719,33 @@ def currency_pip_sum(
     return total, count
 
 
-def pair_check_lines(
+def pair_check_signals(
     pair: str,
     rows_by_pair: dict[str, dict] | None,
     price_trends: dict[str, dict] | None,
     index_by_currency: dict[str, dict] | None = None,
-) -> list[str]:
-    """Section `{PAIR} CHECK`: une ligne resumant, par bille, jusqu'a 3 sens
-    base-fort/quote-faible (ou l'inverse) independants pour `pair`, sans
-    afficher les valeurs qui les produisent (celles-ci restent lisibles
-    ailleurs dans le message, dans INDEX CHG%D et PAIRES CHG%D):
+) -> list[tuple[str, str]]:
+    """Liste ordonnee de `(label, bille)` parmi INDEX/06h/RUN pour `pair`,
+    chacun present seulement si son signal est exploitable -- vide si `pair`
+    n'est pas une paire de devises reconnue (cf. `_pair_currencies`) ou sans
+    donnees 06h (le seul segment obligatoire). Sens base-fort/quote-faible
+    (ou l'inverse) de `pair`, jamais les valeurs qui le produisent (celles-ci
+    restent lisibles ailleurs: INDEX CHG%D, PAIRES CHG%D).
 
-    INDEX (avec `index_by_currency`, sinon le segment est omis): les indices
-    des deux devises de `pair` eux-memes, via le meme score que INDEX CHG%D
-    (cf. `signed_strength`) -- un angle independant des paires.
+    INDEX (avec `index_by_currency`, sinon absent): les indices des deux
+    devises de `pair` eux-memes, via le meme score que INDEX CHG%D (cf.
+    `signed_strength`) -- un angle independant des paires.
 
     06h: la somme des pips des 7 paires de chaque devise de `pair` *depuis la
     reference 06h Paris*, suivie en continu run apres run par
     `update_price_trends` -- la meme reference que celle utilisee par PAIRES
-    CHG%D, mais agregee ici par devise. C'est le seul segment obligatoire
-    (liste vide sans donnees exploitables dessus, ou si `pair` n'est pas une
-    paire de devises reconnue, cf. `_pair_currencies`).
+    CHG%D, mais agregee ici par devise.
 
-    RUN (des qu'un run precedent existe aujourd'hui, sinon le segment est
-    omis): la meme somme mais *depuis le run precedent* -- un repli peut
-    demarrer avant que le solde 06h ne bascule, donc ce signal le rend
-    visible plus tot. RUN qui diverge de 06h signale un repli en cours malgre
-    une tendance journaliere toujours engagee."""
+    RUN (des qu'un run precedent existe aujourd'hui, sinon absent): la meme
+    somme mais *depuis le run precedent* -- un repli peut demarrer avant que
+    le solde 06h ne bascule, donc ce signal le rend visible plus tot. RUN qui
+    diverge de 06h signale un repli en cours malgre une tendance journaliere
+    toujours engagee."""
     currencies = _pair_currencies(pair)
     if currencies is None:
         return []
@@ -1781,14 +1781,28 @@ def pair_check_lines(
                 else ("🔴" if base_strength < quote_strength else "⚪")
             )
 
-    segments = []
+    signals: list[tuple[str, str]] = []
     if icon_index is not None:
-        segments.append(f"INDEX {icon_index}")
-    segments.append(f"06h {icon_06h}")
+        signals.append(("INDEX", icon_index))
+    signals.append(("06h", icon_06h))
     if icon_run is not None:
-        segments.append(f"RUN {icon_run}")
+        signals.append(("RUN", icon_run))
+    return signals
 
-    return [f"🧭 {pair} CHECK", " · ".join(segments)]
+
+def pair_check_lines(
+    pair: str,
+    rows_by_pair: dict[str, dict] | None,
+    price_trends: dict[str, dict] | None,
+    index_by_currency: dict[str, dict] | None = None,
+) -> list[str]:
+    """Section `{PAIR} CHECK`: une ligne labellisee (`INDEX 🟢 · 06h 🟢 · RUN
+    🔴`) a partir de `pair_check_signals` -- cf. cette fonction pour le sens
+    de chaque bille. Vide si `pair_check_signals` l'est."""
+    signals = pair_check_signals(pair, rows_by_pair, price_trends, index_by_currency)
+    if not signals:
+        return []
+    return [f"🧭 {pair} CHECK", " · ".join(f"{label} {icon}" for label, icon in signals)]
 
 
 def eurusd_cross_check_lines(

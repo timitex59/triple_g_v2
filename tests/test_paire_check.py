@@ -5,6 +5,7 @@ from paire_check import (
     build_message,
     needed_currencies,
     needed_helper_pairs,
+    pair_check_compact_line,
 )
 
 
@@ -42,7 +43,24 @@ class PaireCheckTests(unittest.TestCase):
         for excluded in ("AUDCAD", "AUDNZD", "GBPAUD", "GBPCAD", "GBPNZD", "NZDCAD"):
             self.assertNotIn(excluded, helper_pairs)
 
-    def test_build_message_lists_each_pair_check_and_flags_content(self):
+    def test_pair_check_compact_line_concatenates_icons_with_no_label(self):
+        rows_by_pair = {
+            "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
+            "GBPUSD": {"pair": "GBPUSD", "asset_type": "PAIR"},
+        }
+        price_trends = {
+            "EURUSD": {"pips_vs_06h": 20.0, "pips_vs_previous_run": 3.0},
+            "GBPUSD": {"pips_vs_06h": -5.0, "pips_vs_previous_run": -1.0},
+        }
+
+        line = pair_check_compact_line("EURUSD", rows_by_pair, price_trends, {})
+
+        self.assertEqual(line, "EURUSD 🟢🟢")
+
+    def test_pair_check_compact_line_none_without_any_exploitable_signal(self):
+        self.assertIsNone(pair_check_compact_line("EURUSD", {}, {}, {}))
+
+    def test_build_message_lists_one_compact_line_per_pair_and_flags_content(self):
         rows_by_pair = {
             "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
             "GBPUSD": {"pair": "GBPUSD", "asset_type": "PAIR"},
@@ -60,10 +78,11 @@ class PaireCheckTests(unittest.TestCase):
         )
 
         self.assertTrue(has_content)
-        self.assertIn("📐 PAIRE_CHECK", message)
-        self.assertIn("🧭 EURUSD CHECK", message)
-        self.assertIn("06h 🟢", message)
-        self.assertIn("2026-07-16 10:00 Paris", message)
+        self.assertEqual(message, "\n".join([
+            "📐 PAIRE_CHECK", "",
+            "EURUSD 🟢",
+            "", "⏰ 2026-07-16 10:00 Paris",
+        ]))
 
     def test_build_message_flags_no_content_when_no_pair_scores(self):
         import datetime as dt
@@ -74,7 +93,7 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertFalse(has_content)
         self.assertIn("📐 PAIRE_CHECK", message)
-        self.assertNotIn("🧭 EURUSD CHECK", message)
+        self.assertNotIn("EURUSD", message)
 
 
 if __name__ == "__main__":
