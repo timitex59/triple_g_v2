@@ -1302,6 +1302,51 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertTrue(any("BILAN GÉNÉRAL" in line for line in lines_close))
         self.assertIn("PF · Profit Factor : N/D", lines_close)
 
+    def test_performance_lines_show_open_position_line_every_run(self):
+        """Sans cette ligne, 'aucune position en cours' et 'plusieurs
+        positions ouvertes mais rien clôturé' affichent toutes deux
+        +0.0 pips (0 trades) a l'identique -- elle doit apparaitre a CHAQUE
+        run (pas seulement au run qui vient de clore, contrairement au
+        BILAN GENERAL)."""
+        state = {
+            "tracking_date": "2026-08-19",
+            "open_trades": {
+                "AUDUSD": {"status": "ignored", "last_pips": 0.0},
+                "CADCHF": {"status": "open", "entry_pips": 55.0, "last_pips": 1.7},
+                "EURUSD": {"status": "open", "entry_pips": 82.8, "last_pips": -3.6},
+                "GBPUSD": {"status": "open", "entry_pips": 67.4, "last_pips": -6.7},
+                "USDCHF": {"status": "open", "entry_pips": 115.2, "last_pips": -0.5},
+            },
+            "closed_trades": [],
+        }
+        report = performance_report(state, datetime(2026, 8, 19, 19, 15, tzinfo=PARIS))
+
+        self.assertEqual(report["open_trades_count"], 4)  # AUDUSD ignore exclu
+        self.assertAlmostEqual(report["open_pips_total"], -9.1, places=6)
+
+        lines = performance_report_lines(report, 0)
+        self.assertIn("🔓 Position ouverte : -9.1 pips (4 positions)", lines)
+
+    def test_performance_lines_omit_open_position_line_without_open_trades(self):
+        state = {"tracking_date": "2026-08-19", "open_trades": {}, "closed_trades": []}
+        report = performance_report(state, datetime(2026, 8, 19, 19, 15, tzinfo=PARIS))
+
+        lines = performance_report_lines(report, 0)
+
+        self.assertFalse(any("Position ouverte" in line for line in lines))
+
+    def test_performance_lines_use_singular_for_a_single_open_position(self):
+        state = {
+            "tracking_date": "2026-08-19",
+            "open_trades": {"EURUSD": {"status": "open", "entry_pips": 10.0, "last_pips": 4.0}},
+            "closed_trades": [],
+        }
+        report = performance_report(state, datetime(2026, 8, 19, 19, 15, tzinfo=PARIS))
+
+        lines = performance_report_lines(report, 0)
+
+        self.assertIn("🔓 Position ouverte : +4.0 pips (1 position)", lines)
+
     def test_message_shows_performance_section(self):
         message = format_full_alignment_message(
             [],

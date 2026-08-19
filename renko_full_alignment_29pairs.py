@@ -1661,10 +1661,14 @@ def performance_report(state: dict, now: datetime) -> dict:
     month_start = today.replace(day=1)
     year_start = today.replace(month=1, day=1)
 
+    open_trades = [
+        trade for trade in (state.get("open_trades") or {}).values()
+        if trade.get("status") == "open"
+    ]
     open_pips_total = sum(
         float(trade.get("last_pips") or 0.0)
-        for trade in (state.get("open_trades") or {}).values()
-        if trade.get("status") == "open" and isinstance(trade.get("last_pips"), (int, float))
+        for trade in open_trades
+        if isinstance(trade.get("last_pips"), (int, float))
     )
 
     return {
@@ -1680,28 +1684,43 @@ def performance_report(state: dict, now: datetime) -> dict:
         ),
         "general": _performance_general_bilan(year_trades, today.year),
         "open_pips_total": open_pips_total,
+        "open_trades_count": len(open_trades),
     }
 
 
 def performance_report_lines(report: dict, newly_closed_count: int) -> list[str]:
     """Lignes Telegram: DAILY/CUMULS a chaque run, BILAN GENERAL uniquement
     au run qui vient de clore des trades (changement de jour) -- comme
-    VIVIER, ce pave complet n'a pas besoin d'etre repete a chaque cycle."""
+    VIVIER, ce pave complet n'a pas besoin d'etre repete a chaque cycle.
+
+    La ligne 'Position ouverte', elle, est affichee a CHAQUE run (contrairement
+    au BILAN GENERAL): DAILY ne compte que le realise (clos), donc sans elle
+    rien ne distinguait 'aucune position en cours' de 'plusieurs positions
+    ouvertes qui n'ont juste pas encore cloture' -- les deux affichaient
+    +0.0 pips (0 trades) a l'identique."""
     daily = report["daily"]
     weekly = report["weekly"]
     monthly = report["monthly"]
     yearly = report["yearly"]
+    open_trades_count = report.get("open_trades_count") or 0
     lines = [
         f"📈 PERF TOP5 — DAILY : {_format_trend_pips(daily['total_pips'])} "
         f"({daily['trades']} trades)",
         f"🟢 {_format_trend_pips(daily['winning_pips'])} | "
         f"🔴 {_format_trend_pips(daily['losing_pips'])}",
+    ]
+    if open_trades_count > 0:
+        lines.append(
+            f"🔓 Position ouverte : {_format_trend_pips(report['open_pips_total'])} "
+            f"({open_trades_count} position{'s' if open_trades_count > 1 else ''})",
+        )
+    lines.extend([
         "",
         "📊 CUMULS TOP5",
         f"Weekly : {_format_trend_pips(weekly['total_pips'])}",
         f"Monthly : {_format_trend_pips(monthly['total_pips'])}",
         f"🗓 YTD {report['general']['year']} : {_format_trend_pips(yearly['total_pips'])}",
-    ]
+    ])
     if newly_closed_count > 0:
         general = report["general"]
         profit_factor = general.get("profit_factor")
