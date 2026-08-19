@@ -16,6 +16,7 @@ from renko_full_alignment_29pairs import (
     all_pair_status_rows,
     currency_pip_sum,
     currency_spread,
+    _strength_status_lines,
     eurusd_cross_check_lines,
     extended_rank_lines,
     signed_strength,
@@ -618,47 +619,33 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         message = format_full_alignment_message(
             select_full_alignment_rows(scanned),
-            index_status_rows=all_index_status_rows(scanned),
             pair_status_rows=all_pair_status_rows(scanned),
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
         )
 
         self.assertIn("🟢 GBPJPY", message)
-        self.assertIn("🔴 JPY", message)
         self.assertNotIn("🔥", message)
 
-    def test_message_adds_daily_chg_to_full_alignment_rows_and_lists_all_indices(self):
-        rows = [
-            row("AUDJPY", 1, 1, 1, daily_chg=0.88),
-            row("NZDJPY", 1, 1, 1, daily_chg=-0.03),
-            row("USDCAD", 1, 1, 1, daily_chg=-0.01),
-            row("USDJPY", 1, 1, 1, daily_chg=-0.001),
-            index_row("JXY", -1, -1, -1, daily_chg=-0.44),
-        ]
-        selected = attach_premium_currency_profiles(select_full_alignment_rows(rows), rows)
-        # La section 💱 montre le statut de TOUS les indices scannes, meme ceux
-        # que le filtre de qualite ecarte (ici DXY: M+/W-/D+ incoherent) et ceux
-        # deja listes en alignement strict (ici JXY).
+    def test_strength_status_lines_render_all_scanned_indices_compactly(self):
+        """_strength_status_lines alimente la section 💱 INDEX CHG%D de
+        📐 PAIRE_CHECK (renko_full_alignment_29pairs.py ne l'affiche plus
+        lui-meme, cf. test_message_drops_the_sections_that_were_removed):
+        statut de TOUS les indices scannes, meme ceux que le filtre de
+        qualite ecarte (ici DXY: M+/W-/D+ incoherent), en ligne compacte
+        (score d'intensite seul, sans CHG%D ni M/W/D)."""
         all_indices = all_index_status_rows([
             index_row("DXY", 1, -1, 1, daily_chg=0.12),
             index_row("EXY", 1, 1, -1, daily_chg=-0.05),
             index_row("JXY", -1, -1, -1, daily_chg=-0.44),
         ])
 
-        message = format_full_alignment_message(
-            selected,
-            index_status_rows=all_indices,
-            now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
-        )
+        lines = "\n".join(_strength_status_lines(all_indices))
 
-        self.assertNotIn("🌸🌸", message)
-        self.assertIn("💱 INDEX CHG%D", message)
-        # Ligne compacte: seul le score d'intensite, sans CHG%D ni M/W/D.
-        self.assertIn("🟢 USD (+0.12)", message)   # (3-2+1)/2 = 1.0 x 0.12
-        self.assertIn("🔴 EUR (+0.10)", message)   # (3+2-1)/2 = 2.0 x 0.05
-        self.assertIn("🔴 JPY (+1.32)", message)   # 3.0 x 0.44
-        self.assertNotIn("USD +0.12%", message)
-        self.assertNotIn("(M+ W- D+)", message)
+        self.assertIn("🟢 USD (+0.12)", lines)   # (3-2+1)/2 = 1.0 x 0.12
+        self.assertIn("🔴 EUR (+0.10)", lines)   # (3+2-1)/2 = 2.0 x 0.05
+        self.assertIn("🔴 JPY (+1.32)", lines)   # 3.0 x 0.44
+        self.assertNotIn("USD +0.12%", lines)
+        self.assertNotIn("(M+ W- D+)", lines)
 
     def test_streak_note_only_counts_timeframes_backed_by_a_streak(self):
         # GBPUSD sur TradingView: M+(3) W+(0) D+(1), STATUS BULL partout.
@@ -799,7 +786,6 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         message = format_full_alignment_message(
             [],
-            index_status_rows=all_index_status_rows([aud, nzd]),
             pair_status_rows=all_pair_status_rows([audnzd], by_currency),
             index_by_currency=by_currency,
             now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
@@ -810,8 +796,6 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("0.1638", message)
         self.assertNotIn("🎯", message)
         self.assertNotIn("/(", message)
-        # Les indices gardent leur score d'intensite.
-        self.assertIn("🟢 AUD (+0.60)", lines)
 
     def test_signed_product_is_negative_when_the_pair_fights_its_currencies(self):
         eur = index_row("EXY", 1, 1, 1, daily_chg=0.06)   # +0.18
@@ -1001,7 +985,6 @@ class FullAlignmentScannerTests(unittest.TestCase):
                 "first_seen": "2026-07-16T08:00+02:00",
                 "last_seen": "2026-07-16T10:00+02:00",
             }]},
-            index_status_rows=all_index_status_rows(scanned),
             pair_status_rows=all_pair_status_rows(scanned),
             now=datetime(2026, 7, 16, 12, 0, tzinfo=PARIS),
         )
@@ -1012,7 +995,7 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertNotIn("🔥", message)
         self.assertEqual(
             [line for line in message.splitlines() if line.startswith(("📊", "💱", "💹"))],
-            ["📊 FULL MOMENTUM", "💱 INDEX CHG%D", "💹 PAIRES CHG%D"],
+            ["📊 FULL MOMENTUM", "💹 PAIRES CHG%D"],
         )
 
     def test_pairs_out_lists_rank_dropouts_without_warning(self):
@@ -1804,41 +1787,25 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertEqual(eurusd_cross_check_lines(rows_by_pair, None), [])
         self.assertEqual(eurusd_cross_check_lines(rows_by_pair, {}), [])
 
-    def test_message_shows_eurusd_check_section_after_index_block(self):
+    def test_message_never_shows_eurusd_check_even_with_full_data(self):
+        """EURUSD CHECK (comme INDEX CHG%D) n'est plus rendu par
+        renko_full_alignment_29pairs.py: doublon avec 📐 PAIRE_CHECK
+        (paire_check.py), qui affiche deja son propre verdict EURUSD dans un
+        message dedie. Verifie que meme avec toutes les donnees necessaires
+        fournies, la section ne reapparait pas par erreur."""
         rows_by_pair, price_trends = self._eurusd_check_fixture()
         dxy = index_row("DXY", -1, -1, -1, daily_chg=-1.42)
         exy = index_row("EXY", 1, 1, 1, daily_chg=1.35)
-        indices = [dxy, exy]
 
         message = format_full_alignment_message(
             [], now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
-            index_status_rows=all_index_status_rows(indices),
             rows_by_pair=rows_by_pair,
             price_trends=price_trends,
             index_by_currency={"USD": dxy, "EUR": exy},
         )
 
-        self.assertIn("💱 INDEX CHG%D", message)
-        self.assertIn("🧭 EURUSD CHECK", message)
-        self.assertIn("INDEX 🟢 · 06h 🟢", message)
-        self.assertLess(
-            message.index("💱 INDEX CHG%D"), message.index("🧭 EURUSD CHECK"),
-        )
-        self.assertLess(
-            message.index("🧭 EURUSD CHECK"), message.index("INDEX 🟢 · 06h 🟢"),
-        )
-
-    def test_message_omits_eurusd_check_without_price_trends(self):
-        """Avant la 1ere baseline 06h du jour (ou run isole sans price_trends
-        injecte), la section ne doit pas s'afficher a moitie vide."""
-        rows_by_pair, _ = self._eurusd_check_fixture()
-
-        message = format_full_alignment_message(
-            [], now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
-            rows_by_pair=rows_by_pair,
-        )
-
         self.assertNotIn("🧭 EURUSD CHECK", message)
+        self.assertNotIn("💱 INDEX CHG%D", message)
 
     def test_pair_check_lines_generalizes_to_a_non_eurusd_pair(self):
         """`pair_check_lines` est la version generalisee derriere EURUSD
