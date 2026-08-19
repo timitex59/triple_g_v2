@@ -1,12 +1,37 @@
+import datetime as dt
 import unittest
+from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 from paire_check import (
     DEFAULT_PAIRS,
     build_message,
+    index_chg_lines,
     needed_currencies,
     needed_helper_pairs,
     pair_check_compact_line,
 )
+
+PARIS = ZoneInfo("Europe/Paris")
+
+
+def index_row(pair, currency, m, w, d, daily_chg):
+    """Ligne d'indice factice, meme structure que le helper equivalent de
+    tests/test_renko_full_alignment_29pairs.py."""
+    px = {"M": m, "W": w, "D": d}
+    bias = dict(px)
+    states = {
+        tf: SimpleNamespace(
+            green_streak=1 if bias[tf] == 1 else 0,
+            red_streak=1 if bias[tf] == -1 else 0,
+        )
+        for tf in ("M", "W", "D")
+    }
+    return {
+        "pair": pair, "asset_type": "INDEX", "currency": currency,
+        "px": px, "bias": bias, "states": states, "daily_chg": daily_chg,
+        "live_price": 1.0,
+    }
 
 
 class PaireCheckTests(unittest.TestCase):
@@ -60,7 +85,22 @@ class PaireCheckTests(unittest.TestCase):
     def test_pair_check_compact_line_none_without_any_exploitable_signal(self):
         self.assertIsNone(pair_check_compact_line("EURUSD", {}, {}, {}))
 
-    def test_build_message_lists_one_compact_line_per_pair_and_flags_content(self):
+    def test_index_chg_lines_matches_full_momentum_rendering(self):
+        rows = [
+            index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+            index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+        ]
+
+        lines = index_chg_lines(rows)
+
+        self.assertEqual(lines[0], "💱 INDEX CHG%D")
+        self.assertTrue(lines[1].startswith("🟢 EUR ("))  # score plus fort en tete
+        self.assertTrue(lines[2].startswith("🔴 USD ("))
+
+    def test_index_chg_lines_empty_without_index_rows(self):
+        self.assertEqual(index_chg_lines([]), [])
+
+    def test_build_message_lists_one_compact_line_per_pair_under_a_paires_label(self):
         rows_by_pair = {
             "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
             "GBPUSD": {"pair": "GBPUSD", "asset_type": "PAIR"},
@@ -69,9 +109,7 @@ class PaireCheckTests(unittest.TestCase):
             "EURUSD": {"pips_vs_06h": 20.0},
             "GBPUSD": {"pips_vs_06h": -5.0},
         }
-        import datetime as dt
-        from zoneinfo import ZoneInfo
-        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=ZoneInfo("Europe/Paris"))
+        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
 
         message, has_content = build_message(
             ["EURUSD"], rows_by_pair, price_trends, {}, now,
@@ -80,19 +118,38 @@ class PaireCheckTests(unittest.TestCase):
         self.assertTrue(has_content)
         self.assertEqual(message, "\n".join([
             "📐 PAIRE_CHECK", "",
+            "PAIRES",
             "EURUSD 🟢",
             "", "⏰ 2026-07-16 10:00 Paris",
         ]))
 
+    def test_build_message_adds_index_chg_block_before_paires(self):
+        rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
+        price_trends = {"EURUSD": {"pips_vs_06h": 20.0}}
+        index_by_currency = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+
+        message, has_content = build_message(
+            ["EURUSD"], rows_by_pair, price_trends, index_by_currency, now,
+        )
+
+        self.assertTrue(has_content)
+        self.assertIn("💱 INDEX CHG%D", message)
+        self.assertIn("PAIRES", message)
+        self.assertLess(message.index("💱 INDEX CHG%D"), message.index("PAIRES"))
+        self.assertLess(message.index("PAIRES"), message.index("EURUSD 🟢"))
+
     def test_build_message_flags_no_content_when_no_pair_scores(self):
-        import datetime as dt
-        from zoneinfo import ZoneInfo
-        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=ZoneInfo("Europe/Paris"))
+        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
 
         message, has_content = build_message(["EURUSD"], {}, {}, {}, now)
 
         self.assertFalse(has_content)
         self.assertIn("📐 PAIRE_CHECK", message)
+        self.assertNotIn("PAIRES", message)
         self.assertNotIn("EURUSD", message)
 
 
