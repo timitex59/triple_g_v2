@@ -1426,35 +1426,17 @@ class FullAlignmentScannerTests(unittest.TestCase):
         }
         return rows_by_pair, price_trends
 
-    def test_eurusd_cross_check_lines_confirms_eur_strong_usd_weak(self):
+    def test_eurusd_cross_check_lines_shows_only_the_06h_segment_by_default(self):
+        """Sans `index_by_currency` ni `pips_vs_previous_run` (aucun run
+        precedent aujourd'hui), seul le segment 06h -- le seul obligatoire --
+        apparait: pas de valeurs, une seule bille."""
         rows_by_pair, price_trends = self._eurusd_check_fixture()
 
         lines = eurusd_cross_check_lines(rows_by_pair, price_trends)
 
-        self.assertEqual(lines[0], "🧭 EURUSD CHECK")
-        self.assertEqual(lines[1], "")
-        self.assertEqual(lines[2], "PAIRES")
-        self.assertTrue(lines[3].startswith("Σ USD : -"))
-        self.assertTrue(lines[4].startswith("Σ EUR : +"))
-        self.assertEqual(lines[5], "🟢 EURUSD")
+        self.assertEqual(lines, ["🧭 EURUSD CHECK", "06h 🟢"])
 
-    def test_eurusd_cross_check_lines_omits_delta_on_the_first_run_of_the_day(self):
-        """Sans `pips_vs_previous_run` (aucun run precedent aujourd'hui: pas
-        encore de T0 a comparer), le bloc PAIRES reste a une seule bille
-        plutot que d'afficher un delta absent."""
-        rows_by_pair, price_trends = self._eurusd_check_fixture()
-
-        lines = eurusd_cross_check_lines(rows_by_pair, price_trends)
-
-        self.assertEqual(lines, [
-            "🧭 EURUSD CHECK", "",
-            "PAIRES",
-            "Σ USD : -612.0 pips",
-            "Σ EUR : +12.0 pips",
-            "🟢 EURUSD",
-        ])
-
-    def test_eurusd_cross_check_lines_adds_the_previous_run_delta_when_available(self):
+    def test_eurusd_cross_check_lines_adds_the_run_segment_when_available(self):
         """Le run precedent devient le T0 de celui-ci: chaque paire porte son
         propre `pips_vs_previous_run`, agrege par devise comme pour 06h."""
         rows_by_pair, price_trends = self._eurusd_check_fixture()
@@ -1469,16 +1451,13 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         lines = eurusd_cross_check_lines(rows_by_pair, price_trends)
 
-        self.assertEqual(lines[3], "Σ USD : -612.0 pips (+6.0 pips)")
-        self.assertEqual(lines[4], "Σ EUR : +12.0 pips (-4.0 pips)")
-        # 06h toujours EUR fort (1ere bille 🟢), mais l'USD regagne du terrain
-        # plus vite que l'EUR depuis le run precedent (2e bille 🔴): repli en
-        # cours malgre une tendance journaliere toujours engagee.
-        self.assertEqual(lines[5], "🟢🔴 EURUSD")
+        # 06h toujours EUR fort (🟢), mais l'USD regagne du terrain plus vite
+        # que l'EUR depuis le run precedent (🔴 RUN): repli en cours malgre
+        # une tendance journaliere toujours engagee.
+        self.assertEqual(lines[1], "06h 🟢 · RUN 🔴")
 
-    def test_eurusd_cross_check_lines_adds_the_index_block_before_pairs(self):
-        """`index_by_currency` ajoute un bloc INDEX avant PAIRES: les indices
-        EUR/USD bruts (meme rendu qu'INDEX CHG%D) et leur propre conclusion."""
+    def test_eurusd_cross_check_lines_adds_the_index_segment_first(self):
+        """`index_by_currency` ajoute un segment INDEX, place en tete."""
         rows_by_pair, price_trends = self._eurusd_check_fixture()
         index_by_currency = {
             "EUR": index_row("EXY", 1, 1, 1, daily_chg=1.44),
@@ -1487,24 +1466,25 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         lines = eurusd_cross_check_lines(rows_by_pair, price_trends, index_by_currency)
 
-        self.assertEqual(lines[0], "🧭 EURUSD CHECK")
-        self.assertEqual(lines[1], "")
-        self.assertEqual(lines[2], "INDEX")
-        self.assertTrue(lines[3].startswith("🟢 EUR ("))
-        self.assertTrue(lines[4].startswith("🔴 USD ("))
-        self.assertEqual(lines[5], "🟢 EURUSD")
-        self.assertEqual(lines[6], "")
-        self.assertEqual(lines[7], "PAIRES")
-        self.assertEqual(len(lines), 11)
+        self.assertEqual(lines, ["🧭 EURUSD CHECK", "INDEX 🟢 · 06h 🟢"])
 
-    def test_eurusd_cross_check_lines_omits_index_block_without_index_by_currency(self):
+    def test_eurusd_cross_check_lines_combines_all_three_segments(self):
         rows_by_pair, price_trends = self._eurusd_check_fixture()
+        price_trends["EURUSD"]["pips_vs_previous_run"] = -3.0
+        price_trends["USDJPY"]["pips_vs_previous_run"] = 4.0
+        for pair in [
+            "GBPUSD", "AUDUSD", "NZDUSD", "USDCAD", "USDCHF",
+            "EURGBP", "EURJPY", "EURCHF", "EURAUD", "EURNZD", "EURCAD",
+        ]:
+            price_trends[pair]["pips_vs_previous_run"] = 0.0
+        index_by_currency = {
+            "EUR": index_row("EXY", 1, 1, 1, daily_chg=1.44),
+            "USD": index_row("DXY", -1, -1, -1, daily_chg=-1.43),
+        }
 
-        lines = eurusd_cross_check_lines(rows_by_pair, price_trends)
+        lines = eurusd_cross_check_lines(rows_by_pair, price_trends, index_by_currency)
 
-        self.assertNotIn("INDEX", lines)
-        self.assertEqual(lines, eurusd_cross_check_lines(rows_by_pair, price_trends, None))
-        self.assertEqual(lines, eurusd_cross_check_lines(rows_by_pair, price_trends, {}))
+        self.assertEqual(lines, ["🧭 EURUSD CHECK", "INDEX 🟢 · 06h 🟢 · RUN 🔴"])
 
     def test_eurusd_cross_check_lines_empty_without_price_trends(self):
         rows_by_pair, _ = self._eurusd_check_fixture()
@@ -1529,19 +1509,13 @@ class FullAlignmentScannerTests(unittest.TestCase):
 
         self.assertIn("💱 INDEX CHG%D", message)
         self.assertIn("🧭 EURUSD CHECK", message)
-        self.assertIn("\nINDEX\n", message)
-        self.assertIn("\nPAIRES\n", message)
-        self.assertIn("🔴 USD (", message)
-        self.assertIn("🟢 EUR (", message)
-        check_pos = message.index("🧭 EURUSD CHECK")
-        self.assertLess(message.index("💱 INDEX CHG%D"), check_pos)
-        index_pos = message.index("\nINDEX\n", check_pos)
-        pairs_pos = message.index("\nPAIRES\n", check_pos)
-        self.assertLess(check_pos, index_pos)
-        self.assertLess(index_pos, pairs_pos)
-        # Les 2 conclusions EURUSD (indices, puis 06h+run precedent) sont bien
-        # dans le bloc EURUSD CHECK, pas fondues avec celle d'INDEX CHG%D.
-        self.assertEqual(message.count("🟢 EURUSD"), 2)
+        self.assertIn("INDEX 🟢 · 06h 🟢", message)
+        self.assertLess(
+            message.index("💱 INDEX CHG%D"), message.index("🧭 EURUSD CHECK"),
+        )
+        self.assertLess(
+            message.index("🧭 EURUSD CHECK"), message.index("INDEX 🟢 · 06h 🟢"),
+        )
 
     def test_message_omits_eurusd_check_without_price_trends(self):
         """Avant la 1ere baseline 06h du jour (ou run isole sans price_trends
