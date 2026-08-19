@@ -18476,6 +18476,28 @@
       },
       "time_paris": "2026-08-19T15:00:00+02:00",
       "time_utc": "2026-08-19T13:00:00+00:00"
+    },
+    {
+      "base_pct": -16.666666666666664,
+      "complete": false,
+      "direction": 1,
+      "event_id": "397b6da5609a6bc3117e",
+      "event_type": "VIVIER_EXIT_INVALID",
+      "fib_pct_of_range": 33.721833721833676,
+      "fib_position": "Fibo <0.382",
+      "final_pct": -16.666666666666664,
+      "horizon_basis": "closed_h1_bars",
+      "horizons": {},
+      "pair": "AUDCHF",
+      "price": 0.57066,
+      "px": {
+        "D": -1,
+        "M": 0,
+        "W": 0
+      },
+      "reason": "MONTHLY_OR_SCORE_INVALID",
+      "time_paris": "2026-08-19T17:00:00+02:00",
+      "time_utc": "2026-08-19T15:00:00+00:00"
     }
   ],
   "pair_profiles": {
@@ -20454,7 +20476,7 @@
         "avg_mae_72h_pct": -0.5564255941973711,
         "avg_mfe_72h_pct": 0.5342106333851417,
         "complete": 60,
-        "count": 63,
+        "count": 64,
         "horizons": {
           "12h": {
             "avg_directional_pct": -0.06454537758494534,
@@ -20532,7 +20554,7 @@
       "avg_mae_72h_pct": -0.5680581864149304,
       "avg_mfe_72h_pct": 0.4404852300903205,
       "complete": 252,
-      "count": 260,
+      "count": 261,
       "horizons": {
         "12h": {
           "avg_directional_pct": -0.06984598528825385,
@@ -20566,8 +20588,8 @@
         }
       }
     },
-    "total": 260
+    "total": 261
   },
-  "updated_at_utc": "2026-08-19T15:17:07.215888+00:00",
+  "updated_at_utc": "2026-08-19T15:45:50.232012+00:00",
   "version": 3
 }
