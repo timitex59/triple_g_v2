@@ -32,6 +32,8 @@ from renko_full_alignment_29pairs import (
     sar_break_state_from_close_sar,
     select_mid_alignment_candidates,
     select_mid_sar_rows,
+    streaky_pairs,
+    streaky_sar_confirmed,
     update_mid_sar_history,
     update_pairs_out_state,
     update_performance_state,
@@ -421,6 +423,39 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertEqual(state["last_sar_break_kind"], "SAR BULL")
         self.assertEqual(state["last_bar_sar_break_direction"], 1)
         self.assertEqual(state["last_bar_sar_break_kind"], "SAR BULL")
+        # La derniere cassure (index 3) est la bougie la plus recente (index
+        # 3 sur 4 bougies): 0 bougie d'ecart.
+        self.assertEqual(state["bars_since_last_break"], 0)
+
+    def test_sar_break_state_bars_since_last_break_counts_backwards(self):
+        # Cassure a l'index 1 (haussiere), puis deux bougies calmes (2, 3)
+        # qui ne traversent plus le SAR: la derniere cassure remonte a 2
+        # bougies (index 3 - index 1).
+        state = sar_break_state_from_close_sar(
+            closes=[9.0, 11.0, 10.5, 10.8],
+            sar_values=[10.0, 10.0, 10.0, 10.0],
+        )
+        self.assertEqual(state["bars_since_last_break"], 2)
+
+        # Aucune cassure du tout -> None.
+        no_break = sar_break_state_from_close_sar(
+            closes=[10.5, 10.6, 10.7], sar_values=[10.0, 10.0, 10.0],
+        )
+        self.assertIsNone(no_break["bars_since_last_break"])
+
+    def test_streaky_sar_confirmed_stays_true_within_the_window(self):
+        fresh = {"last_sar_break_direction": 1, "bars_since_last_break": 0}
+        within_window = {"last_sar_break_direction": 1, "bars_since_last_break": 2}
+        outside_window = {"last_sar_break_direction": 1, "bars_since_last_break": 3}
+        wrong_direction = {"last_sar_break_direction": -1, "bars_since_last_break": 0}
+        no_break = {"last_sar_break_direction": 0, "bars_since_last_break": None}
+
+        self.assertTrue(streaky_sar_confirmed(fresh, 1))
+        self.assertTrue(streaky_sar_confirmed(within_window, 1))
+        self.assertFalse(streaky_sar_confirmed(outside_window, 1))
+        self.assertFalse(streaky_sar_confirmed(wrong_direction, 1))
+        self.assertFalse(streaky_sar_confirmed(no_break, 1))
+        self.assertFalse(streaky_sar_confirmed(None, 1))
 
     def test_selects_only_full_alignment_rows(self):
         selected = select_full_alignment_rows([
@@ -1189,6 +1224,72 @@ class FullAlignmentScannerTests(unittest.TestCase):
             ],
         )
         self.assertIn("📈 PERF TOP5 — DAILY : +12.3 pips (1 trades)", message)
+
+    def test_streaky_pairs_requires_aligned_bias_and_nonzero_streak_on_all_tf(self):
+        aligned_bull = row("AUDNZD", 1, 1, 1, streaks={"M": 4, "W": 8, "D": 1})
+        aligned_bear = row("GBPAUD", -1, -1, -1, streaks={"M": 2, "W": 7, "D": 1})
+        # Biais haussier herite mais aucun streak vert en cours sur W (le
+        # fameux 'W+(0)'): doit etre exclu malgre le biais aligne.
+        zero_streak = row("EURUSD", 1, 1, 1, streaks={"W": 0})
+        # Biais non aligne (D oppose): exclu.
+        mixed = row("USDCHF", 1, -1, 1)
+        # Les indices ne sont pas concernes par STREAKY.
+        index = index_row("AXY", 1, 1, 1, streaks={"M": 3, "W": 3, "D": 3})
+
+        matches = streaky_pairs([aligned_bull, aligned_bear, zero_streak, mixed, index])
+
+        self.assertEqual(
+            [(m["pair"], m["direction"]) for m in matches],
+            [("AUDNZD", 1), ("GBPAUD", -1)],
+        )
+        self.assertEqual(matches[0]["streaks"], {"M": 4, "W": 8, "D": 1})
+        self.assertEqual(matches[1]["streaks"], {"M": 2, "W": 7, "D": 1})
+        # Les deux sont confirmees par le prix live sur les trois TF (px
+        # egal au biais partout): aucun TF "porte" par l'historique seul.
+        self.assertEqual(matches[0]["px"], {"M": 1, "W": 1, "D": 1})
+        self.assertEqual(matches[0]["carried_tfs"], [])
+        self.assertEqual(matches[1]["px"], {"M": -1, "W": -1, "D": -1})
+        self.assertEqual(matches[1]["carried_tfs"], [])
+
+    def test_streaky_pairs_flags_tf_carried_by_streak_without_fresh_px(self):
+        # Biais et streak alignes sur M, mais px_state a 0: le prix n'a pas
+        # (encore) casse au-dela de la derniere brique sur ce TF, le biais y
+        # est seulement "porte" par le streak historique -> TF a risque.
+        carried = row(
+            "USDCAD", 0, 1, 1,
+            bias={"M": 1, "W": 1, "D": 1}, streaks={"M": 3, "W": 3, "D": 3},
+        )
+
+        matches = streaky_pairs([carried])
+
+        self.assertEqual(matches[0]["px"], {"M": 0, "W": 1, "D": 1})
+        self.assertEqual(matches[0]["carried_tfs"], ["M"])
+
+    def test_streaky_pairs_sorted_by_total_streak_descending(self):
+        weaker = row("USDCAD", 1, 1, 1, streaks={"M": 1, "W": 1, "D": 1})
+        stronger = row("AUDJPY", 1, 1, 1, streaks={"M": 2, "W": 8, "D": 1})
+
+        matches = streaky_pairs([weaker, stronger])
+
+        self.assertEqual([m["pair"] for m in matches], ["AUDJPY", "USDCAD"])
+
+    def test_message_shows_streaky_section(self):
+        entries = [
+            {"pair": "AUDNZD", "direction": 1, "streaks": {"M": 4, "W": 8, "D": 1},
+             "px": {"M": 1, "W": 1, "D": 1}, "carried_tfs": []},
+            {"pair": "GBPAUD", "direction": -1, "streaks": {"M": 2, "W": 7, "D": 1},
+             "px": {"M": -1, "W": 0, "D": -1}, "carried_tfs": ["W"],
+             "sar_confirmed": True},
+        ]
+
+        message = format_full_alignment_message(
+            [], now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS), streaky=entries,
+        )
+
+        self.assertIn("🔥 STREAKY", message)
+        self.assertIn("🟢 AUDNZD M+(4) W+(8) D+(1)", message)
+        # GBPAUD: W "porte" (0) -> warning; SAR H1 frais confirme -> 🎯.
+        self.assertIn("🔴 GBPAUD M-(2) W0(7) D-(1) ⚠️ 🎯", message)
 
 
 if __name__ == "__main__":
