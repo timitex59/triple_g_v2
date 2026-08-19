@@ -1171,9 +1171,11 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertEqual(newly_closed[0]["reason"], "STOP_FIRST_CROSS")
         self.assertEqual(state["open_trades"]["GBPAUD"]["status"], "closed")
 
-    def test_performance_state_closes_on_top5_exit_before_any_cross(self):
-        """Cas 5 (USDCAD): la paire quitte le TOP5 avant toute ❌ -> cloture
-        immediate a ce run-la, pas d'attente de fin de journee."""
+    def test_performance_state_closes_on_rank_exit_before_any_cross(self):
+        """Cas 5 (USDCAD): la paire quitte la fenetre etendue (au-dela du
+        rang PERFORMANCE_EXTENDED_RANK_LIMIT, ou devenue divergente) avant
+        toute ❌ -> cloture immediate a ce run-la, pas d'attente de fin de
+        journee."""
         t0 = datetime(2026, 8, 19, 15, 58, tzinfo=PARIS)
         state, _ = update_performance_state(
             {}, ["USDCAD"], ["USDCAD"],
@@ -1181,12 +1183,94 @@ class FullAlignmentScannerTests(unittest.TestCase):
         )
         t1 = t0 + timedelta(minutes=55)
         state, newly_closed = update_performance_state(
-            state, [], ["USDCAD"],  # top5_now ne contient plus USDCAD
+            state, [], ["USDCAD"],  # extended_now ne contient plus USDCAD
             {"USDCAD": {"trend_pips": 68.0, "trend_icon": "✅"}}, t1,
         )
         self.assertEqual(len(newly_closed), 1)
         self.assertAlmostEqual(newly_closed[0]["pips"], 9.0, places=6)  # 68.0 - 59.0
-        self.assertEqual(newly_closed[0]["reason"], "TOP5_EXIT")
+        self.assertEqual(newly_closed[0]["reason"], "RANK_EXIT")
+
+    def test_performance_state_tolerates_a_drop_within_the_extended_window(self):
+        """Une position deja ouverte qui recule hors du TOP5 strict mais
+        reste dans la fenetre etendue (rang <= PERFORMANCE_EXTENDED_RANK_LIMIT)
+        n'est PAS clotoree -- seule l'entree est conditionnee au TOP5 strict."""
+        t0 = datetime(2026, 8, 19, 10, 0, tzinfo=PARIS)
+        state, _ = update_performance_state(
+            {}, ["EURJPY"], ["EURJPY"],
+            {"EURJPY": {"trend_pips": 30.0, "trend_icon": "✅"}}, t0,
+        )
+        t1 = t0 + timedelta(minutes=30)
+        # EURJPY n'est plus dans le TOP5 strict (absent d'un top5_now qui
+        # n'existe plus ici), mais reste dans les 8 encore tolerees.
+        state, newly_closed = update_performance_state(
+            state, ["EURJPY"], ["EURJPY"],  # toujours dans la fenetre etendue
+            {"EURJPY": {"trend_pips": 32.0, "trend_icon": "✅"}}, t1,
+        )
+        self.assertEqual(newly_closed, [])
+        self.assertEqual(state["open_trades"]["EURJPY"]["status"], "open")
+        self.assertAlmostEqual(state["open_trades"]["EURJPY"]["last_pips"], 2.0, places=6)
+
+    def test_performance_state_trailing_stop_closes_after_giving_back_30pct_of_peak(self):
+        """Le trailing stop s'arme des que le pic atteint
+        PERFORMANCE_TRAILING_ARM_PIPS (10), puis cloture si le gain redonne
+        plus de PERFORMANCE_TRAILING_STOP_PCT (30%) de ce pic."""
+        t0 = datetime(2026, 8, 19, 10, 0, tzinfo=PARIS)
+        state, _ = update_performance_state(
+            {}, ["EURUSD"], ["EURUSD"],
+            {"EURUSD": {"trend_pips": 0.0, "trend_icon": "✅"}}, t0,
+        )
+        # Pic a +40 pips: arme le trailing stop (seuil de cloture = 40*0.7=28).
+        t1 = t0 + timedelta(minutes=30)
+        state, newly_closed = update_performance_state(
+            state, ["EURUSD"], ["EURUSD"],
+            {"EURUSD": {"trend_pips": 40.0, "trend_icon": "✅"}}, t1,
+        )
+        self.assertEqual(newly_closed, [])
+        self.assertEqual(state["open_trades"]["EURUSD"]["peak_pips"], 40.0)
+
+        # Repli a +29: encore au-dessus du seuil de 28 -> reste ouvert.
+        t2 = t1 + timedelta(minutes=15)
+        state, newly_closed2 = update_performance_state(
+            state, ["EURUSD"], ["EURUSD"],
+            {"EURUSD": {"trend_pips": 29.0, "trend_icon": "✅"}}, t2,
+        )
+        self.assertEqual(newly_closed2, [])
+        self.assertEqual(state["open_trades"]["EURUSD"]["status"], "open")
+        # Le pic reste a 40 (29 < 40, pas un nouveau plus haut).
+        self.assertEqual(state["open_trades"]["EURUSD"]["peak_pips"], 40.0)
+
+        # Repli a +27: sous le seuil de 28 -> trailing stop declenche.
+        t3 = t2 + timedelta(minutes=15)
+        state, newly_closed3 = update_performance_state(
+            state, ["EURUSD"], ["EURUSD"],
+            {"EURUSD": {"trend_pips": 27.0, "trend_icon": "✅"}}, t3,
+        )
+        self.assertEqual(len(newly_closed3), 1)
+        self.assertAlmostEqual(newly_closed3[0]["pips"], 27.0, places=6)
+        self.assertEqual(newly_closed3[0]["reason"], "TRAILING_STOP")
+        self.assertEqual(state["open_trades"]["EURUSD"]["status"], "closed")
+
+    def test_performance_state_trailing_stop_not_armed_below_threshold(self):
+        """Sous PERFORMANCE_TRAILING_ARM_PIPS (10), un repli meme important
+        ne declenche pas le trailing stop -- seul un ❌ ou une sortie de
+        fenetre le fermerait a ce stade."""
+        t0 = datetime(2026, 8, 19, 10, 0, tzinfo=PARIS)
+        state, _ = update_performance_state(
+            {}, ["EURUSD"], ["EURUSD"],
+            {"EURUSD": {"trend_pips": 0.0, "trend_icon": "✅"}}, t0,
+        )
+        t1 = t0 + timedelta(minutes=15)
+        state, _ = update_performance_state(
+            state, ["EURUSD"], ["EURUSD"],
+            {"EURUSD": {"trend_pips": 8.0, "trend_icon": "✅"}}, t1,  # pic 8 < 10: pas arme
+        )
+        t2 = t1 + timedelta(minutes=15)
+        state, newly_closed = update_performance_state(
+            state, ["EURUSD"], ["EURUSD"],
+            {"EURUSD": {"trend_pips": 0.5, "trend_icon": "✅"}}, t2,  # repli de 94% du pic
+        )
+        self.assertEqual(newly_closed, [])
+        self.assertEqual(state["open_trades"]["EURUSD"]["status"], "open")
 
     def test_performance_state_closes_all_open_trades_at_session_end(self):
         """Cas 4 (USDCHF): jamais de ❌, jamais sortie du TOP5 -> cloture au
