@@ -14,7 +14,9 @@ from renko_full_alignment_29pairs import (
     _performance_general_bilan,
     all_index_status_rows,
     all_pair_status_rows,
+    currency_pip_sum,
     currency_spread,
+    eurusd_cross_check_lines,
     signed_strength,
     signed_sync_product,
     sync_marker,
@@ -1290,6 +1292,242 @@ class FullAlignmentScannerTests(unittest.TestCase):
         self.assertIn("🟢 AUDNZD M+(4) W+(8) D+(1)", message)
         # GBPAUD: W "porte" (0) -> warning; SAR H1 frais confirme -> 🎯.
         self.assertIn("🔴 GBPAUD M-(2) W0(7) D-(1) ⚠️ 🎯", message)
+
+    def test_update_price_trends_exposes_pips_vs_06h_signed_normally(self):
+        """`pips_vs_06h` est signe dans le sens normal du prix (monte =
+        positif), contrairement a `trend_pips` qui est oriente vers le sens du
+        premier signal du jour (cf. `test_trend_pips_are_signed_in_favor_of_the_baseline_direction`)."""
+        bear_first = row("AUDUSD", -1, -1, -1, daily_chg=-0.20)
+        bear_first["live_price"] = 0.71004
+        state, _ = update_price_trends(
+            {}, [bear_first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
+        )
+        bear_later = row("AUDUSD", -1, -1, -1, daily_chg=-0.20)
+        bear_later["live_price"] = 0.70864
+        _, trends = update_price_trends(
+            state, [bear_later], datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
+        )
+        # Prix a baisse de 14 pips: trend_pips = +14 (favorable au signal
+        # BEAR), pips_vs_06h = -14 (le prix a bel et bien baisse).
+        self.assertAlmostEqual(trends["AUDUSD"]["trend_pips"], 14.0, places=6)
+        self.assertAlmostEqual(trends["AUDUSD"]["pips_vs_06h"], -14.0, places=6)
+
+    def test_update_price_trends_exposes_pips_vs_previous_run(self):
+        """Le T0 du run suivant est le prix de celui-ci: `pips_vs_previous_run`
+        compare au run precedent (pas a 06h), et vaut None au tout premier run
+        du jour faute de run precedent."""
+        first = row("AUDUSD", -1, -1, -1, daily_chg=-0.20)
+        first["live_price"] = 0.71004
+        state, first_trends = update_price_trends(
+            {}, [first], datetime(2026, 7, 16, 6, 15, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
+        )
+        self.assertIsNone(first_trends["AUDUSD"]["pips_vs_previous_run"])
+
+        second = row("AUDUSD", -1, -1, -1, daily_chg=-0.20)
+        second["live_price"] = 0.70864  # -14 pips vs le run precedent
+        _, second_trends = update_price_trends(
+            state, [second], datetime(2026, 7, 16, 6, 30, tzinfo=PARIS),
+            h1_close_lookup=no_h1_backfill,
+        )
+        self.assertAlmostEqual(second_trends["AUDUSD"]["pips_vs_previous_run"], -14.0, places=6)
+
+    def test_currency_pip_sum_orients_pips_by_base_or_quote_role(self):
+        """USD base (USDJPY) qui monte renforce l'USD (+); USD quote (EURUSD,
+        AUDUSD) l'affaiblit quand elle monte et le renforce quand elle baisse."""
+        rows_by_pair = {
+            "USDJPY": {"pair": "USDJPY", "asset_type": "PAIR"},
+            "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
+            "AUDUSD": {"pair": "AUDUSD", "asset_type": "PAIR"},
+        }
+        price_trends = {
+            "USDJPY": {"pips_vs_06h": 50.0},    # USD base, +50 pips -> +50
+            "EURUSD": {"pips_vs_06h": 50.0},    # USD quote, +50 pips -> -50
+            "AUDUSD": {"pips_vs_06h": -100.0},  # USD quote, -100 pips -> +100
+        }
+
+        total, count = currency_pip_sum("USD", rows_by_pair, price_trends)
+
+        self.assertEqual(count, 3)
+        self.assertAlmostEqual(total, 100.0, places=6)
+
+    def test_currency_pip_sum_ignores_indices_and_unrelated_pairs(self):
+        rows_by_pair = {
+            "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
+            "GBPJPY": {"pair": "GBPJPY", "asset_type": "PAIR"},  # ni USD ni EUR
+            "DXY": index_row("DXY", 1, 1, 1, daily_chg=0.42),  # indice, exclu
+        }
+        price_trends = {
+            "EURUSD": {"pips_vs_06h": 50.0},
+            "GBPJPY": {"pips_vs_06h": 30.0},
+            "DXY": {"pips_vs_06h": 10.0},
+        }
+
+        total, count = currency_pip_sum("USD", rows_by_pair, price_trends)
+
+        self.assertEqual(count, 1)
+        self.assertAlmostEqual(total, -50.0, places=6)
+
+    def test_currency_pip_sum_skips_pairs_without_a_price_trend_entry(self):
+        rows_by_pair = {
+            "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
+            "USDJPY": {"pair": "USDJPY", "asset_type": "PAIR"},
+        }
+        price_trends = {"EURUSD": {"pips_vs_06h": 50.0}}  # USDJPY absente
+
+        total, count = currency_pip_sum("USD", rows_by_pair, price_trends)
+
+        self.assertEqual(count, 1)
+        self.assertAlmostEqual(total, -50.0, places=6)
+
+    def test_currency_pip_sum_can_target_the_previous_run_field(self):
+        rows_by_pair = {
+            "USDJPY": {"pair": "USDJPY", "asset_type": "PAIR"},
+            "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
+        }
+        price_trends = {
+            "USDJPY": {"pips_vs_06h": 50.0, "pips_vs_previous_run": 4.0},
+            "EURUSD": {"pips_vs_06h": 50.0, "pips_vs_previous_run": -3.0},
+        }
+
+        total, count = currency_pip_sum(
+            "USD", rows_by_pair, price_trends, field="pips_vs_previous_run",
+        )
+
+        self.assertEqual(count, 2)
+        # USD base (USDJPY) +4 -> +4; USD quote (EURUSD) -3 -> +3.
+        self.assertAlmostEqual(total, 7.0, places=6)
+
+    def _eurusd_check_fixture(self):
+        """7 paires USD + 7 paires EUR, pips depuis 06h Paris orchestres pour
+        un EUR fort / USD faible (valeurs reprises d'un run reel du
+        2026-08-19)."""
+        pairs = [
+            "EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "USDCAD", "USDCHF", "USDJPY",
+            "EURGBP", "EURJPY", "EURCHF", "EURAUD", "EURNZD", "EURCAD",
+        ]
+        rows_by_pair = {pair: {"pair": pair, "asset_type": "PAIR"} for pair in pairs}
+        price_trends = {
+            "EURUSD": {"pips_vs_06h": 90.1},
+            "GBPUSD": {"pips_vs_06h": 87.4},
+            "AUDUSD": {"pips_vs_06h": 53.0},
+            "NZDUSD": {"pips_vs_06h": 64.8},
+            "USDCAD": {"pips_vs_06h": -74.9},
+            "USDCHF": {"pips_vs_06h": -119.2},
+            "USDJPY": {"pips_vs_06h": -122.6},
+            "EURGBP": {"pips_vs_06h": 11.3},
+            "EURJPY": {"pips_vs_06h": 0.7},
+            "EURCHF": {"pips_vs_06h": -67.2},
+            "EURAUD": {"pips_vs_06h": 3.7},
+            "EURNZD": {"pips_vs_06h": -63.8},
+            "EURCAD": {"pips_vs_06h": 37.2},
+        }
+        return rows_by_pair, price_trends
+
+    def test_eurusd_cross_check_lines_shows_only_the_06h_segment_by_default(self):
+        """Sans `index_by_currency` ni `pips_vs_previous_run` (aucun run
+        precedent aujourd'hui), seul le segment 06h -- le seul obligatoire --
+        apparait: pas de valeurs, une seule bille."""
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+
+        lines = eurusd_cross_check_lines(rows_by_pair, price_trends)
+
+        self.assertEqual(lines, ["🧭 EURUSD CHECK", "06h 🟢"])
+
+    def test_eurusd_cross_check_lines_adds_the_run_segment_when_available(self):
+        """Le run precedent devient le T0 de celui-ci: chaque paire porte son
+        propre `pips_vs_previous_run`, agrege par devise comme pour 06h."""
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+        deltas = {
+            "EURUSD": 3.0, "GBPUSD": -1.0, "AUDUSD": 2.0, "NZDUSD": -2.0,
+            "USDCAD": 5.0, "USDCHF": -1.0, "USDJPY": 4.0,
+            "EURGBP": 1.0, "EURJPY": -3.0, "EURCHF": 0.0, "EURAUD": -2.0,
+            "EURNZD": 1.0, "EURCAD": -4.0,
+        }
+        for pair, delta in deltas.items():
+            price_trends[pair]["pips_vs_previous_run"] = delta
+
+        lines = eurusd_cross_check_lines(rows_by_pair, price_trends)
+
+        # 06h toujours EUR fort (🟢), mais l'USD regagne du terrain plus vite
+        # que l'EUR depuis le run precedent (🔴 RUN): repli en cours malgre
+        # une tendance journaliere toujours engagee.
+        self.assertEqual(lines[1], "06h 🟢 · RUN 🔴")
+
+    def test_eurusd_cross_check_lines_adds_the_index_segment_first(self):
+        """`index_by_currency` ajoute un segment INDEX, place en tete."""
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+        index_by_currency = {
+            "EUR": index_row("EXY", 1, 1, 1, daily_chg=1.44),
+            "USD": index_row("DXY", -1, -1, -1, daily_chg=-1.43),
+        }
+
+        lines = eurusd_cross_check_lines(rows_by_pair, price_trends, index_by_currency)
+
+        self.assertEqual(lines, ["🧭 EURUSD CHECK", "INDEX 🟢 · 06h 🟢"])
+
+    def test_eurusd_cross_check_lines_combines_all_three_segments(self):
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+        price_trends["EURUSD"]["pips_vs_previous_run"] = -3.0
+        price_trends["USDJPY"]["pips_vs_previous_run"] = 4.0
+        for pair in [
+            "GBPUSD", "AUDUSD", "NZDUSD", "USDCAD", "USDCHF",
+            "EURGBP", "EURJPY", "EURCHF", "EURAUD", "EURNZD", "EURCAD",
+        ]:
+            price_trends[pair]["pips_vs_previous_run"] = 0.0
+        index_by_currency = {
+            "EUR": index_row("EXY", 1, 1, 1, daily_chg=1.44),
+            "USD": index_row("DXY", -1, -1, -1, daily_chg=-1.43),
+        }
+
+        lines = eurusd_cross_check_lines(rows_by_pair, price_trends, index_by_currency)
+
+        self.assertEqual(lines, ["🧭 EURUSD CHECK", "INDEX 🟢 · 06h 🟢 · RUN 🔴"])
+
+    def test_eurusd_cross_check_lines_empty_without_price_trends(self):
+        rows_by_pair, _ = self._eurusd_check_fixture()
+
+        self.assertEqual(eurusd_cross_check_lines(None, None), [])
+        self.assertEqual(eurusd_cross_check_lines(rows_by_pair, None), [])
+        self.assertEqual(eurusd_cross_check_lines(rows_by_pair, {}), [])
+
+    def test_message_shows_eurusd_check_section_after_index_block(self):
+        rows_by_pair, price_trends = self._eurusd_check_fixture()
+        dxy = index_row("DXY", -1, -1, -1, daily_chg=-1.42)
+        exy = index_row("EXY", 1, 1, 1, daily_chg=1.35)
+        indices = [dxy, exy]
+
+        message = format_full_alignment_message(
+            [], now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            index_status_rows=all_index_status_rows(indices),
+            rows_by_pair=rows_by_pair,
+            price_trends=price_trends,
+            index_by_currency={"USD": dxy, "EUR": exy},
+        )
+
+        self.assertIn("💱 INDEX CHG%D", message)
+        self.assertIn("🧭 EURUSD CHECK", message)
+        self.assertIn("INDEX 🟢 · 06h 🟢", message)
+        self.assertLess(
+            message.index("💱 INDEX CHG%D"), message.index("🧭 EURUSD CHECK"),
+        )
+        self.assertLess(
+            message.index("🧭 EURUSD CHECK"), message.index("INDEX 🟢 · 06h 🟢"),
+        )
+
+    def test_message_omits_eurusd_check_without_price_trends(self):
+        """Avant la 1ere baseline 06h du jour (ou run isole sans price_trends
+        injecte), la section ne doit pas s'afficher a moitie vide."""
+        rows_by_pair, _ = self._eurusd_check_fixture()
+
+        message = format_full_alignment_message(
+            [], now=datetime(2026, 7, 16, 10, 0, tzinfo=PARIS),
+            rows_by_pair=rows_by_pair,
+        )
+
+        self.assertNotIn("🧭 EURUSD CHECK", message)
 
 
 if __name__ == "__main__":
