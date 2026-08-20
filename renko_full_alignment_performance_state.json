@@ -55,6 +55,20 @@
       "pair": "AUDUSD",
       "pips": 2.3,
       "reason": "RANK_EXIT"
+    },
+    {
+      "closed_at_paris": "2026-08-20T08:17:08.000135+02:00",
+      "date": "2026-08-20",
+      "pair": "GBPJPY",
+      "pips": -1.2,
+      "reason": "TRAILING_STOP"
+    },
+    {
+      "closed_at_paris": "2026-08-20T08:17:08.000135+02:00",
+      "date": "2026-08-20",
+      "pair": "EURJPY",
+      "pips": 3.5,
+      "reason": "TRAILING_STOP"
     }
   ],
   "open_trades": {
@@ -66,7 +80,7 @@
     },
     "AUDJPY": {
       "entry_pips": 8.70000000000033,
-      "last_pips": 0.0,
+      "last_pips": -7.399999999999807,
       "peak_pips": 0.0,
       "status": "open"
     },
@@ -78,32 +92,32 @@
     },
     "EURJPY": {
       "entry_pips": -1.799999999997226,
-      "last_pips": 11.199999999999477,
+      "last_pips": 3.499999999999659,
       "peak_pips": 11.199999999999477,
-      "status": "open"
+      "status": "closed"
     },
     "GBPJPY": {
       "entry_pips": -2.600000000001046,
-      "last_pips": 10.099999999999909,
+      "last_pips": -1.2000000000000455,
       "peak_pips": 10.099999999999909,
-      "status": "open"
+      "status": "closed"
     },
     "NZDCAD": {
       "entry_pips": 0.0,
-      "last_pips": -2.8999999999990145,
+      "last_pips": -0.1999999999990898,
       "peak_pips": 0.700000000000145,
       "status": "open"
     },
     "NZDJPY": {
       "entry_pips": -1.4000000000010004,
-      "last_pips": 8.200000000000784,
+      "last_pips": 4.400000000001114,
       "peak_pips": 8.200000000000784,
       "status": "open"
     },
     "NZDUSD": {
       "entry_pips": 0.0999999999995449,
-      "last_pips": -2.0999999999993246,
-      "peak_pips": 0.0,
+      "last_pips": 2.700000000001035,
+      "peak_pips": 2.700000000001035,
       "status": "open"
     },
     "USDCAD": {
