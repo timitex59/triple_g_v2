@@ -38,7 +38,7 @@ from renko_full_alignment_29pairs import (
 )
 
 # Modifier cette liste (ou passer --pairs) pour suivre d'autres paires.
-DEFAULT_PAIRS = ["EURUSD", "CHFJPY", "USDJPY"]
+DEFAULT_PAIRS = ["EURUSD", "EURJPY", "USDJPY", "CHFJPY"]
 STATE_FILE = Path("paire_check_price_trend_state.json")
 
 

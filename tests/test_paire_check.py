@@ -60,8 +60,9 @@ class PaireCheckTests(unittest.TestCase):
         self.assertEqual(helper_pairs.count("CHFJPY"), 1)
 
     def test_needed_helper_pairs_for_default_pairs_matches_manual_union(self):
-        # EURUSD, CHFJPY, USDJPY -> devises EUR/USD/CHF/JPY -> 22 des 28 paires
-        # (les 6 paires ne touchant que AUD/CAD/GBP/NZD entre elles sont exclues).
+        # EURUSD, EURJPY, USDJPY, CHFJPY -> devises EUR/USD/CHF/JPY -> 22 des 28
+        # paires (les 6 paires ne touchant que AUD/CAD/GBP/NZD entre elles sont
+        # exclues).
         helper_pairs = needed_helper_pairs(needed_currencies(DEFAULT_PAIRS))
 
         self.assertEqual(len(helper_pairs), 22)
