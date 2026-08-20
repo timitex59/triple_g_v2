@@ -1,6 +1,6 @@
 {
-  "updated": "2026-08-19",
-  "prev_update": "2026-08-18",
+  "updated": "2026-08-20",
+  "prev_update": "2026-08-19",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -146,23 +146,23 @@
       "dropped_on": "2026-07-31"
     },
     "OKTA": {
-      "streak": 9,
-      "days": 19,
+      "streak": 10,
+      "days": 20,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-08-19",
-      "last_rank": 3,
+      "last_seen": "2026-08-20",
+      "last_rank": 4,
       "peak_rank": 1,
-      "last_rel": 57.2,
+      "last_rel": 41.7,
       "active": true
     },
     "QLYS": {
-      "streak": 4,
-      "days": 18,
+      "streak": 5,
+      "days": 19,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-08-19",
-      "last_rank": 2,
+      "last_seen": "2026-08-20",
+      "last_rank": 3,
       "peak_rank": 1,
-      "last_rel": 95.82,
+      "last_rel": 78.09,
       "active": true
     },
     "CXT": {
@@ -210,25 +210,24 @@
       "dropped_on": "2026-08-07"
     },
     "MANH": {
-      "streak": 1,
-      "days": 4,
+      "streak": 2,
+      "days": 5,
       "first_seen": "2026-07-31",
-      "last_seen": "2026-08-19",
+      "last_seen": "2026-08-20",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 50.95,
+      "last_rel": 52.0,
       "active": true
     },
     "NTNX": {
       "streak": 1,
-      "days": 3,
+      "days": 4,
       "first_seen": "2026-08-03",
-      "last_seen": "2026-08-13",
-      "last_rank": 3,
+      "last_seen": "2026-08-20",
+      "last_rank": 2,
       "peak_rank": 1,
-      "last_rel": 38.4,
-      "active": false,
-      "dropped_on": "2026-08-14"
+      "last_rel": 33.53,
+      "active": true
     },
     "BDC": {
       "streak": 6,
@@ -271,16 +270,17 @@
       "last_rank": 5,
       "peak_rank": 2,
       "last_rel": 39.66,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-08-20"
     },
     "PATH": {
-      "streak": 2,
-      "days": 2,
+      "streak": 3,
+      "days": 3,
       "first_seen": "2026-08-18",
-      "last_seen": "2026-08-19",
-      "last_rank": 4,
+      "last_seen": "2026-08-20",
+      "last_rank": 5,
       "peak_rank": 4,
-      "last_rel": 41.65,
+      "last_rel": 38.23,
       "active": true
     }
   },
@@ -288,89 +288,89 @@
     "persistent": [
       [
         "OKTA",
-        9
-      ],
-      [
-        "P",
-        8
+        10
       ],
       [
         "QLYS",
-        4
+        5
       ],
       [
         "PATH",
-        2
+        3
       ],
       [
         "MANH",
+        2
+      ],
+      [
+        "NTNX",
         1
       ]
     ],
     "new": [
-      "MANH"
+      "NTNX"
     ],
     "weakening": [
       {
         "ticker": "QLYS",
-        "rank": 2,
-        "prev_rank": 1,
-        "rel": 95.82,
-        "prev_rel": 98.16
+        "rank": 3,
+        "prev_rank": 2,
+        "rel": 78.09,
+        "prev_rel": 95.82
       },
       {
         "ticker": "OKTA",
-        "rank": 3,
-        "prev_rank": 4,
-        "rel": 57.2,
-        "prev_rel": 64.44
+        "rank": 4,
+        "prev_rank": 3,
+        "rel": 41.7,
+        "prev_rel": 57.2
       },
       {
-        "ticker": "P",
+        "ticker": "PATH",
         "rank": 5,
-        "prev_rank": 2,
-        "rel": 39.66,
-        "prev_rel": 41.72
+        "prev_rank": 4,
+        "rel": 38.23,
+        "prev_rel": 41.65
       }
     ],
     "dropped": [
-      "BDC"
+      "P"
     ],
     "durable": [
       [
         "OKTA",
-        9,
-        57.2,
-        514.8
+        10,
+        41.7,
+        417.0
       ],
       [
         "QLYS",
-        4,
-        95.82,
-        383.3
-      ],
-      [
-        "P",
-        8,
-        39.66,
-        317.3
+        5,
+        78.09,
+        390.5
       ],
       [
         "PATH",
-        2,
-        41.65,
-        83.3
+        3,
+        38.23,
+        114.7
       ],
       [
         "MANH",
+        2,
+        52.0,
+        104.0
+      ],
+      [
+        "NTNX",
         1,
-        50.95,
-        51.0
+        33.53,
+        33.5
       ]
     ],
     "switch": null
   },
   "leader_raw": "Logiciels",
-  "leader_raw_days": 14,
+  "leader_raw_days": 15,
   "leader_confirmed": "Logiciels"
 }
