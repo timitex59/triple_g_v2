@@ -157,15 +157,14 @@ def index_chg_lines(index_rows: list[dict]) -> list[str]:
     return ["💱 INDEX CHG%D", *_strength_status_lines(sorted_rows)]
 
 
-def best_pair_lines(index_rows: list[dict]) -> list[str]:
-    """Section `🏆 BEST PAIRE`: associe la devise 🔴 au score le plus eleve a
-    la devise 🟢 au score le plus eleve, dans l'ordre deja fourni par
-    `all_index_status_rows` (score d'intensite decroissant, cf.
-    `_strength_sort_key`) -- donc simplement le premier 🔴 et le premier 🟢
-    rencontres. La verte (forte) sert de base, la rouge (faible) de quote,
-    convention "acheter le fort, vendre le faible" deja utilisee par
-    `currency_spread`. Vide si aucune devise rouge ou aucune verte n'est
-    exploitable (CHG%D manquant pour l'une des deux)."""
+def best_pair_name(index_rows: list[dict]) -> str | None:
+    """Associe la devise 🔴 au score le plus eleve a la devise 🟢 au score le
+    plus eleve, dans l'ordre deja fourni par `all_index_status_rows` (score
+    d'intensite decroissant, cf. `_strength_sort_key`) -- donc simplement le
+    premier 🔴 et le premier 🟢 rencontres. La verte (forte) sert de base, la
+    rouge (faible) de quote, convention "acheter le fort, vendre le faible"
+    deja utilisee par `currency_spread`. None si aucune devise rouge ou
+    aucune verte n'est exploitable (CHG%D manquant pour l'une des deux)."""
     sorted_rows = all_index_status_rows(index_rows)
     strong = next(
         (row for row in sorted_rows if isinstance(row.get("daily_chg"), (int, float))
@@ -178,8 +177,25 @@ def best_pair_lines(index_rows: list[dict]) -> list[str]:
         None,
     )
     if strong is None or weak is None:
+        return None
+    return f"{strong['currency']}{weak['currency']}"
+
+
+def best_pair_lines(
+    pair: str | None, rows_by_pair: dict[str, dict], price_trends: dict[str, dict],
+    index_by_currency: dict[str, dict],
+) -> list[str]:
+    """Section `🏆 BEST PAIRE`: `pair` (cf. `best_pair_name`) avec ses billes
+    INDEX/06h/RUN, meme rendu que les lignes PAIRES (cf.
+    `pair_check_compact_line`). Vide si pas de `pair`, ou si ses billes ne
+    sont pas exploitables (ex. devise absente des paires-support fetchees --
+    voir `main`, qui inclut les devises de `best_pair_name` dans le fetch)."""
+    if pair is None:
         return []
-    return ["🏆 BEST PAIRE", f"{strong['currency']}{weak['currency']}"]
+    line = pair_check_compact_line(pair, rows_by_pair, price_trends, index_by_currency)
+    if line is None:
+        return []
+    return ["🏆 BEST PAIRE", line]
 
 
 def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
@@ -203,7 +219,9 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
     if index_lines:
         lines.extend(index_lines)
         lines.append("")
-    best_lines = best_pair_lines(index_rows)
+    best_lines = best_pair_lines(
+        best_pair_name(index_rows), rows_by_pair, price_trends, index_by_currency,
+    )
     if best_lines:
         lines.extend(best_lines)
         lines.append("")
@@ -218,7 +236,18 @@ def main() -> int:
     args = parse_args()
     now = datetime.now(PARIS_TZ)
 
+    # INDEX d'abord: le nom du BEST PAIRE (devises dynamiques, cf.
+    # `best_pair_name`) doit etre connu avant de choisir les paires-support a
+    # fetcher, pour que ses billes 06h/RUN soient exploitables comme celles
+    # de PAIRES -- pas seulement son segment INDEX.
+    index_rows = fetch_index_rows(args.length, args.candles, args.max_streak)
+    index_by_currency = {str(row["currency"]): row for row in index_rows}
+    best_pair = best_pair_name(index_rows)
+
     currencies = needed_currencies(args.pairs)
+    best_pair_currencies = _pair_currencies(best_pair) if best_pair else None
+    if best_pair_currencies:
+        currencies |= set(best_pair_currencies)
     helper_pairs = needed_helper_pairs(currencies)
     rows = [row for row in (fetch_pair_row(pair) for pair in helper_pairs) if row is not None]
     rows_by_pair = {str(row["pair"]): row for row in rows}
@@ -226,9 +255,6 @@ def main() -> int:
     state = load_price_trend_state(args.state_file)
     new_state, price_trends = update_price_trends(state, rows, now)
     save_price_trend_state(args.state_file, new_state)
-
-    index_rows = fetch_index_rows(args.length, args.candles, args.max_streak)
-    index_by_currency = {str(row["currency"]): row for row in index_rows}
 
     message, has_content = build_message(
         args.pairs, rows_by_pair, price_trends, index_by_currency, now,

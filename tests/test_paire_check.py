@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from paire_check import (
     DEFAULT_PAIRS,
     best_pair_lines,
+    best_pair_name,
     build_message,
     index_chg_lines,
     needed_currencies,
@@ -102,7 +103,7 @@ class PaireCheckTests(unittest.TestCase):
     def test_index_chg_lines_empty_without_index_rows(self):
         self.assertEqual(index_chg_lines([]), [])
 
-    def test_best_pair_lines_pairs_top_red_with_top_green(self):
+    def test_best_pair_name_pairs_top_red_with_top_green(self):
         # Meme alignement M/W/D (1,1,1) partout -> le score n'est ordonne que
         # par |daily_chg|: rouge le plus fort = JPY, vert le plus fort = USD,
         # meme si ce ne sont pas les plus extremes en valeur absolue globale.
@@ -113,15 +114,33 @@ class PaireCheckTests(unittest.TestCase):
             index_row("GBX", "GBP", 1, 1, 1, daily_chg=0.10),
         ]
 
-        self.assertEqual(best_pair_lines(rows), ["🏆 BEST PAIRE", "USDJPY"])
+        self.assertEqual(best_pair_name(rows), "USDJPY")
 
-    def test_best_pair_lines_empty_without_both_colors(self):
+    def test_best_pair_name_none_without_both_colors(self):
         rows = [index_row("USX", "USD", 1, 1, 1, daily_chg=0.28)]
 
-        self.assertEqual(best_pair_lines(rows), [])
+        self.assertIsNone(best_pair_name(rows))
 
-    def test_best_pair_lines_empty_without_rows(self):
-        self.assertEqual(best_pair_lines([]), [])
+    def test_best_pair_name_none_without_rows(self):
+        self.assertIsNone(best_pair_name([]))
+
+    def test_best_pair_lines_renders_the_same_billes_as_a_paires_line(self):
+        rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
+        price_trends = {"EURUSD": {"pips_vs_06h": 20.0}}
+
+        lines = best_pair_lines("EURUSD", rows_by_pair, price_trends, {})
+
+        self.assertEqual(
+            lines, ["🏆 BEST PAIRE", pair_check_compact_line(
+                "EURUSD", rows_by_pair, price_trends, {},
+            )],
+        )
+
+    def test_best_pair_lines_empty_without_a_pair_name(self):
+        self.assertEqual(best_pair_lines(None, {}, {}, {}), [])
+
+    def test_best_pair_lines_empty_without_exploitable_signal(self):
+        self.assertEqual(best_pair_lines("EURUSD", {}, {}, {}), [])
 
     def test_build_message_lists_one_compact_line_per_pair_under_a_paires_label(self):
         rows_by_pair = {
@@ -161,11 +180,14 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertTrue(has_content)
         self.assertIn("💱 INDEX CHG%D", message)
-        self.assertIn("🏆 BEST PAIRE\nEURUSD", message)  # EUR verte, USD rouge ici
+        self.assertIn("🏆 BEST PAIRE", message)
         self.assertIn("PAIRES", message)
         self.assertLess(message.index("💱 INDEX CHG%D"), message.index("🏆 BEST PAIRE"))
         self.assertLess(message.index("🏆 BEST PAIRE"), message.index("PAIRES"))
-        self.assertLess(message.index("PAIRES"), message.index("EURUSD 🟢"))
+        # EUR verte, USD rouge ici -> BEST PAIRE = EURUSD, memes billes que la
+        # ligne PAIRES (qui suit) puisque c'est la meme paire dans ce test.
+        after_paires = message[message.index("PAIRES"):]
+        self.assertIn("EURUSD 🟢", after_paires)
 
     def test_build_message_flags_no_content_when_no_pair_scores(self):
         now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
