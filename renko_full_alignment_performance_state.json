@@ -69,6 +69,27 @@
       "pair": "EURJPY",
       "pips": 3.5,
       "reason": "TRAILING_STOP"
+    },
+    {
+      "closed_at_paris": "2026-08-20T09:05:38.462665+02:00",
+      "date": "2026-08-20",
+      "pair": "NZDCAD",
+      "pips": -8.5,
+      "reason": "STOP_FIRST_CROSS"
+    },
+    {
+      "closed_at_paris": "2026-08-20T09:05:38.462665+02:00",
+      "date": "2026-08-20",
+      "pair": "AUDJPY",
+      "pips": -12.3,
+      "reason": "RANK_EXIT"
+    },
+    {
+      "closed_at_paris": "2026-08-20T09:05:38.462665+02:00",
+      "date": "2026-08-20",
+      "pair": "NZDJPY",
+      "pips": -11.7,
+      "reason": "STOP_FIRST_CROSS"
     }
   ],
   "open_trades": {
@@ -80,9 +101,9 @@
     },
     "AUDJPY": {
       "entry_pips": 8.70000000000033,
-      "last_pips": -7.399999999999807,
+      "last_pips": -12.299999999999045,
       "peak_pips": 0.0,
-      "status": "open"
+      "status": "closed"
     },
     "AUDUSD": {
       "entry_pips": -0.10000000000065512,
@@ -96,27 +117,37 @@
       "peak_pips": 11.199999999999477,
       "status": "closed"
     },
+    "EURUSD": {
+      "last_pips": 0.0,
+      "status": "ignored"
+    },
     "GBPJPY": {
       "entry_pips": -2.600000000001046,
       "last_pips": -1.2000000000000455,
       "peak_pips": 10.099999999999909,
       "status": "closed"
     },
+    "GBPUSD": {
+      "entry_pips": 0.20000000000131024,
+      "last_pips": 0.0,
+      "peak_pips": 0.0,
+      "status": "open"
+    },
     "NZDCAD": {
       "entry_pips": 0.0,
-      "last_pips": -0.1999999999990898,
+      "last_pips": -8.499999999999064,
       "peak_pips": 0.700000000000145,
-      "status": "open"
+      "status": "closed"
     },
     "NZDJPY": {
       "entry_pips": -1.4000000000010004,
-      "last_pips": 4.400000000001114,
+      "last_pips": -11.699999999999022,
       "peak_pips": 8.200000000000784,
-      "status": "open"
+      "status": "closed"
     },
     "NZDUSD": {
       "entry_pips": 0.0999999999995449,
-      "last_pips": 2.700000000001035,
+      "last_pips": -2.2999999999995246,
       "peak_pips": 2.700000000001035,
       "status": "open"
     },
