@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 from paire_check import (
     DEFAULT_PAIRS,
+    best_pair_lines,
     build_message,
     index_chg_lines,
     needed_currencies,
@@ -101,6 +102,27 @@ class PaireCheckTests(unittest.TestCase):
     def test_index_chg_lines_empty_without_index_rows(self):
         self.assertEqual(index_chg_lines([]), [])
 
+    def test_best_pair_lines_pairs_top_red_with_top_green(self):
+        # Meme alignement M/W/D (1,1,1) partout -> le score n'est ordonne que
+        # par |daily_chg|: rouge le plus fort = JPY, vert le plus fort = USD,
+        # meme si ce ne sont pas les plus extremes en valeur absolue globale.
+        rows = [
+            index_row("JYX", "JPY", 1, 1, 1, daily_chg=-1.66),
+            index_row("AUX", "AUD", 1, 1, 1, daily_chg=-0.43),
+            index_row("USX", "USD", 1, 1, 1, daily_chg=0.28),
+            index_row("GBX", "GBP", 1, 1, 1, daily_chg=0.10),
+        ]
+
+        self.assertEqual(best_pair_lines(rows), ["🏆 BEST PAIRE", "USDJPY"])
+
+    def test_best_pair_lines_empty_without_both_colors(self):
+        rows = [index_row("USX", "USD", 1, 1, 1, daily_chg=0.28)]
+
+        self.assertEqual(best_pair_lines(rows), [])
+
+    def test_best_pair_lines_empty_without_rows(self):
+        self.assertEqual(best_pair_lines([]), [])
+
     def test_build_message_lists_one_compact_line_per_pair_under_a_paires_label(self):
         rows_by_pair = {
             "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
@@ -139,8 +161,10 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertTrue(has_content)
         self.assertIn("💱 INDEX CHG%D", message)
+        self.assertIn("🏆 BEST PAIRE\nEURUSD", message)  # EUR verte, USD rouge ici
         self.assertIn("PAIRES", message)
-        self.assertLess(message.index("💱 INDEX CHG%D"), message.index("PAIRES"))
+        self.assertLess(message.index("💱 INDEX CHG%D"), message.index("🏆 BEST PAIRE"))
+        self.assertLess(message.index("🏆 BEST PAIRE"), message.index("PAIRES"))
         self.assertLess(message.index("PAIRES"), message.index("EURUSD 🟢"))
 
     def test_build_message_flags_no_content_when_no_pair_scores(self):

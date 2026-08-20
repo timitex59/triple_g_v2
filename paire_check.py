@@ -1,8 +1,11 @@
 """PAIRE_CHECK: une section INDEX CHG%D identique a celle de FULL MOMENTUM
-(les 8 devises) suivie d'une ligne par paire, billes seules (`EURUSD 🟢🟢🟢`),
-a partir des memes signaux INDEX/06h/RUN que `pair_check_lines` dans
-renko_full_alignment_29pairs.py (cf. `pair_check_signals`), pour un jeu de
-paires choisies -- sans lancer le scan complet 29 paires de ce dernier.
+(les 8 devises), suivie d'une section BEST PAIRE (devise verte la plus
+forte + devise rouge la plus forte du classement INDEX CHG%D, cf.
+`best_pair_lines`), puis d'une ligne par paire, billes seules
+(`EURUSD 🟢🟢🟢`), a partir des memes signaux INDEX/06h/RUN que
+`pair_check_lines` dans renko_full_alignment_29pairs.py (cf.
+`pair_check_signals`), pour un jeu de paires choisies -- sans lancer le
+scan complet 29 paires de ce dernier.
 
 - INDEX: renko M/W/D complet (cf. `compute_asset_score`) pour les 8 devises,
   comme FULL MOMENTUM -- alimente a la fois la section INDEX CHG%D affichee
@@ -154,6 +157,31 @@ def index_chg_lines(index_rows: list[dict]) -> list[str]:
     return ["💱 INDEX CHG%D", *_strength_status_lines(sorted_rows)]
 
 
+def best_pair_lines(index_rows: list[dict]) -> list[str]:
+    """Section `🏆 BEST PAIRE`: associe la devise 🔴 au score le plus eleve a
+    la devise 🟢 au score le plus eleve, dans l'ordre deja fourni par
+    `all_index_status_rows` (score d'intensite decroissant, cf.
+    `_strength_sort_key`) -- donc simplement le premier 🔴 et le premier 🟢
+    rencontres. La verte (forte) sert de base, la rouge (faible) de quote,
+    convention "acheter le fort, vendre le faible" deja utilisee par
+    `currency_spread`. Vide si aucune devise rouge ou aucune verte n'est
+    exploitable (CHG%D manquant pour l'une des deux)."""
+    sorted_rows = all_index_status_rows(index_rows)
+    strong = next(
+        (row for row in sorted_rows if isinstance(row.get("daily_chg"), (int, float))
+         and row["daily_chg"] > 0),
+        None,
+    )
+    weak = next(
+        (row for row in sorted_rows if isinstance(row.get("daily_chg"), (int, float))
+         and row["daily_chg"] < 0),
+        None,
+    )
+    if strong is None or weak is None:
+        return []
+    return ["🏆 BEST PAIRE", f"{strong['currency']}{weak['currency']}"]
+
+
 def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
                   price_trends: dict[str, dict], index_by_currency: dict[str, dict],
                   now: datetime) -> tuple[str, bool]:
@@ -170,9 +198,14 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
     ]
 
     lines = ["📐 PAIRE_CHECK", ""]
-    index_lines = index_chg_lines(list(index_by_currency.values()))
+    index_rows = list(index_by_currency.values())
+    index_lines = index_chg_lines(index_rows)
     if index_lines:
         lines.extend(index_lines)
+        lines.append("")
+    best_lines = best_pair_lines(index_rows)
+    if best_lines:
+        lines.extend(best_lines)
         lines.append("")
     if pair_lines:
         lines.extend(["PAIRES", *pair_lines])
