@@ -2029,28 +2029,31 @@
       "confirmed_segments": [],
       "date": "2026-08-21",
       "finalized": false,
-      "segments": []
+      "segments": [
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-08-21",
+          "direction": 1,
+          "end_price": 0.57383,
+          "end_time_paris": "2026-08-21T17:00:00+02:00",
+          "end_time_utc": "2026-08-21T15:00:00+00:00",
+          "pair": "AUDCHF",
+          "pips": 26.8999999999997,
+          "start_price": 0.57114,
+          "start_time_paris": "2026-08-21T07:00:00+02:00",
+          "start_time_utc": "2026-08-21T05:00:00+00:00"
+        }
+      ]
     }
   },
   "open_confirmed_segments": {},
   "open_segments": {
-    "AUDCHF": {
-      "current_pips": 25.500000000000522,
-      "date": "2026-08-21",
-      "direction": 1,
-      "last_price": 0.57369,
-      "last_time_utc": "2026-08-21T14:00:00+00:00",
-      "pair": "AUDCHF",
-      "start_price": 0.57114,
-      "start_time_paris": "2026-08-21T07:00:00+02:00",
-      "start_time_utc": "2026-08-21T05:00:00+00:00"
-    },
     "GBPCAD": {
-      "current_pips": -21.500000000000963,
+      "current_pips": -17.300000000000093,
       "date": "2026-08-21",
       "direction": 1,
-      "last_price": 1.87598,
-      "last_time_utc": "2026-08-21T14:00:00+00:00",
+      "last_price": 1.8764,
+      "last_time_utc": "2026-08-21T15:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.87813,
       "start_time_paris": "2026-08-21T07:00:00+02:00",
@@ -2080,6 +2083,6 @@
       "2026-W33"
     ]
   },
-  "updated_at_paris": "2026-08-21T16:52:05.813951+02:00",
+  "updated_at_paris": "2026-08-21T17:15:50.749601+02:00",
   "version": 3
 }
