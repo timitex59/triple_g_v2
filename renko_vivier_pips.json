@@ -2028,7 +2028,8 @@
     "2026-08-21": {
       "confirmed_segments": [],
       "date": "2026-08-21",
-      "finalized": false,
+      "finalized": true,
+      "finalized_at_paris": "2026-08-21T23:15:47.935362+02:00",
       "segments": [
         {
           "close_reason": "VIVIER_EXIT",
@@ -2042,24 +2043,25 @@
           "start_price": 0.57114,
           "start_time_paris": "2026-08-21T07:00:00+02:00",
           "start_time_utc": "2026-08-21T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-08-21",
+          "direction": 1,
+          "end_price": 1.8784,
+          "end_time_paris": "2026-08-21T23:00:00+02:00",
+          "end_time_utc": "2026-08-21T21:00:00+00:00",
+          "pair": "GBPCAD",
+          "pips": 2.6999999999999247,
+          "start_price": 1.87813,
+          "start_time_paris": "2026-08-21T07:00:00+02:00",
+          "start_time_utc": "2026-08-21T05:00:00+00:00"
         }
       ]
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {
-    "GBPCAD": {
-      "current_pips": 8.699999999999264,
-      "date": "2026-08-21",
-      "direction": 1,
-      "last_price": 1.879,
-      "last_time_utc": "2026-08-21T20:00:00+00:00",
-      "pair": "GBPCAD",
-      "start_price": 1.87813,
-      "start_time_paris": "2026-08-21T07:00:00+02:00",
-      "start_time_utc": "2026-08-21T05:00:00+00:00"
-    }
-  },
+  "open_segments": {},
   "reports_sent": {
     "general_daily": [
       "2026-08-10",
@@ -2070,7 +2072,8 @@
       "2026-08-17",
       "2026-08-18",
       "2026-08-19",
-      "2026-08-20"
+      "2026-08-20",
+      "2026-08-21"
     ],
     "monthly": [
       "2026-07"
@@ -2080,9 +2083,10 @@
       "2026-W30",
       "2026-W31",
       "2026-W32",
-      "2026-W33"
+      "2026-W33",
+      "2026-W34"
     ]
   },
-  "updated_at_paris": "2026-08-21T22:38:36.728608+02:00",
+  "updated_at_paris": "2026-08-21T23:15:47.935362+02:00",
   "version": 3
 }
