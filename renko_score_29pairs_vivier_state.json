@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-08-21 17:17",
+  "updated_at_paris": "2026-08-21 17:47",
   "pairs": {
     "GBPCAD": {
       "direction": 1,
       "entered_at_paris": "2026-08-05 18:19",
-      "last_seen_at_paris": "2026-08-21 17:17",
+      "last_seen_at_paris": "2026-08-21 17:47",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -18,11 +18,11 @@
       },
       "base_pct": 66.66666666666666,
       "weighted_pct": 0.0,
-      "daily_chg": -0.17026529461217246,
+      "daily_chg": -0.09577422821934553,
       "daily_sar_dir": -1,
       "daily_sar_value": 1.88526,
       "fib_position": "Fibo <0.236",
-      "fib_pct_of_range": 9.39565627950868,
+      "fib_pct_of_range": 16.05288007554331,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 49.01901599758554,
@@ -36,11 +36,10 @@
       "fib_context_month_utc": "2026-08",
       "fib_objective_reattached_from_post_alignment": true,
       "fib_objective_post_alignment_time_utc": "2026-08-04T13:00:00+00:00",
-      "sar_flame": true,
+      "sar_flame": false,
       "sar_last_processed_time_utc": "2026-08-21T15:00:00+00:00",
       "sar_record_value": 1.87422,
-      "sar_record_time_utc": "2026-08-21T15:00:00+00:00",
-      "sar_flame_kind": "RECORD"
+      "sar_record_time_utc": "2026-08-21T15:00:00+00:00"
     }
   },
   "pending_objectives": {
@@ -65,16 +64,7 @@
       "source_entered_at_paris": "2026-08-21 06:53"
     }
   },
-  "objective_events": [
-    {
-      "event_type": "POST_ALIGNMENT_OBJECTIVE_CREATED",
-      "pair": "AUDCHF",
-      "direction": 1,
-      "time_utc": "2026-08-21T15:00:00+00:00",
-      "objective_value": 0.57811,
-      "origin_month_utc": "2026-08"
-    }
-  ],
-  "telegram_last_body_hash": "c408aee0c002ccf4da6842baadb2f44c94cdbca734b778e54b48cad34460dafa",
-  "telegram_last_sent_at_paris": "2026-08-21 17:15"
+  "objective_events": [],
+  "telegram_last_body_hash": "bb3c6d527c1558feded8c7994a4f8670d359c7620465e2b5f7b52e641efd74ca",
+  "telegram_last_sent_at_paris": "2026-08-21 17:46"
 }
