@@ -148,7 +148,7 @@ jobs:
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V1" renko_forex_V1.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_FOREX_V2" renko_forex_V2.py
           run_with_telegram "$ENABLE_TELEGRAM_RENKO_SCORE_29" renko_score_29pairs_v16.py
-          run_with_telegram "$ENABLE_IMP_TREND_29" imp_trend_29pairs.py
+          run_with_telegram "$ENABLE_IMP_TREND_29" imp_trend_29pairs.py --telegram
           run_with_telegram "$ENABLE_TELEGRAM_FULL_ALIGNMENT" renko_full_alignment_29pairs.py --telegram
           run_with_telegram "$ENABLE_TELEGRAM_PAIRE_CHECK" paire_check.py --telegram
           run_with_telegram "$ENABLE_TELEGRAM_FIBO_50" renko_fibo_50_strategy.py --telegram

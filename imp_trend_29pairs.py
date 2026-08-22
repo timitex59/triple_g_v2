@@ -15,15 +15,19 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import random
 import string
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
+import requests
 from websocket import WebSocketConnectionClosedException, WebSocketTimeoutException, create_connection
 
 
@@ -38,6 +42,12 @@ PAIRS_29 = [
 
 WS_URL = "wss://prodata.tradingview.com/socket.io/websocket"
 WS_HEADERS = {"Origin": "https://www.tradingview.com", "User-Agent": "Mozilla/5.0"}
+PARIS = ZoneInfo("Europe/Paris")
+
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except (AttributeError, OSError):
+    pass
 
 
 @dataclass(frozen=True)
@@ -701,6 +711,51 @@ def print_selection(selected: list[dict]) -> None:
         print(pd.DataFrame(display).to_string(index=False))
 
 
+def build_telegram_message(selected: list[dict], now: datetime | None = None) -> str:
+    timestamp = (now or datetime.now(timezone.utc)).astimezone(PARIS)
+    ordered = sorted(
+        selected,
+        key=lambda item: (
+            item["rank_tier"],
+            -item["confirmations"],
+            item["pair"],
+        ),
+    )
+    lines = ["📊 IMP TREND", ""]
+    if ordered:
+        for item in ordered:
+            marker = "🟢" if item["direction"] == "BULL" else "🔴"
+            lines.append(f'{marker}{item["pair"]}')
+    else:
+        lines.append("Aucune paire filtrée")
+    lines.extend(["", f"⏰ {timestamp:%Y-%m-%d %H:%M} Paris"])
+    return "\n".join(lines)
+
+
+def send_telegram_message(message: str) -> bool:
+    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
+    if not token or not chat_id:
+        print("Telegram: identifiants manquants, envoi ignore.")
+        return False
+    try:
+        response = requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": message},
+            timeout=15,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        if not payload.get("ok"):
+            print(f"Telegram: echec ({payload.get('description', 'reponse inconnue')}).")
+            return False
+        print("Telegram: message IMP TREND envoye.")
+        return True
+    except Exception as exc:
+        print(f"Telegram: echec non fatal ({exc}).")
+        return False
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="TradingView IMP Trend extractor for 29 OANDA instruments")
     parser.add_argument("--pairs", nargs="+", default=PAIRS_29, help="Pairs to process, e.g. EURUSD USDJPY")
@@ -715,6 +770,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--selection-csv", type=Path, default=Path("imp_trend_selection.csv"))
     parser.add_argument("--selection-json", type=Path, default=Path("imp_trend_selection.json"))
     parser.add_argument("--eligible-state", type=Path, default=Path("imp_trend_eligible_state.json"))
+    parser.add_argument("--telegram", action="store_true", help="Envoyer les paires filtrees sur Telegram")
     return parser.parse_args()
 
 
@@ -767,6 +823,10 @@ def main() -> int:
         print(f"Selection CSV:  {args.selection_csv.resolve()}")
         print(f"Selection JSON: {args.selection_json.resolve()}")
         print(f"Suivi eligibilite: {args.eligible_state.resolve()}")
+        if args.telegram:
+            telegram_message = build_telegram_message(selected)
+            print("\n" + telegram_message)
+            send_telegram_message(telegram_message)
     if errors:
         print("\nErrors:")
         for pair, error in errors:
