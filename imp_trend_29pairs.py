@@ -897,6 +897,11 @@ def send_telegram_message(message: str) -> bool:
         return False
 
 
+def telegram_window_is_open(now: datetime | None = None) -> bool:
+    timestamp = (now or datetime.now(timezone.utc)).astimezone(PARIS)
+    return 6 <= timestamp.hour <= 23
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="TradingView IMP Trend extractor for 29 OANDA instruments")
     parser.add_argument("--pairs", nargs="+", default=PAIRS_29, help="Pairs to process, e.g. EURUSD USDJPY")
@@ -967,10 +972,12 @@ def main() -> int:
         print(f"Selection JSON: {args.selection_json.resolve()}")
         print(f"Suivi eligibilite: {args.eligible_state.resolve()}")
         print(f"Suivi sessions: {args.sessions_state.resolve()}")
-        if args.telegram:
+        if args.telegram and telegram_window_is_open():
             telegram_message = build_telegram_message(selected, session_state)
             print("\n" + telegram_message)
             send_telegram_message(telegram_message)
+        elif args.telegram:
+            print("Telegram: plage silencieuse 00:00-05:59 Europe/Paris, envoi ignore.")
     if errors:
         print("\nErrors:")
         for pair, error in errors:
