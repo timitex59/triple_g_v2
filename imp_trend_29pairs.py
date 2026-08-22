@@ -717,7 +717,7 @@ def print_selection(selected: list[dict]) -> None:
         print(pd.DataFrame(display).to_string(index=False))
 
 
-def _session_id(now_paris: datetime, start_minute: int, end_minute: int) -> str | None:
+def _trading_session_id(now_paris: datetime, start_minute: int, end_minute: int) -> str | None:
     minute = now_paris.hour * 60 + now_paris.minute
     if start_minute < end_minute:
         return now_paris.date().isoformat() if start_minute <= minute < end_minute else None
@@ -763,7 +763,7 @@ def update_session_tracking(
         })
         positions = session.setdefault("positions", {})
         events = session.setdefault("events", [])
-        current_id = _session_id(now_paris, start_minute, end_minute)
+        current_id = _trading_session_id(now_paris, start_minute, end_minute)
 
         def close_position(pair: str, reason: str) -> bool:
             position = positions.get(pair)
