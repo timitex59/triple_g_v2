@@ -755,6 +755,8 @@ def update_session_tracking(
     for name, (start_minute, end_minute) in SESSION_DEFINITIONS.items():
         session = sessions.setdefault(name, {
             "realized_pips": 0.0,
+            "current_session_realized_pips": 0.0,
+            "last_session_pips": 0.0,
             "active_session_id": None,
             "positions": {},
             "events": [],
@@ -771,6 +773,9 @@ def update_session_tracking(
             sign = 1 if position["direction"] == "BULL" else -1
             trade_pips = sign * (price - position["entry_price"]) / pip_size(pair)
             session["realized_pips"] = float(session.get("realized_pips", 0.0)) + trade_pips
+            session["current_session_realized_pips"] = float(
+                session.get("current_session_realized_pips", 0.0)
+            ) + trade_pips
             events.append({
                 "time_utc": now_utc.isoformat(),
                 "event": "EXIT",
@@ -788,12 +793,21 @@ def update_session_tracking(
             for pair in list(positions):
                 close_position(pair, "SESSION_END")
             if not positions:
+                if session.get("active_session_id") is not None:
+                    session["last_session_pips"] = float(
+                        session.get("current_session_realized_pips", 0.0)
+                    )
                 session["active_session_id"] = None
         else:
             previous_id = session.get("active_session_id")
             if previous_id not in (None, current_id):
                 for pair in list(positions):
                     close_position(pair, "SESSION_ROLLOVER")
+                session["last_session_pips"] = float(
+                    session.get("current_session_realized_pips", 0.0)
+                )
+            if previous_id != current_id:
+                session["current_session_realized_pips"] = 0.0
             session["active_session_id"] = current_id
 
             for pair in list(positions):
@@ -829,6 +843,11 @@ def update_session_tracking(
         session["unrealized_pips"] = unrealized
         session["total_pips"] = float(session.get("realized_pips", 0.0)) + unrealized
         session["is_active"] = current_id is not None
+        session["daily_pips"] = (
+            float(session.get("current_session_realized_pips", 0.0)) + unrealized
+            if current_id is not None
+            else float(session.get("last_session_pips", 0.0))
+        )
         session["events"] = events[-2000:]
 
     state["version"] = 1
@@ -860,15 +879,14 @@ def build_telegram_message(
     else:
         lines.append("Aucune paire filtrée")
     if session_state is not None:
-        lines.extend(["", "Sessions de trading (cumul)", ""])
+        lines.extend(["", "Sessions de trading (jour/cumul)", ""])
         sessions = session_state.get("sessions", {})
-        for name, (start_minute, end_minute) in SESSION_DEFINITIONS.items():
+        for name in SESSION_DEFINITIONS:
             session = sessions.get(name, {})
-            start_text = f"{start_minute // 60:02d}:{start_minute % 60:02d}"
-            end_text = f"{end_minute // 60:02d}:{end_minute % 60:02d}"
+            daily = float(session.get("daily_pips", 0.0))
             total = float(session.get("total_pips", 0.0))
             suffix = " • EN COURS" if session.get("is_active") else ""
-            lines.append(f"{name:<9} {start_text} → {end_text} : {total:+.1f} pips{suffix}")
+            lines.append(f"{name} : ({daily:+.1f}/{total:+.1f}){suffix}")
     lines.extend(["", f"⏰ {timestamp:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
