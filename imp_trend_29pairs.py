@@ -22,7 +22,7 @@ import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -43,6 +43,12 @@ PAIRS_29 = [
 WS_URL = "wss://prodata.tradingview.com/socket.io/websocket"
 WS_HEADERS = {"Origin": "https://www.tradingview.com", "User-Agent": "Mozilla/5.0"}
 PARIS = ZoneInfo("Europe/Paris")
+SESSION_DEFINITIONS = {
+    "Sydney": (22 * 60, 7 * 60),
+    "Tokyo": (0, 9 * 60),
+    "Londres": (8 * 60, 17 * 60),
+    "New York": (13 * 60, 22 * 60),
+}
 
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -711,7 +717,132 @@ def print_selection(selected: list[dict]) -> None:
         print(pd.DataFrame(display).to_string(index=False))
 
 
-def build_telegram_message(selected: list[dict], now: datetime | None = None) -> str:
+def _session_id(now_paris: datetime, start_minute: int, end_minute: int) -> str | None:
+    minute = now_paris.hour * 60 + now_paris.minute
+    if start_minute < end_minute:
+        return now_paris.date().isoformat() if start_minute <= minute < end_minute else None
+    if minute >= start_minute:
+        return now_paris.date().isoformat()
+    if minute < end_minute:
+        return (now_paris.date() - timedelta(days=1)).isoformat()
+    return None
+
+
+def load_session_state(path: Path) -> dict:
+    if path.exists():
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(state, dict):
+                return state
+        except (OSError, json.JSONDecodeError):
+            pass
+    return {"version": 1, "sessions": {}}
+
+
+def update_session_tracking(
+    path: Path,
+    selected: list[dict],
+    results: list[dict],
+    now: datetime | None = None,
+) -> dict:
+    now_utc = now or datetime.now(timezone.utc)
+    now_paris = now_utc.astimezone(PARIS)
+    state = load_session_state(path)
+    sessions = state.setdefault("sessions", {})
+    selected_by_pair = {item["pair"]: item for item in selected}
+    prices = {item["pair"]: item["reference_price"] for item in results}
+
+    for name, (start_minute, end_minute) in SESSION_DEFINITIONS.items():
+        session = sessions.setdefault(name, {
+            "realized_pips": 0.0,
+            "active_session_id": None,
+            "positions": {},
+            "events": [],
+        })
+        positions = session.setdefault("positions", {})
+        events = session.setdefault("events", [])
+        current_id = _session_id(now_paris, start_minute, end_minute)
+
+        def close_position(pair: str, reason: str) -> bool:
+            position = positions.get(pair)
+            price = prices.get(pair)
+            if position is None or price is None:
+                return False
+            sign = 1 if position["direction"] == "BULL" else -1
+            trade_pips = sign * (price - position["entry_price"]) / pip_size(pair)
+            session["realized_pips"] = float(session.get("realized_pips", 0.0)) + trade_pips
+            events.append({
+                "time_utc": now_utc.isoformat(),
+                "event": "EXIT",
+                "pair": pair,
+                "direction": position["direction"],
+                "entry_price": position["entry_price"],
+                "exit_price": price,
+                "pips": trade_pips,
+                "reason": reason,
+            })
+            del positions[pair]
+            return True
+
+        if current_id is None:
+            for pair in list(positions):
+                close_position(pair, "SESSION_END")
+            if not positions:
+                session["active_session_id"] = None
+        else:
+            previous_id = session.get("active_session_id")
+            if previous_id not in (None, current_id):
+                for pair in list(positions):
+                    close_position(pair, "SESSION_ROLLOVER")
+            session["active_session_id"] = current_id
+
+            for pair in list(positions):
+                item = selected_by_pair.get(pair)
+                if item is None:
+                    close_position(pair, "INVALIDATED")
+                elif item["direction"] != positions[pair]["direction"]:
+                    close_position(pair, "DIRECTION_CHANGED")
+
+            for pair, item in selected_by_pair.items():
+                if pair in positions or pair not in prices:
+                    continue
+                positions[pair] = {
+                    "direction": item["direction"],
+                    "entry_price": prices[pair],
+                    "entry_time_utc": now_utc.isoformat(),
+                }
+                events.append({
+                    "time_utc": now_utc.isoformat(),
+                    "event": "ENTRY",
+                    "pair": pair,
+                    "direction": item["direction"],
+                    "entry_price": prices[pair],
+                })
+
+        unrealized = 0.0
+        for pair, position in positions.items():
+            price = prices.get(pair)
+            if price is None:
+                continue
+            sign = 1 if position["direction"] == "BULL" else -1
+            unrealized += sign * (price - position["entry_price"]) / pip_size(pair)
+        session["unrealized_pips"] = unrealized
+        session["total_pips"] = float(session.get("realized_pips", 0.0)) + unrealized
+        session["is_active"] = current_id is not None
+        session["events"] = events[-2000:]
+
+    state["version"] = 1
+    state["updated_at"] = now_utc.isoformat()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    return state
+
+
+def build_telegram_message(
+    selected: list[dict],
+    session_state: dict | None = None,
+    now: datetime | None = None,
+) -> str:
     timestamp = (now or datetime.now(timezone.utc)).astimezone(PARIS)
     ordered = sorted(
         selected,
@@ -728,6 +859,16 @@ def build_telegram_message(selected: list[dict], now: datetime | None = None) ->
             lines.append(f'{marker}{item["pair"]}')
     else:
         lines.append("Aucune paire filtrée")
+    if session_state is not None:
+        lines.extend(["", "Sessions de trading (cumul)", ""])
+        sessions = session_state.get("sessions", {})
+        for name, (start_minute, end_minute) in SESSION_DEFINITIONS.items():
+            session = sessions.get(name, {})
+            start_text = f"{start_minute // 60:02d}:{start_minute % 60:02d}"
+            end_text = f"{end_minute // 60:02d}:{end_minute % 60:02d}"
+            total = float(session.get("total_pips", 0.0))
+            suffix = " • EN COURS" if session.get("is_active") else ""
+            lines.append(f"{name:<9} {start_text} → {end_text} : {total:+.1f} pips{suffix}")
     lines.extend(["", f"⏰ {timestamp:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
@@ -770,6 +911,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--selection-csv", type=Path, default=Path("imp_trend_selection.csv"))
     parser.add_argument("--selection-json", type=Path, default=Path("imp_trend_selection.json"))
     parser.add_argument("--eligible-state", type=Path, default=Path("imp_trend_eligible_state.json"))
+    parser.add_argument("--sessions-state", type=Path, default=Path("imp_trend_sessions_state.json"))
     parser.add_argument("--telegram", action="store_true", help="Envoyer les paires filtrees sur Telegram")
     return parser.parse_args()
 
@@ -809,6 +951,7 @@ def main() -> int:
         selected = select_aligned_pairs(results)
         print_selection(selected)
         eligible_state, eligibility_events = update_eligible_state(args.eligible_state, selected, results)
+        session_state = update_session_tracking(args.sessions_state, selected, results)
         print_eligibility_tracking(eligible_state, eligibility_events)
         args.csv.parent.mkdir(parents=True, exist_ok=True)
         args.json.parent.mkdir(parents=True, exist_ok=True)
@@ -823,8 +966,9 @@ def main() -> int:
         print(f"Selection CSV:  {args.selection_csv.resolve()}")
         print(f"Selection JSON: {args.selection_json.resolve()}")
         print(f"Suivi eligibilite: {args.eligible_state.resolve()}")
+        print(f"Suivi sessions: {args.sessions_state.resolve()}")
         if args.telegram:
-            telegram_message = build_telegram_message(selected)
+            telegram_message = build_telegram_message(selected, session_state)
             print("\n" + telegram_message)
             send_telegram_message(telegram_message)
     if errors:
