@@ -138,15 +138,16 @@
       "17-18": {
         "best_pips": 3.1000000000003247,
         "flat": 0,
-        "negative": 0,
-        "observations": 2,
-        "pips": 5.5000000000005045,
+        "negative": 1,
+        "observations": 3,
+        "pips": 1.100000000000545,
         "positive": 2,
         "samples": [
           2.4000000000001798,
-          3.1000000000003247
+          3.1000000000003247,
+          -4.3999999999999595
         ],
-        "worst_pips": 2.4000000000001798
+        "worst_pips": -4.3999999999999595
       },
       "18-19": {
         "best_pips": 11.100000000000554,
@@ -2089,13 +2090,13 @@
   },
   "open_confirmed_segments": {
     "GBPCAD": {
-      "current_pips": 43.50000000000076,
+      "current_pips": 39.1000000000008,
       "date": "2026-08-24",
       "direction": 1,
-      "hourly_last_price": 1.8869,
-      "hourly_last_time_utc": "2026-08-24T15:00:00+00:00",
-      "last_price": 1.8869,
-      "last_time_utc": "2026-08-24T15:00:00+00:00",
+      "hourly_last_price": 1.88646,
+      "hourly_last_time_utc": "2026-08-24T16:00:00+00:00",
+      "last_price": 1.88646,
+      "last_time_utc": "2026-08-24T16:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.88255,
       "start_time_paris": "2026-08-24T07:00:00+02:00",
@@ -2104,11 +2105,11 @@
   },
   "open_segments": {
     "GBPCAD": {
-      "current_pips": 43.50000000000076,
+      "current_pips": 39.1000000000008,
       "date": "2026-08-24",
       "direction": 1,
-      "last_price": 1.8869,
-      "last_time_utc": "2026-08-24T15:00:00+00:00",
+      "last_price": 1.88646,
+      "last_time_utc": "2026-08-24T16:00:00+00:00",
       "pair": "GBPCAD",
       "start_price": 1.88255,
       "start_time_paris": "2026-08-24T07:00:00+02:00",
@@ -2140,6 +2141,6 @@
       "2026-W34"
     ]
   },
-  "updated_at_paris": "2026-08-24T17:53:40.383347+02:00",
+  "updated_at_paris": "2026-08-24T18:20:07.531361+02:00",
   "version": 3
 }
