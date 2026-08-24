@@ -1,12 +1,12 @@
 {
   "schema_version": 2,
-  "generated_at": "2026-08-24T17:20:31.896826+00:00",
+  "generated_at": "2026-08-24T17:49:02.703428+00:00",
   "paris_date": "2026-08-24",
   "source": "combo_pipeline.py",
   "history_days": 29,
   "first_history_date": "2026-06-24",
   "last_history_date": "2026-08-24",
-  "count": 49,
+  "count": 50,
   "tickers": [
     "FTNT",
     "PANW",
@@ -56,7 +56,8 @@
     "VRTX",
     "GWRE",
     "PLTR",
-    "BOTZ"
+    "BOTZ",
+    "APPF"
   ],
   "assets": [
     {
@@ -2927,7 +2928,7 @@
           "label": "MID-CAP TECH",
           "asset_type": "stock",
           "rank": 1,
-          "relative_strength_63d_pct": 45.7346,
+          "relative_strength_63d_pct": 45.8464,
           "benchmark": "IWR"
         }
       ],
@@ -2941,7 +2942,7 @@
           "best_rank": 1,
           "average_rank": 1.3333,
           "last_rank": 1,
-          "last_relative_strength_63d_pct": 45.7346
+          "last_relative_strength_63d_pct": 45.8464
         }
       }
     },
@@ -3078,13 +3079,12 @@
         "mid_cap_tech"
       ],
       "first_seen_date": "2026-08-03",
-      "last_seen_date": "2026-08-24",
+      "last_seen_date": "2026-08-21",
       "selection_dates": [
         "2026-08-03",
         "2026-08-04",
         "2026-08-20",
-        "2026-08-21",
-        "2026-08-24"
+        "2026-08-21"
       ],
       "appearances": [
         {
@@ -3122,28 +3122,19 @@
           "rank": 2,
           "relative_strength_63d_pct": 42.5495,
           "benchmark": "IWR"
-        },
-        {
-          "date": "2026-08-24",
-          "section": "mid_cap_tech",
-          "label": "MID-CAP TECH",
-          "asset_type": "stock",
-          "rank": 2,
-          "relative_strength_63d_pct": 35.6605,
-          "benchmark": "IWR"
         }
       ],
-      "days_selected": 5,
-      "total_appearances": 5,
+      "days_selected": 4,
+      "total_appearances": 4,
       "best_rank": 2,
-      "average_rank": 2.2,
+      "average_rank": 2.25,
       "section_stats": {
         "mid_cap_tech": {
-          "days_selected": 5,
+          "days_selected": 4,
           "best_rank": 2,
-          "average_rank": 2.2,
+          "average_rank": 2.25,
           "last_rank": 2,
-          "last_relative_strength_63d_pct": 35.6605
+          "last_relative_strength_63d_pct": 42.5495
         }
       }
     },
@@ -3500,7 +3491,7 @@
           "label": "LARGE CAP",
           "asset_type": "stock",
           "rank": 1,
-          "relative_strength_63d_pct": 100.6383,
+          "relative_strength_63d_pct": 101.3961,
           "benchmark": "QQQ"
         }
       ],
@@ -3514,7 +3505,7 @@
           "best_rank": 1,
           "average_rank": 1.0,
           "last_rank": 1,
-          "last_relative_strength_63d_pct": 100.6383
+          "last_relative_strength_63d_pct": 101.3961
         }
       }
     },
@@ -3567,22 +3558,22 @@
           "section": "large_cap",
           "label": "LARGE CAP",
           "asset_type": "stock",
-          "rank": 2,
-          "relative_strength_63d_pct": 45.2651,
+          "rank": 3,
+          "relative_strength_63d_pct": 45.3775,
           "benchmark": "QQQ"
         }
       ],
       "days_selected": 4,
       "total_appearances": 4,
       "best_rank": 2,
-      "average_rank": 2.25,
+      "average_rank": 2.5,
       "section_stats": {
         "large_cap": {
           "days_selected": 4,
           "best_rank": 2,
-          "average_rank": 2.25,
-          "last_rank": 2,
-          "last_relative_strength_63d_pct": 45.2651
+          "average_rank": 2.5,
+          "last_rank": 3,
+          "last_relative_strength_63d_pct": 45.3775
         }
       }
     },
@@ -3794,19 +3785,19 @@
       "sections": [
         "large_cap"
       ],
-      "first_seen_date": "2026-08-21",
-      "last_seen_date": "2026-08-21",
+      "first_seen_date": "2026-08-24",
+      "last_seen_date": "2026-08-24",
       "selection_dates": [
-        "2026-08-21"
+        "2026-08-24"
       ],
       "appearances": [
         {
-          "date": "2026-08-21",
+          "date": "2026-08-24",
           "section": "large_cap",
           "label": "LARGE CAP",
           "asset_type": "stock",
           "rank": 2,
-          "relative_strength_63d_pct": 64.2937,
+          "relative_strength_63d_pct": 57.5456,
           "benchmark": "QQQ"
         }
       ],
@@ -3820,7 +3811,7 @@
           "best_rank": 2,
           "average_rank": 2.0,
           "last_rank": 2,
-          "last_relative_strength_63d_pct": 64.2937
+          "last_relative_strength_63d_pct": 57.5456
         }
       }
     },
@@ -3892,7 +3883,7 @@
           "label": "MID-CAP TECH",
           "asset_type": "stock",
           "rank": 3,
-          "relative_strength_63d_pct": 29.335,
+          "relative_strength_63d_pct": 29.7894,
           "benchmark": "IWR"
         }
       ],
@@ -3906,7 +3897,7 @@
           "best_rank": 3,
           "average_rank": 3.0,
           "last_rank": 3,
-          "last_relative_strength_63d_pct": 29.335
+          "last_relative_strength_63d_pct": 29.7894
         }
       }
     },
@@ -3988,20 +3979,58 @@
           "last_relative_strength_63d_pct": -6.2284
         }
       }
+    },
+    {
+      "ticker": "APPF",
+      "asset_types": [
+        "stock"
+      ],
+      "sections": [
+        "mid_cap_tech"
+      ],
+      "first_seen_date": "2026-08-24",
+      "last_seen_date": "2026-08-24",
+      "selection_dates": [
+        "2026-08-24"
+      ],
+      "appearances": [
+        {
+          "date": "2026-08-24",
+          "section": "mid_cap_tech",
+          "label": "MID-CAP TECH",
+          "asset_type": "stock",
+          "rank": 2,
+          "relative_strength_63d_pct": 29.4088,
+          "benchmark": "IWR"
+        }
+      ],
+      "days_selected": 1,
+      "total_appearances": 1,
+      "best_rank": 2,
+      "average_rank": 2.0,
+      "section_stats": {
+        "mid_cap_tech": {
+          "days_selected": 1,
+          "best_rank": 2,
+          "average_rank": 2.0,
+          "last_rank": 2,
+          "last_relative_strength_63d_pct": 29.4088
+        }
+      }
     }
   ],
   "current": {
-    "generated_at": "2026-08-24T17:20:31.896826+00:00",
+    "generated_at": "2026-08-24T17:49:02.703428+00:00",
     "paris_date": "2026-08-24",
     "source": "combo_pipeline.py",
     "complete": false,
     "count": 8,
     "tickers": [
       "TEAM",
+      "WDAY",
       "ABNB",
-      "PLTR",
       "MANH",
-      "NTNX",
+      "APPF",
       "GWRE",
       "WTAI",
       "BOTZ"
@@ -4021,7 +4050,26 @@
             "label": "LARGE CAP",
             "asset_type": "stock",
             "rank": 1,
-            "relative_strength_63d_pct": 100.6383,
+            "relative_strength_63d_pct": 101.3961,
+            "benchmark": "QQQ"
+          }
+        ]
+      },
+      {
+        "ticker": "WDAY",
+        "asset_types": [
+          "stock"
+        ],
+        "sections": [
+          "large_cap"
+        ],
+        "appearances": [
+          {
+            "section": "large_cap",
+            "label": "LARGE CAP",
+            "asset_type": "stock",
+            "rank": 2,
+            "relative_strength_63d_pct": 57.5456,
             "benchmark": "QQQ"
           }
         ]
@@ -4039,27 +4087,8 @@
             "section": "large_cap",
             "label": "LARGE CAP",
             "asset_type": "stock",
-            "rank": 2,
-            "relative_strength_63d_pct": 45.2651,
-            "benchmark": "QQQ"
-          }
-        ]
-      },
-      {
-        "ticker": "PLTR",
-        "asset_types": [
-          "stock"
-        ],
-        "sections": [
-          "large_cap"
-        ],
-        "appearances": [
-          {
-            "section": "large_cap",
-            "label": "LARGE CAP",
-            "asset_type": "stock",
             "rank": 3,
-            "relative_strength_63d_pct": 31.3068,
+            "relative_strength_63d_pct": 45.3775,
             "benchmark": "QQQ"
           }
         ]
@@ -4078,13 +4107,13 @@
             "label": "MID-CAP TECH",
             "asset_type": "stock",
             "rank": 1,
-            "relative_strength_63d_pct": 45.7346,
+            "relative_strength_63d_pct": 45.8464,
             "benchmark": "IWR"
           }
         ]
       },
       {
-        "ticker": "NTNX",
+        "ticker": "APPF",
         "asset_types": [
           "stock"
         ],
@@ -4097,7 +4126,7 @@
             "label": "MID-CAP TECH",
             "asset_type": "stock",
             "rank": 2,
-            "relative_strength_63d_pct": 35.6605,
+            "relative_strength_63d_pct": 29.4088,
             "benchmark": "IWR"
           }
         ]
@@ -4116,7 +4145,7 @@
             "label": "MID-CAP TECH",
             "asset_type": "stock",
             "rank": 3,
-            "relative_strength_63d_pct": 29.335,
+            "relative_strength_63d_pct": 29.7894,
             "benchmark": "IWR"
           }
         ]
@@ -4174,7 +4203,16 @@
           "label": "LARGE CAP",
           "asset_type": "stock",
           "rank": 1,
-          "relative_strength_63d_pct": 100.6383,
+          "relative_strength_63d_pct": 101.3961,
+          "benchmark": "QQQ"
+        },
+        {
+          "ticker": "WDAY",
+          "section": "large_cap",
+          "label": "LARGE CAP",
+          "asset_type": "stock",
+          "rank": 2,
+          "relative_strength_63d_pct": 57.5456,
           "benchmark": "QQQ"
         },
         {
@@ -4182,17 +4220,8 @@
           "section": "large_cap",
           "label": "LARGE CAP",
           "asset_type": "stock",
-          "rank": 2,
-          "relative_strength_63d_pct": 45.2651,
-          "benchmark": "QQQ"
-        },
-        {
-          "ticker": "PLTR",
-          "section": "large_cap",
-          "label": "LARGE CAP",
-          "asset_type": "stock",
           "rank": 3,
-          "relative_strength_63d_pct": 31.3068,
+          "relative_strength_63d_pct": 45.3775,
           "benchmark": "QQQ"
         }
       ],
@@ -4203,16 +4232,16 @@
           "label": "MID-CAP TECH",
           "asset_type": "stock",
           "rank": 1,
-          "relative_strength_63d_pct": 45.7346,
+          "relative_strength_63d_pct": 45.8464,
           "benchmark": "IWR"
         },
         {
-          "ticker": "NTNX",
+          "ticker": "APPF",
           "section": "mid_cap_tech",
           "label": "MID-CAP TECH",
           "asset_type": "stock",
           "rank": 2,
-          "relative_strength_63d_pct": 35.6605,
+          "relative_strength_63d_pct": 29.4088,
           "benchmark": "IWR"
         },
         {
@@ -4221,7 +4250,7 @@
           "label": "MID-CAP TECH",
           "asset_type": "stock",
           "rank": 3,
-          "relative_strength_63d_pct": 29.335,
+          "relative_strength_63d_pct": 29.7894,
           "benchmark": "IWR"
         }
       ],
@@ -4247,8 +4276,8 @@
       ]
     },
     "source_reports": {
-      "nasdaq_generated_at": "2026-08-24T17:19:44.766364+00:00",
-      "mid_cap_generated_at": "2026-08-24T17:20:31.234235+00:00"
+      "nasdaq_generated_at": "2026-08-24T17:48:15.926063+00:00",
+      "mid_cap_generated_at": "2026-08-24T17:49:02.048311+00:00"
     }
   },
   "history": [
@@ -12073,17 +12102,17 @@
       }
     },
     {
-      "generated_at": "2026-08-24T17:20:31.896826+00:00",
+      "generated_at": "2026-08-24T17:49:02.703428+00:00",
       "paris_date": "2026-08-24",
       "source": "combo_pipeline.py",
       "complete": false,
       "count": 8,
       "tickers": [
         "TEAM",
+        "WDAY",
         "ABNB",
-        "PLTR",
         "MANH",
-        "NTNX",
+        "APPF",
         "GWRE",
         "WTAI",
         "BOTZ"
@@ -12103,7 +12132,26 @@
               "label": "LARGE CAP",
               "asset_type": "stock",
               "rank": 1,
-              "relative_strength_63d_pct": 100.6383,
+              "relative_strength_63d_pct": 101.3961,
+              "benchmark": "QQQ"
+            }
+          ]
+        },
+        {
+          "ticker": "WDAY",
+          "asset_types": [
+            "stock"
+          ],
+          "sections": [
+            "large_cap"
+          ],
+          "appearances": [
+            {
+              "section": "large_cap",
+              "label": "LARGE CAP",
+              "asset_type": "stock",
+              "rank": 2,
+              "relative_strength_63d_pct": 57.5456,
               "benchmark": "QQQ"
             }
           ]
@@ -12121,27 +12169,8 @@
               "section": "large_cap",
               "label": "LARGE CAP",
               "asset_type": "stock",
-              "rank": 2,
-              "relative_strength_63d_pct": 45.2651,
-              "benchmark": "QQQ"
-            }
-          ]
-        },
-        {
-          "ticker": "PLTR",
-          "asset_types": [
-            "stock"
-          ],
-          "sections": [
-            "large_cap"
-          ],
-          "appearances": [
-            {
-              "section": "large_cap",
-              "label": "LARGE CAP",
-              "asset_type": "stock",
               "rank": 3,
-              "relative_strength_63d_pct": 31.3068,
+              "relative_strength_63d_pct": 45.3775,
               "benchmark": "QQQ"
             }
           ]
@@ -12160,13 +12189,13 @@
               "label": "MID-CAP TECH",
               "asset_type": "stock",
               "rank": 1,
-              "relative_strength_63d_pct": 45.7346,
+              "relative_strength_63d_pct": 45.8464,
               "benchmark": "IWR"
             }
           ]
         },
         {
-          "ticker": "NTNX",
+          "ticker": "APPF",
           "asset_types": [
             "stock"
           ],
@@ -12179,7 +12208,7 @@
               "label": "MID-CAP TECH",
               "asset_type": "stock",
               "rank": 2,
-              "relative_strength_63d_pct": 35.6605,
+              "relative_strength_63d_pct": 29.4088,
               "benchmark": "IWR"
             }
           ]
@@ -12198,7 +12227,7 @@
               "label": "MID-CAP TECH",
               "asset_type": "stock",
               "rank": 3,
-              "relative_strength_63d_pct": 29.335,
+              "relative_strength_63d_pct": 29.7894,
               "benchmark": "IWR"
             }
           ]
@@ -12256,7 +12285,16 @@
             "label": "LARGE CAP",
             "asset_type": "stock",
             "rank": 1,
-            "relative_strength_63d_pct": 100.6383,
+            "relative_strength_63d_pct": 101.3961,
+            "benchmark": "QQQ"
+          },
+          {
+            "ticker": "WDAY",
+            "section": "large_cap",
+            "label": "LARGE CAP",
+            "asset_type": "stock",
+            "rank": 2,
+            "relative_strength_63d_pct": 57.5456,
             "benchmark": "QQQ"
           },
           {
@@ -12264,17 +12302,8 @@
             "section": "large_cap",
             "label": "LARGE CAP",
             "asset_type": "stock",
-            "rank": 2,
-            "relative_strength_63d_pct": 45.2651,
-            "benchmark": "QQQ"
-          },
-          {
-            "ticker": "PLTR",
-            "section": "large_cap",
-            "label": "LARGE CAP",
-            "asset_type": "stock",
             "rank": 3,
-            "relative_strength_63d_pct": 31.3068,
+            "relative_strength_63d_pct": 45.3775,
             "benchmark": "QQQ"
           }
         ],
@@ -12285,16 +12314,16 @@
             "label": "MID-CAP TECH",
             "asset_type": "stock",
             "rank": 1,
-            "relative_strength_63d_pct": 45.7346,
+            "relative_strength_63d_pct": 45.8464,
             "benchmark": "IWR"
           },
           {
-            "ticker": "NTNX",
+            "ticker": "APPF",
             "section": "mid_cap_tech",
             "label": "MID-CAP TECH",
             "asset_type": "stock",
             "rank": 2,
-            "relative_strength_63d_pct": 35.6605,
+            "relative_strength_63d_pct": 29.4088,
             "benchmark": "IWR"
           },
           {
@@ -12303,7 +12332,7 @@
             "label": "MID-CAP TECH",
             "asset_type": "stock",
             "rank": 3,
-            "relative_strength_63d_pct": 29.335,
+            "relative_strength_63d_pct": 29.7894,
             "benchmark": "IWR"
           }
         ],
@@ -12329,8 +12358,8 @@
         ]
       },
       "source_reports": {
-        "nasdaq_generated_at": "2026-08-24T17:19:44.766364+00:00",
-        "mid_cap_generated_at": "2026-08-24T17:20:31.234235+00:00"
+        "nasdaq_generated_at": "2026-08-24T17:48:15.926063+00:00",
+        "mid_cap_generated_at": "2026-08-24T17:49:02.048311+00:00"
       }
     }
   ]
