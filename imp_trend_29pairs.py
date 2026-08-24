@@ -739,6 +739,24 @@ def load_session_state(path: Path) -> dict:
     return {"version": 1, "sessions": {}}
 
 
+def _closed_today_paris(closed_at_iso: str | None, now_paris: datetime) -> bool:
+    """`closed_at_iso` (horodatage UTC de la derniere cloture d'une session,
+    cf. `last_session_closed_at`) est-il tombe depuis minuit heure de Paris?
+    Comparaison sur l'horodatage reel, pas sur une date/id de session --
+    Sydney chevauche minuit (22h-7h Paris) donc son `active_session_id`
+    porte la date de la veille au soir meme quand elle cloture ce matin."""
+    if not closed_at_iso:
+        return False
+    try:
+        closed_at = datetime.fromisoformat(closed_at_iso)
+    except ValueError:
+        return False
+    if closed_at.tzinfo is None:
+        closed_at = closed_at.replace(tzinfo=timezone.utc)
+    midnight_paris = now_paris.replace(hour=0, minute=0, second=0, microsecond=0)
+    return closed_at.astimezone(PARIS) >= midnight_paris
+
+
 def update_session_tracking(
     path: Path,
     selected: list[dict],
@@ -757,6 +775,7 @@ def update_session_tracking(
             "realized_pips": 0.0,
             "current_session_realized_pips": 0.0,
             "last_session_pips": 0.0,
+            "last_session_closed_at": None,
             "active_session_id": None,
             "positions": {},
             "events": [],
@@ -797,6 +816,7 @@ def update_session_tracking(
                     session["last_session_pips"] = float(
                         session.get("current_session_realized_pips", 0.0)
                     )
+                    session["last_session_closed_at"] = now_utc.isoformat()
                 session["active_session_id"] = None
         else:
             previous_id = session.get("active_session_id")
@@ -806,6 +826,7 @@ def update_session_tracking(
                 session["last_session_pips"] = float(
                     session.get("current_session_realized_pips", 0.0)
                 )
+                session["last_session_closed_at"] = now_utc.isoformat()
             if previous_id != current_id:
                 session["current_session_realized_pips"] = 0.0
             session["active_session_id"] = current_id
@@ -841,13 +862,27 @@ def update_session_tracking(
             sign = 1 if position["direction"] == "BULL" else -1
             unrealized += sign * (price - position["entry_price"]) / pip_size(pair)
         session["unrealized_pips"] = unrealized
-        session["total_pips"] = float(session.get("realized_pips", 0.0)) + unrealized
         session["is_active"] = current_id is not None
-        session["daily_pips"] = (
-            float(session.get("current_session_realized_pips", 0.0)) + unrealized
-            if current_id is not None
-            else float(session.get("last_session_pips", 0.0))
-        )
+        if current_id is not None:
+            session["daily_pips"] = float(
+                session.get("current_session_realized_pips", 0.0)
+            ) + unrealized
+        elif _closed_today_paris(session.get("last_session_closed_at"), now_paris):
+            # Cloture recuperee depuis minuit Paris: encore "aujourd'hui" pour
+            # l'affichage, meme pour Sydney (chevauche minuit -- son
+            # active_session_id porte la date de la veille au soir, donc on
+            # compare l'horodatage reel de cloture, pas cet id).
+            session["daily_pips"] = float(session.get("last_session_pips", 0.0))
+        else:
+            # Session pas encore ouverte aujourd'hui: pas de solde d'hier a
+            # afficher comme si c'etait celui du jour (cf. bug rapporte:
+            # Londres/New York montraient le solde fige de la veille avant
+            # meme leur ouverture).
+            session["daily_pips"] = 0.0
+        # "cumul" = meme portee que "jour" (remis a zero chaque nuit Paris),
+        # pas un cumul a vie -- `realized_pips` continue d'accumuler en
+        # interne pour l'historique, mais n'est plus ce qui s'affiche.
+        session["total_pips"] = session["daily_pips"]
         session["events"] = events[-2000:]
 
     state["version"] = 1
