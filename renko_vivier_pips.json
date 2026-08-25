@@ -2124,40 +2124,42 @@
       ]
     },
     "2026-08-25": {
-      "confirmed_segments": [],
+      "confirmed_segments": [
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-08-25",
+          "direction": 1,
+          "end_price": 1.88946,
+          "end_time_paris": "2026-08-25T09:00:00+02:00",
+          "end_time_utc": "2026-08-25T07:00:00+00:00",
+          "pair": "GBPCAD",
+          "pips": 9.899999999998244,
+          "start_price": 1.88847,
+          "start_time_paris": "2026-08-25T07:00:00+02:00",
+          "start_time_utc": "2026-08-25T05:00:00+00:00"
+        }
+      ],
       "date": "2026-08-25",
       "finalized": false,
-      "segments": []
+      "segments": [
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-08-25",
+          "direction": 1,
+          "end_price": 1.88946,
+          "end_time_paris": "2026-08-25T09:00:00+02:00",
+          "end_time_utc": "2026-08-25T07:00:00+00:00",
+          "pair": "GBPCAD",
+          "pips": 9.899999999998244,
+          "start_price": 1.88847,
+          "start_time_paris": "2026-08-25T07:00:00+02:00",
+          "start_time_utc": "2026-08-25T05:00:00+00:00"
+        }
+      ]
     }
   },
-  "open_confirmed_segments": {
-    "GBPCAD": {
-      "current_pips": 9.899999999998244,
-      "date": "2026-08-25",
-      "direction": 1,
-      "hourly_last_price": 1.88946,
-      "hourly_last_time_utc": "2026-08-25T07:00:00+00:00",
-      "last_price": 1.88946,
-      "last_time_utc": "2026-08-25T07:00:00+00:00",
-      "pair": "GBPCAD",
-      "start_price": 1.88847,
-      "start_time_paris": "2026-08-25T07:00:00+02:00",
-      "start_time_utc": "2026-08-25T05:00:00+00:00"
-    }
-  },
-  "open_segments": {
-    "GBPCAD": {
-      "current_pips": 9.899999999998244,
-      "date": "2026-08-25",
-      "direction": 1,
-      "last_price": 1.88946,
-      "last_time_utc": "2026-08-25T07:00:00+00:00",
-      "pair": "GBPCAD",
-      "start_price": 1.88847,
-      "start_time_paris": "2026-08-25T07:00:00+02:00",
-      "start_time_utc": "2026-08-25T05:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
+  "open_segments": {},
   "reports_sent": {
     "general_daily": [
       "2026-08-10",
@@ -2184,6 +2186,6 @@
       "2026-W34"
     ]
   },
-  "updated_at_paris": "2026-08-25T09:06:12.164344+02:00",
+  "updated_at_paris": "2026-08-25T09:15:48.207134+02:00",
   "version": 3
 }
