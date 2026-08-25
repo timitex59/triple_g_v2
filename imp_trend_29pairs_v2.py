@@ -211,9 +211,12 @@ def build_telegram_message_v2(
     now: datetime | None = None,
 ) -> str:
     """Meme charpente que `build_telegram_message` (V1): titre, liste de
-    paires, sessions, horodatage -- avec 2 differences: les paires non
-    tradables (cf. `select_aligned_pairs_v2`) sont marquees "(non tradée)",
-    et une section EXPOSITION DEVISES s'intercale avant les sessions."""
+    paires, sessions, horodatage -- avec une difference: les paires non
+    tradables (cf. `select_aligned_pairs_v2`) sont marquees "(non tradée)".
+
+    L'exposition devises (cf. `currency_exposure_lines`) n'est PAS incluse
+    ici sur demande explicite de l'utilisateur (pas d'interet pour lui sur
+    Telegram) -- la fonction reste disponible pour un usage console/log."""
     timestamp = (now or datetime.now(timezone.utc)).astimezone(PARIS)
     ordered = sorted(
         selected,
@@ -231,12 +234,6 @@ def build_telegram_message_v2(
             lines.append(f'{marker}{item["pair"]}{suffix}')
     else:
         lines.append("Aucune paire filtrée")
-
-    tradable_selected = [item for item in selected if item["tradable"]]
-    exposure = currency_exposure_lines(tradable_selected)
-    if exposure:
-        lines.append("")
-        lines.extend(exposure)
 
     extra = session_lines(session_state)
     if extra:
@@ -290,6 +287,8 @@ def main() -> int:
         selected = select_aligned_pairs_v2(results)
         print_selection_v2(selected)
         tradable_selected = [item for item in selected if item["tradable"]]
+        for line in currency_exposure_lines(tradable_selected):
+            print(line)  # console/log seulement, pas dans le message Telegram
         session_state = update_session_tracking(args.sessions_state, tradable_selected, results)
 
         args.json.parent.mkdir(parents=True, exist_ok=True)

@@ -764,6 +764,8 @@ def update_session_tracking(
         positions = session.setdefault("positions", {})
         events = session.setdefault("events", [])
         current_id = _trading_session_id(now_paris, start_minute, end_minute)
+        just_opened = False  # nouveau cycle qui commence ce run -> vider la trajectoire
+        just_closed = False  # cycle qui vient de se clore ce run -> dernier point a garder
 
         def close_position(pair: str, reason: str) -> bool:
             position = positions.get(pair)
@@ -797,6 +799,7 @@ def update_session_tracking(
                     session["last_session_pips"] = float(
                         session.get("current_session_realized_pips", 0.0)
                     )
+                    just_closed = True
                 session["active_session_id"] = None
         else:
             previous_id = session.get("active_session_id")
@@ -806,8 +809,10 @@ def update_session_tracking(
                 session["last_session_pips"] = float(
                     session.get("current_session_realized_pips", 0.0)
                 )
+                just_closed = True
             if previous_id != current_id:
                 session["current_session_realized_pips"] = 0.0
+                just_opened = True
             session["active_session_id"] = current_id
 
             for pair in list(positions):
@@ -863,6 +868,18 @@ def update_session_tracking(
         )
         session["events"] = events[-2000:]
 
+        # Trajectoire "jour" du cycle courant/le plus recent (cf. `session_lines`):
+        # un point par run pendant que la session est ouverte, + le point de
+        # cloture, videe a chaque nouvelle ouverture -- ne recommence pas a
+        # accumuler des points identiques une fois figee (pas de point ajoute
+        # run apres run pendant que la session reste fermee).
+        if just_opened:
+            session["daily_pips_history"] = []
+        history = session.setdefault("daily_pips_history", [])
+        if current_id is not None or just_closed:
+            history.append({"time_utc": now_utc.isoformat(), "daily_pips": session["daily_pips"]})
+        session["daily_pips_history"] = history[-200:]
+
     state["version"] = 1
     state["updated_at"] = now_utc.isoformat()
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -870,11 +887,31 @@ def update_session_tracking(
     return state
 
 
+def session_trajectory_line(session: dict) -> str | None:
+    """Ligne `↳ depuis HHhMM: +0.0 → HHhMM +x.x → ... (clôturée)` retracant
+    l'evolution de "jour" du cycle courant/le plus recent d'une session,
+    point par run (cf. `daily_pips_history` dans `update_session_tracking`).
+    None si l'historique est vide (session jamais encore ouverte sous ce
+    mecanisme)."""
+    history = session.get("daily_pips_history") or []
+    if not history:
+        return None
+    first_time = datetime.fromisoformat(history[0]["time_utc"]).astimezone(PARIS)
+    steps = [f"{history[0]['daily_pips']:+.1f}"]
+    for point in history[1:]:
+        point_time = datetime.fromisoformat(point["time_utc"]).astimezone(PARIS)
+        steps.append(f"{point_time:%Hh%M} {point['daily_pips']:+.1f}")
+    suffix = "" if session.get("is_active") else " (clôturée)"
+    return f"  ↳ depuis {first_time:%Hh%M}: " + " → ".join(steps) + suffix
+
+
 def session_lines(session_state: dict | None) -> list[str]:
     """Bloc `Sessions de trading (jour/cumul)` + une ligne par session (cf.
-    `update_session_tracking`) -- factorise hors de `build_telegram_message`
-    pour etre reutilise tel quel par d'autres variantes du message (ex.
-    imp_trend_29pairs_v2.py). Vide si `session_state` est None."""
+    `update_session_tracking`), suivie de sa trajectoire heure par heure
+    (cf. `session_trajectory_line`) -- factorise hors de
+    `build_telegram_message` pour etre reutilise tel quel par d'autres
+    variantes du message (ex. imp_trend_29pairs_v2.py). Vide si
+    `session_state` est None."""
     if session_state is None:
         return []
     lines = ["Sessions de trading (jour/cumul)", ""]
@@ -885,6 +922,9 @@ def session_lines(session_state: dict | None) -> list[str]:
         total = float(session.get("total_pips", 0.0))
         suffix = " • EN COURS" if session.get("is_active") else ""
         lines.append(f"{name} : ({daily:+.1f}/{total:+.1f}){suffix}")
+        trajectory = session_trajectory_line(session)
+        if trajectory:
+            lines.append(trajectory)
     return lines
 
 
