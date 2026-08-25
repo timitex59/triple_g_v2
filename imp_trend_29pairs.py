@@ -870,6 +870,24 @@ def update_session_tracking(
     return state
 
 
+def session_lines(session_state: dict | None) -> list[str]:
+    """Bloc `Sessions de trading (jour/cumul)` + une ligne par session (cf.
+    `update_session_tracking`) -- factorise hors de `build_telegram_message`
+    pour etre reutilise tel quel par d'autres variantes du message (ex.
+    imp_trend_29pairs_v2.py). Vide si `session_state` est None."""
+    if session_state is None:
+        return []
+    lines = ["Sessions de trading (jour/cumul)", ""]
+    sessions = session_state.get("sessions", {})
+    for name in SESSION_DEFINITIONS:
+        session = sessions.get(name, {})
+        daily = float(session.get("daily_pips", 0.0))
+        total = float(session.get("total_pips", 0.0))
+        suffix = " • EN COURS" if session.get("is_active") else ""
+        lines.append(f"{name} : ({daily:+.1f}/{total:+.1f}){suffix}")
+    return lines
+
+
 def build_telegram_message(
     selected: list[dict],
     session_state: dict | None = None,
@@ -891,15 +909,10 @@ def build_telegram_message(
             lines.append(f'{marker}{item["pair"]}')
     else:
         lines.append("Aucune paire filtrée")
-    if session_state is not None:
-        lines.extend(["", "Sessions de trading (jour/cumul)", ""])
-        sessions = session_state.get("sessions", {})
-        for name in SESSION_DEFINITIONS:
-            session = sessions.get(name, {})
-            daily = float(session.get("daily_pips", 0.0))
-            total = float(session.get("total_pips", 0.0))
-            suffix = " • EN COURS" if session.get("is_active") else ""
-            lines.append(f"{name} : ({daily:+.1f}/{total:+.1f}){suffix}")
+    extra = session_lines(session_state)
+    if extra:
+        lines.append("")
+        lines.extend(extra)
     lines.extend(["", f"⏰ {timestamp:%Y-%m-%d %H:%M} Paris"])
     return "\n".join(lines)
 
