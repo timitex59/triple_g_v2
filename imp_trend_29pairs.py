@@ -860,6 +860,18 @@ def update_session_tracking(
         # avec l'utilisateur: Sydney 22h->7h->22h, +45 fige puis +0/+45 a la
         # reouverture, +12/+57 une fois +12 flottant).
         session["total_pips"] = float(session.get("realized_pips", 0.0)) + unrealized
+        # "cmp": cumul repartant a 0 pour V1 ET V2 au meme instant (le premier
+        # run de chacune apres l'ajout de ce champ), pour comparer les deux
+        # equitablement sans que le passif de V1 (qui tournait deja avant la
+        # naissance de V2) ne fausse la comparaison. `comparison_baseline`
+        # s'ancre une seule fois, au niveau de cumul ("total_pips") de ce tout
+        # premier run -- cmp = 0 pour les deux ce jour-la, puis evolue en
+        # parallele ensuite. Champ generique, sans lien avec V1/V2
+        # specifiquement: n'importe quel script qui reutilise
+        # update_session_tracking en beneficie de la meme facon.
+        if "comparison_baseline" not in session:
+            session["comparison_baseline"] = session["total_pips"]
+        session["comparison_pips"] = session["total_pips"] - session["comparison_baseline"]
         session["is_active"] = current_id is not None
         session["daily_pips"] = (
             float(session.get("current_session_realized_pips", 0.0)) + unrealized
@@ -906,22 +918,27 @@ def session_trajectory_line(session: dict) -> str | None:
 
 
 def session_lines(session_state: dict | None) -> list[str]:
-    """Bloc `Sessions de trading (jour/cumul)` + une ligne par session (cf.
-    `update_session_tracking`), suivie de sa trajectoire heure par heure
-    (cf. `session_trajectory_line`) -- factorise hors de
+    """Bloc `Sessions de trading (jour/cumul/cmp)` + une ligne par session
+    (cf. `update_session_tracking`), suivie de sa trajectoire heure par
+    heure (cf. `session_trajectory_line`) -- factorise hors de
     `build_telegram_message` pour etre reutilise tel quel par d'autres
-    variantes du message (ex. imp_trend_29pairs_v2.py). Vide si
-    `session_state` est None."""
+    variantes du message (ex. imp_trend_29pairs_v2.py). "cmp" (cf.
+    `comparison_pips`) repart de 0 au meme instant pour toute variante qui
+    partage ce mecanisme -- comparable entre V1 et V2 sans que l'anciennete
+    de V1 ne fausse la lecture, contrairement a "cumul" (a vie, cf.
+    docstring de `update_session_tracking`). Vide si `session_state` est
+    None."""
     if session_state is None:
         return []
-    lines = ["Sessions de trading (jour/cumul)", ""]
+    lines = ["Sessions de trading (jour/cumul/cmp)", ""]
     sessions = session_state.get("sessions", {})
     for name in SESSION_DEFINITIONS:
         session = sessions.get(name, {})
         daily = float(session.get("daily_pips", 0.0))
         total = float(session.get("total_pips", 0.0))
+        comparison = float(session.get("comparison_pips", 0.0))
         suffix = " • EN COURS" if session.get("is_active") else ""
-        lines.append(f"{name} : ({daily:+.1f}/{total:+.1f}){suffix}")
+        lines.append(f"{name} : ({daily:+.1f}/{total:+.1f}/{comparison:+.1f}){suffix}")
         trajectory = session_trajectory_line(session)
         if trajectory:
             lines.append(trajectory)
