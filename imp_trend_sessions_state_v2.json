@@ -178,7 +178,9 @@
           "time_utc": "2026-08-26T05:19:23.571128+00:00",
           "daily_pips": 8.600000000001764
         }
-      ]
+      ],
+      "comparison_baseline": 8.600000000001764,
+      "comparison_pips": 0.0
     },
     "Tokyo": {
       "realized_pips": 5.700000000002742,
@@ -386,7 +388,9 @@
           "time_utc": "2026-08-26T07:20:39.181395+00:00",
           "daily_pips": 5.700000000002742
         }
-      ]
+      ],
+      "comparison_baseline": 5.700000000002742,
+      "comparison_pips": 0.0
     },
     "Londres": {
       "realized_pips": -13.500000000001933,
@@ -618,7 +622,9 @@
           "time_utc": "2026-08-26T15:04:39.525872+00:00",
           "daily_pips": -13.500000000001933
         }
-      ]
+      ],
+      "comparison_baseline": -13.500000000001933,
+      "comparison_pips": 0.0
     },
     "New York": {
       "realized_pips": 0.0,
@@ -713,10 +719,10 @@
           "entry_price": 1.62436
         }
       ],
-      "unrealized_pips": 3.399999999997359,
-      "total_pips": 3.399999999997359,
+      "unrealized_pips": 5.399999999995986,
+      "total_pips": 5.399999999995986,
       "is_active": true,
-      "daily_pips": 3.399999999997359,
+      "daily_pips": 5.399999999995986,
       "daily_pips_history": [
         {
           "time_utc": "2026-08-26T11:19:39.893466+00:00",
@@ -745,9 +751,15 @@
         {
           "time_utc": "2026-08-26T15:04:39.525872+00:00",
           "daily_pips": 3.399999999997359
+        },
+        {
+          "time_utc": "2026-08-26T16:22:43.494108+00:00",
+          "daily_pips": 5.399999999995986
         }
-      ]
+      ],
+      "comparison_baseline": 5.399999999995986,
+      "comparison_pips": 0.0
     }
   },
-  "updated_at": "2026-08-26T15:04:39.525872+00:00"
+  "updated_at": "2026-08-26T16:22:43.494108+00:00"
 }
