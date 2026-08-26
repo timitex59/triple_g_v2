@@ -530,12 +530,19 @@ def fetch_currency_imp_rows(
     renko_bricks: int = 2500,
     atr_length: int = 14,
     max_streak: int = 50,
-    workers: int = 8,
+    workers: int = 4,
 ) -> dict[str, dict]:
     """`compute_currency_imp` pour les 8 `FOREX_INDEX_ASSETS`, en parallele --
     dict indexe par devise. Devise absente si son fetch a echoue -- traitee
     alors comme non applicable par `currency_trend_confirms` (aucun filtre,
-    pas un rejet)."""
+    pas un rejet).
+
+    `workers` a 4 (pas 8, un par devise) car TradingView renvoie un handshake
+    429 Too Many Requests des que ~6-8 connexions websocket s'ouvrent en
+    meme temps sur cet endpoint prive -- verifie en direct (8/8 devises OK a
+    4 workers, echecs systematiques a 8). Chaque devise fait 5 fetches
+    sequentiels (H1, D1, Renko M/W/D), donc ceci ralentit le run global sans
+    le rendre sequentiel."""
     rows: dict[str, dict] = {}
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         futures = {
@@ -585,7 +592,7 @@ def directional_average_confirms(result: dict, chart: str, direction: str) -> bo
     return value >= 0 if direction == "BULL" else value <= 0
 
 
-def fetch_currency_index_rows(length: int = 14, candles: int = 300, max_streak: int = 50, workers: int = 8) -> dict[str, dict]:
+def fetch_currency_index_rows(length: int = 14, candles: int = 300, max_streak: int = 50, workers: int = 4) -> dict[str, dict]:
     """Ligne complete `compute_asset_score` par devise (les 8 indices
     `FOREX_INDEX_ASSETS`) -- meme calcul que la section INDEX CHG%D de
     PAIRE_CHECK/FULL MOMENTUM. Reutilisee telle quelle par `currency_spread`/
@@ -595,7 +602,11 @@ def fetch_currency_index_rows(length: int = 14, candles: int = 300, max_streak: 
     (streak M/W/D pondere x CHG%D), pas seulement de son signe -- cf.
     `currency_index_vote` pour pourquoi deux devises de la meme couleur ne
     sont pas equivalentes. Devise absente du dict si son fetch a echoue --
-    traitee alors comme neutre par `currency_index_vote`."""
+    traitee alors comme neutre par `currency_index_vote`.
+
+    `workers` a 4, pas 8: meme rate-limit 429 que `fetch_currency_imp_rows`
+    (cf. son docstring) des que trop de connexions websocket s'ouvrent en
+    meme temps sur cet endpoint TradingView prive."""
     rows: dict[str, dict] = {}
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         futures = {
