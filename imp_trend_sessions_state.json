@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-26T05:50:53.879881+00:00",
+  "updated_at": "2026-08-26T06:18:12.039553+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": 30.000000000003364,
@@ -372,9 +372,9 @@
       "realized_pips": 105.60000000000261,
       "current_session_realized_pips": 0.6000000000009109,
       "last_session_pips": 105.0000000000017,
-      "unrealized_pips": -70.49999999999815,
-      "total_pips": 35.10000000000446,
-      "daily_pips": -69.89999999999725,
+      "unrealized_pips": -37.1999999999978,
+      "total_pips": 68.40000000000481,
+      "daily_pips": -36.59999999999689,
       "is_active": true,
       "active_session_id": "2026-08-26",
       "positions": {
@@ -417,6 +417,11 @@
           "direction": "BULL",
           "entry_price": 0.71759,
           "entry_time_utc": "2026-08-26T01:59:07.857481+00:00"
+        },
+        "USDJPY": {
+          "direction": "BULL",
+          "entry_price": 159.07,
+          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
         }
       },
       "events": [
@@ -662,6 +667,13 @@
           "exit_price": 158.988,
           "pips": -22.49999999999943,
           "reason": "INVALIDATED"
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "event": "ENTRY",
+          "pair": "USDJPY",
+          "direction": "BULL",
+          "entry_price": 159.07
         }
       ],
       "daily_pips_history": [
@@ -696,19 +708,69 @@
         {
           "time_utc": "2026-08-26T05:50:53.879881+00:00",
           "daily_pips": -69.89999999999725
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "daily_pips": -36.59999999999689
         }
       ]
     },
     "Londres": {
       "realized_pips": 42.39999999999786,
-      "current_session_realized_pips": 42.39999999999786,
+      "current_session_realized_pips": 0.0,
       "last_session_pips": 42.39999999999786,
       "unrealized_pips": 0.0,
       "total_pips": 42.39999999999786,
-      "daily_pips": 42.39999999999786,
-      "is_active": false,
-      "active_session_id": null,
-      "positions": {},
+      "daily_pips": 0.0,
+      "is_active": true,
+      "active_session_id": "2026-08-26",
+      "positions": {
+        "AUDCHF": {
+          "direction": "BULL",
+          "entry_price": 0.57732,
+          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
+        },
+        "AUDUSD": {
+          "direction": "BULL",
+          "entry_price": 0.71838,
+          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
+        },
+        "EURJPY": {
+          "direction": "BULL",
+          "entry_price": 185.517,
+          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
+        },
+        "AUDJPY": {
+          "direction": "BULL",
+          "entry_price": 114.275,
+          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
+        },
+        "GBPJPY": {
+          "direction": "BULL",
+          "entry_price": 216.815,
+          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
+        },
+        "USDJPY": {
+          "direction": "BULL",
+          "entry_price": 159.07,
+          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
+        },
+        "CADJPY": {
+          "direction": "BULL",
+          "entry_price": 114.768,
+          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
+        },
+        "NZDJPY": {
+          "direction": "BULL",
+          "entry_price": 94.64,
+          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
+        },
+        "EURAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.62342,
+          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
+        }
+      },
       "events": [
         {
           "time_utc": "2026-08-25T06:18:18.789284+00:00",
@@ -862,9 +924,77 @@
           "exit_price": 1.63069,
           "pips": -2.6999999999999247,
           "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCHF",
+          "direction": "BULL",
+          "entry_price": 0.57732
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "event": "ENTRY",
+          "pair": "AUDUSD",
+          "direction": "BULL",
+          "entry_price": 0.71838
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "event": "ENTRY",
+          "pair": "EURJPY",
+          "direction": "BULL",
+          "entry_price": 185.517
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "event": "ENTRY",
+          "pair": "AUDJPY",
+          "direction": "BULL",
+          "entry_price": 114.275
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "event": "ENTRY",
+          "pair": "GBPJPY",
+          "direction": "BULL",
+          "entry_price": 216.815
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "event": "ENTRY",
+          "pair": "USDJPY",
+          "direction": "BULL",
+          "entry_price": 159.07
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "event": "ENTRY",
+          "pair": "CADJPY",
+          "direction": "BULL",
+          "entry_price": 114.768
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "event": "ENTRY",
+          "pair": "NZDJPY",
+          "direction": "BULL",
+          "entry_price": 94.64
+        },
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "event": "ENTRY",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.62342
         }
       ],
-      "daily_pips_history": []
+      "daily_pips_history": [
+        {
+          "time_utc": "2026-08-26T06:18:12.039553+00:00",
+          "daily_pips": 0.0
+        }
+      ]
     },
     "New York": {
       "realized_pips": 63.90000000000069,
