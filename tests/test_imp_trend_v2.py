@@ -1,10 +1,12 @@
-"""Tests pour imp_trend_29pairs_v2.py -- verrouille les 3 corrections
-apportees au scoring de V1 (cf. module docstring de imp_trend_29pairs_v2.py):
-5 votes de direction reels (au lieu de 11 inflates), rang non exploite ->
-flag `tradable`, moyennes sous MIN_AVG_SAMPLE ignorees."""
+"""Tests pour imp_trend_29pairs_v2.py -- verrouille les corrections apportees
+au scoring de V1 (cf. module docstring de imp_trend_29pairs_v2.py): 6 votes
+de direction reels (au lieu de 11 inflates), rang non exploite -> flag
+`tradable`, moyennes sous MIN_AVG_SAMPLE ignorees, et CURRENCY_INDEX comme 6e
+vote de direction a part entiere (point 5 du docstring)."""
 
 import unittest
 
+from imp_trend_29pairs import currency_index_vote
 from imp_trend_29pairs_v2 import (
     MIN_AVG_SAMPLE,
     currency_exposure_lines,
@@ -43,28 +45,58 @@ def make_result(
 
 
 class SelectAlignedPairsV2Tests(unittest.TestCase):
-    def test_five_of_five_unanimous_is_tier_1_and_tradable(self):
-        # Reproduit USDJPY: les 5 votes de direction unanimes BULL, malgre
-        # une moyenne H1 bull negative (celle-ci ne compte plus comme vote,
-        # juste comme filtre de qualite -- ici encore confirmee par D1).
+    def test_six_of_six_unanimous_is_tier_1_and_tradable(self):
+        # Reproduit USDJPY: les 5 votes d'origine unanimes BULL, plus
+        # CURRENCY_INDEX qui confirme (USD vert/fort, JPY rouge/faible) --
+        # malgre une moyenne H1 bull negative (celle-ci ne compte plus comme
+        # vote, juste comme filtre de qualite -- ici encore confirmee par D1).
+        result = make_result("USDJPY")
+        selected = select_aligned_pairs_v2([result], {"USD": "🟢", "JPY": "🔴"})
+
+        self.assertEqual(len(selected), 1)
+        item = selected[0]
+        self.assertEqual(item["direction"], "BULL")
+        self.assertEqual(item["confirmations"], 6)
+        self.assertEqual(item["rank_tier"], 1)
+        self.assertTrue(item["tradable"])
+
+    def test_five_of_six_is_tier_2_when_currency_index_abstains(self):
+        # Les 5 votes d'origine unanimes BULL, mais aucune donnee devise
+        # fournie -> CURRENCY_INDEX reste NEUTRAL (ni pour ni contre): la
+        # paire est quand meme retenue (5/6 >= VOTE_THRESHOLD) mais en rang 2,
+        # pas 1 -- CURRENCY_INDEX n'a pas confirme.
         result = make_result("USDJPY")
         selected = select_aligned_pairs_v2([result])
 
         self.assertEqual(len(selected), 1)
         item = selected[0]
-        self.assertEqual(item["direction"], "BULL")
         self.assertEqual(item["confirmations"], 5)
-        self.assertEqual(item["rank_tier"], 1)
-        self.assertTrue(item["tradable"])
+        self.assertEqual(item["rank_tier"], 2)
+        self.assertEqual(item["CURRENCY_INDEX"], "NEUTRAL")
 
-    def test_four_of_five_is_tier_2(self):
+    def test_one_dissenting_vote_without_currency_confirmation_is_excluded(self):
+        # D1_IMP21 dissident (BEAR) fait tomber a 4 votes BULL sur 6 sans
+        # donnee devise -- ne passe plus le seuil (contrairement a l'ancien
+        # seuil 4/5): la paire n'est plus retenue du tout.
         result = make_result("AUDCAD", renko=("BULL", "BULL", "BULL"),
-                              d1_imp=("BEAR", 10.0, 15, -5.0, 5))  # D1_IMP21 dissident
+                              d1_imp=("BEAR", 10.0, 15, -5.0, 5))
         selected = select_aligned_pairs_v2([result])
+        self.assertEqual(selected, [])
+
+    def test_one_dissenting_vote_is_tier_2_when_currency_index_confirms(self):
+        # Meme paire que ci-dessus, mais CURRENCY_INDEX confirme BULL (AUD
+        # vert/fort, CAD rouge/faible) -> compense le vote dissident D1_IMP21
+        # et ramene la paire a 5/6, rang 2.
+        result = make_result("AUDCAD", renko=("BULL", "BULL", "BULL"),
+                              d1_imp=("BEAR", 10.0, 15, -5.0, 5))
+        selected = select_aligned_pairs_v2([result], {"AUD": "🟢", "CAD": "🔴"})
 
         self.assertEqual(len(selected), 1)
-        self.assertEqual(selected[0]["confirmations"], 4)
-        self.assertEqual(selected[0]["rank_tier"], 2)
+        item = selected[0]
+        self.assertEqual(item["direction"], "BULL")
+        self.assertEqual(item["confirmations"], 5)
+        self.assertEqual(item["rank_tier"], 2)
+        self.assertEqual(item["CURRENCY_INDEX"], "BULL")
 
     def test_renko_d_must_match_direction(self):
         # 4/5 en faveur de BULL mais RENKO_D est BEAR -> le garde-fou l'exclut.
@@ -125,6 +157,32 @@ class SelectAlignedPairsV2Tests(unittest.TestCase):
         self.assertTrue(item["tradable"])
         self.assertEqual(item["quality_confirmations"], 1)
         self.assertEqual(item["quality_applicable"], 2)
+
+
+class CurrencyIndexVoteTests(unittest.TestCase):
+    """Reproduit l'exemple travaille par l'utilisateur (colonne INDEX CHG%D
+    d'un PAIRE_CHECK reel): GBP/NZD/CHF/EUR/JPY/CAD rouges, USD/AUD verts.
+    AUDCHF (BULL) est confirme -- AUD vert, CHF rouge -- GBPJPY et NZDJPY
+    (tous deux BULL) ne le sont pas, les deux devises etant rouges."""
+
+    ICONS = {
+        "GBP": "🔴", "NZD": "🔴", "CHF": "🔴", "EUR": "🔴",
+        "JPY": "🔴", "USD": "🟢", "AUD": "🟢", "CAD": "🔴",
+    }
+
+    def test_base_green_quote_red_confirms_bull(self):
+        self.assertEqual(currency_index_vote("AUDCHF", self.ICONS), "BULL")
+
+    def test_both_red_does_not_confirm_bull(self):
+        self.assertEqual(currency_index_vote("GBPJPY", self.ICONS), "NEUTRAL")
+        self.assertEqual(currency_index_vote("NZDJPY", self.ICONS), "NEUTRAL")
+
+    def test_base_red_quote_green_confirms_bear(self):
+        self.assertEqual(currency_index_vote("CHFUSD", self.ICONS), "BEAR")
+
+    def test_missing_currency_is_neutral(self):
+        # XAU n'a pas d'indice devise.
+        self.assertEqual(currency_index_vote("XAUUSD", self.ICONS), "NEUTRAL")
 
 
 class CurrencyExposureLinesTests(unittest.TestCase):

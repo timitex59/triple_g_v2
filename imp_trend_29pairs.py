@@ -8,6 +8,16 @@ The calculations mirror imp_trend.pine:
 * Separate IMP statistics for the H1 and Daily charts.
 
 TradingView's private websocket protocol is unofficial and can change.
+
+2026-08-26: added CURRENCY_INDEX, a 12th vote (threshold VOTE_THRESHOLD_V1,
+9/12) derived from the 8 currency indices already used by PAIRE_CHECK /
+renko_full_alignment_29pairs.py (cf. `fetch_currency_index_icons` and
+`currency_index_vote`): confirms BULL when a pair's base currency is
+strong/green and its quote currency is weak/red, and the symmetric case for
+BEAR. `imp_trend_backtest.py` still calls `select_aligned_pairs`/
+`invalidation_reason` without currency_icons, so CURRENCY_INDEX always reads
+NEUTRAL there -- its walk-forward history is effectively 9-of-11-real under
+the new threshold, not the 8-of-11 it was tuned against.
 """
 
 from __future__ import annotations
@@ -29,6 +39,8 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import requests
 from websocket import WebSocketConnectionClosedException, WebSocketTimeoutException, create_connection
+
+from renko_full_alignment_29pairs import FOREX_INDEX_ASSETS, _daily_chg_icon, compute_asset_score
 
 
 PAIRS_29 = [
@@ -472,7 +484,50 @@ def directional_average_confirms(result: dict, chart: str, direction: str) -> bo
     return value >= 0 if direction == "BULL" else value <= 0
 
 
-def screening_votes(result: dict) -> dict[str, str]:
+def fetch_currency_index_icons(length: int = 14, candles: int = 300, max_streak: int = 50, workers: int = 8) -> dict[str, str]:
+    """Icone 🟢/🔴/⚪ par devise (les 8 indices `FOREX_INDEX_ASSETS`), meme
+    calcul que la section INDEX CHG%D de PAIRE_CHECK/FULL MOMENTUM: signe du
+    CHG%D quotidien de chaque indice (cf. `_daily_chg_icon` dans
+    renko_full_alignment_29pairs.py). Sert de base au vote CURRENCY_INDEX
+    (cf. `currency_index_vote`). Absent du dict si le fetch a echoue pour
+    cette devise -- traite alors comme neutre par `currency_index_vote`."""
+    icons: dict[str, str] = {}
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        futures = {
+            pool.submit(compute_asset_score, asset, length, candles, max_streak): asset
+            for asset in FOREX_INDEX_ASSETS
+        }
+        for future in as_completed(futures):
+            asset = futures[future]
+            try:
+                row = future.result()
+            except Exception:
+                row = None
+            if row is not None:
+                icons[str(asset["currency"])] = _daily_chg_icon(row.get("daily_chg"))
+    return icons
+
+
+def currency_index_vote(pair: str, currency_icons: dict[str, str]) -> str:
+    """Vote derive des indices devises individuels des deux composantes de
+    `pair`, sur le meme principe que la section INDEX CHG%D de PAIRE_CHECK:
+    BULL si la devise de base est verte (forte) et la devise cotee rouge
+    (faible) -- ex. AUDCHF confirme quand AUD est vert et CHF rouge; BEAR
+    dans le cas symetrique. NEUTRAL si les deux devises partagent la meme
+    couleur (aucune ne domine l'autre) ou si l'une des deux est absente de
+    `currency_icons` (XAUUSD: XAU n'a pas d'indice)."""
+    if len(pair) != 6:
+        return "NEUTRAL"
+    base_icon = currency_icons.get(pair[:3])
+    quote_icon = currency_icons.get(pair[3:])
+    if base_icon == "🟢" and quote_icon == "🔴":
+        return "BULL"
+    if base_icon == "🔴" and quote_icon == "🟢":
+        return "BEAR"
+    return "NEUTRAL"
+
+
+def screening_votes(result: dict, currency_icons: dict[str, str] | None = None) -> dict[str, str]:
     return {
         "RENKO_M": result["renko"]["M"]["status"],
         "RENKO_W": result["renko"]["W"]["status"],
@@ -485,18 +540,26 @@ def screening_votes(result: dict) -> dict[str, str]:
         "H1_ALL_AVG": average_direction(result["H1"]["all_avg_pips"]),
         "H1_BULL_AVG": average_direction(result["H1"]["bull_avg_pips"]),
         "H1_BEAR_AVG": average_direction(result["H1"]["bear_avg_pips"]),
+        "CURRENCY_INDEX": currency_index_vote(result["pair"], currency_icons or {}),
     }
 
 
-def select_aligned_pairs(results: list[dict]) -> list[dict]:
+VOTE_THRESHOLD_V1 = 9  # sur 12 votes (les 11 d'origine + CURRENCY_INDEX, cf. currency_index_vote)
+
+
+def select_aligned_pairs(results: list[dict], currency_icons: dict[str, str] | None = None) -> list[dict]:
     selected = []
     for result in results:
-        votes = screening_votes(result)
+        votes = screening_votes(result, currency_icons)
         if votes["D1_IMP21"] == "NEUTRAL" or votes["H1_IMP21"] == "NEUTRAL":
             continue
         bull_votes = sum(vote == "BULL" for vote in votes.values())
         bear_votes = sum(vote == "BEAR" for vote in votes.values())
-        direction = "BULL" if bull_votes >= 8 else "BEAR" if bear_votes >= 8 else None
+        direction = (
+            "BULL" if bull_votes >= VOTE_THRESHOLD_V1
+            else "BEAR" if bear_votes >= VOTE_THRESHOLD_V1
+            else None
+        )
         if direction is None:
             continue
         confirmations = bull_votes if direction == "BULL" else bear_votes
@@ -512,15 +575,15 @@ def select_aligned_pairs(results: list[dict]) -> list[dict]:
             for key in ("D1_BULL_AVG", "D1_BEAR_AVG", "H1_BULL_AVG", "H1_BEAR_AVG")
         )
         if directional_avg_confirmations == 0:
-            rank_tier, rank_reason = 4, f"{confirmations}/11 MAIS AVG {direction} 0/2"
+            rank_tier, rank_reason = 4, f"{confirmations}/12 MAIS AVG {direction} 0/2"
+        elif confirmations == 12:
+            rank_tier, rank_reason = 1, "12/12"
         elif confirmations == 11:
-            rank_tier, rank_reason = 1, "11/11"
+            rank_tier, rank_reason = 2, "11/12"
         elif confirmations == 10:
-            rank_tier, rank_reason = 2, "10/11"
-        elif confirmations == 9:
-            rank_tier, rank_reason = 3, "9/11"
+            rank_tier, rank_reason = 3, "10/12"
         else:
-            rank_tier, rank_reason = 4, "8/11"
+            rank_tier, rank_reason = 4, "9/12"
         selected.append({
             "pair": result["pair"],
             "direction": direction,
@@ -545,6 +608,7 @@ def select_aligned_pairs(results: list[dict]) -> list[dict]:
             "H1_BULL_AVG": votes["H1_BULL_AVG"],
             "H1_BEAR_AVG": votes["H1_BEAR_AVG"],
             "H1_DIRECTIONAL_AVG_PIPS": result["H1"]["bull_avg_pips"] if direction == "BULL" else result["H1"]["bear_avg_pips"],
+            "CURRENCY_INDEX": votes["CURRENCY_INDEX"],
         })
     return sorted(
         selected,
@@ -571,18 +635,22 @@ def load_eligible_state(path: Path) -> dict:
     return {"version": 1, "active": {}, "events": []}
 
 
-def invalidation_reason(result: dict | None) -> str:
+def invalidation_reason(result: dict | None, currency_icons: dict[str, str] | None = None) -> str:
     if result is None:
         return "DATA_UNAVAILABLE"
     if result["D1"]["imp_status"] == "NEUTRAL":
         return "D1_IMP21_NEUTRAL"
     if result["H1"]["imp_status"] == "NEUTRAL":
         return "H1_IMP21_NEUTRAL"
-    votes = screening_votes(result)
+    votes = screening_votes(result, currency_icons)
     values = list(votes.values())
-    direction = "BULL" if values.count("BULL") >= 8 else "BEAR" if values.count("BEAR") >= 8 else None
+    direction = (
+        "BULL" if values.count("BULL") >= VOTE_THRESHOLD_V1
+        else "BEAR" if values.count("BEAR") >= VOTE_THRESHOLD_V1
+        else None
+    )
     if direction is None:
-        return "LESS_THAN_8_OF_11"
+        return "LESS_THAN_9_OF_12"
     if result["renko"]["D"]["status"] != direction:
         return "RENKO_D_NOT_ALIGNED"
     renko_aligned = sum(result["renko"][tf]["status"] == direction for tf in ("M", "W", "D"))
@@ -591,7 +659,9 @@ def invalidation_reason(result: dict | None) -> str:
     return "DIRECTION_CHANGED"
 
 
-def update_eligible_state(path: Path, selected: list[dict], results: list[dict]) -> tuple[dict, list[dict]]:
+def update_eligible_state(
+    path: Path, selected: list[dict], results: list[dict], currency_icons: dict[str, str] | None = None,
+) -> tuple[dict, list[dict]]:
     state = load_eligible_state(path)
     previous = state.get("active", {})
     current_selection = {item["pair"]: item for item in selected}
@@ -632,7 +702,7 @@ def update_eligible_state(path: Path, selected: list[dict], results: list[dict])
             "event": "INVALIDATED",
             "pair": pair,
             "direction": old.get("direction"),
-            "reason": invalidation_reason(results_by_pair.get(pair)),
+            "reason": invalidation_reason(results_by_pair.get(pair), currency_icons),
             "entered_at": old.get("entered_at"),
         })
 
@@ -655,7 +725,7 @@ def print_eligibility_tracking(state: dict, events: list[dict]) -> None:
         return
     for event in events:
         if event["event"] == "ELIGIBLE":
-            print(f'+ ENTREE {event["pair"]} {event["direction"]} ({event["confirmations"]}/11)')
+            print(f'+ ENTREE {event["pair"]} {event["direction"]} ({event["confirmations"]}/12)')
         elif event["event"] == "DIRECTION_CHANGED":
             print(f'! RETOURNEMENT {event["pair"]}: {event["previous_direction"]} -> {event["direction"]}')
         else:
@@ -688,7 +758,7 @@ def print_table(results: list[dict]) -> None:
 
 
 def print_selection(selected: list[dict]) -> None:
-    print("\nSELECTION 8 CRITERES SUR 11")
+    print("\nSELECTION 9 CRITERES SUR 12")
     if not selected:
         print("Aucune paire retenue.")
         return
@@ -700,7 +770,7 @@ def print_selection(selected: list[dict]) -> None:
         display = [{
             "RANG": item["rank_tier"],
             "PAIR": item["pair"],
-            "SCORE": f'{item["confirmations"]}/11',
+            "SCORE": f'{item["confirmations"]}/12',
             "AVG4": f'{item["avg_vote_confirmations"]}/4',
             "AVG DIR": f'{item["directional_avg_confirmations"]}/2',
             "CRITERE": item["rank_reason"],
@@ -713,6 +783,7 @@ def print_selection(selected: list[dict]) -> None:
             "H1 IMP21": item["H1_IMP21"],
             "H1 ALL": f'{item["H1_ALL_AVG"]} ({fmt(item["H1_ALL_AVG_PIPS"])})',
             "H1 AVG DIR": fmt(item["H1_DIRECTIONAL_AVG_PIPS"]),
+            "IDX": item["CURRENCY_INDEX"],
         } for item in rows]
         print(pd.DataFrame(display).to_string(index=False))
 
@@ -1012,6 +1083,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--atr-length", type=int, default=14)
     parser.add_argument("--max-streak", type=int, default=50)
     parser.add_argument("--workers", type=int, default=5)
+    parser.add_argument(
+        "--index-candles", type=int, default=300,
+        help="Bougies/briques M/W/D par indice devise pour le vote CURRENCY_INDEX (cf. fetch_currency_index_icons).",
+    )
     parser.add_argument("--csv", type=Path, default=Path("imp_trend_29pairs.csv"))
     parser.add_argument("--json", type=Path, default=Path("imp_trend_29pairs.json"))
     parser.add_argument("--selection-csv", type=Path, default=Path("imp_trend_selection.csv"))
@@ -1025,6 +1100,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     pairs = [pair.upper() for pair in args.pairs]
+    currency_icons = fetch_currency_index_icons(args.atr_length, args.index_candles, args.max_streak)
     results: list[dict] = []
     errors: list[tuple[str, str]] = []
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
@@ -1054,9 +1130,11 @@ def main() -> int:
     if results:
         print()
         print_table(results)
-        selected = select_aligned_pairs(results)
+        selected = select_aligned_pairs(results, currency_icons)
         print_selection(selected)
-        eligible_state, eligibility_events = update_eligible_state(args.eligible_state, selected, results)
+        eligible_state, eligibility_events = update_eligible_state(
+            args.eligible_state, selected, results, currency_icons,
+        )
         session_state = update_session_tracking(args.sessions_state, selected, results)
         print_eligibility_tracking(eligible_state, eligibility_events)
         args.csv.parent.mkdir(parents=True, exist_ok=True)

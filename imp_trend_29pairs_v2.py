@@ -26,6 +26,16 @@ Le 4e point souleve (concentration de devises cachee derriere un format
 diversifie) n'est pas corrige en filtrant les paires ici -- l'utilisateur a
 choisi de le rendre visible plutot que de plafonner: cf. `currency_exposure_lines`.
 
+5. VOTE DE DIRECTION EN PLUS, PAS DE FILTRE -- ajoute apres coup (2026-08-26,
+   a la demande de l'utilisateur): CURRENCY_INDEX compare les 8 indices
+   devises de PAIRE_CHECK (cf. imp_trend_29pairs.currency_index_vote) pour
+   confirmer -- ou non -- qu'une paire va dans le sens ou sa devise de base
+   est plus forte que sa devise cotee. Compte comme un 6e vote de direction a
+   part entiere (VOTE_THRESHOLD passe de 4/5 a 5/6, meme tolerance qu'avant:
+   au plus 1 vote dissident/neutre), pas comme un filtre de qualite -- une
+   paire dont les 5 votes d'origine etaient 4/5 (1 dissident) a desormais
+   besoin que CURRENCY_INDEX confirme pour rester retenue.
+
 Tout le reste (fetch TradingView, replay Renko/PSAR/IMP, suivi de session
 jour/cumul, plomberie Telegram) est repris tel quel depuis imp_trend_29pairs.py
 (V1) -- aucune duplication, pour que les deux versions restent comparables
@@ -50,6 +60,7 @@ from imp_trend_29pairs import (
     PARIS,
     compute_pair,
     directional_average_confirms,
+    fetch_currency_index_icons,
     screening_votes,
     send_telegram_message,
     session_lines,
@@ -58,7 +69,7 @@ from imp_trend_29pairs import (
 )
 
 MIN_AVG_SAMPLE = 5  # en dessous, une moyenne D1/H1 n'est ni confirmee ni infirmee
-VOTE_THRESHOLD = 4  # sur 5 votes de direction
+VOTE_THRESHOLD = 5  # sur 6 votes de direction (les 5 d'origine + CURRENCY_INDEX)
 
 
 def _pair_currencies(pair: str) -> tuple[str, str]:
@@ -67,11 +78,14 @@ def _pair_currencies(pair: str) -> tuple[str, str]:
     return pair[:3], pair[3:]
 
 
-def select_aligned_pairs_v2(results: list[dict]) -> list[dict]:
-    """5 votes de direction reellement distincts (au lieu des 11 de V1, cf.
-    module docstring point 1): RENKO_M, RENKO_W, RENKO_D, D1_IMP21, H1_IMP21.
-    Retenue si >= VOTE_THRESHOLD votes s'accordent, avec les memes garde-fous
-    Renko que V1 (RENKO_D doit matcher, >= 2/3 Renko alignes).
+def select_aligned_pairs_v2(results: list[dict], currency_icons: dict[str, str] | None = None) -> list[dict]:
+    """6 votes de direction reellement distincts (au lieu des 11 de V1, cf.
+    module docstring point 1): RENKO_M, RENKO_W, RENKO_D, D1_IMP21, H1_IMP21,
+    CURRENCY_INDEX (cf. imp_trend_29pairs.currency_index_vote -- confirme la
+    direction quand la devise de base est plus forte que la devise cotee,
+    d'apres les 8 indices devises de PAIRE_CHECK). Retenue si >= VOTE_THRESHOLD
+    votes s'accordent, avec les memes garde-fous Renko que V1 (RENKO_D doit
+    matcher, >= 2/3 Renko alignes).
 
     Chaque paire retenue porte un flag `tradable`: False si le filtre de
     qualite (moyennes D1/H1 dans le sens de la direction, cf.
@@ -81,7 +95,7 @@ def select_aligned_pairs_v2(results: list[dict]) -> list[dict]:
     les paires non tradables; elles restent listees dans le message."""
     selected = []
     for result in results:
-        votes = screening_votes(result)
+        votes = screening_votes(result, currency_icons)
         if votes["D1_IMP21"] == "NEUTRAL" or votes["H1_IMP21"] == "NEUTRAL":
             continue
 
@@ -91,6 +105,7 @@ def select_aligned_pairs_v2(results: list[dict]) -> list[dict]:
             "RENKO_D": votes["RENKO_D"],
             "D1_IMP21": votes["D1_IMP21"],
             "H1_IMP21": votes["H1_IMP21"],
+            "CURRENCY_INDEX": votes["CURRENCY_INDEX"],
         }
         bull_votes = sum(v == "BULL" for v in direction_votes.values())
         bear_votes = sum(v == "BEAR" for v in direction_votes.values())
@@ -122,8 +137,8 @@ def select_aligned_pairs_v2(results: list[dict]) -> list[dict]:
         quality_confirmations = sum(quality_checks)
         tradable = not (quality_applicable > 0 and quality_confirmations == 0)
 
-        rank_tier = 1 if confirmations == 5 else 2
-        rank_reason = f"{confirmations}/5"
+        rank_tier = 1 if confirmations == 6 else 2
+        rank_reason = f"{confirmations}/6"
         if quality_applicable == 0:
             rank_reason += " (qualite n/a)"
         elif not tradable:
@@ -179,7 +194,7 @@ def currency_exposure_lines(tradable_selected: list[dict]) -> list[str]:
 
 
 def print_selection_v2(selected: list[dict]) -> None:
-    print("\nSELECTION V2 -- 4/5 CRITERES DE DIRECTION")
+    print("\nSELECTION V2 -- 5/6 CRITERES DE DIRECTION")
     if not selected:
         print("Aucune paire retenue.")
         return
@@ -191,7 +206,7 @@ def print_selection_v2(selected: list[dict]) -> None:
         display = [{
             "RANG": item["rank_tier"],
             "PAIR": item["pair"],
-            "SCORE": f'{item["confirmations"]}/5',
+            "SCORE": f'{item["confirmations"]}/6',
             "TRADABLE": "oui" if item["tradable"] else "NON",
             "QUALITE": f'{item["quality_confirmations"]}/{item["quality_applicable"]}'
                        if item["quality_applicable"] else "n/a",
@@ -201,6 +216,7 @@ def print_selection_v2(selected: list[dict]) -> None:
             "D": item["RENKO_D"],
             "D1 IMP21": item["D1_IMP21"],
             "H1 IMP21": item["H1_IMP21"],
+            "IDX": item["CURRENCY_INDEX"],
         } for item in rows]
         print(pd.DataFrame(display).to_string(index=False))
 
@@ -252,6 +268,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--atr-length", type=int, default=14)
     parser.add_argument("--max-streak", type=int, default=50)
     parser.add_argument("--workers", type=int, default=5)
+    parser.add_argument(
+        "--index-candles", type=int, default=300,
+        help="Bougies/briques M/W/D par indice devise pour le vote CURRENCY_INDEX.",
+    )
     parser.add_argument("--json", type=Path, default=Path("imp_trend_29pairs_v2.json"))
     parser.add_argument("--selection-json", type=Path, default=Path("imp_trend_selection_v2.json"))
     parser.add_argument("--sessions-state", type=Path, default=Path("imp_trend_sessions_state_v2.json"))
@@ -262,6 +282,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     pairs = [pair.upper() for pair in args.pairs]
+    currency_icons = fetch_currency_index_icons(args.atr_length, args.index_candles, args.max_streak)
     results: list[dict] = []
     errors: list[tuple[str, str]] = []
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
@@ -284,7 +305,7 @@ def main() -> int:
     order = {pair: index for index, pair in enumerate(pairs)}
     results.sort(key=lambda item: order[item["pair"]])
     if results:
-        selected = select_aligned_pairs_v2(results)
+        selected = select_aligned_pairs_v2(results, currency_icons)
         print_selection_v2(selected)
         tradable_selected = [item for item in selected if item["tradable"]]
         for line in currency_exposure_lines(tradable_selected):
