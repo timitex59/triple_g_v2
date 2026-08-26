@@ -205,6 +205,17 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertEqual(best_pair_name(rows), "USDJPY")
 
+    def test_best_pair_name_reverses_to_the_real_pair_when_forward_does_not_exist(self):
+        # AUD forte, GBP faible -> "AUDGBP" n'existe pas parmi les 28 paires
+        # OANDA (seul GBPAUD existe) -> doit renvoyer GBPAUD, pas fabriquer
+        # un symbole inexistant.
+        rows = [
+            index_row("AUX", "AUD", 1, 1, 1, daily_chg=0.31),
+            index_row("GBX", "GBP", 1, 1, 1, daily_chg=-1.25),
+        ]
+
+        self.assertEqual(best_pair_name(rows), "GBPAUD")
+
     def test_best_pair_name_none_without_both_colors(self):
         rows = [index_row("USX", "USD", 1, 1, 1, daily_chg=0.28)]
 

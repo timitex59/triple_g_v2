@@ -232,6 +232,9 @@ def index_chg_lines(
     return lines
 
 
+KNOWN_PAIR_CODES = {str(asset["pair"]) for asset in FOREX_PAIR_ASSETS}  # les 28 paires OANDA reelles
+
+
 def best_pair_name(index_rows: list[dict]) -> str | None:
     """Associe la devise 🔴 au score le plus eleve a la devise 🟢 au score le
     plus eleve, dans l'ordre deja fourni par `all_index_status_rows` (score
@@ -239,7 +242,17 @@ def best_pair_name(index_rows: list[dict]) -> str | None:
     premier 🔴 et le premier 🟢 rencontres. La verte (forte) sert de base, la
     rouge (faible) de quote, convention "acheter le fort, vendre le faible"
     deja utilisee par `currency_spread`. None si aucune devise rouge ou
-    aucune verte n'est exploitable (CHG%D manquant pour l'une des deux)."""
+    aucune verte n'est exploitable (CHG%D manquant pour l'une des deux).
+
+    Le nom retourne est toujours l'une des 28 paires OANDA reelles (cf.
+    `KNOWN_PAIR_CODES`): {forte}{faible} si elle existe, sinon {faible}{forte}
+    -- les 8 devises couvrent chaque combinaison de 2 devises exactement une
+    fois parmi les 28 paires, jamais dans les deux sens a la fois, donc l'un
+    des deux existe forcement (None si aucun des deux, en pratique jamais
+    atteint). Inverser l'ordre ne change pas le sens fort/faible affiche
+    ensuite: `pair_check_signals` compare directement base et cotee, quel
+    que soit lequel des deux est la devise forte -- pas besoin d'inverser une
+    direction, juste de ne pas inventer un symbole qui n'existe pas."""
     sorted_rows = all_index_status_rows(index_rows)
     strong = next(
         (row for row in sorted_rows if isinstance(row.get("daily_chg"), (int, float))
@@ -253,7 +266,11 @@ def best_pair_name(index_rows: list[dict]) -> str | None:
     )
     if strong is None or weak is None:
         return None
-    return f"{strong['currency']}{weak['currency']}"
+    forward = f"{strong['currency']}{weak['currency']}"
+    if forward in KNOWN_PAIR_CODES:
+        return forward
+    reverse = f"{weak['currency']}{strong['currency']}"
+    return reverse if reverse in KNOWN_PAIR_CODES else None
 
 
 def best_pair_lines(
