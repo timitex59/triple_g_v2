@@ -8,7 +8,7 @@ from paire_check import (
     best_pair_lines,
     best_pair_name,
     build_message,
-    currency_trend_balls,
+    currency_consensus_ball,
     index_chg_lines,
     needed_currencies,
     needed_helper_pairs,
@@ -130,17 +130,48 @@ class PaireCheckTests(unittest.TestCase):
     def test_index_chg_lines_empty_without_index_rows(self):
         self.assertEqual(index_chg_lines([]), [])
 
-    def test_currency_trend_balls_orders_renko_then_d1_then_h1(self):
-        # Renko M+ W+ D- ; D1 BULL avec all/bull positifs, bear negatif ;
-        # H1 BEAR avec all negatif, bull nul (NEUTRAL), bear positif.
+    def test_currency_consensus_ball_bull_when_four_of_five_real_votes_agree(self):
+        # Renko M/W/D + D1_IMP21 = 4 BULL, H1_IMP21 dissident -> reste BULL
+        # (>= CURRENCY_CONSENSUS_THRESHOLD malgre le dissident).
+        row = make_currency_row(
+            renko=("BULL", "BULL", "BULL"),
+            d1=("BULL", 10.0, 5.0, -2.0),
+            h1=("BEAR", -3.0, 0.0, 1.0),
+        )
+        self.assertEqual(currency_consensus_ball(row), "🟢")
+
+    def test_currency_consensus_ball_bear_when_four_of_five_real_votes_agree(self):
+        row = make_currency_row(
+            renko=("BEAR", "BEAR", "BEAR"),
+            d1=("BEAR", -10.0, -5.0, 2.0),
+            h1=("BULL", 3.0, 0.0, -1.0),
+        )
+        self.assertEqual(currency_consensus_ball(row), "🔴")
+
+    def test_currency_consensus_ball_neutral_without_a_clear_majority(self):
+        # 3 BULL (RENKO_M, RENKO_W, D1_IMP21) / 2 BEAR (RENKO_D, H1_IMP21) --
+        # sous CURRENCY_CONSENSUS_THRESHOLD (4), pas de consensus net.
         row = make_currency_row(
             renko=("BULL", "BULL", "BEAR"),
             d1=("BULL", 10.0, 5.0, -2.0),
             h1=("BEAR", -3.0, 0.0, 1.0),
         )
-        self.assertEqual(currency_trend_balls(row), "🟢🟢🔴 🟢🟢🟢🔴 🔴🔴⚪🟢")
+        self.assertEqual(currency_consensus_ball(row), "⚪")
 
-    def test_index_chg_lines_appends_currency_trend_balls_when_provided(self):
+    def test_currency_consensus_ball_ignores_the_six_averages(self):
+        # Memes 5 votes reels (Renko M/W/D + D1/H1 IMP21), moyennes opposees
+        # -> meme boule: les moyennes ne comptent pas dans le consensus.
+        confirming_averages = make_currency_row(
+            renko=("BULL", "BULL", "BULL"), d1=("BULL", 50.0, 40.0, 30.0), h1=("BULL", 20.0, 15.0, 10.0),
+        )
+        contradicting_averages = make_currency_row(
+            renko=("BULL", "BULL", "BULL"), d1=("BULL", -50.0, -40.0, -30.0), h1=("BULL", -20.0, -15.0, -10.0),
+        )
+        self.assertEqual(
+            currency_consensus_ball(confirming_averages), currency_consensus_ball(contradicting_averages),
+        )
+
+    def test_index_chg_lines_appends_currency_consensus_ball_when_provided(self):
         rows = [
             index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
             index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
@@ -154,7 +185,7 @@ class PaireCheckTests(unittest.TestCase):
         usd_line = next(line for line in with_balls if line.startswith("🔴 USD ("))
         base_usd_line = next(line for line in without_balls if line.startswith("🔴 USD ("))
 
-        self.assertIn("🟢🟢🟢", eur_line)  # boules ajoutees pour EUR
+        self.assertTrue(eur_line.endswith(" 🟢"))  # boule de consensus ajoutee pour EUR
         self.assertEqual(usd_line, base_usd_line)  # USD absent de imp_by_currency -> inchangee
 
     def test_index_chg_lines_without_imp_by_currency_is_unchanged(self):
@@ -261,7 +292,8 @@ class PaireCheckTests(unittest.TestCase):
             ["EURUSD"], rows_by_pair, price_trends, index_by_currency, now, imp_by_currency,
         )
 
-        self.assertIn("🟢🟢🟢", message)
+        eur_line = next(line for line in message.splitlines() if line.startswith("🟢 EUR ("))
+        self.assertTrue(eur_line.endswith(" 🟢"))  # boule de consensus, cf. make_currency_row par defaut
 
     def test_build_message_flags_no_content_when_no_pair_scores(self):
         now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)

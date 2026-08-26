@@ -19,14 +19,20 @@ L'etat de reference 06h/run precedent (`update_price_trends`) est persiste
 dans son propre fichier, independant de celui de renko_full_alignment_29pairs
 (meme mecanisme, cf. ce module, mais un cycle de run distinct).
 
-2026-08-26: chaque ligne INDEX CHG%D porte en plus 11 boules 🟢/🔴/⚪ (cf.
-`currency_trend_balls`) -- Renko M/W/D + D1 IMP21/toutes/bull/bear + H1
-IMP21/toutes/bull/bear de CETTE devise, calcules par
-`imp_trend_29pairs.compute_currency_imp`/`fetch_currency_imp_rows` (le meme
-moteur Renko+PSAR+IMP21 que pour les 29 paires, rejoue sur le symbole
-TradingView de l'indice -- TVC:DXY etc. -- pas juste son score Renko-streak
-utilise pour le classement de la section). Ajoute ~40 appels TradingView par
-run (5 par devise x 8) en plus des ~32 deja utilises pour INDEX."""
+2026-08-26: chaque ligne INDEX CHG%D porte en plus une boule de consensus
+🟢/🔴/⚪ (cf. `currency_consensus_ball`) resumant les 5 votes reellement
+distincts de CETTE devise (Renko M/W/D + D1 IMP21 + H1 IMP21, calcules par
+`imp_trend_29pairs.compute_currency_imp`/`fetch_currency_imp_rows` -- le
+meme moteur Renko+PSAR+IMP21 que pour les 29 paires, rejoue sur le symbole
+TradingView de l'indice, TVC:DXY etc., pas juste son score Renko-streak
+utilise pour le classement de la section). Les 6 moyennes D1/H1 ne comptent
+pas dans ce consensus, meme raisonnement que celui deja applique aux paires
+en V2 (cf. imp_trend_29pairs_v2.py): elles derivent toutes de la meme serie
+de signaux que leur IMP21, 4 votes qui basculent ensemble ne sont pas 4
+confirmations independantes. Une premiere version affichait les 11 boules
+brutes avant cette correction (cf. historique git). Ajoute ~40 appels
+TradingView par run (5 par devise x 8) en plus des ~32 deja utilises pour
+INDEX."""
 
 from __future__ import annotations
 
@@ -137,7 +143,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--imp-h1-candles", type=int, default=5000,
-        help="Bougies H1 par devise pour les boules Renko/IMP21 de INDEX CHG%%D (cf. currency_trend_balls).",
+        help="Bougies H1 par devise pour la boule de consensus de INDEX CHG%%D (cf. currency_consensus_ball).",
     )
     parser.add_argument(
         "--imp-d1-candles", type=int, default=2500,
@@ -171,25 +177,35 @@ def pair_check_compact_line(
     return f"{pair} " + "".join(icon for _label, icon in signals)
 
 
-def currency_trend_balls(currency_row: dict) -> str:
-    """Boules 🟢/🔴/⚪ pour les 11 criteres de
-    `imp_trend_29pairs.screening_votes` calcules sur une devise seule (cf.
-    `imp_trend_29pairs.compute_currency_imp`/`fetch_currency_imp_rows`) --
-    CURRENCY_INDEX est exclu, il n'a pas de sens pour une devise isolee (il
-    compare deux devises entre elles). Groupees en 3 blocs espaces dans
-    l'ordre demande: Renko M/W/D, puis D1 IMP21/toutes/bull/bear, puis H1
-    IMP21/toutes/bull/bear -- billes seules, sans label, meme convention que
-    `pair_check_compact_line`."""
+CURRENCY_CONSENSUS_THRESHOLD = 4  # sur 5 votes reels -- cf. currency_consensus_ball
+
+
+def currency_consensus_ball(currency_row: dict) -> str:
+    """Boule unique 🟢/🔴/⚪ resumant une devise, sur les 5 votes reellement
+    distincts de `imp_trend_29pairs.screening_votes` calcules pour cette
+    devise seule (RENKO_M, RENKO_W, RENKO_D, D1_IMP21, H1_IMP21) --
+    CURRENCY_INDEX exclu (n'a pas de sens pour une devise isolee, il compare
+    deux devises entre elles).
+
+    Les 6 moyennes D1/H1 (toutes/bull/bear) ne comptent PAS: elles derivent
+    toutes de la meme serie de signaux que leur IMP21 respectif -- un
+    historique qui penche BULL fait basculer les 4 votes D1 ensemble, ce
+    n'est pas 4 confirmations independantes. Meme constat, meme correction
+    que celle deja appliquee aux paires en V2 (cf. module docstring point 1
+    de imp_trend_29pairs_v2.py) -- juste que la premiere version de cette
+    fonction affichait encore les 11 boules brutes avant cette correction.
+
+    BULL/BEAR si >= CURRENCY_CONSENSUS_THRESHOLD des 5 votes s'accordent,
+    NEUTRAL sinon (pas de consensus net)."""
     votes = screening_votes(currency_row)
-
-    def balls(keys: tuple[str, ...]) -> str:
-        return "".join(VOTE_BALL[votes[key]] for key in keys)
-
-    return " ".join([
-        balls(("RENKO_M", "RENKO_W", "RENKO_D")),
-        balls(("D1_IMP21", "D1_ALL_AVG", "D1_BULL_AVG", "D1_BEAR_AVG")),
-        balls(("H1_IMP21", "H1_ALL_AVG", "H1_BULL_AVG", "H1_BEAR_AVG")),
-    ])
+    keys = ("RENKO_M", "RENKO_W", "RENKO_D", "D1_IMP21", "H1_IMP21")
+    bull = sum(votes[key] == "BULL" for key in keys)
+    bear = sum(votes[key] == "BEAR" for key in keys)
+    if bull >= CURRENCY_CONSENSUS_THRESHOLD:
+        return VOTE_BALL["BULL"]
+    if bear >= CURRENCY_CONSENSUS_THRESHOLD:
+        return VOTE_BALL["BEAR"]
+    return VOTE_BALL["NEUTRAL"]
 
 
 def index_chg_lines(
@@ -200,9 +216,9 @@ def index_chg_lines(
     `_strength_status_lines`). Vide si `index_rows` l'est.
 
     Avec `imp_by_currency` (cf. `fetch_currency_imp_rows`), chaque ligne
-    reçoit en plus les boules Renko M/W/D + D1/H1 IMP21+moyennes de sa devise
-    (cf. `currency_trend_balls`) -- absent pour une devise dont le fetch a
-    echoue, la ligne reste alors sans boules plutot que d'echouer."""
+    reçoit en plus la boule de consensus de sa devise (cf.
+    `currency_consensus_ball`) -- absent pour une devise dont le fetch a
+    echoue, la ligne reste alors sans boule plutot que d'echouer."""
     sorted_rows = all_index_status_rows(index_rows)
     if not sorted_rows:
         return []
@@ -212,7 +228,7 @@ def index_chg_lines(
     lines = ["💱 INDEX CHG%D"]
     for row, line in zip(sorted_rows, base_lines):
         currency_row = imp_by_currency.get(str(row.get("currency")))
-        lines.append(line if currency_row is None else f"{line} {currency_trend_balls(currency_row)}")
+        lines.append(line if currency_row is None else f"{line} {currency_consensus_ball(currency_row)}")
     return lines
 
 
