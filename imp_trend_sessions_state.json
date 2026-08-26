@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-26T07:09:50.885935+00:00",
+  "updated_at": "2026-08-26T07:19:28.330909+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": 30.000000000003364,
@@ -369,26 +369,15 @@
       ]
     },
     "Tokyo": {
-      "realized_pips": 72.20000000000194,
-      "current_session_realized_pips": -32.79999999999977,
-      "last_session_pips": 105.0000000000017,
+      "realized_pips": 12.200000000002504,
+      "current_session_realized_pips": -92.7999999999992,
+      "last_session_pips": -92.7999999999992,
       "unrealized_pips": 0.0,
-      "total_pips": 72.20000000000194,
-      "daily_pips": 105.0000000000017,
+      "total_pips": 12.200000000002504,
+      "daily_pips": -92.7999999999992,
       "is_active": false,
-      "active_session_id": "2026-08-26",
-      "positions": {
-        "NZDJPY": {
-          "direction": "BULL",
-          "entry_price": 95.152,
-          "entry_time_utc": "2026-08-25T22:36:42.868763+00:00"
-        },
-        "USDJPY": {
-          "direction": "BULL",
-          "entry_price": 159.07,
-          "entry_time_utc": "2026-08-26T06:18:12.039553+00:00"
-        }
-      },
+      "active_session_id": null,
+      "positions": {},
       "events": [
         {
           "time_utc": "2026-08-24T22:44:11.394317+00:00",
@@ -709,6 +698,26 @@
           "exit_price": 0.7179,
           "pips": 3.1000000000003247,
           "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-08-26T07:19:28.330909+00:00",
+          "event": "EXIT",
+          "pair": "NZDJPY",
+          "direction": "BULL",
+          "entry_price": 95.152,
+          "exit_price": 94.616,
+          "pips": -53.600000000000136,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-08-26T07:19:28.330909+00:00",
+          "event": "EXIT",
+          "pair": "USDJPY",
+          "direction": "BULL",
+          "entry_price": 159.07,
+          "exit_price": 159.006,
+          "pips": -6.399999999999295,
+          "reason": "SESSION_END"
         }
       ],
       "daily_pips_history": [
@@ -747,6 +756,10 @@
         {
           "time_utc": "2026-08-26T06:18:12.039553+00:00",
           "daily_pips": -36.59999999999689
+        },
+        {
+          "time_utc": "2026-08-26T07:19:28.330909+00:00",
+          "daily_pips": -92.7999999999992
         }
       ]
     },
@@ -754,9 +767,9 @@
       "realized_pips": 42.39999999999786,
       "current_session_realized_pips": 0.0,
       "last_session_pips": 42.39999999999786,
-      "unrealized_pips": -47.400000000002905,
-      "total_pips": -5.000000000005045,
-      "daily_pips": -47.400000000002905,
+      "unrealized_pips": -46.09999999999866,
+      "total_pips": -3.7000000000007987,
+      "daily_pips": -46.09999999999866,
       "is_active": true,
       "active_session_id": "2026-08-26",
       "positions": {
@@ -1032,6 +1045,10 @@
         {
           "time_utc": "2026-08-26T07:09:50.885935+00:00",
           "daily_pips": -47.400000000002905
+        },
+        {
+          "time_utc": "2026-08-26T07:19:28.330909+00:00",
+          "daily_pips": -46.09999999999866
         }
       ]
     },
