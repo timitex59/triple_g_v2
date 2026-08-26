@@ -181,8 +181,8 @@
       ]
     },
     "Tokyo": {
-      "realized_pips": 23.49999999999963,
-      "current_session_realized_pips": 23.49999999999963,
+      "realized_pips": 1.200000000001154,
+      "current_session_realized_pips": 1.200000000001154,
       "last_session_pips": 0.0,
       "active_session_id": "2026-08-26",
       "positions": {
@@ -204,11 +204,6 @@
         "GBPJPY": {
           "direction": "BULL",
           "entry_price": 217.303,
-          "entry_time_utc": "2026-08-25T22:37:53.464686+00:00"
-        },
-        "USDJPY": {
-          "direction": "BULL",
-          "entry_price": 159.212,
           "entry_time_utc": "2026-08-25T22:37:53.464686+00:00"
         },
         "EURAUD": {
@@ -288,12 +283,22 @@
           "pair": "AUDUSD",
           "direction": "BULL",
           "entry_price": 0.71762
+        },
+        {
+          "time_utc": "2026-08-26T05:52:05.498149+00:00",
+          "event": "EXIT",
+          "pair": "USDJPY",
+          "direction": "BULL",
+          "entry_price": 159.212,
+          "exit_price": 158.989,
+          "pips": -22.299999999998477,
+          "reason": "INVALIDATED"
         }
       ],
-      "unrealized_pips": -14.899999999997867,
-      "total_pips": 8.600000000001764,
+      "unrealized_pips": 14.99999999999773,
+      "total_pips": 16.199999999998884,
       "is_active": true,
-      "daily_pips": 8.600000000001764,
+      "daily_pips": 16.199999999998884,
       "daily_pips_history": [
         {
           "time_utc": "2026-08-25T22:37:53.464686+00:00",
@@ -322,6 +327,10 @@
         {
           "time_utc": "2026-08-26T05:19:23.571128+00:00",
           "daily_pips": 8.600000000001764
+        },
+        {
+          "time_utc": "2026-08-26T05:52:05.498149+00:00",
+          "daily_pips": 16.199999999998884
         }
       ]
     },
@@ -352,5 +361,5 @@
       "daily_pips_history": []
     }
   },
-  "updated_at": "2026-08-26T05:19:23.571128+00:00"
+  "updated_at": "2026-08-26T05:52:05.498149+00:00"
 }
