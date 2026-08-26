@@ -51,6 +51,16 @@ choisi de le rendre visible plutot que de plafonner: cf. `currency_exposure_line
    Renko/IMP21 mais GBP nettement plus faible que JPY sur les indices
    devises -- desormais exclue plutot que retenue avec un vote perdu.
 
+   2026-08-26 (encore plus tard): le BULL/BEAR de CURRENCY_INDEX est
+   desormais lui-meme filtre par le trend propre de chaque devise (cf.
+   imp_trend_29pairs.currency_trend_confirms / fetch_currency_imp_rows) --
+   Renko/PSAR/IMP21 rejoue sur le symbole TradingView de chaque indice
+   (TVC:DXY etc.), pas juste son score Renko+CHG%D. Si aucune des deux
+   devises ne trend elle-meme dans le sens attendu par son role (forte =
+   BULL, faible = BEAR), le vote est retrograde en NEUTRAL avant meme
+   d'atteindre le veto ci-dessus -- meme convention 0-sur-N que le filtre
+   qualite D1/H1 du point 3.
+
 Tout le reste (fetch TradingView, replay Renko/PSAR/IMP, suivi de session
 jour/cumul, plomberie Telegram) est repris tel quel depuis imp_trend_29pairs.py
 (V1) -- aucune duplication, pour que les deux versions restent comparables
@@ -76,6 +86,7 @@ from imp_trend_29pairs import (
     compute_pair,
     currency_index_diverges,
     directional_average_confirms,
+    fetch_currency_imp_rows,
     fetch_currency_index_rows,
     screening_votes,
     send_telegram_message,
@@ -94,7 +105,11 @@ def _pair_currencies(pair: str) -> tuple[str, str]:
     return pair[:3], pair[3:]
 
 
-def select_aligned_pairs_v2(results: list[dict], index_by_currency: dict[str, dict] | None = None) -> list[dict]:
+def select_aligned_pairs_v2(
+    results: list[dict],
+    index_by_currency: dict[str, dict] | None = None,
+    imp_by_currency: dict[str, dict] | None = None,
+) -> list[dict]:
     """6 votes de direction reellement distincts (au lieu des 11 de V1, cf.
     module docstring point 1): RENKO_M, RENKO_W, RENKO_D, D1_IMP21, H1_IMP21,
     CURRENCY_INDEX (cf. imp_trend_29pairs.currency_index_vote -- confirme la
@@ -111,7 +126,7 @@ def select_aligned_pairs_v2(results: list[dict], index_by_currency: dict[str, di
     les paires non tradables; elles restent listees dans le message."""
     selected = []
     for result in results:
-        votes = screening_votes(result, index_by_currency)
+        votes = screening_votes(result, index_by_currency, imp_by_currency)
         if votes["D1_IMP21"] == "NEUTRAL" or votes["H1_IMP21"] == "NEUTRAL":
             continue
 
@@ -301,6 +316,9 @@ def main() -> int:
     args = parse_args()
     pairs = [pair.upper() for pair in args.pairs]
     index_by_currency = fetch_currency_index_rows(args.atr_length, args.index_candles, args.max_streak)
+    imp_by_currency = fetch_currency_imp_rows(
+        args.h1_candles, args.d1_candles, args.renko_bricks, args.atr_length, args.max_streak,
+    )
     results: list[dict] = []
     errors: list[tuple[str, str]] = []
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
@@ -323,7 +341,7 @@ def main() -> int:
     order = {pair: index for index, pair in enumerate(pairs)}
     results.sort(key=lambda item: order[item["pair"]])
     if results:
-        selected = select_aligned_pairs_v2(results, index_by_currency)
+        selected = select_aligned_pairs_v2(results, index_by_currency, imp_by_currency)
         print_selection_v2(selected)
         tradable_selected = [item for item in selected if item["tradable"]]
         for line in currency_exposure_lines(tradable_selected):

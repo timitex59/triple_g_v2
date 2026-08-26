@@ -11,6 +11,7 @@ from imp_trend_29pairs import (
     CURRENCY_INDEX_MIN_SPREAD,
     currency_index_diverges,
     currency_index_vote,
+    currency_trend_confirms,
     invalidation_reason,
 )
 from imp_trend_29pairs_v2 import (
@@ -61,6 +62,15 @@ def make_index_row(daily_chg):
         "daily_chg": daily_chg,
         "states": {"W": SimpleNamespace(green_streak=1, red_streak=1)},
         "bias": {"W": 1},
+    }
+
+
+def make_imp_row(d1_status="NEUTRAL", h1_status="NEUTRAL"):
+    """Ligne minimale (forme `compute_currency_imp`) pour `currency_trend_confirms`:
+    seuls les imp_status D1/H1 comptent pour ce filtre."""
+    return {
+        "D1": {"imp_status": d1_status},
+        "H1": {"imp_status": h1_status},
     }
 
 
@@ -131,6 +141,28 @@ class SelectAlignedPairsV2Tests(unittest.TestCase):
         index_by_currency = {"GBP": make_index_row(-1.25), "JPY": make_index_row(-0.32)}
         selected = select_aligned_pairs_v2([result], index_by_currency)
         self.assertEqual(selected, [])
+
+    def test_currency_index_downgraded_to_neutral_by_imp_by_currency(self):
+        # Spread confirmerait BULL (AUD +0.60 vs CHF -0.60), mais aucune des
+        # deux devises ne trend elle-meme dans le sens attendu -> retrograde
+        # NEUTRAL (pas BEAR: currency_index_diverges ne se declenche donc pas
+        # non plus). Les 5 votes d'origine unanimes BULL suffisent seuls
+        # (5/6 >= VOTE_THRESHOLD), mais en rang 2 puisque CURRENCY_INDEX
+        # n'a pas confirme.
+        result = make_result("AUDCHF")
+        index_by_currency = {"AUD": make_index_row(0.60), "CHF": make_index_row(-0.60)}
+        imp_by_currency = {
+            "AUD": make_imp_row("BEAR", "BEAR"),
+            "CHF": make_imp_row("BULL", "BULL"),
+        }
+        selected = select_aligned_pairs_v2([result], index_by_currency, imp_by_currency)
+
+        self.assertEqual(len(selected), 1)
+        item = selected[0]
+        self.assertEqual(item["direction"], "BULL")
+        self.assertEqual(item["confirmations"], 5)
+        self.assertEqual(item["rank_tier"], 2)
+        self.assertEqual(item["CURRENCY_INDEX"], "NEUTRAL")
 
     def test_renko_d_must_match_direction(self):
         # 4/5 en faveur de BULL mais RENKO_D est BEAR -> le garde-fou l'exclut.
@@ -248,6 +280,82 @@ class CurrencyIndexVoteTests(unittest.TestCase):
     def test_missing_currency_is_neutral(self):
         # XAU n'a pas d'indice devise.
         self.assertEqual(currency_index_vote("XAUUSD", self.INDEX_BY_CURRENCY), "NEUTRAL")
+
+    def test_imp_by_currency_downgrades_to_neutral_on_total_contradiction(self):
+        # Spread confirme BULL (AUD +0.28 vs CHF -0.54), mais aucune des deux
+        # devises ne trend elle-meme dans le sens attendu par son role (AUD
+        # "forte" trend BEAR sur son propre IMP21, CHF "faible" trend BULL)
+        # -> retrograde en NEUTRAL plutot que de compter sur un ecart que
+        # rien d'autre ne soutient.
+        imp_by_currency = {
+            "AUD": make_imp_row("BEAR", "BEAR"),
+            "CHF": make_imp_row("BULL", "BULL"),
+        }
+        self.assertEqual(
+            currency_index_vote("AUDCHF", self.INDEX_BY_CURRENCY, imp_by_currency), "NEUTRAL",
+        )
+
+    def test_imp_by_currency_partial_confirmation_keeps_the_vote(self):
+        # Meme spread BULL, mais au moins une verification confirme (AUD
+        # trend bien BULL sur D1) -> le vote reste BULL, seul un echec total
+        # (0/N) retrograde.
+        imp_by_currency = {
+            "AUD": make_imp_row("BULL", "BEAR"),
+            "CHF": make_imp_row("BULL", "BULL"),
+        }
+        self.assertEqual(
+            currency_index_vote("AUDCHF", self.INDEX_BY_CURRENCY, imp_by_currency), "BULL",
+        )
+
+    def test_imp_by_currency_not_provided_keeps_old_spread_only_behavior(self):
+        self.assertEqual(
+            currency_index_vote("AUDCHF", self.INDEX_BY_CURRENCY, None), "BULL",
+        )
+
+
+class CurrencyTrendConfirmsTests(unittest.TestCase):
+    def test_all_four_checks_confirm(self):
+        # AUDCHF BULL: AUD (forte) devrait trender BULL, CHF (faible) BEAR.
+        imp_by_currency = {
+            "AUD": make_imp_row("BULL", "BULL"),
+            "CHF": make_imp_row("BEAR", "BEAR"),
+        }
+        applicable, confirmations = currency_trend_confirms("AUDCHF", "BULL", imp_by_currency)
+        self.assertEqual((applicable, confirmations), (4, 4))
+
+    def test_all_four_checks_contradict(self):
+        imp_by_currency = {
+            "AUD": make_imp_row("BEAR", "BEAR"),
+            "CHF": make_imp_row("BULL", "BULL"),
+        }
+        applicable, confirmations = currency_trend_confirms("AUDCHF", "BULL", imp_by_currency)
+        self.assertEqual((applicable, confirmations), (4, 0))
+
+    def test_bear_direction_swaps_the_expected_roles(self):
+        # CHFAUD BEAR (base faible, cotee forte): CHF devrait trender BEAR,
+        # AUD BULL -- inverse du cas AUDCHF BULL ci-dessus.
+        imp_by_currency = {
+            "CHF": make_imp_row("BEAR", "BEAR"),
+            "AUD": make_imp_row("BULL", "BULL"),
+        }
+        applicable, confirmations = currency_trend_confirms("CHFAUD", "BEAR", imp_by_currency)
+        self.assertEqual((applicable, confirmations), (4, 4))
+
+    def test_neutral_imp_status_is_not_applicable(self):
+        imp_by_currency = {
+            "AUD": make_imp_row("NEUTRAL", "BULL"),
+            "CHF": make_imp_row("NEUTRAL", "NEUTRAL"),
+        }
+        applicable, confirmations = currency_trend_confirms("AUDCHF", "BULL", imp_by_currency)
+        self.assertEqual((applicable, confirmations), (1, 1))
+
+    def test_missing_currency_data_only_checks_the_other_side(self):
+        imp_by_currency = {"AUD": make_imp_row("BULL", "BULL")}
+        applicable, confirmations = currency_trend_confirms("AUDCHF", "BULL", imp_by_currency)
+        self.assertEqual((applicable, confirmations), (2, 2))
+
+    def test_no_data_at_all_is_zero_applicable(self):
+        self.assertEqual(currency_trend_confirms("AUDCHF", "BULL", {}), (0, 0))
 
 
 class CurrencyIndexDivergesTests(unittest.TestCase):

@@ -32,6 +32,20 @@ other votes alone would have cleared VOTE_THRESHOLD_V1. Example that
 prompted this: GBPJPY BULL on Renko/IMP21 with GBP far weaker than JPY on
 the currency indices (spread well past CURRENCY_INDEX_MIN_SPREAD) is now
 dropped, where before it would have stayed BULL with one wasted vote.
+
+2026-08-26 (later still): CURRENCY_INDEX's spread-based BULL/BEAR is now
+also quality-gated by each currency's OWN trend (cf. `compute_currency_imp`,
+`fetch_currency_imp_rows`, `currency_trend_confirms`) -- the same
+Renko/PSAR/IMP21 replay used for pairs, run against the 8 currency indices'
+own TradingView symbols (TVC:DXY etc.) instead of just their Renko-streak
+CHG%D score. The currency CURRENCY_INDEX calls "strong" should itself be
+trending BULL on its own D1/H1 IMP21, the "weak" one BEAR; if neither
+currency's own trend supports the role the spread assigned it (0 confirmed
+out of the applicable checks -- same 0-of-N convention as V2's D1/H1 average
+quality gate), the vote is downgraded to NEUTRAL instead of counting on a
+spread nothing else corroborates. `pip_size` treats the 8 index codes like
+JPY pairs (0.01) for the IMP move averages -- an arbitrary but readable
+convention, these aren't real pip-quoted instruments.
 """
 
 from __future__ import annotations
@@ -209,12 +223,14 @@ def _fetch_series(
     raise RuntimeError(str(last_error) if last_error else "TradingView request failed")
 
 
-def fetch_ohlc(pair: str, interval: str, count: int) -> pd.DataFrame:
-    return _fetch_series(f"OANDA:{pair}", interval, count)
+def fetch_ohlc(pair: str, interval: str, count: int, tv_symbol: str | None = None) -> pd.DataFrame:
+    return _fetch_series(tv_symbol or f"OANDA:{pair}", interval, count)
 
 
-def fetch_renko(pair: str, interval: str, count: int, atr_length: int, max_streak: int) -> list[RenkoPoint]:
-    df = _fetch_series(f"OANDA:{pair}", interval, count, renko_atr_length=atr_length)
+def fetch_renko(
+    pair: str, interval: str, count: int, atr_length: int, max_streak: int, tv_symbol: str | None = None,
+) -> list[RenkoPoint]:
+    df = _fetch_series(tv_symbol or f"OANDA:{pair}", interval, count, renko_atr_length=atr_length)
     points: list[RenkoPoint] = []
     green = red = 0
     for row in df.itertuples(index=False):
@@ -298,9 +314,12 @@ def point_at(points: list[RenkoPoint], timestamp: pd.Timestamp, cursor: int) -> 
     return None, cursor
 
 
+INDEX_CODES = {str(asset["pair"]) for asset in FOREX_INDEX_ASSETS}  # {"DXY", "EXY", ...}
+
+
 def pip_size(pair: str) -> float:
-    if pair == "XAUUSD":
-        return 0.01
+    if pair == "XAUUSD" or pair in INDEX_CODES:
+        return 0.01  # convention JPY: indices devises TVC cotent ~100 avec 2 decimales
     return 0.01 if pair.endswith("JPY") else 0.0001
 
 
@@ -473,6 +492,69 @@ def compute_pair(pair: str, candles_h1: int, candles_d1: int, renko_bricks: int,
     }
 
 
+def compute_currency_imp(
+    asset: dict, candles_h1: int, candles_d1: int, renko_bricks: int, atr_length: int, max_streak: int,
+) -> dict:
+    """Meme calcul que `compute_pair`, mais sur le symbole TradingView complet
+    d'un indice devise (`asset["tv_symbol"]`, ex. TVC:DXY) plutot que sur
+    OANDA:{pair} -- Renko M/W/D + IMP21 D1/H1 (imp_status + moyennes bull/
+    bear/toutes, cf. `replay_imp`) pour la devise elle-meme, pas pour une
+    paire. `pip_size(asset["pair"])` renvoie 0.01 pour les codes d'indice
+    (cf. INDEX_CODES): convention JPY, les indices TVC cotent ~100 avec 2
+    decimales. Sert de filtre de qualite au vote CURRENCY_INDEX (cf.
+    `currency_trend_confirms`), pas de source de son signe -- celui-ci reste
+    port par `currency_spread`/`signed_strength` (Renko + CHG%D, cf.
+    `fetch_currency_index_rows`)."""
+    tv_symbol = str(asset["tv_symbol"])
+    code = str(asset["pair"])
+    h1 = fetch_ohlc(code, "60", candles_h1, tv_symbol=tv_symbol)
+    d1 = fetch_ohlc(code, "D", candles_d1, tv_symbol=tv_symbol)
+    renko = {
+        tf: fetch_renko(code, tf, renko_bricks, atr_length, max_streak, tv_symbol=tv_symbol)
+        for tf in ("M", "W", "D")
+    }
+    reference_price = float(h1["close"].iloc[-1])
+    return {
+        "pair": code,
+        "currency": asset.get("currency"),
+        "reference_price": reference_price,
+        "renko": current_renko_status(renko, reference_price),
+        "H1": replay_imp(code, h1, renko),
+        "D1": replay_imp(code, d1, renko),
+    }
+
+
+def fetch_currency_imp_rows(
+    candles_h1: int = 5000,
+    candles_d1: int = 2500,
+    renko_bricks: int = 2500,
+    atr_length: int = 14,
+    max_streak: int = 50,
+    workers: int = 8,
+) -> dict[str, dict]:
+    """`compute_currency_imp` pour les 8 `FOREX_INDEX_ASSETS`, en parallele --
+    dict indexe par devise. Devise absente si son fetch a echoue -- traitee
+    alors comme non applicable par `currency_trend_confirms` (aucun filtre,
+    pas un rejet)."""
+    rows: dict[str, dict] = {}
+    with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+        futures = {
+            pool.submit(
+                compute_currency_imp, asset, candles_h1, candles_d1, renko_bricks, atr_length, max_streak,
+            ): asset
+            for asset in FOREX_INDEX_ASSETS
+        }
+        for future in as_completed(futures):
+            asset = futures[future]
+            try:
+                row = future.result()
+            except Exception:
+                row = None
+            if row is not None:
+                rows[str(asset["currency"])] = row
+    return rows
+
+
 def flatten(result: dict) -> dict:
     row = {"pair": result["pair"], "reference_price": result["reference_price"]}
     for tf in ("M", "W", "D"):
@@ -534,7 +616,41 @@ def fetch_currency_index_rows(length: int = 14, candles: int = 300, max_streak: 
 CURRENCY_INDEX_MIN_SPREAD = SYNC_MIN_EXPECTED  # 0.30 -- meme seuil que sync_marker (renko_full_alignment_29pairs.py)
 
 
-def currency_index_vote(pair: str, index_by_currency: dict[str, dict]) -> str:
+def currency_trend_confirms(pair: str, direction: str, imp_by_currency: dict[str, dict]) -> tuple[int, int]:
+    """Filtre de qualite du vote CURRENCY_INDEX: la devise forte (cf.
+    `direction`) devrait elle-meme trender BULL sur son propre IMP21 (D1 et
+    H1, cf. `compute_currency_imp`/`fetch_currency_imp_rows`), la devise
+    faible BEAR -- jusqu'a 4 verifications (D1/H1 x base/cotee), ignorees
+    quand la devise est absente de `imp_by_currency` ou que son IMP21 est
+    NEUTRAL sur ce graphique (ni pour ni contre -- meme principe que
+    `directional_average_confirms` cote paires). Renvoie
+    (applicable, confirmations): `currency_index_vote` retrograde son vote en
+    NEUTRAL quand applicable > 0 et confirmations == 0 (echec total), meme
+    convention que le filtre qualite D1/H1 de V2 (cf.
+    imp_trend_29pairs_v2.select_aligned_pairs_v2)."""
+    if len(pair) != 6 or direction not in ("BULL", "BEAR"):
+        return 0, 0
+    base, quote = pair[:3], pair[3:]
+    strong, weak = (base, quote) if direction == "BULL" else (quote, base)
+    expected_status = {strong: "BULL", weak: "BEAR"}
+    applicable = confirmations = 0
+    for currency, expected in expected_status.items():
+        row = imp_by_currency.get(currency)
+        if row is None:
+            continue
+        for chart in ("D1", "H1"):
+            status = row[chart]["imp_status"]
+            if status == "NEUTRAL":
+                continue
+            applicable += 1
+            if status == expected:
+                confirmations += 1
+    return applicable, confirmations
+
+
+def currency_index_vote(
+    pair: str, index_by_currency: dict[str, dict], imp_by_currency: dict[str, dict] | None = None,
+) -> str:
     """Vote derive de l'ecart de force entre les deux devises de `pair`, via
     `currency_spread` (renko_full_alignment_29pairs.py): force signee de la
     base moins force signee de la cotee, ou la force signee (`signed_strength`)
@@ -549,11 +665,20 @@ def currency_index_vote(pair: str, index_by_currency: dict[str, dict]) -> str:
 
     NEUTRAL si l'ecart est indisponible (devise manquante -- XAUUSD: XAU n'a
     pas d'indice) ou trop faible (< CURRENCY_INDEX_MIN_SPREAD) pour trancher.
-    BULL si l'ecart est positif (base plus forte), BEAR si negatif."""
+    Sinon BULL/BEAR selon le signe de l'ecart -- sauf si `imp_by_currency` est
+    fourni et que `currency_trend_confirms` echoue totalement (les deux
+    devises trendent elles-memes a l'inverse de leur role suppose): le vote
+    est alors retrograde en NEUTRAL plutot que de compter sur un simple ecart
+    de force que rien d'autre ne soutient."""
     spread = currency_spread({"pair": pair, "asset_type": "PAIR"}, index_by_currency)
     if spread is None or abs(spread) < CURRENCY_INDEX_MIN_SPREAD:
         return "NEUTRAL"
-    return "BULL" if spread > 0 else "BEAR"
+    direction = "BULL" if spread > 0 else "BEAR"
+    if imp_by_currency:
+        applicable, confirmations = currency_trend_confirms(pair, direction, imp_by_currency)
+        if applicable > 0 and confirmations == 0:
+            return "NEUTRAL"
+    return direction
 
 
 def currency_index_diverges(votes: dict[str, str], direction: str) -> bool:
@@ -571,7 +696,11 @@ def currency_index_diverges(votes: dict[str, str], direction: str) -> bool:
     return votes["CURRENCY_INDEX"] == opposite
 
 
-def screening_votes(result: dict, index_by_currency: dict[str, dict] | None = None) -> dict[str, str]:
+def screening_votes(
+    result: dict,
+    index_by_currency: dict[str, dict] | None = None,
+    imp_by_currency: dict[str, dict] | None = None,
+) -> dict[str, str]:
     return {
         "RENKO_M": result["renko"]["M"]["status"],
         "RENKO_W": result["renko"]["W"]["status"],
@@ -584,17 +713,21 @@ def screening_votes(result: dict, index_by_currency: dict[str, dict] | None = No
         "H1_ALL_AVG": average_direction(result["H1"]["all_avg_pips"]),
         "H1_BULL_AVG": average_direction(result["H1"]["bull_avg_pips"]),
         "H1_BEAR_AVG": average_direction(result["H1"]["bear_avg_pips"]),
-        "CURRENCY_INDEX": currency_index_vote(result["pair"], index_by_currency or {}),
+        "CURRENCY_INDEX": currency_index_vote(result["pair"], index_by_currency or {}, imp_by_currency),
     }
 
 
 VOTE_THRESHOLD_V1 = 9  # sur 12 votes (les 11 d'origine + CURRENCY_INDEX, cf. currency_index_vote)
 
 
-def select_aligned_pairs(results: list[dict], index_by_currency: dict[str, dict] | None = None) -> list[dict]:
+def select_aligned_pairs(
+    results: list[dict],
+    index_by_currency: dict[str, dict] | None = None,
+    imp_by_currency: dict[str, dict] | None = None,
+) -> list[dict]:
     selected = []
     for result in results:
-        votes = screening_votes(result, index_by_currency)
+        votes = screening_votes(result, index_by_currency, imp_by_currency)
         if votes["D1_IMP21"] == "NEUTRAL" or votes["H1_IMP21"] == "NEUTRAL":
             continue
         bull_votes = sum(vote == "BULL" for vote in votes.values())
@@ -681,14 +814,18 @@ def load_eligible_state(path: Path) -> dict:
     return {"version": 1, "active": {}, "events": []}
 
 
-def invalidation_reason(result: dict | None, index_by_currency: dict[str, dict] | None = None) -> str:
+def invalidation_reason(
+    result: dict | None,
+    index_by_currency: dict[str, dict] | None = None,
+    imp_by_currency: dict[str, dict] | None = None,
+) -> str:
     if result is None:
         return "DATA_UNAVAILABLE"
     if result["D1"]["imp_status"] == "NEUTRAL":
         return "D1_IMP21_NEUTRAL"
     if result["H1"]["imp_status"] == "NEUTRAL":
         return "H1_IMP21_NEUTRAL"
-    votes = screening_votes(result, index_by_currency)
+    votes = screening_votes(result, index_by_currency, imp_by_currency)
     values = list(votes.values())
     direction = (
         "BULL" if values.count("BULL") >= VOTE_THRESHOLD_V1
@@ -708,7 +845,11 @@ def invalidation_reason(result: dict | None, index_by_currency: dict[str, dict] 
 
 
 def update_eligible_state(
-    path: Path, selected: list[dict], results: list[dict], index_by_currency: dict[str, dict] | None = None,
+    path: Path,
+    selected: list[dict],
+    results: list[dict],
+    index_by_currency: dict[str, dict] | None = None,
+    imp_by_currency: dict[str, dict] | None = None,
 ) -> tuple[dict, list[dict]]:
     state = load_eligible_state(path)
     previous = state.get("active", {})
@@ -750,7 +891,7 @@ def update_eligible_state(
             "event": "INVALIDATED",
             "pair": pair,
             "direction": old.get("direction"),
-            "reason": invalidation_reason(results_by_pair.get(pair), index_by_currency),
+            "reason": invalidation_reason(results_by_pair.get(pair), index_by_currency, imp_by_currency),
             "entered_at": old.get("entered_at"),
         })
 
@@ -1149,6 +1290,9 @@ def main() -> int:
     args = parse_args()
     pairs = [pair.upper() for pair in args.pairs]
     index_by_currency = fetch_currency_index_rows(args.atr_length, args.index_candles, args.max_streak)
+    imp_by_currency = fetch_currency_imp_rows(
+        args.h1_candles, args.d1_candles, args.renko_bricks, args.atr_length, args.max_streak,
+    )
     results: list[dict] = []
     errors: list[tuple[str, str]] = []
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
@@ -1178,10 +1322,10 @@ def main() -> int:
     if results:
         print()
         print_table(results)
-        selected = select_aligned_pairs(results, index_by_currency)
+        selected = select_aligned_pairs(results, index_by_currency, imp_by_currency)
         print_selection(selected)
         eligible_state, eligibility_events = update_eligible_state(
-            args.eligible_state, selected, results, index_by_currency,
+            args.eligible_state, selected, results, index_by_currency, imp_by_currency,
         )
         session_state = update_session_tracking(args.sessions_state, selected, results)
         print_eligibility_tracking(eligible_state, eligibility_events)
