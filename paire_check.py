@@ -17,7 +17,16 @@ scan complet 29 paires de ce dernier.
 
 L'etat de reference 06h/run precedent (`update_price_trends`) est persiste
 dans son propre fichier, independant de celui de renko_full_alignment_29pairs
-(meme mecanisme, cf. ce module, mais un cycle de run distinct)."""
+(meme mecanisme, cf. ce module, mais un cycle de run distinct).
+
+2026-08-26: chaque ligne INDEX CHG%D porte en plus 11 boules 🟢/🔴/⚪ (cf.
+`currency_trend_balls`) -- Renko M/W/D + D1 IMP21/toutes/bull/bear + H1
+IMP21/toutes/bull/bear de CETTE devise, calcules par
+`imp_trend_29pairs.compute_currency_imp`/`fetch_currency_imp_rows` (le meme
+moteur Renko+PSAR+IMP21 que pour les 29 paires, rejoue sur le symbole
+TradingView de l'indice -- TVC:DXY etc. -- pas juste son score Renko-streak
+utilise pour le classement de la section). Ajoute ~40 appels TradingView par
+run (5 par devise x 8) en plus des ~32 deja utilises pour INDEX."""
 
 from __future__ import annotations
 
@@ -26,6 +35,7 @@ from datetime import datetime
 from pathlib import Path
 
 from ichimoku_v4 import fetch_tv_ohlc, send_telegram_message
+from imp_trend_29pairs import fetch_currency_imp_rows, screening_votes
 from renko_full_alignment_29pairs import (
     FOREX_INDEX_ASSETS,
     FOREX_PAIR_ASSETS,
@@ -39,6 +49,8 @@ from renko_full_alignment_29pairs import (
     save_price_trend_state,
     update_price_trends,
 )
+
+VOTE_BALL = {"BULL": "🟢", "BEAR": "🔴", "NEUTRAL": "⚪"}
 
 # Modifier cette liste (ou passer --pairs) pour suivre d'autres paires.
 DEFAULT_PAIRS = ["EURUSD", "EURJPY", "USDJPY", "CHFJPY"]
@@ -124,6 +136,18 @@ def parse_args() -> argparse.Namespace:
         help="Plafond du streak de briques Renko consecutives pour INDEX.",
     )
     parser.add_argument(
+        "--imp-h1-candles", type=int, default=5000,
+        help="Bougies H1 par devise pour les boules Renko/IMP21 de INDEX CHG%%D (cf. currency_trend_balls).",
+    )
+    parser.add_argument(
+        "--imp-d1-candles", type=int, default=2500,
+        help="Bougies D1 par devise pour les boules Renko/IMP21 de INDEX CHG%%D.",
+    )
+    parser.add_argument(
+        "--imp-renko-bricks", type=int, default=2500,
+        help="Briques Renko M/W/D par devise pour les boules Renko/IMP21 de INDEX CHG%%D.",
+    )
+    parser.add_argument(
         "--state-file", default=str(STATE_FILE),
         help="Fichier d'etat JSON (reference 06h + run precedent), propre a ce script.",
     )
@@ -147,14 +171,49 @@ def pair_check_compact_line(
     return f"{pair} " + "".join(icon for _label, icon in signals)
 
 
-def index_chg_lines(index_rows: list[dict]) -> list[str]:
+def currency_trend_balls(currency_row: dict) -> str:
+    """Boules 🟢/🔴/⚪ pour les 11 criteres de
+    `imp_trend_29pairs.screening_votes` calcules sur une devise seule (cf.
+    `imp_trend_29pairs.compute_currency_imp`/`fetch_currency_imp_rows`) --
+    CURRENCY_INDEX est exclu, il n'a pas de sens pour une devise isolee (il
+    compare deux devises entre elles). Groupees en 3 blocs espaces dans
+    l'ordre demande: Renko M/W/D, puis D1 IMP21/toutes/bull/bear, puis H1
+    IMP21/toutes/bull/bear -- billes seules, sans label, meme convention que
+    `pair_check_compact_line`."""
+    votes = screening_votes(currency_row)
+
+    def balls(keys: tuple[str, ...]) -> str:
+        return "".join(VOTE_BALL[votes[key]] for key in keys)
+
+    return " ".join([
+        balls(("RENKO_M", "RENKO_W", "RENKO_D")),
+        balls(("D1_IMP21", "D1_ALL_AVG", "D1_BULL_AVG", "D1_BEAR_AVG")),
+        balls(("H1_IMP21", "H1_ALL_AVG", "H1_BULL_AVG", "H1_BEAR_AVG")),
+    ])
+
+
+def index_chg_lines(
+    index_rows: list[dict], imp_by_currency: dict[str, dict] | None = None,
+) -> list[str]:
     """Section `💱 INDEX CHG%D`, identique a celle de FULL MOMENTUM (les 8
     devises, memes icones/valeurs, cf. `all_index_status_rows` et
-    `_strength_status_lines`). Vide si `index_rows` l'est."""
+    `_strength_status_lines`). Vide si `index_rows` l'est.
+
+    Avec `imp_by_currency` (cf. `fetch_currency_imp_rows`), chaque ligne
+    reçoit en plus les boules Renko M/W/D + D1/H1 IMP21+moyennes de sa devise
+    (cf. `currency_trend_balls`) -- absent pour une devise dont le fetch a
+    echoue, la ligne reste alors sans boules plutot que d'echouer."""
     sorted_rows = all_index_status_rows(index_rows)
     if not sorted_rows:
         return []
-    return ["💱 INDEX CHG%D", *_strength_status_lines(sorted_rows)]
+    base_lines = _strength_status_lines(sorted_rows)
+    if not imp_by_currency:
+        return ["💱 INDEX CHG%D", *base_lines]
+    lines = ["💱 INDEX CHG%D"]
+    for row, line in zip(sorted_rows, base_lines):
+        currency_row = imp_by_currency.get(str(row.get("currency")))
+        lines.append(line if currency_row is None else f"{line} {currency_trend_balls(currency_row)}")
+    return lines
 
 
 def best_pair_name(index_rows: list[dict]) -> str | None:
@@ -200,7 +259,7 @@ def best_pair_lines(
 
 def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
                   price_trends: dict[str, dict], index_by_currency: dict[str, dict],
-                  now: datetime) -> tuple[str, bool]:
+                  now: datetime, imp_by_currency: dict[str, dict] | None = None) -> tuple[str, bool]:
     """Assemble le message PAIRE_CHECK. Renvoie (message, has_content): le 2e
     indique si au moins une paire a produit une ligne exploitable, pour
     conditionner l'envoi Telegram cote `main` (la section INDEX CHG%D seule
@@ -215,7 +274,7 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
 
     lines = ["📐 PAIRE_CHECK", ""]
     index_rows = list(index_by_currency.values())
-    index_lines = index_chg_lines(index_rows)
+    index_lines = index_chg_lines(index_rows, imp_by_currency)
     if index_lines:
         lines.extend(index_lines)
         lines.append("")
@@ -243,6 +302,9 @@ def main() -> int:
     index_rows = fetch_index_rows(args.length, args.candles, args.max_streak)
     index_by_currency = {str(row["currency"]): row for row in index_rows}
     best_pair = best_pair_name(index_rows)
+    imp_by_currency = fetch_currency_imp_rows(
+        args.imp_h1_candles, args.imp_d1_candles, args.imp_renko_bricks, args.length, args.max_streak,
+    )
 
     currencies = needed_currencies(args.pairs)
     best_pair_currencies = _pair_currencies(best_pair) if best_pair else None
@@ -257,7 +319,7 @@ def main() -> int:
     save_price_trend_state(args.state_file, new_state)
 
     message, has_content = build_message(
-        args.pairs, rows_by_pair, price_trends, index_by_currency, now,
+        args.pairs, rows_by_pair, price_trends, index_by_currency, now, imp_by_currency,
     )
     print(message)
     if args.telegram:

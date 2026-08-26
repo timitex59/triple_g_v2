@@ -8,6 +8,7 @@ from paire_check import (
     best_pair_lines,
     best_pair_name,
     build_message,
+    currency_trend_balls,
     index_chg_lines,
     needed_currencies,
     needed_helper_pairs,
@@ -33,6 +34,32 @@ def index_row(pair, currency, m, w, d, daily_chg):
         "pair": pair, "asset_type": "INDEX", "currency": currency,
         "px": px, "bias": bias, "states": states, "daily_chg": daily_chg,
         "live_price": 1.0,
+    }
+
+
+def make_currency_row(
+    renko=("BULL", "BULL", "BULL"),
+    d1=("BULL", 10.0, 5.0, -2.0),
+    h1=("BEAR", -3.0, 0.0, 1.0),
+):
+    """Ligne factice `compute_currency_imp` (une devise): `d1`/`h1` =
+    (imp_status, all_avg_pips, bull_avg_pips, bear_avg_pips)."""
+    m, w, d = renko
+
+    def chart(status, all_pips, bull_pips, bear_pips):
+        return {
+            "imp_status": status,
+            "all_avg_pips": all_pips,
+            "bull_avg_pips": bull_pips,
+            "bear_avg_pips": bear_pips,
+        }
+
+    return {
+        "pair": "DXY",
+        "currency": "USD",
+        "renko": {"M": {"status": m}, "W": {"status": w}, "D": {"status": d}},
+        "D1": chart(*d1),
+        "H1": chart(*h1),
     }
 
 
@@ -102,6 +129,37 @@ class PaireCheckTests(unittest.TestCase):
 
     def test_index_chg_lines_empty_without_index_rows(self):
         self.assertEqual(index_chg_lines([]), [])
+
+    def test_currency_trend_balls_orders_renko_then_d1_then_h1(self):
+        # Renko M+ W+ D- ; D1 BULL avec all/bull positifs, bear negatif ;
+        # H1 BEAR avec all negatif, bull nul (NEUTRAL), bear positif.
+        row = make_currency_row(
+            renko=("BULL", "BULL", "BEAR"),
+            d1=("BULL", 10.0, 5.0, -2.0),
+            h1=("BEAR", -3.0, 0.0, 1.0),
+        )
+        self.assertEqual(currency_trend_balls(row), "🟢🟢🔴 🟢🟢🟢🔴 🔴🔴⚪🟢")
+
+    def test_index_chg_lines_appends_currency_trend_balls_when_provided(self):
+        rows = [
+            index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+            index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+        ]
+        imp_by_currency = {"EUR": make_currency_row(renko=("BULL", "BULL", "BULL"))}
+
+        with_balls = index_chg_lines(rows, imp_by_currency)
+        without_balls = index_chg_lines(rows)
+
+        eur_line = next(line for line in with_balls if line.startswith("🟢 EUR ("))
+        usd_line = next(line for line in with_balls if line.startswith("🔴 USD ("))
+        base_usd_line = next(line for line in without_balls if line.startswith("🔴 USD ("))
+
+        self.assertIn("🟢🟢🟢", eur_line)  # boules ajoutees pour EUR
+        self.assertEqual(usd_line, base_usd_line)  # USD absent de imp_by_currency -> inchangee
+
+    def test_index_chg_lines_without_imp_by_currency_is_unchanged(self):
+        rows = [index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57)]
+        self.assertEqual(index_chg_lines(rows), index_chg_lines(rows, None))
 
     def test_best_pair_name_pairs_top_red_with_top_green(self):
         # Meme alignement M/W/D (1,1,1) partout -> le score n'est ordonne que
@@ -188,6 +246,22 @@ class PaireCheckTests(unittest.TestCase):
         # ligne PAIRES (qui suit) puisque c'est la meme paire dans ce test.
         after_paires = message[message.index("PAIRES"):]
         self.assertIn("EURUSD 🟢", after_paires)
+
+    def test_build_message_forwards_imp_by_currency_to_index_chg_lines(self):
+        rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
+        price_trends = {"EURUSD": {"pips_vs_06h": 20.0}}
+        index_by_currency = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        imp_by_currency = {"EUR": make_currency_row(renko=("BULL", "BULL", "BULL"))}
+        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+
+        message, _ = build_message(
+            ["EURUSD"], rows_by_pair, price_trends, index_by_currency, now, imp_by_currency,
+        )
+
+        self.assertIn("🟢🟢🟢", message)
 
     def test_build_message_flags_no_content_when_no_pair_scores(self):
         now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
