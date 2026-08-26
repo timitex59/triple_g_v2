@@ -5,8 +5,9 @@ de direction reels (au lieu de 11 inflates), rang non exploite -> flag
 vote de direction a part entiere (point 5 du docstring)."""
 
 import unittest
+from types import SimpleNamespace
 
-from imp_trend_29pairs import currency_index_vote
+from imp_trend_29pairs import CURRENCY_INDEX_MIN_SPREAD, currency_index_vote
 from imp_trend_29pairs_v2 import (
     MIN_AVG_SAMPLE,
     currency_exposure_lines,
@@ -44,14 +45,30 @@ def make_result(
     }
 
 
+def make_index_row(daily_chg):
+    """Ligne d'indice devise minimale (forme `compute_asset_score`) dont le
+    `strength_score` vaut exactement `abs(daily_chg)`: seul le Weekly est
+    "engage" (streak actif), poids 2/6 renormalise = coefficient 1 -- donc
+    `signed_strength` vaut exactement `daily_chg`, ce qui rend les tests
+    lisibles directement contre les valeurs affichees par PAIRE_CHECK
+    (ex. GBP (+1.20) rouge -> daily_chg=-1.20)."""
+    return {
+        "daily_chg": daily_chg,
+        "states": {"W": SimpleNamespace(green_streak=1, red_streak=1)},
+        "bias": {"W": 1},
+    }
+
+
 class SelectAlignedPairsV2Tests(unittest.TestCase):
     def test_six_of_six_unanimous_is_tier_1_and_tradable(self):
         # Reproduit USDJPY: les 5 votes d'origine unanimes BULL, plus
-        # CURRENCY_INDEX qui confirme (USD vert/fort, JPY rouge/faible) --
+        # CURRENCY_INDEX qui confirme (USD +0.90 vert/fort, JPY -0.90
+        # rouge/faible, ecart bien au-dessus de CURRENCY_INDEX_MIN_SPREAD) --
         # malgre une moyenne H1 bull negative (celle-ci ne compte plus comme
         # vote, juste comme filtre de qualite -- ici encore confirmee par D1).
         result = make_result("USDJPY")
-        selected = select_aligned_pairs_v2([result], {"USD": "🟢", "JPY": "🔴"})
+        index_by_currency = {"USD": make_index_row(0.90), "JPY": make_index_row(-0.90)}
+        selected = select_aligned_pairs_v2([result], index_by_currency)
 
         self.assertEqual(len(selected), 1)
         item = selected[0]
@@ -85,11 +102,12 @@ class SelectAlignedPairsV2Tests(unittest.TestCase):
 
     def test_one_dissenting_vote_is_tier_2_when_currency_index_confirms(self):
         # Meme paire que ci-dessus, mais CURRENCY_INDEX confirme BULL (AUD
-        # vert/fort, CAD rouge/faible) -> compense le vote dissident D1_IMP21
-        # et ramene la paire a 5/6, rang 2.
+        # +0.60 vert/fort, CAD -0.60 rouge/faible) -> compense le vote
+        # dissident D1_IMP21 et ramene la paire a 5/6, rang 2.
         result = make_result("AUDCAD", renko=("BULL", "BULL", "BULL"),
                               d1_imp=("BEAR", 10.0, 15, -5.0, 5))
-        selected = select_aligned_pairs_v2([result], {"AUD": "🟢", "CAD": "🔴"})
+        index_by_currency = {"AUD": make_index_row(0.60), "CAD": make_index_row(-0.60)}
+        selected = select_aligned_pairs_v2([result], index_by_currency)
 
         self.assertEqual(len(selected), 1)
         item = selected[0]
@@ -161,28 +179,59 @@ class SelectAlignedPairsV2Tests(unittest.TestCase):
 
 class CurrencyIndexVoteTests(unittest.TestCase):
     """Reproduit l'exemple travaille par l'utilisateur (colonne INDEX CHG%D
-    d'un PAIRE_CHECK reel): GBP/NZD/CHF/EUR/JPY/CAD rouges, USD/AUD verts.
-    AUDCHF (BULL) est confirme -- AUD vert, CHF rouge -- GBPJPY et NZDJPY
-    (tous deux BULL) ne le sont pas, les deux devises etant rouges."""
+    d'un PAIRE_CHECK reel): GBP (+1.20) NZD CHF (+0.54) EUR JPY (+0.29) CAD
+    (+0.00) rouges, USD AUD (+0.28) verts.
 
-    ICONS = {
-        "GBP": "🔴", "NZD": "🔴", "CHF": "🔴", "EUR": "🔴",
-        "JPY": "🔴", "USD": "🟢", "AUD": "🟢", "CAD": "🔴",
+    Deux devises rouges ne sont PAS equivalentes: GBP (+1.20, tres faible) vs
+    CAD (+0.00, quasi neutre) donne quand meme GBPCAD/GBPJPY BEAR -- c'est
+    l'ecart qui tranche, pas la couleur. A l'inverse AUD (+0.28) et USD
+    (+0.26), verts tous les deux mais trop proches, ne donnent aucun point a
+    AUDUSD (cf. CURRENCY_INDEX_MIN_SPREAD)."""
+
+    INDEX_BY_CURRENCY = {
+        "GBP": make_index_row(-1.20),
+        "NZD": make_index_row(-0.59),
+        "CHF": make_index_row(-0.54),
+        "EUR": make_index_row(-0.43),
+        "JPY": make_index_row(-0.29),
+        "USD": make_index_row(0.26),
+        "AUD": make_index_row(0.28),
+        "CAD": make_index_row(-0.00),
     }
 
-    def test_base_green_quote_red_confirms_bull(self):
-        self.assertEqual(currency_index_vote("AUDCHF", self.ICONS), "BULL")
+    def test_base_green_quote_red_with_wide_enough_spread_confirms_bull(self):
+        # AUD (+0.28) vs CHF (-0.54): ecart 0.82, largement au-dessus du seuil.
+        self.assertEqual(currency_index_vote("AUDCHF", self.INDEX_BY_CURRENCY), "BULL")
 
-    def test_both_red_does_not_confirm_bull(self):
-        self.assertEqual(currency_index_vote("GBPJPY", self.ICONS), "NEUTRAL")
-        self.assertEqual(currency_index_vote("NZDJPY", self.ICONS), "NEUTRAL")
+    def test_two_red_currencies_still_vote_by_spread_not_color(self):
+        # GBP (-1.20) est bien plus faible que CAD (-0.00) et que JPY (-0.29)
+        # malgre la meme couleur rouge des deux cotes -> BEAR sur les deux.
+        self.assertEqual(currency_index_vote("GBPCAD", self.INDEX_BY_CURRENCY), "BEAR")
+        self.assertEqual(currency_index_vote("GBPJPY", self.INDEX_BY_CURRENCY), "BEAR")
+
+    def test_two_green_currencies_too_close_together_stay_neutral(self):
+        # AUD (+0.28) et USD (+0.26): ecart 0.02, sous CURRENCY_INDEX_MIN_SPREAD.
+        self.assertEqual(currency_index_vote("AUDUSD", self.INDEX_BY_CURRENCY), "NEUTRAL")
+
+    def test_spread_just_below_threshold_is_neutral_but_at_threshold_confirms(self):
+        just_below = {
+            "AUD": make_index_row((CURRENCY_INDEX_MIN_SPREAD - 0.01) / 2),
+            "USD": make_index_row(-(CURRENCY_INDEX_MIN_SPREAD - 0.01) / 2),
+        }
+        self.assertEqual(currency_index_vote("AUDUSD", just_below), "NEUTRAL")
+
+        at_threshold = {
+            "AUD": make_index_row(CURRENCY_INDEX_MIN_SPREAD / 2),
+            "USD": make_index_row(-CURRENCY_INDEX_MIN_SPREAD / 2),
+        }
+        self.assertEqual(currency_index_vote("AUDUSD", at_threshold), "BULL")
 
     def test_base_red_quote_green_confirms_bear(self):
-        self.assertEqual(currency_index_vote("CHFUSD", self.ICONS), "BEAR")
+        self.assertEqual(currency_index_vote("CHFUSD", self.INDEX_BY_CURRENCY), "BEAR")
 
     def test_missing_currency_is_neutral(self):
         # XAU n'a pas d'indice devise.
-        self.assertEqual(currency_index_vote("XAUUSD", self.ICONS), "NEUTRAL")
+        self.assertEqual(currency_index_vote("XAUUSD", self.INDEX_BY_CURRENCY), "NEUTRAL")
 
 
 class CurrencyExposureLinesTests(unittest.TestCase):

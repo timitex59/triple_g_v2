@@ -11,13 +11,17 @@ TradingView's private websocket protocol is unofficial and can change.
 
 2026-08-26: added CURRENCY_INDEX, a 12th vote (threshold VOTE_THRESHOLD_V1,
 9/12) derived from the 8 currency indices already used by PAIRE_CHECK /
-renko_full_alignment_29pairs.py (cf. `fetch_currency_index_icons` and
-`currency_index_vote`): confirms BULL when a pair's base currency is
-strong/green and its quote currency is weak/red, and the symmetric case for
-BEAR. `imp_trend_backtest.py` still calls `select_aligned_pairs`/
-`invalidation_reason` without currency_icons, so CURRENCY_INDEX always reads
-NEUTRAL there -- its walk-forward history is effectively 9-of-11-real under
-the new threshold, not the 8-of-11 it was tuned against.
+renko_full_alignment_29pairs.py (cf. `fetch_currency_index_rows` and
+`currency_index_vote`). It is NOT a same-color check: two red currencies are
+not equivalent (GBP +1.20 red is far weaker than CAD +0.00 red, so GBPCAD
+still votes BEAR) -- it reuses `currency_spread`/`signed_strength`
+(intensity-weighted, sign-oriented) and requires a minimum spread
+(CURRENCY_INDEX_MIN_SPREAD) between the two currencies to vote at all, else
+NEUTRAL (e.g. AUD +0.28 vs USD +0.26, both green, is too close to call).
+`imp_trend_backtest.py` still calls `select_aligned_pairs`/
+`invalidation_reason` without index_by_currency, so CURRENCY_INDEX always
+reads NEUTRAL there -- its walk-forward history is effectively
+9-of-11-real under the new threshold, not the 8-of-11 it was tuned against.
 """
 
 from __future__ import annotations
@@ -40,7 +44,12 @@ import pandas as pd
 import requests
 from websocket import WebSocketConnectionClosedException, WebSocketTimeoutException, create_connection
 
-from renko_full_alignment_29pairs import FOREX_INDEX_ASSETS, _daily_chg_icon, compute_asset_score
+from renko_full_alignment_29pairs import (
+    FOREX_INDEX_ASSETS,
+    SYNC_MIN_EXPECTED,
+    compute_asset_score,
+    currency_spread,
+)
 
 
 PAIRS_29 = [
@@ -484,14 +493,18 @@ def directional_average_confirms(result: dict, chart: str, direction: str) -> bo
     return value >= 0 if direction == "BULL" else value <= 0
 
 
-def fetch_currency_index_icons(length: int = 14, candles: int = 300, max_streak: int = 50, workers: int = 8) -> dict[str, str]:
-    """Icone 🟢/🔴/⚪ par devise (les 8 indices `FOREX_INDEX_ASSETS`), meme
-    calcul que la section INDEX CHG%D de PAIRE_CHECK/FULL MOMENTUM: signe du
-    CHG%D quotidien de chaque indice (cf. `_daily_chg_icon` dans
-    renko_full_alignment_29pairs.py). Sert de base au vote CURRENCY_INDEX
-    (cf. `currency_index_vote`). Absent du dict si le fetch a echoue pour
-    cette devise -- traite alors comme neutre par `currency_index_vote`."""
-    icons: dict[str, str] = {}
+def fetch_currency_index_rows(length: int = 14, candles: int = 300, max_streak: int = 50, workers: int = 8) -> dict[str, dict]:
+    """Ligne complete `compute_asset_score` par devise (les 8 indices
+    `FOREX_INDEX_ASSETS`) -- meme calcul que la section INDEX CHG%D de
+    PAIRE_CHECK/FULL MOMENTUM. Reutilisee telle quelle par `currency_spread`/
+    `signed_strength` (renko_full_alignment_29pairs.py) pour le vote
+    CURRENCY_INDEX (cf. `currency_index_vote`): il faut la ligne complete, pas
+    seulement l'icone, car `signed_strength` a besoin du score d'intensite
+    (streak M/W/D pondere x CHG%D), pas seulement de son signe -- cf.
+    `currency_index_vote` pour pourquoi deux devises de la meme couleur ne
+    sont pas equivalentes. Devise absente du dict si son fetch a echoue --
+    traitee alors comme neutre par `currency_index_vote`."""
+    rows: dict[str, dict] = {}
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
         futures = {
             pool.submit(compute_asset_score, asset, length, candles, max_streak): asset
@@ -504,30 +517,36 @@ def fetch_currency_index_icons(length: int = 14, candles: int = 300, max_streak:
             except Exception:
                 row = None
             if row is not None:
-                icons[str(asset["currency"])] = _daily_chg_icon(row.get("daily_chg"))
-    return icons
+                rows[str(asset["currency"])] = row
+    return rows
 
 
-def currency_index_vote(pair: str, currency_icons: dict[str, str]) -> str:
-    """Vote derive des indices devises individuels des deux composantes de
-    `pair`, sur le meme principe que la section INDEX CHG%D de PAIRE_CHECK:
-    BULL si la devise de base est verte (forte) et la devise cotee rouge
-    (faible) -- ex. AUDCHF confirme quand AUD est vert et CHF rouge; BEAR
-    dans le cas symetrique. NEUTRAL si les deux devises partagent la meme
-    couleur (aucune ne domine l'autre) ou si l'une des deux est absente de
-    `currency_icons` (XAUUSD: XAU n'a pas d'indice)."""
-    if len(pair) != 6:
+CURRENCY_INDEX_MIN_SPREAD = SYNC_MIN_EXPECTED  # 0.30 -- meme seuil que sync_marker (renko_full_alignment_29pairs.py)
+
+
+def currency_index_vote(pair: str, index_by_currency: dict[str, dict]) -> str:
+    """Vote derive de l'ecart de force entre les deux devises de `pair`, via
+    `currency_spread` (renko_full_alignment_29pairs.py): force signee de la
+    base moins force signee de la cotee, ou la force signee (`signed_strength`)
+    est deja orientee par le sens du CHG%D ET ponderee par son intensite.
+
+    Deux devises rouges ne sont donc PAS equivalentes: GBP (+1.20) rouge est
+    beaucoup plus faible que CAD (+0.00) rouge (quasi neutre), donc GBPCAD
+    vote BEAR malgre la meme couleur des deux cotes -- de meme GBPJPY avec
+    JPY (+0.29) rouge. A l'inverse, AUD (+0.28) et USD (+0.26), verts tous
+    les deux, sont en pratique interchangeables (ecart 0.02): AUDUSD ne
+    recoit aucun point, cf. CURRENCY_INDEX_MIN_SPREAD.
+
+    NEUTRAL si l'ecart est indisponible (devise manquante -- XAUUSD: XAU n'a
+    pas d'indice) ou trop faible (< CURRENCY_INDEX_MIN_SPREAD) pour trancher.
+    BULL si l'ecart est positif (base plus forte), BEAR si negatif."""
+    spread = currency_spread({"pair": pair, "asset_type": "PAIR"}, index_by_currency)
+    if spread is None or abs(spread) < CURRENCY_INDEX_MIN_SPREAD:
         return "NEUTRAL"
-    base_icon = currency_icons.get(pair[:3])
-    quote_icon = currency_icons.get(pair[3:])
-    if base_icon == "🟢" and quote_icon == "🔴":
-        return "BULL"
-    if base_icon == "🔴" and quote_icon == "🟢":
-        return "BEAR"
-    return "NEUTRAL"
+    return "BULL" if spread > 0 else "BEAR"
 
 
-def screening_votes(result: dict, currency_icons: dict[str, str] | None = None) -> dict[str, str]:
+def screening_votes(result: dict, index_by_currency: dict[str, dict] | None = None) -> dict[str, str]:
     return {
         "RENKO_M": result["renko"]["M"]["status"],
         "RENKO_W": result["renko"]["W"]["status"],
@@ -540,17 +559,17 @@ def screening_votes(result: dict, currency_icons: dict[str, str] | None = None) 
         "H1_ALL_AVG": average_direction(result["H1"]["all_avg_pips"]),
         "H1_BULL_AVG": average_direction(result["H1"]["bull_avg_pips"]),
         "H1_BEAR_AVG": average_direction(result["H1"]["bear_avg_pips"]),
-        "CURRENCY_INDEX": currency_index_vote(result["pair"], currency_icons or {}),
+        "CURRENCY_INDEX": currency_index_vote(result["pair"], index_by_currency or {}),
     }
 
 
 VOTE_THRESHOLD_V1 = 9  # sur 12 votes (les 11 d'origine + CURRENCY_INDEX, cf. currency_index_vote)
 
 
-def select_aligned_pairs(results: list[dict], currency_icons: dict[str, str] | None = None) -> list[dict]:
+def select_aligned_pairs(results: list[dict], index_by_currency: dict[str, dict] | None = None) -> list[dict]:
     selected = []
     for result in results:
-        votes = screening_votes(result, currency_icons)
+        votes = screening_votes(result, index_by_currency)
         if votes["D1_IMP21"] == "NEUTRAL" or votes["H1_IMP21"] == "NEUTRAL":
             continue
         bull_votes = sum(vote == "BULL" for vote in votes.values())
@@ -635,14 +654,14 @@ def load_eligible_state(path: Path) -> dict:
     return {"version": 1, "active": {}, "events": []}
 
 
-def invalidation_reason(result: dict | None, currency_icons: dict[str, str] | None = None) -> str:
+def invalidation_reason(result: dict | None, index_by_currency: dict[str, dict] | None = None) -> str:
     if result is None:
         return "DATA_UNAVAILABLE"
     if result["D1"]["imp_status"] == "NEUTRAL":
         return "D1_IMP21_NEUTRAL"
     if result["H1"]["imp_status"] == "NEUTRAL":
         return "H1_IMP21_NEUTRAL"
-    votes = screening_votes(result, currency_icons)
+    votes = screening_votes(result, index_by_currency)
     values = list(votes.values())
     direction = (
         "BULL" if values.count("BULL") >= VOTE_THRESHOLD_V1
@@ -660,7 +679,7 @@ def invalidation_reason(result: dict | None, currency_icons: dict[str, str] | No
 
 
 def update_eligible_state(
-    path: Path, selected: list[dict], results: list[dict], currency_icons: dict[str, str] | None = None,
+    path: Path, selected: list[dict], results: list[dict], index_by_currency: dict[str, dict] | None = None,
 ) -> tuple[dict, list[dict]]:
     state = load_eligible_state(path)
     previous = state.get("active", {})
@@ -702,7 +721,7 @@ def update_eligible_state(
             "event": "INVALIDATED",
             "pair": pair,
             "direction": old.get("direction"),
-            "reason": invalidation_reason(results_by_pair.get(pair), currency_icons),
+            "reason": invalidation_reason(results_by_pair.get(pair), index_by_currency),
             "entered_at": old.get("entered_at"),
         })
 
@@ -1085,7 +1104,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workers", type=int, default=5)
     parser.add_argument(
         "--index-candles", type=int, default=300,
-        help="Bougies/briques M/W/D par indice devise pour le vote CURRENCY_INDEX (cf. fetch_currency_index_icons).",
+        help="Bougies/briques M/W/D par indice devise pour le vote CURRENCY_INDEX (cf. fetch_currency_index_rows).",
     )
     parser.add_argument("--csv", type=Path, default=Path("imp_trend_29pairs.csv"))
     parser.add_argument("--json", type=Path, default=Path("imp_trend_29pairs.json"))
@@ -1100,7 +1119,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     pairs = [pair.upper() for pair in args.pairs]
-    currency_icons = fetch_currency_index_icons(args.atr_length, args.index_candles, args.max_streak)
+    index_by_currency = fetch_currency_index_rows(args.atr_length, args.index_candles, args.max_streak)
     results: list[dict] = []
     errors: list[tuple[str, str]] = []
     with ThreadPoolExecutor(max_workers=max(1, args.workers)) as pool:
@@ -1130,10 +1149,10 @@ def main() -> int:
     if results:
         print()
         print_table(results)
-        selected = select_aligned_pairs(results, currency_icons)
+        selected = select_aligned_pairs(results, index_by_currency)
         print_selection(selected)
         eligible_state, eligibility_events = update_eligible_state(
-            args.eligible_state, selected, results, currency_icons,
+            args.eligible_state, selected, results, index_by_currency,
         )
         session_state = update_session_tracking(args.sessions_state, selected, results)
         print_eligibility_tracking(eligible_state, eligibility_events)
