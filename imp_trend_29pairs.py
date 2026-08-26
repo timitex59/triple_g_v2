@@ -22,6 +22,16 @@ NEUTRAL (e.g. AUD +0.28 vs USD +0.26, both green, is too close to call).
 `invalidation_reason` without index_by_currency, so CURRENCY_INDEX always
 reads NEUTRAL there -- its walk-forward history is effectively
 9-of-11-real under the new threshold, not the 8-of-11 it was tuned against.
+
+2026-08-26 (later same day): CURRENCY_INDEX also acts as a veto (cf.
+`currency_index_diverges`), on the same principle as
+`renko_full_alignment_29pairs.is_engine_divergent`. An active contradiction
+-- CURRENCY_INDEX votes BEAR while the other votes already carry the pair to
+BULL, not just NEUTRAL/abstaining -- excludes the pair outright, even if the
+other votes alone would have cleared VOTE_THRESHOLD_V1. Example that
+prompted this: GBPJPY BULL on Renko/IMP21 with GBP far weaker than JPY on
+the currency indices (spread well past CURRENCY_INDEX_MIN_SPREAD) is now
+dropped, where before it would have stayed BULL with one wasted vote.
 """
 
 from __future__ import annotations
@@ -546,6 +556,21 @@ def currency_index_vote(pair: str, index_by_currency: dict[str, dict]) -> str:
     return "BULL" if spread > 0 else "BEAR"
 
 
+def currency_index_diverges(votes: dict[str, str], direction: str) -> bool:
+    """True si CURRENCY_INDEX contredit activement `direction` (BEAR quand la
+    paire est BULL, ou l'inverse) -- pas seulement NEUTRAL/abstention.
+
+    Sert de veto (cf. select_aligned_pairs / select_aligned_pairs_v2), sur le
+    meme principe que `is_engine_divergent` dans renko_full_alignment_29pairs.py:
+    une contradiction active exclut la paire plutot que de se diluer comme un
+    simple vote de moins parmi les autres -- ex. GBPJPY BULL (Renko/IMP21)
+    avec GBP tres nettement plus faible que JPY d'apres les indices devises
+    (ecart >> CURRENCY_INDEX_MIN_SPREAD) est exclue, meme si les autres votes
+    suffisaient a eux seuls a atteindre le seuil."""
+    opposite = "BEAR" if direction == "BULL" else "BULL"
+    return votes["CURRENCY_INDEX"] == opposite
+
+
 def screening_votes(result: dict, index_by_currency: dict[str, dict] | None = None) -> dict[str, str]:
     return {
         "RENKO_M": result["renko"]["M"]["status"],
@@ -580,6 +605,8 @@ def select_aligned_pairs(results: list[dict], index_by_currency: dict[str, dict]
             else None
         )
         if direction is None:
+            continue
+        if currency_index_diverges(votes, direction):
             continue
         confirmations = bull_votes if direction == "BULL" else bear_votes
         renko_confirmations = sum(votes[f"RENKO_{tf}"] == direction for tf in ("M", "W", "D"))
@@ -670,6 +697,8 @@ def invalidation_reason(result: dict | None, index_by_currency: dict[str, dict] 
     )
     if direction is None:
         return "LESS_THAN_9_OF_12"
+    if currency_index_diverges(votes, direction):
+        return "CURRENCY_INDEX_DIVERGENT"
     if result["renko"]["D"]["status"] != direction:
         return "RENKO_D_NOT_ALIGNED"
     renko_aligned = sum(result["renko"][tf]["status"] == direction for tf in ("M", "W", "D"))

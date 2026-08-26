@@ -7,7 +7,12 @@ vote de direction a part entiere (point 5 du docstring)."""
 import unittest
 from types import SimpleNamespace
 
-from imp_trend_29pairs import CURRENCY_INDEX_MIN_SPREAD, currency_index_vote
+from imp_trend_29pairs import (
+    CURRENCY_INDEX_MIN_SPREAD,
+    currency_index_diverges,
+    currency_index_vote,
+    invalidation_reason,
+)
 from imp_trend_29pairs_v2 import (
     MIN_AVG_SAMPLE,
     currency_exposure_lines,
@@ -115,6 +120,17 @@ class SelectAlignedPairsV2Tests(unittest.TestCase):
         self.assertEqual(item["confirmations"], 5)
         self.assertEqual(item["rank_tier"], 2)
         self.assertEqual(item["CURRENCY_INDEX"], "BULL")
+
+    def test_currency_index_active_contradiction_vetoes_the_pair(self):
+        # Reproduit GBPJPY: les 5 votes d'origine unanimes BULL suffiraient
+        # deja seuls (5/5 >= VOTE_THRESHOLD), mais GBP est nettement plus
+        # faible que JPY sur les indices devises (spread BEAR, bien au-dela
+        # de CURRENCY_INDEX_MIN_SPREAD) -- contradiction active, pas une
+        # simple abstention -> la paire est exclue malgre tout.
+        result = make_result("GBPJPY")
+        index_by_currency = {"GBP": make_index_row(-1.25), "JPY": make_index_row(-0.32)}
+        selected = select_aligned_pairs_v2([result], index_by_currency)
+        self.assertEqual(selected, [])
 
     def test_renko_d_must_match_direction(self):
         # 4/5 en faveur de BULL mais RENKO_D est BEAR -> le garde-fou l'exclut.
@@ -232,6 +248,30 @@ class CurrencyIndexVoteTests(unittest.TestCase):
     def test_missing_currency_is_neutral(self):
         # XAU n'a pas d'indice devise.
         self.assertEqual(currency_index_vote("XAUUSD", self.INDEX_BY_CURRENCY), "NEUTRAL")
+
+
+class CurrencyIndexDivergesTests(unittest.TestCase):
+    def test_true_only_on_active_contradiction(self):
+        self.assertTrue(currency_index_diverges({"CURRENCY_INDEX": "BEAR"}, "BULL"))
+        self.assertTrue(currency_index_diverges({"CURRENCY_INDEX": "BULL"}, "BEAR"))
+
+    def test_false_on_neutral_or_agreement(self):
+        self.assertFalse(currency_index_diverges({"CURRENCY_INDEX": "NEUTRAL"}, "BULL"))
+        self.assertFalse(currency_index_diverges({"CURRENCY_INDEX": "NEUTRAL"}, "BEAR"))
+        self.assertFalse(currency_index_diverges({"CURRENCY_INDEX": "BULL"}, "BULL"))
+        self.assertFalse(currency_index_diverges({"CURRENCY_INDEX": "BEAR"}, "BEAR"))
+
+
+class InvalidationReasonTests(unittest.TestCase):
+    def test_currency_index_active_contradiction_is_flagged(self):
+        # Meme scenario GBPJPY que test_currency_index_active_contradiction_vetoes_the_pair.
+        result = make_result("GBPJPY")
+        index_by_currency = {"GBP": make_index_row(-1.25), "JPY": make_index_row(-0.32)}
+        self.assertEqual(invalidation_reason(result, index_by_currency), "CURRENCY_INDEX_DIVERGENT")
+
+    def test_currency_index_neutral_is_not_flagged_as_divergent(self):
+        result = make_result("GBPJPY")
+        self.assertNotEqual(invalidation_reason(result), "CURRENCY_INDEX_DIVERGENT")
 
 
 class CurrencyExposureLinesTests(unittest.TestCase):

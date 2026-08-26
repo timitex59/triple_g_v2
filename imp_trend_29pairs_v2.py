@@ -42,6 +42,15 @@ choisi de le rendre visible plutot que de plafonner: cf. `currency_exposure_line
    les 5 votes d'origine etaient 4/5 (1 dissident) a desormais besoin que
    CURRENCY_INDEX confirme pour rester retenue.
 
+   2026-08-26 (plus tard le meme jour): CURRENCY_INDEX sert aussi de veto
+   (cf. imp_trend_29pairs.currency_index_diverges, meme principe que
+   is_engine_divergent dans renko_full_alignment_29pairs.py) -- une
+   contradiction active (BEAR alors que la paire est BULL, pas juste
+   NEUTRAL/abstention) exclut la paire, meme si les 5 votes d'origine
+   suffisaient a eux seuls. Cas qui a motive l'ajout: GBPJPY BULL sur
+   Renko/IMP21 mais GBP nettement plus faible que JPY sur les indices
+   devises -- desormais exclue plutot que retenue avec un vote perdu.
+
 Tout le reste (fetch TradingView, replay Renko/PSAR/IMP, suivi de session
 jour/cumul, plomberie Telegram) est repris tel quel depuis imp_trend_29pairs.py
 (V1) -- aucune duplication, pour que les deux versions restent comparables
@@ -65,6 +74,7 @@ from imp_trend_29pairs import (
     PAIRS_29,
     PARIS,
     compute_pair,
+    currency_index_diverges,
     directional_average_confirms,
     fetch_currency_index_rows,
     screening_votes,
@@ -121,6 +131,8 @@ def select_aligned_pairs_v2(results: list[dict], index_by_currency: dict[str, di
             else None
         )
         if direction is None:
+            continue
+        if currency_index_diverges(direction_votes, direction):
             continue
         confirmations = bull_votes if direction == "BULL" else bear_votes
 
