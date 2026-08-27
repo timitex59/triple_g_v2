@@ -46,7 +46,20 @@ quality gate), the vote is downgraded to NEUTRAL instead of counting on a
 spread nothing else corroborates. `pip_size` treats the 8 index codes like
 JPY pairs (0.01) for the IMP move averages -- an arbitrary but readable
 convention, these aren't real pip-quoted instruments.
-"""
+
+2026-08-27: added a `tradable` flag (new for V1, mirroring V2's existing
+quality-gate mechanism) driven by `pair_touches_a_divergent_currency` --
+excludes a pair from position/session tracking (not from the message: it
+still shows with a "(non tradée)" suffix, cf. `build_telegram_message`) when
+either of its two currencies has a same-day move opposite its own
+structural consensus (cf. `currency_consensus_status`,
+`currency_diverges_from_its_own_day`) -- e.g. GBP down -0.24% today (BEAR)
+while its Renko M/W/D + D1/H1 IMP21 majority still reads BULL. Deliberately
+a downgrade, not the outright veto `currency_index_diverges` already is:
+`daily_chg` is a single, noisy, midnight-resetting data point, and this
+contradiction usually just means an ordinary pullback inside an established
+trend -- too weak a signal to throw the pair out of the message entirely,
+but real enough that the user chose to keep it out of position tracking."""
 
 from __future__ import annotations
 
@@ -728,6 +741,81 @@ def screening_votes(
     }
 
 
+CURRENCY_CONSENSUS_THRESHOLD = 4  # sur 5 votes reels -- cf. currency_consensus_status
+
+
+def currency_consensus_status(currency_row: dict) -> str:
+    """BULL/BEAR/NEUTRAL resumant une devise sur les 5 votes reellement
+    distincts de `screening_votes` calcules pour cette devise seule (RENKO_M,
+    RENKO_W, RENKO_D, D1_IMP21, H1_IMP21) -- CURRENCY_INDEX exclu, il n'a pas
+    de sens pour une devise isolee (il compare deux devises entre elles).
+
+    Les 6 moyennes D1/H1 ne comptent pas: memes principe et seuil que la
+    correction deja appliquee aux paires en V2 (cf. imp_trend_29pairs_v2.py
+    module docstring point 1) -- elles derivent toutes de la meme serie de
+    signaux que leur IMP21 respectif, 4 votes qui basculent ensemble ne sont
+    pas 4 confirmations independantes.
+
+    BULL/BEAR si >= CURRENCY_CONSENSUS_THRESHOLD des 5 votes s'accordent,
+    NEUTRAL sinon (pas de consensus net). Cf. paire_check.currency_consensus_ball
+    pour le rendu en boule 🟢/🔴/⚪ -- ce module ne s'occupe que du calcul."""
+    votes = screening_votes(currency_row)
+    keys = ("RENKO_M", "RENKO_W", "RENKO_D", "D1_IMP21", "H1_IMP21")
+    bull = sum(votes[key] == "BULL" for key in keys)
+    bear = sum(votes[key] == "BEAR" for key in keys)
+    if bull >= CURRENCY_CONSENSUS_THRESHOLD:
+        return "BULL"
+    if bear >= CURRENCY_CONSENSUS_THRESHOLD:
+        return "BEAR"
+    return "NEUTRAL"
+
+
+def currency_diverges_from_its_own_day(
+    currency: str,
+    index_by_currency: dict[str, dict] | None,
+    imp_by_currency: dict[str, dict] | None,
+) -> bool:
+    """True si le mouvement du jour d'une devise (signe de `daily_chg`, meme
+    lecture que l'icone 🟢/🔴 en tete de sa ligne INDEX CHG%D) contredit
+    ouvertement son propre consensus structurel (cf. `currency_consensus_status`)
+    -- BULL le jour contre BEAR de fond, ou l'inverse. Ne se declenche PAS
+    quand l'un des deux est simplement NEUTRAL/indecis (doublement indecise,
+    uni-indecise ou doublement validee: pas une contradiction). Devise
+    absente de l'un des deux dicts -> False, pas assez d'information pour
+    conclure a une contradiction.
+
+    Ex. GBP -0.24% aujourd'hui (BEAR) alors que son consensus structurel est
+    BULL (Renko M/W/D + D1/H1 IMP21 majoritairement haussiers): probablement
+    un pullback dans une tendance etablie, pas un retournement confirme --
+    mais assez incertain pour justifier d'exclure les paires concernees du
+    suivi de position plutot que de trancher a la place de l'utilisateur."""
+    index_row = (index_by_currency or {}).get(currency)
+    imp_row = (imp_by_currency or {}).get(currency)
+    if index_row is None or imp_row is None:
+        return False
+    daily_status = average_direction(index_row.get("daily_chg"))
+    consensus_status = currency_consensus_status(imp_row)
+    if daily_status == "NEUTRAL" or consensus_status == "NEUTRAL":
+        return False
+    return daily_status != consensus_status
+
+
+def pair_touches_a_divergent_currency(
+    pair: str,
+    index_by_currency: dict[str, dict] | None,
+    imp_by_currency: dict[str, dict] | None,
+) -> bool:
+    """True si au moins une des deux devises de `pair` a une contradiction
+    jour/consensus (cf. `currency_diverges_from_its_own_day`)."""
+    if len(pair) != 6:
+        return False
+    base, quote = pair[:3], pair[3:]
+    return (
+        currency_diverges_from_its_own_day(base, index_by_currency, imp_by_currency)
+        or currency_diverges_from_its_own_day(quote, index_by_currency, imp_by_currency)
+    )
+
+
 VOTE_THRESHOLD_V1 = 9  # sur 12 votes (les 11 d'origine + CURRENCY_INDEX, cf. currency_index_vote)
 
 
@@ -774,6 +862,16 @@ def select_aligned_pairs(
             rank_tier, rank_reason = 3, "10/12"
         else:
             rank_tier, rank_reason = 4, "9/12"
+
+        # Devise en interne contradictoire (mouvement du jour vs consensus
+        # structurel, cf. `pair_touches_a_divergent_currency`) -- non
+        # tradable plutot qu'exclue: reste affichee/loggee, mais retrogradee
+        # au pire rang et retiree du suivi de position (cf. `main`).
+        tradable = not pair_touches_a_divergent_currency(result["pair"], index_by_currency, imp_by_currency)
+        if not tradable:
+            rank_tier = 4
+            rank_reason += " MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE"
+
         selected.append({
             "pair": result["pair"],
             "direction": direction,
@@ -781,6 +879,7 @@ def select_aligned_pairs(
             "renko_confirmations": renko_confirmations,
             "avg_vote_confirmations": avg_vote_confirmations,
             "directional_avg_confirmations": directional_avg_confirmations,
+            "tradable": tradable,
             "rank_tier": rank_tier,
             "rank_reason": rank_reason,
             "RENKO_M": votes["RENKO_M"],
@@ -971,6 +1070,7 @@ def print_selection(selected: list[dict]) -> None:
             "RANG": item["rank_tier"],
             "PAIR": item["pair"],
             "SCORE": f'{item["confirmations"]}/12',
+            "TRADABLE": "oui" if item["tradable"] else "NON",
             "AVG4": f'{item["avg_vote_confirmations"]}/4',
             "AVG DIR": f'{item["directional_avg_confirmations"]}/2',
             "CRITERE": item["rank_reason"],
@@ -1234,7 +1334,8 @@ def build_telegram_message(
     if ordered:
         for item in ordered:
             marker = "🟢" if item["direction"] == "BULL" else "🔴"
-            lines.append(f'{marker}{item["pair"]}')
+            suffix = "" if item["tradable"] else " (non tradée)"
+            lines.append(f'{marker}{item["pair"]}{suffix}')
     else:
         lines.append("Aucune paire filtrée")
     extra = session_lines(session_state)
@@ -1338,7 +1439,8 @@ def main() -> int:
         eligible_state, eligibility_events = update_eligible_state(
             args.eligible_state, selected, results, index_by_currency, imp_by_currency,
         )
-        session_state = update_session_tracking(args.sessions_state, selected, results)
+        tradable_selected = [item for item in selected if item["tradable"]]
+        session_state = update_session_tracking(args.sessions_state, tradable_selected, results)
         print_eligibility_tracking(eligible_state, eligibility_events)
         args.csv.parent.mkdir(parents=True, exist_ok=True)
         args.json.parent.mkdir(parents=True, exist_ok=True)

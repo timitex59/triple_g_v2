@@ -9,10 +9,14 @@ from types import SimpleNamespace
 
 from imp_trend_29pairs import (
     CURRENCY_INDEX_MIN_SPREAD,
+    currency_consensus_status,
+    currency_diverges_from_its_own_day,
     currency_index_diverges,
     currency_index_vote,
     currency_trend_confirms,
     invalidation_reason,
+    pair_touches_a_divergent_currency,
+    select_aligned_pairs,
 )
 from imp_trend_29pairs_v2 import (
     MIN_AVG_SAMPLE,
@@ -65,12 +69,22 @@ def make_index_row(daily_chg):
     }
 
 
-def make_imp_row(d1_status="NEUTRAL", h1_status="NEUTRAL"):
-    """Ligne minimale (forme `compute_currency_imp`) pour `currency_trend_confirms`:
-    seuls les imp_status D1/H1 comptent pour ce filtre."""
+def make_imp_row(d1_status="NEUTRAL", h1_status="NEUTRAL", renko=("NEUTRAL", "NEUTRAL", "NEUTRAL")):
+    """Ligne minimale (forme `compute_currency_imp`) pour `currency_trend_confirms`
+    (seuls les imp_status D1/H1 lui importent) et pour `currency_consensus_status`
+    (a besoin en plus du Renko M/W/D, cf. `screening_votes`) -- Renko NEUTRAL
+    par defaut pour ne jamais faire pencher un consensus au-dela de ce qu'un
+    test demande explicitement via `renko`."""
+    m, w, d = renko
+
+    def chart(status):
+        return {"imp_status": status, "all_avg_pips": None, "bull_avg_pips": None, "bear_avg_pips": None}
+
     return {
-        "D1": {"imp_status": d1_status},
-        "H1": {"imp_status": h1_status},
+        "pair": "XXX",  # code devise factice: len() != 6 -> CURRENCY_INDEX reste NEUTRAL, sans importance ici
+        "renko": {"M": {"status": m}, "W": {"status": w}, "D": {"status": d}},
+        "D1": chart(d1_status),
+        "H1": chart(h1_status),
     }
 
 
@@ -130,6 +144,21 @@ class SelectAlignedPairsV2Tests(unittest.TestCase):
         self.assertEqual(item["confirmations"], 5)
         self.assertEqual(item["rank_tier"], 2)
         self.assertEqual(item["CURRENCY_INDEX"], "BULL")
+
+    def test_currency_daily_consensus_contradiction_marks_it_non_tradable(self):
+        # AUDCHF autrement parfaite (5/5, moyennes positives), mais AUD a une
+        # contradiction jour/consensus (-0.28% aujourd'hui alors que son
+        # consensus structurel est BULL, cf. CurrencyDivergesFromItsOwnDayTests)
+        # -> tradable=False, meme si le score de la paire elle-meme suffit.
+        result = make_result("AUDCHF")
+        index_by_currency = {"AUD": make_index_row(-0.28)}
+        imp_by_currency = {"AUD": make_result("AUD")}  # consensus BULL par defaut
+        selected = select_aligned_pairs_v2([result], index_by_currency, imp_by_currency)
+
+        self.assertEqual(len(selected), 1)
+        item = selected[0]
+        self.assertFalse(item["tradable"])
+        self.assertIn("DEVISE JOUR/CONSENSUS CONTRADICTOIRE", item["rank_reason"])
 
     def test_currency_index_active_contradiction_vetoes_the_pair(self):
         # Reproduit GBPJPY: les 5 votes d'origine unanimes BULL suffiraient
@@ -368,6 +397,116 @@ class CurrencyIndexDivergesTests(unittest.TestCase):
         self.assertFalse(currency_index_diverges({"CURRENCY_INDEX": "NEUTRAL"}, "BEAR"))
         self.assertFalse(currency_index_diverges({"CURRENCY_INDEX": "BULL"}, "BULL"))
         self.assertFalse(currency_index_diverges({"CURRENCY_INDEX": "BEAR"}, "BEAR"))
+
+
+class CurrencyConsensusStatusTests(unittest.TestCase):
+    def test_bull_when_four_of_five_real_votes_agree(self):
+        row = make_result(
+            "GBP", renko=("BULL", "BULL", "BULL"),
+            d1_imp=("BULL", 10.0, 15, -5.0, 5), h1_imp=("BEAR", -3.0, 5, 1.0, 5),
+        )
+        self.assertEqual(currency_consensus_status(row), "BULL")
+
+    def test_bear_when_four_of_five_real_votes_agree(self):
+        row = make_result(
+            "JPY", renko=("BEAR", "BEAR", "BEAR"),
+            d1_imp=("BEAR", -10.0, 15, 5.0, 5), h1_imp=("BULL", 3.0, 5, -1.0, 5),
+        )
+        self.assertEqual(currency_consensus_status(row), "BEAR")
+
+    def test_neutral_without_a_clear_majority(self):
+        row = make_result(
+            "EUR", renko=("BULL", "BULL", "BEAR"),
+            d1_imp=("BULL", 10.0, 15, -5.0, 5), h1_imp=("BEAR", -3.0, 5, 1.0, 5),
+        )
+        self.assertEqual(currency_consensus_status(row), "NEUTRAL")
+
+
+class CurrencyDivergesFromItsOwnDayTests(unittest.TestCase):
+    def test_true_when_daily_move_opposes_the_consensus(self):
+        # GBP: -0.24% aujourd'hui (BEAR) mais consensus structurel BULL
+        # (renko/d1/h1 par defaut de make_result, tous BULL).
+        index_by_currency = {"GBP": make_index_row(-0.24)}
+        imp_by_currency = {"GBP": make_result("GBP")}
+        self.assertTrue(currency_diverges_from_its_own_day("GBP", index_by_currency, imp_by_currency))
+
+    def test_false_when_daily_move_agrees_with_the_consensus(self):
+        index_by_currency = {"AUD": make_index_row(0.64)}
+        imp_by_currency = {"AUD": make_result("AUD")}  # consensus BULL par defaut
+        self.assertFalse(currency_diverges_from_its_own_day("AUD", index_by_currency, imp_by_currency))
+
+    def test_false_when_the_daily_move_is_neutral(self):
+        index_by_currency = {"CAD": make_index_row(0.0)}
+        imp_by_currency = {"CAD": make_result("CAD")}
+        self.assertFalse(currency_diverges_from_its_own_day("CAD", index_by_currency, imp_by_currency))
+
+    def test_false_when_the_consensus_is_neutral(self):
+        index_by_currency = {"EUR": make_index_row(-0.06)}
+        imp_by_currency = {"EUR": make_result(
+            "EUR", renko=("BULL", "BULL", "BEAR"),
+            d1_imp=("BULL", 10.0, 15, -5.0, 5), h1_imp=("BEAR", -3.0, 5, 1.0, 5),
+        )}  # NEUTRAL, cf. CurrencyConsensusStatusTests
+        self.assertFalse(currency_diverges_from_its_own_day("EUR", index_by_currency, imp_by_currency))
+
+    def test_false_when_data_is_missing(self):
+        self.assertFalse(currency_diverges_from_its_own_day("GBP", {}, {}))
+        self.assertFalse(currency_diverges_from_its_own_day("GBP", {"GBP": make_index_row(-0.24)}, {}))
+
+
+class PairTouchesADivergentCurrencyTests(unittest.TestCase):
+    def test_true_when_the_base_currency_diverges(self):
+        index_by_currency = {"GBP": make_index_row(-0.24), "JPY": make_index_row(0.01)}
+        imp_by_currency = {"GBP": make_result("GBP"), "JPY": make_result("JPY")}
+        self.assertTrue(pair_touches_a_divergent_currency("GBPJPY", index_by_currency, imp_by_currency))
+
+    def test_true_when_the_quote_currency_diverges(self):
+        index_by_currency = {"AUD": make_index_row(0.64), "JPY": make_index_row(0.01)}
+        imp_by_currency = {"AUD": make_result("AUD"), "JPY": make_result("JPY")}
+        # JPY: +0.01% (BULL) aujourd'hui, consensus BEAR (renko/imp par defaut de make_result
+        # bascule en BEAR ici via renko/d1/h1 fournis).
+        imp_by_currency["JPY"] = make_result(
+            "JPY", renko=("BEAR", "BEAR", "BEAR"),
+            d1_imp=("BEAR", -10.0, 15, 5.0, 5), h1_imp=("BULL", 3.0, 5, -1.0, 5),
+        )
+        self.assertTrue(pair_touches_a_divergent_currency("AUDJPY", index_by_currency, imp_by_currency))
+
+    def test_false_when_neither_currency_diverges(self):
+        index_by_currency = {"AUD": make_index_row(0.64), "CHF": make_index_row(0.22)}
+        imp_by_currency = {"AUD": make_result("AUD"), "CHF": make_result("CHF")}
+        self.assertFalse(pair_touches_a_divergent_currency("AUDCHF", index_by_currency, imp_by_currency))
+
+
+class SelectAlignedPairsV1Tests(unittest.TestCase):
+    """Verrouille le flag `tradable` ajoute a V1 (select_aligned_pairs), nouveau
+    pour V1 -- mirroir du mecanisme deja existant en V2 (cf. module docstring
+    de imp_trend_29pairs.py, entree 2026-08-27)."""
+
+    def test_tradable_true_by_default(self):
+        # AUDCHF via make_result: 9/12 (les 11 votes d'origine donnent 9 BULL,
+        # cf. commentaire dans imp_trend_29pairs.py), aucune donnee devise
+        # fournie -> pas de contradiction detectable, tradable reste True.
+        result = make_result("AUDCHF")
+        selected = select_aligned_pairs([result])
+
+        self.assertEqual(len(selected), 1)
+        item = selected[0]
+        self.assertEqual(item["confirmations"], 9)
+        self.assertTrue(item["tradable"])
+
+    def test_currency_daily_consensus_contradiction_marks_it_non_tradable(self):
+        # Meme paire, mais AUD a une contradiction jour/consensus (-0.28%
+        # aujourd'hui alors que son consensus structurel est BULL) -> reste
+        # dans la liste (pas un veto) mais tradable=False et rang retrograde.
+        result = make_result("AUDCHF")
+        index_by_currency = {"AUD": make_index_row(-0.28)}
+        imp_by_currency = {"AUD": make_result("AUD")}  # consensus BULL par defaut
+        selected = select_aligned_pairs([result], index_by_currency, imp_by_currency)
+
+        self.assertEqual(len(selected), 1)
+        item = selected[0]
+        self.assertFalse(item["tradable"])
+        self.assertEqual(item["rank_tier"], 4)
+        self.assertIn("DEVISE JOUR/CONSENSUS CONTRADICTOIRE", item["rank_reason"])
 
 
 class InvalidationReasonTests(unittest.TestCase):

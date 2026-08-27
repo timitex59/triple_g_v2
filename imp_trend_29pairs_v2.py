@@ -61,6 +61,17 @@ choisi de le rendre visible plutot que de plafonner: cf. `currency_exposure_line
    d'atteindre le veto ci-dessus -- meme convention 0-sur-N que le filtre
    qualite D1/H1 du point 3.
 
+6. DEVISE INTERNEMENT CONTRADICTOIRE -> NON TRADABLE, PAS EXCLUE (2026-08-27,
+   a la demande de l'utilisateur): quand le mouvement du jour d'une devise
+   (signe de son CHG%D) contredit son propre consensus structurel (cf.
+   imp_trend_29pairs.currency_consensus_status/pair_touches_a_divergent_currency
+   -- ex. GBP -0.24% aujourd'hui alors que son Renko M/W/D + D1/H1 IMP21
+   restent majoritairement BULL), toute paire touchant cette devise passe
+   tradable=False, meme traitement que le filtre qualite du point 3 -- pas
+   un veto comme le point 5 (`daily_chg` est une donnee sur un seul jour,
+   trop bruitee/volatile pour justifier d'exclure la paire du message: il
+   s'agit le plus souvent d'un simple pullback dans une tendance etablie).
+
 Tout le reste (fetch TradingView, replay Renko/PSAR/IMP, suivi de session
 jour/cumul, plomberie Telegram) est repris tel quel depuis imp_trend_29pairs.py
 (V1) -- aucune duplication, pour que les deux versions restent comparables
@@ -88,6 +99,7 @@ from imp_trend_29pairs import (
     directional_average_confirms,
     fetch_currency_imp_rows,
     fetch_currency_index_rows,
+    pair_touches_a_divergent_currency,
     screening_votes,
     send_telegram_message,
     session_lines,
@@ -176,6 +188,14 @@ def select_aligned_pairs_v2(
             rank_reason += " (qualite n/a)"
         elif not tradable:
             rank_reason += f" MAIS QUALITE {direction} 0/{quality_applicable}"
+
+        # Devise en interne contradictoire (mouvement du jour vs consensus
+        # structurel, cf. `pair_touches_a_divergent_currency`) -- meme
+        # traitement que le filtre qualite ci-dessus: non tradable plutot
+        # qu'exclue, reste affichee/loggee mais retiree du suivi de position.
+        if pair_touches_a_divergent_currency(result["pair"], index_by_currency, imp_by_currency):
+            tradable = False
+            rank_reason += " MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE"
 
         selected.append({
             "pair": result["pair"],

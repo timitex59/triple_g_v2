@@ -41,7 +41,7 @@ from datetime import datetime
 from pathlib import Path
 
 from ichimoku_v4 import fetch_tv_ohlc, send_telegram_message
-from imp_trend_29pairs import fetch_currency_imp_rows, screening_votes
+from imp_trend_29pairs import currency_consensus_status, fetch_currency_imp_rows
 from renko_full_alignment_29pairs import (
     FOREX_INDEX_ASSETS,
     FOREX_PAIR_ASSETS,
@@ -177,35 +177,15 @@ def pair_check_compact_line(
     return f"{pair} " + "".join(icon for _label, icon in signals)
 
 
-CURRENCY_CONSENSUS_THRESHOLD = 4  # sur 5 votes reels -- cf. currency_consensus_ball
-
-
 def currency_consensus_ball(currency_row: dict) -> str:
-    """Boule unique 🟢/🔴/⚪ resumant une devise, sur les 5 votes reellement
-    distincts de `imp_trend_29pairs.screening_votes` calcules pour cette
-    devise seule (RENKO_M, RENKO_W, RENKO_D, D1_IMP21, H1_IMP21) --
-    CURRENCY_INDEX exclu (n'a pas de sens pour une devise isolee, il compare
-    deux devises entre elles).
-
-    Les 6 moyennes D1/H1 (toutes/bull/bear) ne comptent PAS: elles derivent
-    toutes de la meme serie de signaux que leur IMP21 respectif -- un
-    historique qui penche BULL fait basculer les 4 votes D1 ensemble, ce
-    n'est pas 4 confirmations independantes. Meme constat, meme correction
-    que celle deja appliquee aux paires en V2 (cf. module docstring point 1
-    de imp_trend_29pairs_v2.py) -- juste que la premiere version de cette
-    fonction affichait encore les 11 boules brutes avant cette correction.
-
-    BULL/BEAR si >= CURRENCY_CONSENSUS_THRESHOLD des 5 votes s'accordent,
-    NEUTRAL sinon (pas de consensus net)."""
-    votes = screening_votes(currency_row)
-    keys = ("RENKO_M", "RENKO_W", "RENKO_D", "D1_IMP21", "H1_IMP21")
-    bull = sum(votes[key] == "BULL" for key in keys)
-    bear = sum(votes[key] == "BEAR" for key in keys)
-    if bull >= CURRENCY_CONSENSUS_THRESHOLD:
-        return VOTE_BALL["BULL"]
-    if bear >= CURRENCY_CONSENSUS_THRESHOLD:
-        return VOTE_BALL["BEAR"]
-    return VOTE_BALL["NEUTRAL"]
+    """Boule unique 🟢/🔴/⚪ resumant une devise -- rendu de
+    `imp_trend_29pairs.currency_consensus_status` (le calcul lui-meme, cf. ce
+    module pour son detail: 5 votes reellement distincts, seuil
+    CURRENCY_CONSENSUS_THRESHOLD). Deplace dans imp_trend_29pairs.py le
+    2026-08-27 pour etre reutilisable par `pair_touches_a_divergent_currency`
+    (V1/V2) sans creer d'import circulaire (paire_check.py importe deja
+    imp_trend_29pairs.py, pas l'inverse)."""
+    return VOTE_BALL[currency_consensus_status(currency_row)]
 
 
 def index_chg_lines(
