@@ -1,7 +1,7 @@
 """PAIRE_CHECK: une section INDEX CHG%D identique a celle de FULL MOMENTUM
-(les 8 devises), suivie d'une section BEST PAIRE (devise verte la plus
-forte + devise rouge la plus forte du classement INDEX CHG%D, cf.
-`best_pair_lines`), puis d'une ligne par paire, billes seules
+(les 8 devises), suivie d'une section BEST PAIRE (une ligne par devise
+doublement validee BULL associee a une devise doublement validee BEAR, cf.
+`best_pair_names`), puis d'une ligne par paire, billes seules
 (`EURUSD 🟢🟢🟢`), a partir des memes signaux INDEX/06h/RUN que
 `pair_check_lines` dans renko_full_alignment_29pairs.py (cf.
 `pair_check_signals`), pour un jeu de paires choisies -- sans lancer le
@@ -32,7 +32,19 @@ de signaux que leur IMP21, 4 votes qui basculent ensemble ne sont pas 4
 confirmations independantes. Une premiere version affichait les 11 boules
 brutes avant cette correction (cf. historique git). Ajoute ~40 appels
 TradingView par run (5 par devise x 8) en plus des ~32 deja utilises pour
-INDEX."""
+INDEX.
+
+2026-08-27: BEST PAIRE simplifie a la demande de l'utilisateur --
+`best_pair_names` (qui remplace l'ancien `best_pair_name`) n'associe plus la
+devise au CHG%D le plus fort et celle au CHG%D le plus faible quel que soit
+leur consensus, mais uniquement des devises "doublement validees": jour ET
+consensus d'accord entre eux (cf. `aligned_currency_names`), en sens inverse
+l'une de l'autre (une confirmee forte, l'autre confirmee faible) -- une
+devise contradictoire (comme GBP jour rouge/consensus vert) ou indecise
+(un ⚪) n'est plus jamais retenue comme "forte" ou "faible" juste parce que
+son CHG%D etait le plus extreme. Peut desormais produire 0, 1 ou plusieurs
+BEST PAIRE selon le nombre de devises doublement validees de chaque cote --
+une ligne par combinaison."""
 
 from __future__ import annotations
 
@@ -44,6 +56,7 @@ from ichimoku_v4 import fetch_tv_ohlc, send_telegram_message
 from imp_trend_29pairs import (
     CURRENCY_SNAPSHOT_MAX_AGE,
     currency_consensus_status,
+    currency_daily_status,
     fetch_or_load_currency_data,
 )
 from renko_full_alignment_29pairs import (
@@ -212,59 +225,82 @@ def index_chg_lines(
 KNOWN_PAIR_CODES = {str(asset["pair"]) for asset in FOREX_PAIR_ASSETS}  # les 28 paires OANDA reelles
 
 
-def best_pair_name(index_rows: list[dict]) -> str | None:
-    """Associe la devise 🔴 au score le plus eleve a la devise 🟢 au score le
-    plus eleve, dans l'ordre deja fourni par `all_index_status_rows` (score
-    d'intensite decroissant, cf. `_strength_sort_key`) -- donc simplement le
-    premier 🔴 et le premier 🟢 rencontres. La verte (forte) sert de base, la
-    rouge (faible) de quote, convention "acheter le fort, vendre le faible"
-    deja utilisee par `currency_spread`. None si aucune devise rouge ou
-    aucune verte n'est exploitable (CHG%D manquant pour l'une des deux).
+def aligned_currency_names(
+    index_rows: list[dict], imp_by_currency: dict[str, dict],
+) -> tuple[list[str], list[str]]:
+    """Devises "doublement validees" parmi les 8: jour ET consensus d'accord
+    (cf. `imp_trend_29pairs.currency_daily_status`/`currency_consensus_status`
+    -- memes calculs que la boule de consensus et le mouvement du jour deja
+    affiches sur chaque ligne INDEX CHG%D), dans l'ordre d'intensite deja
+    utilise pour cette section (cf. `all_index_status_rows`). Exclut les
+    devises contradictoires (jour/consensus opposes, cf.
+    `imp_trend_29pairs.currency_diverges_from_its_own_day`) et indecises (au
+    moins un ⚪) -- celles-ci ne servent plus a designer un BEST PAIRE.
+    Renvoie (bull, bear): les doublement BULL, les doublement BEAR."""
+    bull, bear = [], []
+    for row in all_index_status_rows(index_rows):
+        currency = str(row.get("currency"))
+        imp_row = imp_by_currency.get(currency)
+        if imp_row is None:
+            continue
+        daily = currency_daily_status(row.get("daily_chg"))
+        consensus = currency_consensus_status(imp_row)
+        if daily == "BULL" and consensus == "BULL":
+            bull.append(currency)
+        elif daily == "BEAR" and consensus == "BEAR":
+            bear.append(currency)
+    return bull, bear
 
-    Le nom retourne est toujours l'une des 28 paires OANDA reelles (cf.
-    `KNOWN_PAIR_CODES`): {forte}{faible} si elle existe, sinon {faible}{forte}
-    -- les 8 devises couvrent chaque combinaison de 2 devises exactement une
-    fois parmi les 28 paires, jamais dans les deux sens a la fois, donc l'un
-    des deux existe forcement (None si aucun des deux, en pratique jamais
-    atteint). Inverser l'ordre ne change pas le sens fort/faible affiche
-    ensuite: `pair_check_signals` compare directement base et cotee, quel
-    que soit lequel des deux est la devise forte -- pas besoin d'inverser une
-    direction, juste de ne pas inventer un symbole qui n'existe pas."""
-    sorted_rows = all_index_status_rows(index_rows)
-    strong = next(
-        (row for row in sorted_rows if isinstance(row.get("daily_chg"), (int, float))
-         and row["daily_chg"] > 0),
-        None,
-    )
-    weak = next(
-        (row for row in sorted_rows if isinstance(row.get("daily_chg"), (int, float))
-         and row["daily_chg"] < 0),
-        None,
-    )
-    if strong is None or weak is None:
-        return None
-    forward = f"{strong['currency']}{weak['currency']}"
-    if forward in KNOWN_PAIR_CODES:
-        return forward
-    reverse = f"{weak['currency']}{strong['currency']}"
-    return reverse if reverse in KNOWN_PAIR_CODES else None
+
+def best_pair_names(index_rows: list[dict], imp_by_currency: dict[str, dict]) -> list[str]:
+    """Un BEST PAIRE par combinaison (devise doublement BULL, devise
+    doublement BEAR) -- cf. `aligned_currency_names` -- "alignees sur leurs 2
+    boules, mais en sens inverse l'une de l'autre" (l'une confirmee forte,
+    l'autre confirmee faible), plutot que l'ancien classement par simple
+    magnitude de CHG%D qui pouvait retenir une devise contradictoire (comme
+    GBP jour rouge/consensus vert) comme si elle etait une "forte" ou une
+    "faible" fiable. Peut renvoyer 0, 1 ou plusieurs paires -- une par
+    combinaison dont le symbole existe reellement parmi les 28 paires OANDA
+    (cf. `KNOWN_PAIR_CODES`; {forte}{faible} si cet ordre existe, sinon
+    {faible}{forte} -- meme raisonnement que l'ancien `best_pair_name`,
+    cf. historique git: les 8 devises couvrent chaque combinaison de 2
+    exactement une fois parmi les 28 paires, jamais les deux sens a la fois,
+    et l'inverser ne change pas le sens fort/faible lu ensuite par
+    `pair_check_signals`, qui compare directement base et cotee)."""
+    bull, bear = aligned_currency_names(index_rows, imp_by_currency)
+    pairs = []
+    for strong in bull:
+        for weak in bear:
+            forward = f"{strong}{weak}"
+            if forward in KNOWN_PAIR_CODES:
+                pairs.append(forward)
+                continue
+            reverse = f"{weak}{strong}"
+            if reverse in KNOWN_PAIR_CODES:
+                pairs.append(reverse)
+    return pairs
 
 
 def best_pair_lines(
-    pair: str | None, rows_by_pair: dict[str, dict], price_trends: dict[str, dict],
+    pairs: list[str], rows_by_pair: dict[str, dict], price_trends: dict[str, dict],
     index_by_currency: dict[str, dict],
 ) -> list[str]:
-    """Section `🏆 BEST PAIRE`: `pair` (cf. `best_pair_name`) avec ses billes
-    INDEX/06h/RUN, meme rendu que les lignes PAIRES (cf.
-    `pair_check_compact_line`). Vide si pas de `pair`, ou si ses billes ne
-    sont pas exploitables (ex. devise absente des paires-support fetchees --
-    voir `main`, qui inclut les devises de `best_pair_name` dans le fetch)."""
-    if pair is None:
+    """Section `🏆 BEST PAIRE`: une ligne par paire de `pairs` (cf.
+    `best_pair_names`), memes billes que les lignes PAIRES (cf.
+    `pair_check_compact_line`). Vide si `pairs` l'est, ou si aucune de ses
+    billes n'est exploitable (ex. devise absente des paires-support fetchees
+    -- voir `main`, qui inclut les devises de `best_pair_names` dans le
+    fetch)."""
+    lines = [
+        line for line in (
+            pair_check_compact_line(pair, rows_by_pair, price_trends, index_by_currency)
+            for pair in pairs
+        )
+        if line is not None
+    ]
+    if not lines:
         return []
-    line = pair_check_compact_line(pair, rows_by_pair, price_trends, index_by_currency)
-    if line is None:
-        return []
-    return ["🏆 BEST PAIRE", line]
+    return ["🏆 BEST PAIRE", *lines]
 
 
 def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
@@ -289,7 +325,7 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
         lines.extend(index_lines)
         lines.append("")
     best_lines = best_pair_lines(
-        best_pair_name(index_rows), rows_by_pair, price_trends, index_by_currency,
+        best_pair_names(index_rows, imp_by_currency or {}), rows_by_pair, price_trends, index_by_currency,
     )
     if best_lines:
         lines.extend(best_lines)
@@ -305,10 +341,10 @@ def main() -> int:
     args = parse_args()
     now = datetime.now(PARIS_TZ)
 
-    # INDEX d'abord: le nom du BEST PAIRE (devises dynamiques, cf.
-    # `best_pair_name`) doit etre connu avant de choisir les paires-support a
-    # fetcher, pour que ses billes 06h/RUN soient exploitables comme celles
-    # de PAIRES -- pas seulement son segment INDEX.
+    # INDEX d'abord: les noms des BEST PAIRE (devises dynamiques, cf.
+    # `best_pair_names`) doivent etre connus avant de choisir les
+    # paires-support a fetcher, pour que leurs billes 06h/RUN soient
+    # exploitables comme celles de PAIRES -- pas seulement leur segment INDEX.
     snapshot_path = Path(args.currency_snapshot) if args.currency_snapshot else None
     index_by_currency, imp_by_currency = fetch_or_load_currency_data(
         snapshot_path, args.currency_snapshot_max_age,
@@ -316,12 +352,13 @@ def main() -> int:
         args.imp_h1_candles, args.imp_d1_candles, args.imp_renko_bricks, args.length, args.max_streak,
     )
     index_rows = list(index_by_currency.values())
-    best_pair = best_pair_name(index_rows)
+    best_pairs = best_pair_names(index_rows, imp_by_currency)
 
     currencies = needed_currencies(args.pairs)
-    best_pair_currencies = _pair_currencies(best_pair) if best_pair else None
-    if best_pair_currencies:
-        currencies |= set(best_pair_currencies)
+    for pair in best_pairs:
+        pair_currencies = _pair_currencies(pair)
+        if pair_currencies:
+            currencies |= set(pair_currencies)
     helper_pairs = needed_helper_pairs(currencies)
     rows = [row for row in (fetch_pair_row(pair) for pair in helper_pairs) if row is not None]
     rows_by_pair = {str(row["pair"]): row for row in rows}

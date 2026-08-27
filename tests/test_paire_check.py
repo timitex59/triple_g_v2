@@ -5,8 +5,9 @@ from zoneinfo import ZoneInfo
 
 from paire_check import (
     DEFAULT_PAIRS,
+    aligned_currency_names,
     best_pair_lines,
-    best_pair_name,
+    best_pair_names,
     build_message,
     currency_consensus_ball,
     index_chg_lines,
@@ -192,43 +193,109 @@ class PaireCheckTests(unittest.TestCase):
         rows = [index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57)]
         self.assertEqual(index_chg_lines(rows), index_chg_lines(rows, None))
 
-    def test_best_pair_name_pairs_top_red_with_top_green(self):
-        # Meme alignement M/W/D (1,1,1) partout -> le score n'est ordonne que
-        # par |daily_chg|: rouge le plus fort = JPY, vert le plus fort = USD,
-        # meme si ce ne sont pas les plus extremes en valeur absolue globale.
+    def test_aligned_currency_names_keeps_only_double_confirmations(self):
+        # JPY: jour BEAR + consensus BEAR -> doublement BEAR.
+        # USD: jour BULL + consensus BULL -> doublement BULL.
+        # AUD: jour BEAR mais pas de donnee consensus (absente de
+        # imp_by_currency) -> ignoree, pas assez d'information.
         rows = [
             index_row("JYX", "JPY", 1, 1, 1, daily_chg=-1.66),
             index_row("AUX", "AUD", 1, 1, 1, daily_chg=-0.43),
             index_row("USX", "USD", 1, 1, 1, daily_chg=0.28),
-            index_row("GBX", "GBP", 1, 1, 1, daily_chg=0.10),
         ]
+        imp_by_currency = {
+            "JPY": make_currency_row(
+                renko=("BEAR", "BEAR", "BEAR"), d1=("BEAR", -10.0, -5.0, 2.0), h1=("BULL", 3.0, 0.0, -1.0),
+            ),
+            "USD": make_currency_row(),  # BULL par defaut
+        }
 
-        self.assertEqual(best_pair_name(rows), "USDJPY")
+        bull, bear = aligned_currency_names(rows, imp_by_currency)
 
-    def test_best_pair_name_reverses_to_the_real_pair_when_forward_does_not_exist(self):
-        # AUD forte, GBP faible -> "AUDGBP" n'existe pas parmi les 28 paires
-        # OANDA (seul GBPAUD existe) -> doit renvoyer GBPAUD, pas fabriquer
-        # un symbole inexistant.
+        self.assertEqual(bull, ["USD"])
+        self.assertEqual(bear, ["JPY"])
+
+    def test_aligned_currency_names_excludes_contradictory_currency(self):
+        # GBP: jour BEAR mais consensus BULL -- contradictoire, meme avec un
+        # daily_chg extreme, ne doit jamais ressortir comme "faible".
+        rows = [index_row("GBX", "GBP", 1, 1, 1, daily_chg=-5.0)]
+        imp_by_currency = {"GBP": make_currency_row()}  # consensus BULL par defaut
+
+        bull, bear = aligned_currency_names(rows, imp_by_currency)
+
+        self.assertEqual((bull, bear), ([], []))
+
+    def test_aligned_currency_names_excludes_neutral_consensus(self):
+        rows = [index_row("EUX", "EUR", 1, 1, 1, daily_chg=0.50)]
+        imp_by_currency = {"EUR": make_currency_row(
+            renko=("BULL", "BULL", "BEAR"), d1=("BULL", 10.0, 5.0, -2.0), h1=("BEAR", -3.0, 0.0, 1.0),
+        )}  # NEUTRAL (3/5 seulement, cf. imp_trend tests)
+
+        bull, bear = aligned_currency_names(rows, imp_by_currency)
+
+        self.assertEqual((bull, bear), ([], []))
+
+    def test_best_pair_names_pairs_a_bull_with_a_bear_currency(self):
+        rows = [
+            index_row("JYX", "JPY", 1, 1, 1, daily_chg=-1.66),
+            index_row("USX", "USD", 1, 1, 1, daily_chg=0.28),
+        ]
+        imp_by_currency = {
+            "JPY": make_currency_row(
+                renko=("BEAR", "BEAR", "BEAR"), d1=("BEAR", -10.0, -5.0, 2.0), h1=("BULL", 3.0, 0.0, -1.0),
+            ),
+            "USD": make_currency_row(),
+        }
+
+        self.assertEqual(best_pair_names(rows, imp_by_currency), ["USDJPY"])
+
+    def test_best_pair_names_reverses_to_the_real_pair_when_forward_does_not_exist(self):
+        # AUD doublement forte, GBP doublement faible -> "AUDGBP" n'existe pas
+        # parmi les 28 paires OANDA (seul GBPAUD existe) -> doit renvoyer
+        # GBPAUD, pas fabriquer un symbole inexistant.
         rows = [
             index_row("AUX", "AUD", 1, 1, 1, daily_chg=0.31),
             index_row("GBX", "GBP", 1, 1, 1, daily_chg=-1.25),
         ]
+        imp_by_currency = {
+            "AUD": make_currency_row(),
+            "GBP": make_currency_row(
+                renko=("BEAR", "BEAR", "BEAR"), d1=("BEAR", -10.0, -5.0, 2.0), h1=("BULL", 3.0, 0.0, -1.0),
+            ),
+        }
 
-        self.assertEqual(best_pair_name(rows), "GBPAUD")
+        self.assertEqual(best_pair_names(rows, imp_by_currency), ["GBPAUD"])
 
-    def test_best_pair_name_none_without_both_colors(self):
+    def test_best_pair_names_one_per_combination_when_several_qualify(self):
+        # 2 devises doublement BULL x 1 doublement BEAR -> 2 BEST PAIRE.
+        rows = [
+            index_row("USX", "USD", 1, 1, 1, daily_chg=0.28),
+            index_row("AUX", "AUD", 1, 1, 1, daily_chg=0.31),
+            index_row("JYX", "JPY", 1, 1, 1, daily_chg=-1.66),
+        ]
+        bear_jpy = make_currency_row(
+            renko=("BEAR", "BEAR", "BEAR"), d1=("BEAR", -10.0, -5.0, 2.0), h1=("BULL", 3.0, 0.0, -1.0),
+        )
+        imp_by_currency = {"USD": make_currency_row(), "AUD": make_currency_row(), "JPY": bear_jpy}
+
+        pairs = best_pair_names(rows, imp_by_currency)
+
+        self.assertEqual(set(pairs), {"USDJPY", "AUDJPY"})
+
+    def test_best_pair_names_empty_without_both_sides(self):
         rows = [index_row("USX", "USD", 1, 1, 1, daily_chg=0.28)]
+        imp_by_currency = {"USD": make_currency_row()}
 
-        self.assertIsNone(best_pair_name(rows))
+        self.assertEqual(best_pair_names(rows, imp_by_currency), [])
 
-    def test_best_pair_name_none_without_rows(self):
-        self.assertIsNone(best_pair_name([]))
+    def test_best_pair_names_empty_without_rows(self):
+        self.assertEqual(best_pair_names([], {}), [])
 
     def test_best_pair_lines_renders_the_same_billes_as_a_paires_line(self):
         rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
         price_trends = {"EURUSD": {"pips_vs_06h": 20.0}}
 
-        lines = best_pair_lines("EURUSD", rows_by_pair, price_trends, {})
+        lines = best_pair_lines(["EURUSD"], rows_by_pair, price_trends, {})
 
         self.assertEqual(
             lines, ["🏆 BEST PAIRE", pair_check_compact_line(
@@ -236,11 +303,11 @@ class PaireCheckTests(unittest.TestCase):
             )],
         )
 
-    def test_best_pair_lines_empty_without_a_pair_name(self):
-        self.assertEqual(best_pair_lines(None, {}, {}, {}), [])
+    def test_best_pair_lines_empty_without_any_pair(self):
+        self.assertEqual(best_pair_lines([], {}, {}, {}), [])
 
     def test_best_pair_lines_empty_without_exploitable_signal(self):
-        self.assertEqual(best_pair_lines("EURUSD", {}, {}, {}), [])
+        self.assertEqual(best_pair_lines(["EURUSD"], {}, {}, {}), [])
 
     def test_build_message_lists_one_compact_line_per_pair_under_a_paires_label(self):
         rows_by_pair = {
@@ -272,10 +339,17 @@ class PaireCheckTests(unittest.TestCase):
             "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
             "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
         }
+        # EUR doublement BULL, USD doublement BEAR -> BEST PAIRE = EURUSD.
+        imp_by_currency = {
+            "EUR": make_currency_row(),
+            "USD": make_currency_row(
+                renko=("BEAR", "BEAR", "BEAR"), d1=("BEAR", -10.0, -5.0, 2.0), h1=("BULL", 3.0, 0.0, -1.0),
+            ),
+        }
         now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
 
         message, has_content = build_message(
-            ["EURUSD"], rows_by_pair, price_trends, index_by_currency, now,
+            ["EURUSD"], rows_by_pair, price_trends, index_by_currency, now, imp_by_currency,
         )
 
         self.assertTrue(has_content)
@@ -288,6 +362,23 @@ class PaireCheckTests(unittest.TestCase):
         # ligne PAIRES (qui suit) puisque c'est la meme paire dans ce test.
         after_paires = message[message.index("PAIRES"):]
         self.assertIn("EURUSD 🟢", after_paires)
+
+    def test_build_message_without_imp_by_currency_has_no_best_pair_section(self):
+        # Sans donnee de consensus, aligned_currency_names ne peut rien
+        # valider -> pas de BEST PAIRE, meme avec des devises INDEX fournies.
+        rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
+        price_trends = {"EURUSD": {"pips_vs_06h": 20.0}}
+        index_by_currency = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+
+        message, _ = build_message(
+            ["EURUSD"], rows_by_pair, price_trends, index_by_currency, now,
+        )
+
+        self.assertNotIn("🏆 BEST PAIRE", message)
 
     def test_build_message_forwards_imp_by_currency_to_index_chg_lines(self):
         rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
