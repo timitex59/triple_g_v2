@@ -44,7 +44,15 @@ devise contradictoire (comme GBP jour rouge/consensus vert) ou indecise
 (un ⚪) n'est plus jamais retenue comme "forte" ou "faible" juste parce que
 son CHG%D etait le plus extreme. Peut desormais produire 0, 1 ou plusieurs
 BEST PAIRE selon le nombre de devises doublement validees de chaque cote --
-une ligne par combinaison."""
+une ligne par combinaison.
+
+2026-08-27 (plus tard): section(s) `🏆 BEST PAIRE {devise}` dediee(s) (cf.
+`--focus-currency`, `DEFAULT_FOCUS_CURRENCIES = ["JPY"]`), ajoutee(s) apres
+la section BEST PAIRE generale. `best_pair_names(..., only_currency=devise)`
+restreint aux combinaisons impliquant CETTE devise -- elle doublement BULL
+associee a chaque devise doublement BEAR, ou l'inverse -- meme logique de
+double confirmation que la section generale, juste filtree sur une devise
+precise plutot que sur les 8."""
 
 from __future__ import annotations
 
@@ -75,6 +83,8 @@ VOTE_BALL = {"BULL": "🟢", "BEAR": "🔴", "NEUTRAL": "⚪"}
 
 # Modifier cette liste (ou passer --pairs) pour suivre d'autres paires.
 DEFAULT_PAIRS = ["EURUSD", "EURJPY", "USDJPY", "CHFJPY"]
+# Devises avec leur propre section "🏆 BEST PAIRE {devise}" (ou --focus-currency).
+DEFAULT_FOCUS_CURRENCIES = ["JPY"]
 STATE_FILE = Path("paire_check_price_trend_state.json")
 
 
@@ -132,6 +142,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--pairs", nargs="+", default=DEFAULT_PAIRS,
         help=f"Paires a verifier (par defaut: {' '.join(DEFAULT_PAIRS)}).",
+    )
+    parser.add_argument(
+        "--focus-currency", nargs="*", default=DEFAULT_FOCUS_CURRENCIES,
+        help=f"Devises avec leur propre section BEST PAIRE dediee (par defaut: "
+             f"{' '.join(DEFAULT_FOCUS_CURRENCIES)}). Vide (--focus-currency sans argument) pour desactiver.",
     )
     parser.add_argument("--length", type=int, default=14, help="ATR Renko length.")
     parser.add_argument(
@@ -252,7 +267,9 @@ def aligned_currency_names(
     return bull, bear
 
 
-def best_pair_names(index_rows: list[dict], imp_by_currency: dict[str, dict]) -> list[str]:
+def best_pair_names(
+    index_rows: list[dict], imp_by_currency: dict[str, dict], only_currency: str | None = None,
+) -> list[str]:
     """Un BEST PAIRE par combinaison (devise doublement BULL, devise
     doublement BEAR) -- cf. `aligned_currency_names` -- "alignees sur leurs 2
     boules, mais en sens inverse l'une de l'autre" (l'une confirmee forte,
@@ -266,8 +283,21 @@ def best_pair_names(index_rows: list[dict], imp_by_currency: dict[str, dict]) ->
     cf. historique git: les 8 devises couvrent chaque combinaison de 2
     exactement une fois parmi les 28 paires, jamais les deux sens a la fois,
     et l'inverser ne change pas le sens fort/faible lu ensuite par
-    `pair_check_signals`, qui compare directement base et cotee)."""
+    `pair_check_signals`, qui compare directement base et cotee).
+
+    `only_currency` (ex. "JPY") restreint aux combinaisons impliquant cette
+    devise -- elle-meme doublement BULL associee a chaque devise doublement
+    BEAR, ou l'inverse. Liste vide si `only_currency` n'est ni doublement
+    BULL ni doublement BEAR (contradictoire, indecise, ou donnees absentes) --
+    cf. `best_pair_lines` pour la section dediee `BEST PAIRE {devise}`."""
     bull, bear = aligned_currency_names(index_rows, imp_by_currency)
+    if only_currency is not None:
+        if only_currency in bull:
+            bull, bear = [only_currency], bear
+        elif only_currency in bear:
+            bull, bear = bull, [only_currency]
+        else:
+            return []
     pairs = []
     for strong in bull:
         for weak in bear:
@@ -283,14 +313,15 @@ def best_pair_names(index_rows: list[dict], imp_by_currency: dict[str, dict]) ->
 
 def best_pair_lines(
     pairs: list[str], rows_by_pair: dict[str, dict], price_trends: dict[str, dict],
-    index_by_currency: dict[str, dict],
+    index_by_currency: dict[str, dict], label: str = "🏆 BEST PAIRE",
 ) -> list[str]:
-    """Section `🏆 BEST PAIRE`: une ligne par paire de `pairs` (cf.
+    """Section `{label}`: une ligne par paire de `pairs` (cf.
     `best_pair_names`), memes billes que les lignes PAIRES (cf.
     `pair_check_compact_line`). Vide si `pairs` l'est, ou si aucune de ses
     billes n'est exploitable (ex. devise absente des paires-support fetchees
     -- voir `main`, qui inclut les devises de `best_pair_names` dans le
-    fetch)."""
+    fetch). `label` permet une section dediee par devise (ex. "🏆 BEST PAIRE
+    JPY", cf. `--focus-currency`) distincte de la section generale."""
     lines = [
         line for line in (
             pair_check_compact_line(pair, rows_by_pair, price_trends, index_by_currency)
@@ -300,16 +331,21 @@ def best_pair_lines(
     ]
     if not lines:
         return []
-    return ["🏆 BEST PAIRE", *lines]
+    return [label, *lines]
 
 
 def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
                   price_trends: dict[str, dict], index_by_currency: dict[str, dict],
-                  now: datetime, imp_by_currency: dict[str, dict] | None = None) -> tuple[str, bool]:
+                  now: datetime, imp_by_currency: dict[str, dict] | None = None,
+                  focus_currencies: list[str] | None = None) -> tuple[str, bool]:
     """Assemble le message PAIRE_CHECK. Renvoie (message, has_content): le 2e
     indique si au moins une paire a produit une ligne exploitable, pour
     conditionner l'envoi Telegram cote `main` (la section INDEX CHG%D seule
-    ne suffit pas a envoyer -- c'est un rappel, pas le coeur du message)."""
+    ne suffit pas a envoyer -- c'est un rappel, pas le coeur du message).
+
+    `focus_currencies` (ex. `["JPY"]`) ajoute une section `🏆 BEST PAIRE
+    {devise}` par devise, apres la section BEST PAIRE generale -- cf.
+    `best_pair_names(..., only_currency=devise)`."""
     pair_lines = [
         line for line in (
             pair_check_compact_line(pair, rows_by_pair, price_trends, index_by_currency)
@@ -330,6 +366,14 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
     if best_lines:
         lines.extend(best_lines)
         lines.append("")
+    for currency in (focus_currencies or []):
+        focus_lines = best_pair_lines(
+            best_pair_names(index_rows, imp_by_currency or {}, only_currency=currency),
+            rows_by_pair, price_trends, index_by_currency, label=f"🏆 BEST PAIRE {currency}",
+        )
+        if focus_lines:
+            lines.extend(focus_lines)
+            lines.append("")
     if pair_lines:
         lines.extend(["PAIRES", *pair_lines])
         lines.append("")
@@ -353,9 +397,14 @@ def main() -> int:
     )
     index_rows = list(index_by_currency.values())
     best_pairs = best_pair_names(index_rows, imp_by_currency)
+    focus_best_pairs = [
+        pair
+        for currency in args.focus_currency
+        for pair in best_pair_names(index_rows, imp_by_currency, only_currency=currency)
+    ]
 
     currencies = needed_currencies(args.pairs)
-    for pair in best_pairs:
+    for pair in [*best_pairs, *focus_best_pairs]:
         pair_currencies = _pair_currencies(pair)
         if pair_currencies:
             currencies |= set(pair_currencies)
@@ -368,7 +417,7 @@ def main() -> int:
     save_price_trend_state(args.state_file, new_state)
 
     message, has_content = build_message(
-        args.pairs, rows_by_pair, price_trends, index_by_currency, now, imp_by_currency,
+        args.pairs, rows_by_pair, price_trends, index_by_currency, now, imp_by_currency, args.focus_currency,
     )
     print(message)
     if args.telegram:

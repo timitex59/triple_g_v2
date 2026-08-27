@@ -291,6 +291,53 @@ class PaireCheckTests(unittest.TestCase):
     def test_best_pair_names_empty_without_rows(self):
         self.assertEqual(best_pair_names([], {}), [])
 
+    def test_best_pair_names_only_currency_restricts_to_that_currency_as_weak(self):
+        # JPY doublement BEAR, USD et AUD doublement BULL -> avec
+        # only_currency="JPY", seules les combinaisons impliquant JPY
+        # ressortent (pas AUDUSD, qui ne touche pas JPY).
+        rows = [
+            index_row("USX", "USD", 1, 1, 1, daily_chg=0.28),
+            index_row("AUX", "AUD", 1, 1, 1, daily_chg=0.31),
+            index_row("JYX", "JPY", 1, 1, 1, daily_chg=-1.66),
+        ]
+        bear_jpy = make_currency_row(
+            renko=("BEAR", "BEAR", "BEAR"), d1=("BEAR", -10.0, -5.0, 2.0), h1=("BULL", 3.0, 0.0, -1.0),
+        )
+        imp_by_currency = {"USD": make_currency_row(), "AUD": make_currency_row(), "JPY": bear_jpy}
+
+        pairs = best_pair_names(rows, imp_by_currency, only_currency="JPY")
+
+        self.assertEqual(set(pairs), {"USDJPY", "AUDJPY"})
+        self.assertNotIn("AUDUSD", pairs)
+
+    def test_best_pair_names_only_currency_restricts_to_that_currency_as_strong(self):
+        # JPY doublement BULL, GBP doublement BEAR -> only_currency="JPY"
+        # associe JPY (forte) a GBP (faible) -- "JPYGBP" n'existe pas, doit
+        # utiliser l'ordre reel GBPJPY.
+        rows = [
+            index_row("JYX", "JPY", 1, 1, 1, daily_chg=0.50),
+            index_row("GBX", "GBP", 1, 1, 1, daily_chg=-0.80),
+        ]
+        imp_by_currency = {
+            "JPY": make_currency_row(),  # BULL par defaut
+            "GBP": make_currency_row(
+                renko=("BEAR", "BEAR", "BEAR"), d1=("BEAR", -10.0, -5.0, 2.0), h1=("BULL", 3.0, 0.0, -1.0),
+            ),
+        }
+
+        self.assertEqual(best_pair_names(rows, imp_by_currency, only_currency="JPY"), ["GBPJPY"])
+
+    def test_best_pair_names_only_currency_empty_when_not_aligned(self):
+        # JPY contradictoire (jour BEAR, consensus BULL) -> ni doublement
+        # BULL ni doublement BEAR, aucune combinaison ne le concerne.
+        rows = [
+            index_row("JYX", "JPY", 1, 1, 1, daily_chg=-0.50),
+            index_row("USX", "USD", 1, 1, 1, daily_chg=0.28),
+        ]
+        imp_by_currency = {"JPY": make_currency_row(), "USD": make_currency_row()}  # BULL/BULL -> contradictoire pour JPY
+
+        self.assertEqual(best_pair_names(rows, imp_by_currency, only_currency="JPY"), [])
+
     def test_best_pair_lines_renders_the_same_billes_as_a_paires_line(self):
         rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
         price_trends = {"EURUSD": {"pips_vs_06h": 20.0}}
@@ -308,6 +355,14 @@ class PaireCheckTests(unittest.TestCase):
 
     def test_best_pair_lines_empty_without_exploitable_signal(self):
         self.assertEqual(best_pair_lines(["EURUSD"], {}, {}, {}), [])
+
+    def test_best_pair_lines_uses_the_custom_label(self):
+        rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
+        price_trends = {"EURUSD": {"pips_vs_06h": 20.0}}
+
+        lines = best_pair_lines(["EURUSD"], rows_by_pair, price_trends, {}, label="🏆 BEST PAIRE JPY")
+
+        self.assertEqual(lines[0], "🏆 BEST PAIRE JPY")
 
     def test_build_message_lists_one_compact_line_per_pair_under_a_paires_label(self):
         rows_by_pair = {
@@ -379,6 +434,70 @@ class PaireCheckTests(unittest.TestCase):
         )
 
         self.assertNotIn("🏆 BEST PAIRE", message)
+
+    def test_build_message_adds_a_focus_currency_section_after_the_general_one(self):
+        rows_by_pair = {
+            "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
+            "EURJPY": {"pair": "EURJPY", "asset_type": "PAIR"},
+        }
+        price_trends = {
+            "EURUSD": {"pips_vs_06h": 20.0},
+            "EURJPY": {"pips_vs_06h": 15.0},
+        }
+        index_by_currency = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+            "JPY": index_row("JYX", "JPY", -1, -1, -1, daily_chg=-1.66),
+        }
+        # EUR doublement BULL, USD et JPY doublement BEAR -> general = EURUSD
+        # + EURJPY, focus JPY = EURJPY seulement (pas EURUSD, USD n'est pas
+        # la devise ciblee).
+        imp_by_currency = {
+            "EUR": make_currency_row(),
+            "USD": make_currency_row(
+                renko=("BEAR", "BEAR", "BEAR"), d1=("BEAR", -10.0, -5.0, 2.0), h1=("BULL", 3.0, 0.0, -1.0),
+            ),
+            "JPY": make_currency_row(
+                renko=("BEAR", "BEAR", "BEAR"), d1=("BEAR", -10.0, -5.0, 2.0), h1=("BULL", 3.0, 0.0, -1.0),
+            ),
+        }
+        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+
+        message, _ = build_message(
+            ["EURUSD"], rows_by_pair, price_trends, index_by_currency, now, imp_by_currency, ["JPY"],
+        )
+
+        self.assertIn("🏆 BEST PAIRE", message)
+        self.assertIn("🏆 BEST PAIRE JPY", message)
+        self.assertLess(message.index("🏆 BEST PAIRE\n"), message.index("🏆 BEST PAIRE JPY"))
+        self.assertLess(message.index("🏆 BEST PAIRE JPY"), message.index("PAIRES"))
+        general_section = message[message.index("🏆 BEST PAIRE\n"):message.index("🏆 BEST PAIRE JPY")]
+        focus_section = message[message.index("🏆 BEST PAIRE JPY"):message.index("PAIRES")]
+        self.assertIn("EURUSD", general_section)
+        self.assertIn("EURJPY", general_section)  # les deux dans la section generale
+        self.assertIn("EURJPY", focus_section)
+        self.assertNotIn("EURUSD", focus_section)  # focus JPY: pas de paire hors JPY
+
+    def test_build_message_without_focus_currencies_has_no_focus_section(self):
+        rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
+        price_trends = {"EURUSD": {"pips_vs_06h": 20.0}}
+        index_by_currency = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        imp_by_currency = {
+            "EUR": make_currency_row(),
+            "USD": make_currency_row(
+                renko=("BEAR", "BEAR", "BEAR"), d1=("BEAR", -10.0, -5.0, 2.0), h1=("BULL", 3.0, 0.0, -1.0),
+            ),
+        }
+        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+
+        message, _ = build_message(
+            ["EURUSD"], rows_by_pair, price_trends, index_by_currency, now, imp_by_currency,
+        )
+
+        self.assertNotIn("BEST PAIRE JPY", message)
 
     def test_build_message_forwards_imp_by_currency_to_index_chg_lines(self):
         rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
