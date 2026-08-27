@@ -899,20 +899,24 @@ def currency_consensus_status(currency_row: dict) -> str:
     return "NEUTRAL"
 
 
-CURRENCY_DAILY_MOVE_MIN_MAGNITUDE = 0.10  # % -- en dessous, daily_chg reste NEUTRAL
+CURRENCY_DAILY_MOVE_MIN_MAGNITUDE = 0.0  # % -- 0 = tout signe non nul compte, cf. docstring
+
+# 2026-08-27 (encore plus tard): remis a 0 a la demande explicite de
+# l'utilisateur apres un cas concret -- GBP -0.04% (bien sous l'ancien seuil
+# de 0.10) avec un consensus BULL restait tradable, ce que l'utilisateur ne
+# voulait pas: "je ne veux pas de paire en GBP si j'ai [une contradiction],
+# peu importe la taille du mouvement". Le seuil reste defini comme constante
+# nommee (plutot que d'etre supprime) pour rester facile a retablir si
+# l'experience montre que 0 declenche trop souvent sur du bruit.
 
 
 def currency_daily_status(daily_chg: float | None) -> str:
     """BULL/BEAR/NEUTRAL a partir du `daily_chg` d'une devise (meme valeur
-    que l'icone 🟢/🔴 en tete de sa ligne INDEX CHG%D), avec un seuil minimum
-    (CURRENCY_DAILY_MOVE_MIN_MAGNITUDE) en dessous duquel le mouvement est
-    trop proche de zero pour compter comme un vrai signal directionnel --
-    meme principe que CURRENCY_INDEX_MIN_SPREAD, applique ici a une seule
-    devise plutot qu'a un ecart entre deux. Sans ce seuil, un CAD +0.00%
-    ou un USD +0.01% comptaient comme BULL au meme titre qu'un GBP -1.20%,
-    ce qui rendait `currency_diverges_from_its_own_day` sensible au bruit
-    proche de zero -- cf. son docstring pour l'usage."""
-    if not isinstance(daily_chg, (int, float)) or abs(daily_chg) < CURRENCY_DAILY_MOVE_MIN_MAGNITUDE:
+    que l'icone 🟢/🔴 en tete de sa ligne INDEX CHG%D). Tout mouvement non
+    nul compte (CURRENCY_DAILY_MOVE_MIN_MAGNITUDE = 0, cf. commentaire
+    ci-dessus) -- seul `daily_chg` exactement nul (ou indisponible) reste
+    NEUTRAL, meme comportement que `average_direction`."""
+    if not isinstance(daily_chg, (int, float)) or abs(daily_chg) <= CURRENCY_DAILY_MOVE_MIN_MAGNITUDE:
         return "NEUTRAL"
     return "BULL" if daily_chg > 0 else "BEAR"
 

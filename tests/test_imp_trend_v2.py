@@ -431,16 +431,21 @@ class CurrencyDailyStatusTests(unittest.TestCase):
     def test_bear_above_the_threshold(self):
         self.assertEqual(currency_daily_status(-1.20), "BEAR")
 
-    def test_neutral_below_the_threshold_even_if_nonzero(self):
-        # Exemples reels: CAD +0.00, USD +0.01 -- techniquement positifs,
-        # trop proches de zero pour compter comme un vrai signal.
+    def test_any_nonzero_move_counts(self):
+        # CURRENCY_DAILY_MOVE_MIN_MAGNITUDE = 0 (a la demande explicite de
+        # l'utilisateur, cf. commentaire pres de la constante): meme un tout
+        # petit mouvement compte, seul un daily_chg exactement nul reste
+        # NEUTRAL -- ex. reel: GBP -0.06% avec un consensus BULL doit compter
+        # comme une contradiction, pas etre ignore comme du bruit.
+        self.assertEqual(currency_daily_status(0.01), "BULL")
+        self.assertEqual(currency_daily_status(-0.06), "BEAR")
         self.assertEqual(currency_daily_status(0.0), "NEUTRAL")
-        self.assertEqual(currency_daily_status(0.01), "NEUTRAL")
-        self.assertEqual(currency_daily_status(-0.09), "NEUTRAL")
 
-    def test_at_the_threshold_counts(self):
-        self.assertEqual(currency_daily_status(CURRENCY_DAILY_MOVE_MIN_MAGNITUDE), "BULL")
-        self.assertEqual(currency_daily_status(-CURRENCY_DAILY_MOVE_MIN_MAGNITUDE), "BEAR")
+    def test_threshold_constant_is_zero(self):
+        # Verrouille le choix explicite de l'utilisateur -- si ce test casse,
+        # c'est qu'on a change CURRENCY_DAILY_MOVE_MIN_MAGNITUDE sans mettre
+        # a jour ce commentaire.
+        self.assertEqual(CURRENCY_DAILY_MOVE_MIN_MAGNITUDE, 0.0)
 
     def test_neutral_when_missing(self):
         self.assertEqual(currency_daily_status(None), "NEUTRAL")
@@ -476,17 +481,18 @@ class CurrencyDivergesFromItsOwnDayTests(unittest.TestCase):
         self.assertFalse(currency_diverges_from_its_own_day("GBP", {}, {}))
         self.assertFalse(currency_diverges_from_its_own_day("GBP", {"GBP": make_index_row(-0.24)}, {}))
 
-    def test_false_when_daily_move_is_too_small_despite_opposing_consensus(self):
-        # USD +0.01% aujourd'hui (l'exemple reel qui a motive le seuil) alors
-        # que le consensus structurel est BEAR: sans CURRENCY_DAILY_MOVE_MIN_MAGNITUDE
-        # ce +0.01 compterait comme BULL et contredirait le consensus -- avec
-        # le seuil, +0.01 reste NEUTRAL, pas de contradiction.
+    def test_true_even_when_daily_move_is_tiny(self):
+        # USD +0.01% aujourd'hui alors que le consensus structurel est BEAR:
+        # meme un tres petit mouvement compte comme contradiction (aucun
+        # seuil minimum, cf. CURRENCY_DAILY_MOVE_MIN_MAGNITUDE = 0) -- choix
+        # explicite de l'utilisateur apres le cas reel GBP -0.06%/consensus
+        # BULL, qu'il ne voulait pas voir ignore comme du bruit.
         index_by_currency = {"USD": make_index_row(0.01)}
         imp_by_currency = {"USD": make_result(
             "USD", renko=("BEAR", "BEAR", "BEAR"),
             d1_imp=("BEAR", -10.0, 15, 5.0, 5), h1_imp=("BEAR", -3.0, 5, 1.0, 5),
         )}
-        self.assertFalse(currency_diverges_from_its_own_day("USD", index_by_currency, imp_by_currency))
+        self.assertTrue(currency_diverges_from_its_own_day("USD", index_by_currency, imp_by_currency))
 
 
 class PairTouchesADivergentCurrencyTests(unittest.TestCase):
@@ -498,9 +504,8 @@ class PairTouchesADivergentCurrencyTests(unittest.TestCase):
     def test_true_when_the_quote_currency_diverges(self):
         index_by_currency = {"AUD": make_index_row(0.64), "JPY": make_index_row(0.15)}
         imp_by_currency = {"AUD": make_result("AUD"), "JPY": make_result("JPY")}
-        # JPY: +0.15% (BULL, au-dessus de CURRENCY_DAILY_MOVE_MIN_MAGNITUDE)
-        # aujourd'hui, consensus BEAR (renko/imp par defaut de make_result
-        # bascule en BEAR ici via renko/d1/h1 fournis).
+        # JPY: +0.15% (BULL) aujourd'hui, consensus BEAR (renko/imp par
+        # defaut de make_result bascule en BEAR ici via renko/d1/h1 fournis).
         imp_by_currency["JPY"] = make_result(
             "JPY", renko=("BEAR", "BEAR", "BEAR"),
             d1_imp=("BEAR", -10.0, 15, 5.0, 5), h1_imp=("BULL", 3.0, 5, -1.0, 5),
