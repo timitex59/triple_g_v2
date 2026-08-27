@@ -41,15 +41,17 @@ from datetime import datetime
 from pathlib import Path
 
 from ichimoku_v4 import fetch_tv_ohlc, send_telegram_message
-from imp_trend_29pairs import currency_consensus_status, fetch_currency_imp_rows
+from imp_trend_29pairs import (
+    CURRENCY_SNAPSHOT_MAX_AGE,
+    currency_consensus_status,
+    fetch_or_load_currency_data,
+)
 from renko_full_alignment_29pairs import (
-    FOREX_INDEX_ASSETS,
     FOREX_PAIR_ASSETS,
     PARIS_TZ,
     _pair_currencies,
     _strength_status_lines,
     all_index_status_rows,
-    compute_asset_score,
     load_price_trend_state,
     pair_check_signals,
     save_price_trend_state,
@@ -110,20 +112,6 @@ def fetch_pair_row(pair: str) -> dict | None:
     }
 
 
-def fetch_index_rows(length: int, candles: int, max_streak: int) -> list[dict]:
-    """Renko M/W/D complet (cf. `compute_asset_score`) pour les 8 devises --
-    alimente a la fois la section INDEX CHG%D et le segment INDEX de chaque
-    ligne PAIRES (via `index_by_currency`, construit par l'appelant)."""
-    rows: list[dict] = []
-    for asset in FOREX_INDEX_ASSETS:
-        row = compute_asset_score(asset, length, candles, max_streak)
-        if row is not None:
-            rows.append(row)
-        else:
-            print(f"{asset.get('currency')} ({asset['pair']}): pas de donnees indice")
-    return rows
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="PAIRE_CHECK: verdict INDEX/06h/RUN pour un jeu de paires choisies.",
@@ -152,6 +140,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--imp-renko-bricks", type=int, default=2500,
         help="Briques Renko M/W/D par devise pour les boules Renko/IMP21 de INDEX CHG%%D.",
+    )
+    parser.add_argument(
+        "--currency-snapshot", type=str, default="currency_snapshot.json",
+        help="Fichier partage entre V1/V2/paire_check.py pour reutiliser un fetch devise recent au lieu de "
+             "refetcher (cf. imp_trend_29pairs.fetch_or_load_currency_data). Vide pour desactiver.",
+    )
+    parser.add_argument(
+        "--currency-snapshot-max-age", type=int, default=CURRENCY_SNAPSHOT_MAX_AGE,
+        help="Age maximum en secondes d'un instantane devise reutilisable.",
     )
     parser.add_argument(
         "--state-file", default=str(STATE_FILE),
@@ -312,12 +309,14 @@ def main() -> int:
     # `best_pair_name`) doit etre connu avant de choisir les paires-support a
     # fetcher, pour que ses billes 06h/RUN soient exploitables comme celles
     # de PAIRES -- pas seulement son segment INDEX.
-    index_rows = fetch_index_rows(args.length, args.candles, args.max_streak)
-    index_by_currency = {str(row["currency"]): row for row in index_rows}
-    best_pair = best_pair_name(index_rows)
-    imp_by_currency = fetch_currency_imp_rows(
+    snapshot_path = Path(args.currency_snapshot) if args.currency_snapshot else None
+    index_by_currency, imp_by_currency = fetch_or_load_currency_data(
+        snapshot_path, args.currency_snapshot_max_age,
+        args.length, args.candles, args.max_streak,
         args.imp_h1_candles, args.imp_d1_candles, args.imp_renko_bricks, args.length, args.max_streak,
     )
+    index_rows = list(index_by_currency.values())
+    best_pair = best_pair_name(index_rows)
 
     currencies = needed_currencies(args.pairs)
     best_pair_currencies = _pair_currencies(best_pair) if best_pair else None

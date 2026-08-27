@@ -95,10 +95,10 @@ from imp_trend_29pairs import (
     PAIRS_29,
     PARIS,
     compute_pair,
+    CURRENCY_SNAPSHOT_MAX_AGE,
     currency_index_diverges,
     directional_average_confirms,
-    fetch_currency_imp_rows,
-    fetch_currency_index_rows,
+    fetch_or_load_currency_data,
     pair_touches_a_divergent_currency,
     screening_votes,
     send_telegram_message,
@@ -325,6 +325,15 @@ def parse_args() -> argparse.Namespace:
         "--index-candles", type=int, default=300,
         help="Bougies/briques M/W/D par indice devise pour le vote CURRENCY_INDEX.",
     )
+    parser.add_argument(
+        "--currency-snapshot", type=str, default="currency_snapshot.json",
+        help="Fichier partage entre V1/V2/paire_check.py pour reutiliser un fetch devise recent au lieu de "
+             "refetcher (cf. imp_trend_29pairs.fetch_or_load_currency_data). Vide pour desactiver.",
+    )
+    parser.add_argument(
+        "--currency-snapshot-max-age", type=int, default=CURRENCY_SNAPSHOT_MAX_AGE,
+        help="Age maximum en secondes d'un instantane devise reutilisable.",
+    )
     parser.add_argument("--json", type=Path, default=Path("imp_trend_29pairs_v2.json"))
     parser.add_argument("--selection-json", type=Path, default=Path("imp_trend_selection_v2.json"))
     parser.add_argument("--sessions-state", type=Path, default=Path("imp_trend_sessions_state_v2.json"))
@@ -335,8 +344,10 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     pairs = [pair.upper() for pair in args.pairs]
-    index_by_currency = fetch_currency_index_rows(args.atr_length, args.index_candles, args.max_streak)
-    imp_by_currency = fetch_currency_imp_rows(
+    snapshot_path = Path(args.currency_snapshot) if args.currency_snapshot else None
+    index_by_currency, imp_by_currency = fetch_or_load_currency_data(
+        snapshot_path, args.currency_snapshot_max_age,
+        args.atr_length, args.index_candles, args.max_streak,
         args.h1_candles, args.d1_candles, args.renko_bricks, args.atr_length, args.max_streak,
     )
     results: list[dict] = []

@@ -59,7 +59,25 @@ a downgrade, not the outright veto `currency_index_diverges` already is:
 `daily_chg` is a single, noisy, midnight-resetting data point, and this
 contradiction usually just means an ordinary pullback inside an established
 trend -- too weak a signal to throw the pair out of the message entirely,
-but real enough that the user chose to keep it out of position tracking."""
+but real enough that the user chose to keep it out of position tracking.
+
+2026-08-27 (later): V1, V2 and paire_check.py each fetched their own
+`index_by_currency`/`imp_by_currency` independently, a few minutes apart --
+.github/workflows/triple_g_workflow.yml runs the three of them sequentially
+in the SAME CI job, but each is a live TradingView snapshot, so a currency
+sitting right at a threshold (daily_chg near CURRENCY_DAILY_MOVE_MIN_MAGNITUDE,
+or a consensus vote near CURRENCY_CONSENSUS_THRESHOLD) could genuinely read
+differently in each script's own message. `save_currency_snapshot`/
+`load_currency_snapshot`/`fetch_or_load_currency_data` fix this: since all
+three scripts already share the same CI job's filesystem, the first one to
+run fetches live and writes a snapshot file; the next ones find it (still
+fresh, cf. `max_age_seconds`) and reuse it verbatim instead of re-fetching --
+guarantees byte-identical currency data across the three for that run, and
+cuts the currency-related TradingView calls roughly 3x (fetched once, not
+three times). Falls back to its own live fetch when the snapshot is
+missing/stale/corrupt, so each script stays fully usable standalone (e.g.
+for a manual one-off run) -- this is a reused-if-fresh optimization, not a
+new dependency between the scripts."""
 
 from __future__ import annotations
 
@@ -72,7 +90,7 @@ import string
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -87,6 +105,7 @@ from renko_full_alignment_29pairs import (
     compute_asset_score,
     currency_spread,
 )
+from renko_score_29pairs_v16 import TFState
 
 
 PAIRS_29 = [
@@ -635,6 +654,116 @@ def fetch_currency_index_rows(length: int = 14, candles: int = 300, max_streak: 
             if row is not None:
                 rows[str(asset["currency"])] = row
     return rows
+
+
+CURRENCY_SNAPSHOT_MAX_AGE = 600  # secondes -- large marge pour tout le pipeline CI, court devant l'heure entre deux runs
+
+
+def _serialize_currency_index_row(row: dict) -> dict:
+    """`index_by_currency` entry -> dict JSON-safe: remplace les `TFState`
+    (dataclasses) de `states` par des dicts plats via `dataclasses.asdict`.
+    Symetrique de `_deserialize_currency_index_row`. `imp_by_currency` n'a
+    pas besoin de cet aller-retour: `compute_currency_imp` ne renvoie deja
+    que des types JSON natifs (str/float/int/None/dict)."""
+    serialized = dict(row)
+    states = row.get("states") or {}
+    serialized["states"] = {tf: asdict(state) for tf, state in states.items()}
+    return serialized
+
+
+def _deserialize_currency_index_row(data: dict) -> dict:
+    """Inverse de `_serialize_currency_index_row`: reconstruit les `TFState`
+    a partir des dicts plats stockes dans le snapshot JSON."""
+    row = dict(data)
+    states = data.get("states") or {}
+    row["states"] = {tf: TFState(**fields) for tf, fields in states.items()}
+    return row
+
+
+def save_currency_snapshot(
+    path: Path, index_by_currency: dict[str, dict], imp_by_currency: dict[str, dict],
+) -> None:
+    """Persiste `index_by_currency`/`imp_by_currency` dans un fichier JSON
+    partage entre les 3 scripts qui les consomment (imp_trend_29pairs.py,
+    imp_trend_29pairs_v2.py, paire_check.py) -- tous tournent dans le meme
+    job CI (cf. .github/workflows/triple_g_workflow.yml), le premier a
+    fetcher laisse un instantane que les suivants reutilisent au lieu de
+    refaire leur propre fetch live a quelques minutes d'ecart (cf.
+    `load_currency_snapshot`, `fetch_or_load_currency_data`)."""
+    payload = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "index_by_currency": {
+            currency: _serialize_currency_index_row(row) for currency, row in index_by_currency.items()
+        },
+        "imp_by_currency": imp_by_currency,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, default=str), encoding="utf-8")
+
+
+def load_currency_snapshot(
+    path: Path, max_age_seconds: int = CURRENCY_SNAPSHOT_MAX_AGE,
+) -> tuple[dict[str, dict], dict[str, dict]] | None:
+    """Relit un instantane ecrit par `save_currency_snapshot`, si present et
+    assez recent. None si absent, illisible ou perime (cf. `max_age_seconds`)
+    -- l'appelant doit alors fetcher lui-meme en direct, cf.
+    `fetch_or_load_currency_data`, ce qui garde chaque script utilisable seul
+    (ex. un run manuel isole, sans les deux autres avant lui)."""
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        generated_at = datetime.fromisoformat(payload["generated_at"])
+    except (OSError, json.JSONDecodeError, KeyError, ValueError):
+        return None
+    age = (datetime.now(timezone.utc) - generated_at).total_seconds()
+    if age < 0 or age > max_age_seconds:
+        return None
+    try:
+        index_by_currency = {
+            currency: _deserialize_currency_index_row(row)
+            for currency, row in payload["index_by_currency"].items()
+        }
+        imp_by_currency = payload["imp_by_currency"]
+    except (KeyError, TypeError):
+        return None
+    return index_by_currency, imp_by_currency
+
+
+def fetch_or_load_currency_data(
+    snapshot_path: Path | None,
+    snapshot_max_age: int,
+    index_length: int,
+    index_candles: int,
+    index_max_streak: int,
+    imp_h1_candles: int,
+    imp_d1_candles: int,
+    imp_renko_bricks: int,
+    imp_atr_length: int,
+    imp_max_streak: int,
+) -> tuple[dict[str, dict], dict[str, dict]]:
+    """Point d'entree unique pour `index_by_currency`/`imp_by_currency`,
+    utilise par les 3 scripts (V1, V2, paire_check.py). Reutilise un
+    instantane partage recent si `snapshot_path` en a un (cf.
+    `load_currency_snapshot`) -- sinon fetch en direct (cf.
+    `fetch_currency_index_rows`/`fetch_currency_imp_rows`) puis ecrit le
+    resultat dans `snapshot_path` pour que les scripts suivants du meme run
+    CI le reutilisent (cf. `save_currency_snapshot`). `snapshot_path=None`
+    desactive le mecanisme (toujours fetcher en direct, jamais rien lire ni
+    ecrire) -- utile pour un test isole qui ne doit pas dependre d'un
+    instantane laisse par un run precedent."""
+    if snapshot_path is not None:
+        cached = load_currency_snapshot(snapshot_path, snapshot_max_age)
+        if cached is not None:
+            print(f"Instantane devise reutilise: {snapshot_path.resolve()}")
+            return cached
+    index_by_currency = fetch_currency_index_rows(index_length, index_candles, index_max_streak)
+    imp_by_currency = fetch_currency_imp_rows(
+        imp_h1_candles, imp_d1_candles, imp_renko_bricks, imp_atr_length, imp_max_streak,
+    )
+    if snapshot_path is not None:
+        save_currency_snapshot(snapshot_path, index_by_currency, imp_by_currency)
+    return index_by_currency, imp_by_currency
 
 
 CURRENCY_INDEX_MIN_SPREAD = SYNC_MIN_EXPECTED  # 0.30 -- meme seuil que sync_marker (renko_full_alignment_29pairs.py)
@@ -1407,6 +1536,15 @@ def parse_args() -> argparse.Namespace:
         "--index-candles", type=int, default=300,
         help="Bougies/briques M/W/D par indice devise pour le vote CURRENCY_INDEX (cf. fetch_currency_index_rows).",
     )
+    parser.add_argument(
+        "--currency-snapshot", type=str, default="currency_snapshot.json",
+        help="Fichier partage entre V1/V2/paire_check.py pour reutiliser un fetch devise recent au lieu de "
+             "refetcher (cf. fetch_or_load_currency_data). Vide pour desactiver (toujours fetcher en direct).",
+    )
+    parser.add_argument(
+        "--currency-snapshot-max-age", type=int, default=CURRENCY_SNAPSHOT_MAX_AGE,
+        help="Age maximum en secondes d'un instantane devise reutilisable.",
+    )
     parser.add_argument("--csv", type=Path, default=Path("imp_trend_29pairs.csv"))
     parser.add_argument("--json", type=Path, default=Path("imp_trend_29pairs.json"))
     parser.add_argument("--selection-csv", type=Path, default=Path("imp_trend_selection.csv"))
@@ -1420,8 +1558,10 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     pairs = [pair.upper() for pair in args.pairs]
-    index_by_currency = fetch_currency_index_rows(args.atr_length, args.index_candles, args.max_streak)
-    imp_by_currency = fetch_currency_imp_rows(
+    snapshot_path = Path(args.currency_snapshot) if args.currency_snapshot else None
+    index_by_currency, imp_by_currency = fetch_or_load_currency_data(
+        snapshot_path, args.currency_snapshot_max_age,
+        args.atr_length, args.index_candles, args.max_streak,
         args.h1_candles, args.d1_candles, args.renko_bricks, args.atr_length, args.max_streak,
     )
     results: list[dict] = []
