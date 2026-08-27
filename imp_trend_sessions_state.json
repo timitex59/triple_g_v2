@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-27T18:22:53.166899+00:00",
+  "updated_at": "2026-08-27T19:11:03.151121+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": 77.80000000000645,
@@ -1541,12 +1541,12 @@
       "comparison_pips": 18.80000000000259
     },
     "New York": {
-      "realized_pips": 97.39999999999908,
-      "current_session_realized_pips": 0.0,
+      "realized_pips": 104.80000000000031,
+      "current_session_realized_pips": 7.400000000001228,
       "last_session_pips": 33.499999999998394,
-      "unrealized_pips": 75.10000000000328,
-      "total_pips": 172.50000000000236,
-      "daily_pips": 75.10000000000328,
+      "unrealized_pips": 78.69999999999965,
+      "total_pips": 183.49999999999994,
+      "daily_pips": 86.10000000000088,
       "is_active": true,
       "active_session_id": "2026-08-27",
       "positions": {
@@ -1573,11 +1573,6 @@
         "EURJPY": {
           "direction": "BULL",
           "entry_price": 185.628,
-          "entry_time_utc": "2026-08-27T11:18:52.286697+00:00"
-        },
-        "GBPJPY": {
-          "direction": "BULL",
-          "entry_price": 216.552,
           "entry_time_utc": "2026-08-27T11:18:52.286697+00:00"
         },
         "USDJPY": {
@@ -1953,6 +1948,16 @@
           "pair": "EURAUD",
           "direction": "BEAR",
           "entry_price": 1.62117
+        },
+        {
+          "time_utc": "2026-08-27T19:11:03.151121+00:00",
+          "event": "EXIT",
+          "pair": "GBPJPY",
+          "direction": "BULL",
+          "entry_price": 216.552,
+          "exit_price": 216.626,
+          "pips": 7.400000000001228,
+          "reason": "INVALIDATED"
         }
       ],
       "daily_pips_history": [
@@ -1987,10 +1992,14 @@
         {
           "time_utc": "2026-08-27T18:22:53.166899+00:00",
           "daily_pips": 75.10000000000328
+        },
+        {
+          "time_utc": "2026-08-27T19:11:03.151121+00:00",
+          "daily_pips": 86.10000000000088
         }
       ],
       "comparison_baseline": 69.39999999999876,
-      "comparison_pips": 103.1000000000036
+      "comparison_pips": 114.10000000000119
     }
   }
 }
