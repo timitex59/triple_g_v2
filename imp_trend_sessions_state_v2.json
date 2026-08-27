@@ -962,8 +962,8 @@
       "comparison_pips": -0.39999999999866276
     },
     "New York": {
-      "realized_pips": 7.700000000000308,
-      "current_session_realized_pips": -15.100000000001046,
+      "realized_pips": 10.700000000000422,
+      "current_session_realized_pips": -12.100000000000932,
       "last_session_pips": 22.800000000001354,
       "active_session_id": "2026-08-27",
       "positions": {
@@ -1001,11 +1001,6 @@
           "direction": "BEAR",
           "entry_price": 1.62108,
           "entry_time_utc": "2026-08-27T11:20:39.553332+00:00"
-        },
-        "CHFJPY": {
-          "direction": "BULL",
-          "entry_price": 198.208,
-          "entry_time_utc": "2026-08-27T19:12:14.798919+00:00"
         }
       },
       "events": [
@@ -1217,12 +1212,22 @@
           "pair": "CHFJPY",
           "direction": "BULL",
           "entry_price": 198.208
+        },
+        {
+          "time_utc": "2026-08-27T19:20:04.826103+00:00",
+          "event": "EXIT",
+          "pair": "CHFJPY",
+          "direction": "BULL",
+          "entry_price": 198.208,
+          "exit_price": 198.238,
+          "pips": 3.0000000000001137,
+          "reason": "INVALIDATED"
         }
       ],
-      "unrealized_pips": 82.60000000000421,
-      "total_pips": 90.30000000000453,
+      "unrealized_pips": 83.80000000000662,
+      "total_pips": 94.50000000000705,
       "is_active": true,
-      "daily_pips": 67.50000000000317,
+      "daily_pips": 71.70000000000569,
       "daily_pips_history": [
         {
           "time_utc": "2026-08-27T11:20:39.553332+00:00",
@@ -1259,11 +1264,15 @@
         {
           "time_utc": "2026-08-27T19:12:14.798919+00:00",
           "daily_pips": 67.50000000000317
+        },
+        {
+          "time_utc": "2026-08-27T19:20:04.826103+00:00",
+          "daily_pips": 71.70000000000569
         }
       ],
       "comparison_baseline": 5.399999999995986,
-      "comparison_pips": 84.90000000000855
+      "comparison_pips": 89.10000000001106
     }
   },
-  "updated_at": "2026-08-27T19:12:14.798919+00:00"
+  "updated_at": "2026-08-27T19:20:04.826103+00:00"
 }
