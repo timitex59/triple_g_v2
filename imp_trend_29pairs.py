@@ -770,17 +770,36 @@ def currency_consensus_status(currency_row: dict) -> str:
     return "NEUTRAL"
 
 
+CURRENCY_DAILY_MOVE_MIN_MAGNITUDE = 0.10  # % -- en dessous, daily_chg reste NEUTRAL
+
+
+def currency_daily_status(daily_chg: float | None) -> str:
+    """BULL/BEAR/NEUTRAL a partir du `daily_chg` d'une devise (meme valeur
+    que l'icone 🟢/🔴 en tete de sa ligne INDEX CHG%D), avec un seuil minimum
+    (CURRENCY_DAILY_MOVE_MIN_MAGNITUDE) en dessous duquel le mouvement est
+    trop proche de zero pour compter comme un vrai signal directionnel --
+    meme principe que CURRENCY_INDEX_MIN_SPREAD, applique ici a une seule
+    devise plutot qu'a un ecart entre deux. Sans ce seuil, un CAD +0.00%
+    ou un USD +0.01% comptaient comme BULL au meme titre qu'un GBP -1.20%,
+    ce qui rendait `currency_diverges_from_its_own_day` sensible au bruit
+    proche de zero -- cf. son docstring pour l'usage."""
+    if not isinstance(daily_chg, (int, float)) or abs(daily_chg) < CURRENCY_DAILY_MOVE_MIN_MAGNITUDE:
+        return "NEUTRAL"
+    return "BULL" if daily_chg > 0 else "BEAR"
+
+
 def currency_diverges_from_its_own_day(
     currency: str,
     index_by_currency: dict[str, dict] | None,
     imp_by_currency: dict[str, dict] | None,
 ) -> bool:
-    """True si le mouvement du jour d'une devise (signe de `daily_chg`, meme
-    lecture que l'icone 🟢/🔴 en tete de sa ligne INDEX CHG%D) contredit
-    ouvertement son propre consensus structurel (cf. `currency_consensus_status`)
-    -- BULL le jour contre BEAR de fond, ou l'inverse. Ne se declenche PAS
-    quand l'un des deux est simplement NEUTRAL/indecis (doublement indecise,
-    uni-indecise ou doublement validee: pas une contradiction). Devise
+    """True si le mouvement du jour d'une devise (cf. `currency_daily_status`)
+    contredit ouvertement son propre consensus structurel (cf.
+    `currency_consensus_status`) -- BULL le jour contre BEAR de fond, ou
+    l'inverse. Ne se declenche PAS quand l'un des deux est simplement
+    NEUTRAL/indecis (doublement indecise, uni-indecise ou doublement
+    validee: pas une contradiction) -- ni quand le mouvement du jour est
+    trop faible pour compter (CURRENCY_DAILY_MOVE_MIN_MAGNITUDE). Devise
     absente de l'un des deux dicts -> False, pas assez d'information pour
     conclure a une contradiction.
 
@@ -793,7 +812,7 @@ def currency_diverges_from_its_own_day(
     imp_row = (imp_by_currency or {}).get(currency)
     if index_row is None or imp_row is None:
         return False
-    daily_status = average_direction(index_row.get("daily_chg"))
+    daily_status = currency_daily_status(index_row.get("daily_chg"))
     consensus_status = currency_consensus_status(imp_row)
     if daily_status == "NEUTRAL" or consensus_status == "NEUTRAL":
         return False

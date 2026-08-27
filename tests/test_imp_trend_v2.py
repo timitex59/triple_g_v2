@@ -8,8 +8,10 @@ import unittest
 from types import SimpleNamespace
 
 from imp_trend_29pairs import (
+    CURRENCY_DAILY_MOVE_MIN_MAGNITUDE,
     CURRENCY_INDEX_MIN_SPREAD,
     currency_consensus_status,
+    currency_daily_status,
     currency_diverges_from_its_own_day,
     currency_index_diverges,
     currency_index_vote,
@@ -422,6 +424,28 @@ class CurrencyConsensusStatusTests(unittest.TestCase):
         self.assertEqual(currency_consensus_status(row), "NEUTRAL")
 
 
+class CurrencyDailyStatusTests(unittest.TestCase):
+    def test_bull_above_the_threshold(self):
+        self.assertEqual(currency_daily_status(0.64), "BULL")
+
+    def test_bear_above_the_threshold(self):
+        self.assertEqual(currency_daily_status(-1.20), "BEAR")
+
+    def test_neutral_below_the_threshold_even_if_nonzero(self):
+        # Exemples reels: CAD +0.00, USD +0.01 -- techniquement positifs,
+        # trop proches de zero pour compter comme un vrai signal.
+        self.assertEqual(currency_daily_status(0.0), "NEUTRAL")
+        self.assertEqual(currency_daily_status(0.01), "NEUTRAL")
+        self.assertEqual(currency_daily_status(-0.09), "NEUTRAL")
+
+    def test_at_the_threshold_counts(self):
+        self.assertEqual(currency_daily_status(CURRENCY_DAILY_MOVE_MIN_MAGNITUDE), "BULL")
+        self.assertEqual(currency_daily_status(-CURRENCY_DAILY_MOVE_MIN_MAGNITUDE), "BEAR")
+
+    def test_neutral_when_missing(self):
+        self.assertEqual(currency_daily_status(None), "NEUTRAL")
+
+
 class CurrencyDivergesFromItsOwnDayTests(unittest.TestCase):
     def test_true_when_daily_move_opposes_the_consensus(self):
         # GBP: -0.24% aujourd'hui (BEAR) mais consensus structurel BULL
@@ -452,6 +476,18 @@ class CurrencyDivergesFromItsOwnDayTests(unittest.TestCase):
         self.assertFalse(currency_diverges_from_its_own_day("GBP", {}, {}))
         self.assertFalse(currency_diverges_from_its_own_day("GBP", {"GBP": make_index_row(-0.24)}, {}))
 
+    def test_false_when_daily_move_is_too_small_despite_opposing_consensus(self):
+        # USD +0.01% aujourd'hui (l'exemple reel qui a motive le seuil) alors
+        # que le consensus structurel est BEAR: sans CURRENCY_DAILY_MOVE_MIN_MAGNITUDE
+        # ce +0.01 compterait comme BULL et contredirait le consensus -- avec
+        # le seuil, +0.01 reste NEUTRAL, pas de contradiction.
+        index_by_currency = {"USD": make_index_row(0.01)}
+        imp_by_currency = {"USD": make_result(
+            "USD", renko=("BEAR", "BEAR", "BEAR"),
+            d1_imp=("BEAR", -10.0, 15, 5.0, 5), h1_imp=("BEAR", -3.0, 5, 1.0, 5),
+        )}
+        self.assertFalse(currency_diverges_from_its_own_day("USD", index_by_currency, imp_by_currency))
+
 
 class PairTouchesADivergentCurrencyTests(unittest.TestCase):
     def test_true_when_the_base_currency_diverges(self):
@@ -460,9 +496,10 @@ class PairTouchesADivergentCurrencyTests(unittest.TestCase):
         self.assertTrue(pair_touches_a_divergent_currency("GBPJPY", index_by_currency, imp_by_currency))
 
     def test_true_when_the_quote_currency_diverges(self):
-        index_by_currency = {"AUD": make_index_row(0.64), "JPY": make_index_row(0.01)}
+        index_by_currency = {"AUD": make_index_row(0.64), "JPY": make_index_row(0.15)}
         imp_by_currency = {"AUD": make_result("AUD"), "JPY": make_result("JPY")}
-        # JPY: +0.01% (BULL) aujourd'hui, consensus BEAR (renko/imp par defaut de make_result
+        # JPY: +0.15% (BULL, au-dessus de CURRENCY_DAILY_MOVE_MIN_MAGNITUDE)
+        # aujourd'hui, consensus BEAR (renko/imp par defaut de make_result
         # bascule en BEAR ici via renko/d1/h1 fournis).
         imp_by_currency["JPY"] = make_result(
             "JPY", renko=("BEAR", "BEAR", "BEAR"),
