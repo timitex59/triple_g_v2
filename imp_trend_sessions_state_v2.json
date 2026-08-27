@@ -41,6 +41,11 @@
           "direction": "BEAR",
           "entry_price": 1.61913,
           "entry_time_utc": "2026-08-27T20:20:17.763063+00:00"
+        },
+        "CHFJPY": {
+          "direction": "BULL",
+          "entry_price": 198.298,
+          "entry_time_utc": "2026-08-27T21:20:05.324233+00:00"
         }
       },
       "events": [
@@ -364,12 +369,19 @@
           "exit_price": 198.182,
           "pips": -2.000000000001023,
           "reason": "INVALIDATED"
+        },
+        {
+          "time_utc": "2026-08-27T21:20:05.324233+00:00",
+          "event": "ENTRY",
+          "pair": "CHFJPY",
+          "direction": "BULL",
+          "entry_price": 198.298
         }
       ],
-      "unrealized_pips": -6.90000000000035,
-      "total_pips": 26.700000000000838,
+      "unrealized_pips": -13.800000000002832,
+      "total_pips": 19.799999999998356,
       "is_active": true,
-      "daily_pips": -8.900000000001373,
+      "daily_pips": -15.800000000003855,
       "daily_pips_history": [
         {
           "time_utc": "2026-08-27T20:20:17.763063+00:00",
@@ -378,10 +390,14 @@
         {
           "time_utc": "2026-08-27T20:32:00.162654+00:00",
           "daily_pips": -8.900000000001373
+        },
+        {
+          "time_utc": "2026-08-27T21:20:05.324233+00:00",
+          "daily_pips": -15.800000000003855
         }
       ],
       "comparison_baseline": 8.600000000001764,
-      "comparison_pips": 18.099999999999074
+      "comparison_pips": 11.199999999996592
     },
     "Tokyo": {
       "realized_pips": 42.0000000000071,
@@ -1406,5 +1422,5 @@
       "comparison_pips": 78.90000000000809
     }
   },
-  "updated_at": "2026-08-27T20:32:00.162654+00:00"
+  "updated_at": "2026-08-27T21:20:05.324233+00:00"
 }
