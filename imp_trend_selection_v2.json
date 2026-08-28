@@ -119,6 +119,23 @@
     "CURRENCY_INDEX": "NEUTRAL"
   },
   {
+    "pair": "CHFJPY",
+    "direction": "BULL",
+    "confirmations": 5,
+    "renko_confirmations": 3,
+    "quality_applicable": 2,
+    "quality_confirmations": 1,
+    "tradable": true,
+    "rank_tier": 2,
+    "rank_reason": "5/6",
+    "RENKO_M": "BULL",
+    "RENKO_W": "BULL",
+    "RENKO_D": "BULL",
+    "D1_IMP21": "BULL",
+    "H1_IMP21": "BEAR",
+    "CURRENCY_INDEX": "BULL"
+  },
+  {
     "pair": "EURJPY",
     "direction": "BULL",
     "confirmations": 5,
@@ -155,18 +172,18 @@
   {
     "pair": "EURAUD",
     "direction": "BEAR",
-    "confirmations": 5,
+    "confirmations": 6,
     "renko_confirmations": 3,
     "quality_applicable": 2,
     "quality_confirmations": 1,
     "tradable": true,
-    "rank_tier": 2,
-    "rank_reason": "5/6",
+    "rank_tier": 1,
+    "rank_reason": "6/6",
     "RENKO_M": "BEAR",
     "RENKO_W": "BEAR",
     "RENKO_D": "BEAR",
     "D1_IMP21": "BEAR",
     "H1_IMP21": "BEAR",
-    "CURRENCY_INDEX": "NEUTRAL"
+    "CURRENCY_INDEX": "BEAR"
   }
 ]
