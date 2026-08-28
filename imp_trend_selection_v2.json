@@ -17,15 +17,15 @@
     "CURRENCY_INDEX": "BULL"
   },
   {
-    "pair": "CADJPY",
+    "pair": "AUDJPY",
     "direction": "BULL",
     "confirmations": 6,
     "renko_confirmations": 3,
     "quality_applicable": 2,
-    "quality_confirmations": 0,
+    "quality_confirmations": 2,
     "tradable": false,
     "rank_tier": 1,
-    "rank_reason": "6/6 MAIS QUALITE BULL 0/2",
+    "rank_reason": "6/6 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
     "RENKO_M": "BULL",
     "RENKO_W": "BULL",
     "RENKO_D": "BULL",
@@ -48,23 +48,6 @@
     "RENKO_D": "BULL",
     "D1_IMP21": "BULL",
     "H1_IMP21": "BULL",
-    "CURRENCY_INDEX": "BULL"
-  },
-  {
-    "pair": "CHFJPY",
-    "direction": "BULL",
-    "confirmations": 5,
-    "renko_confirmations": 3,
-    "quality_applicable": 2,
-    "quality_confirmations": 1,
-    "tradable": true,
-    "rank_tier": 2,
-    "rank_reason": "5/6",
-    "RENKO_M": "BULL",
-    "RENKO_W": "BULL",
-    "RENKO_D": "BULL",
-    "D1_IMP21": "BULL",
-    "H1_IMP21": "BEAR",
     "CURRENCY_INDEX": "BULL"
   },
   {
@@ -119,23 +102,6 @@
     "CURRENCY_INDEX": "NEUTRAL"
   },
   {
-    "pair": "AUDJPY",
-    "direction": "BULL",
-    "confirmations": 5,
-    "renko_confirmations": 3,
-    "quality_applicable": 2,
-    "quality_confirmations": 2,
-    "tradable": false,
-    "rank_tier": 2,
-    "rank_reason": "5/6 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
-    "RENKO_M": "BULL",
-    "RENKO_W": "BULL",
-    "RENKO_D": "BULL",
-    "D1_IMP21": "BULL",
-    "H1_IMP21": "BULL",
-    "CURRENCY_INDEX": "NEUTRAL"
-  },
-  {
     "pair": "AUDNZD",
     "direction": "BULL",
     "confirmations": 5,
@@ -153,20 +119,37 @@
     "CURRENCY_INDEX": "NEUTRAL"
   },
   {
+    "pair": "CADJPY",
+    "direction": "BULL",
+    "confirmations": 5,
+    "renko_confirmations": 3,
+    "quality_applicable": 2,
+    "quality_confirmations": 0,
+    "tradable": false,
+    "rank_tier": 2,
+    "rank_reason": "5/6 MAIS QUALITE BULL 0/2",
+    "RENKO_M": "BULL",
+    "RENKO_W": "BULL",
+    "RENKO_D": "BULL",
+    "D1_IMP21": "BULL",
+    "H1_IMP21": "BULL",
+    "CURRENCY_INDEX": "NEUTRAL"
+  },
+  {
     "pair": "EURAUD",
     "direction": "BEAR",
-    "confirmations": 5,
+    "confirmations": 6,
     "renko_confirmations": 3,
     "quality_applicable": 2,
     "quality_confirmations": 1,
     "tradable": false,
-    "rank_tier": 2,
-    "rank_reason": "5/6 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
+    "rank_tier": 1,
+    "rank_reason": "6/6 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
     "RENKO_M": "BEAR",
     "RENKO_W": "BEAR",
     "RENKO_D": "BEAR",
     "D1_IMP21": "BEAR",
     "H1_IMP21": "BEAR",
-    "CURRENCY_INDEX": "NEUTRAL"
+    "CURRENCY_INDEX": "BEAR"
   }
 ]
