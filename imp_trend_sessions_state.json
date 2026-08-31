@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-08-31T13:44:21.501334+00:00",
+  "updated_at": "2026-08-31T14:18:54.979629+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": 9.400000000007594,
@@ -1530,9 +1530,9 @@
       "realized_pips": 18.600000000005494,
       "current_session_realized_pips": -40.29999999999805,
       "last_session_pips": 25.800000000000267,
-      "unrealized_pips": 0.0,
-      "total_pips": 18.600000000005494,
-      "daily_pips": -40.29999999999805,
+      "unrealized_pips": -12.900000000001244,
+      "total_pips": 5.70000000000425,
+      "daily_pips": -53.19999999999929,
       "is_active": true,
       "active_session_id": "2026-08-31",
       "positions": {
@@ -2405,18 +2405,22 @@
         {
           "time_utc": "2026-08-31T13:44:21.501334+00:00",
           "daily_pips": -40.29999999999805
+        },
+        {
+          "time_utc": "2026-08-31T14:18:54.979629+00:00",
+          "daily_pips": -53.19999999999929
         }
       ],
       "comparison_baseline": 14.300000000000686,
-      "comparison_pips": 4.3000000000048075
+      "comparison_pips": -8.599999999996436
     },
     "New York": {
       "realized_pips": 127.8000000000015,
       "current_session_realized_pips": 14.400000000003075,
       "last_session_pips": -64.30000000000118,
-      "unrealized_pips": 0.0,
-      "total_pips": 127.8000000000015,
-      "daily_pips": 14.400000000003075,
+      "unrealized_pips": -12.900000000001244,
+      "total_pips": 114.90000000000026,
+      "daily_pips": 1.5000000000018314,
       "is_active": true,
       "active_session_id": "2026-08-31",
       "positions": {
@@ -3252,10 +3256,14 @@
         {
           "time_utc": "2026-08-31T13:44:21.501334+00:00",
           "daily_pips": 14.400000000003075
+        },
+        {
+          "time_utc": "2026-08-31T14:18:54.979629+00:00",
+          "daily_pips": 1.5000000000018314
         }
       ],
       "comparison_baseline": 69.39999999999876,
-      "comparison_pips": 58.40000000000275
+      "comparison_pips": 45.500000000001506
     }
   }
 }
