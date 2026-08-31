@@ -1812,7 +1812,28 @@
       "current_session_realized_pips": -5.399999999997409,
       "last_session_pips": -69.10000000000082,
       "active_session_id": "2026-08-31",
-      "positions": {},
+      "positions": {
+        "AUDUSD": {
+          "direction": "BULL",
+          "entry_price": 0.71676,
+          "entry_time_utc": "2026-08-31T16:21:48.834889+00:00"
+        },
+        "AUDCHF": {
+          "direction": "BULL",
+          "entry_price": 0.57932,
+          "entry_time_utc": "2026-08-31T16:21:48.834889+00:00"
+        },
+        "AUDNZD": {
+          "direction": "BULL",
+          "entry_price": 1.21142,
+          "entry_time_utc": "2026-08-31T16:21:48.834889+00:00"
+        },
+        "EURAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.62064,
+          "entry_time_utc": "2026-08-31T16:21:48.834889+00:00"
+        }
+      },
       "events": [
         {
           "time_utc": "2026-08-26T11:19:39.893466+00:00",
@@ -2459,6 +2480,34 @@
           "exit_price": 1.62144,
           "pips": -22.599999999999287,
           "reason": "INVALIDATED"
+        },
+        {
+          "time_utc": "2026-08-31T16:21:48.834889+00:00",
+          "event": "ENTRY",
+          "pair": "AUDUSD",
+          "direction": "BULL",
+          "entry_price": 0.71676
+        },
+        {
+          "time_utc": "2026-08-31T16:21:48.834889+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCHF",
+          "direction": "BULL",
+          "entry_price": 0.57932
+        },
+        {
+          "time_utc": "2026-08-31T16:21:48.834889+00:00",
+          "event": "ENTRY",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.21142
+        },
+        {
+          "time_utc": "2026-08-31T16:21:48.834889+00:00",
+          "event": "ENTRY",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.62064
         }
       ],
       "unrealized_pips": 0.0,
@@ -2489,11 +2538,15 @@
         {
           "time_utc": "2026-08-31T15:20:13.095925+00:00",
           "daily_pips": -5.399999999997409
+        },
+        {
+          "time_utc": "2026-08-31T16:21:48.834889+00:00",
+          "daily_pips": -5.399999999997409
         }
       ],
       "comparison_baseline": 5.399999999995986,
       "comparison_pips": 4.4000000000098485
     }
   },
-  "updated_at": "2026-08-31T15:20:13.095925+00:00"
+  "updated_at": "2026-08-31T16:21:48.834889+00:00"
 }
