@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "updated_at": "2026-08-31T21:18:46.596664+00:00",
+  "updated_at": "2026-08-31T23:51:54.172693+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": 9.400000000007594,
       "current_session_realized_pips": 0.0,
       "last_session_pips": -95.79999999999842,
-      "unrealized_pips": -3.40000000000118,
-      "total_pips": 6.000000000006414,
-      "daily_pips": -3.40000000000118,
+      "unrealized_pips": 8.100000000000884,
+      "total_pips": 17.500000000008477,
+      "daily_pips": 8.100000000000884,
       "is_active": true,
       "active_session_id": "2026-08-31",
       "positions": {
@@ -789,21 +789,46 @@
         {
           "time_utc": "2026-08-31T21:18:46.596664+00:00",
           "daily_pips": -3.40000000000118
+        },
+        {
+          "time_utc": "2026-08-31T23:51:54.172693+00:00",
+          "daily_pips": 8.100000000000884
         }
       ],
       "comparison_baseline": 30.000000000003364,
-      "comparison_pips": -23.99999999999695
+      "comparison_pips": -12.499999999994888
     },
     "Tokyo": {
       "realized_pips": -118.09999999999775,
-      "current_session_realized_pips": -185.9999999999971,
+      "current_session_realized_pips": 0.0,
       "last_session_pips": -185.9999999999971,
       "unrealized_pips": 0.0,
       "total_pips": -118.09999999999775,
-      "daily_pips": -185.9999999999971,
-      "is_active": false,
-      "active_session_id": null,
-      "positions": {},
+      "daily_pips": 0.0,
+      "is_active": true,
+      "active_session_id": "2026-09-01",
+      "positions": {
+        "AUDCHF": {
+          "direction": "BULL",
+          "entry_price": 0.5795,
+          "entry_time_utc": "2026-08-31T23:51:54.172693+00:00"
+        },
+        "AUDNZD": {
+          "direction": "BULL",
+          "entry_price": 1.211,
+          "entry_time_utc": "2026-08-31T23:51:54.172693+00:00"
+        },
+        "AUDUSD": {
+          "direction": "BULL",
+          "entry_price": 0.71687,
+          "entry_time_utc": "2026-08-31T23:51:54.172693+00:00"
+        },
+        "EURAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.62042,
+          "entry_time_utc": "2026-08-31T23:51:54.172693+00:00"
+        }
+      },
       "events": [
         {
           "time_utc": "2026-08-24T22:44:11.394317+00:00",
@@ -1552,28 +1577,40 @@
           "exit_price": 94.422,
           "pips": -27.10000000000008,
           "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-08-31T23:51:54.172693+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCHF",
+          "direction": "BULL",
+          "entry_price": 0.5795
+        },
+        {
+          "time_utc": "2026-08-31T23:51:54.172693+00:00",
+          "event": "ENTRY",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.211
+        },
+        {
+          "time_utc": "2026-08-31T23:51:54.172693+00:00",
+          "event": "ENTRY",
+          "pair": "AUDUSD",
+          "direction": "BULL",
+          "entry_price": 0.71687
+        },
+        {
+          "time_utc": "2026-08-31T23:51:54.172693+00:00",
+          "event": "ENTRY",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.62042
         }
       ],
       "daily_pips_history": [
         {
-          "time_utc": "2026-08-30T22:23:36.916941+00:00",
+          "time_utc": "2026-08-31T23:51:54.172693+00:00",
           "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-08-31T05:19:04.084058+00:00",
-          "daily_pips": -95.79999999999842
-        },
-        {
-          "time_utc": "2026-08-31T05:31:18.341490+00:00",
-          "daily_pips": -100.7999999999953
-        },
-        {
-          "time_utc": "2026-08-31T06:18:55.239798+00:00",
-          "daily_pips": -94.09999999999883
-        },
-        {
-          "time_utc": "2026-08-31T07:18:58.835102+00:00",
-          "daily_pips": -185.9999999999971
         }
       ],
       "comparison_baseline": 12.200000000002504,

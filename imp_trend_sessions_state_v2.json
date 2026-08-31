@@ -568,10 +568,10 @@
           "entry_price": 1.62101
         }
       ],
-      "unrealized_pips": -5.0000000000005596,
-      "total_pips": -45.299999999999365,
+      "unrealized_pips": 10.20000000000132,
+      "total_pips": -30.099999999997486,
       "is_active": true,
-      "daily_pips": -5.0000000000005596,
+      "daily_pips": 10.20000000000132,
       "daily_pips_history": [
         {
           "time_utc": "2026-08-31T20:05:07.040406+00:00",
@@ -584,17 +584,42 @@
         {
           "time_utc": "2026-08-31T21:19:57.945429+00:00",
           "daily_pips": -5.0000000000005596
+        },
+        {
+          "time_utc": "2026-08-31T23:53:05.650428+00:00",
+          "daily_pips": 10.20000000000132
         }
       ],
       "comparison_baseline": 8.600000000001764,
-      "comparison_pips": -53.90000000000113
+      "comparison_pips": -38.69999999999925
     },
     "Tokyo": {
       "realized_pips": -101.69999999998916,
-      "current_session_realized_pips": -150.99999999999625,
+      "current_session_realized_pips": 0.0,
       "last_session_pips": -150.99999999999625,
-      "active_session_id": null,
-      "positions": {},
+      "active_session_id": "2026-09-01",
+      "positions": {
+        "AUDCHF": {
+          "direction": "BULL",
+          "entry_price": 0.57956,
+          "entry_time_utc": "2026-08-31T23:53:05.650428+00:00"
+        },
+        "AUDNZD": {
+          "direction": "BULL",
+          "entry_price": 1.211,
+          "entry_time_utc": "2026-08-31T23:53:05.650428+00:00"
+        },
+        "AUDUSD": {
+          "direction": "BULL",
+          "entry_price": 0.71695,
+          "entry_time_utc": "2026-08-31T23:53:05.650428+00:00"
+        },
+        "EURAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.62038,
+          "entry_time_utc": "2026-08-31T23:53:05.650428+00:00"
+        }
+      },
       "events": [
         {
           "time_utc": "2026-08-25T22:37:53.464686+00:00",
@@ -1105,32 +1130,44 @@
           "exit_price": 216.163,
           "pips": -53.69999999999777,
           "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-08-31T23:53:05.650428+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCHF",
+          "direction": "BULL",
+          "entry_price": 0.57956
+        },
+        {
+          "time_utc": "2026-08-31T23:53:05.650428+00:00",
+          "event": "ENTRY",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.211
+        },
+        {
+          "time_utc": "2026-08-31T23:53:05.650428+00:00",
+          "event": "ENTRY",
+          "pair": "AUDUSD",
+          "direction": "BULL",
+          "entry_price": 0.71695
+        },
+        {
+          "time_utc": "2026-08-31T23:53:05.650428+00:00",
+          "event": "ENTRY",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.62038
         }
       ],
       "unrealized_pips": 0.0,
       "total_pips": -101.69999999998916,
-      "is_active": false,
-      "daily_pips": -150.99999999999625,
+      "is_active": true,
+      "daily_pips": 0.0,
       "daily_pips_history": [
         {
-          "time_utc": "2026-08-30T22:24:47.806595+00:00",
+          "time_utc": "2026-08-31T23:53:05.650428+00:00",
           "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-08-31T05:20:16.209653+00:00",
-          "daily_pips": -84.19999999999845
-        },
-        {
-          "time_utc": "2026-08-31T05:32:29.431495+00:00",
-          "daily_pips": -86.49999999999807
-        },
-        {
-          "time_utc": "2026-08-31T06:20:06.516865+00:00",
-          "daily_pips": -75.89999999999861
-        },
-        {
-          "time_utc": "2026-08-31T07:20:11.001255+00:00",
-          "daily_pips": -150.99999999999625
         }
       ],
       "comparison_baseline": 5.700000000002742,
@@ -2636,5 +2673,5 @@
       "comparison_pips": -3.0999999999882153
     }
   },
-  "updated_at": "2026-08-31T21:19:57.945429+00:00"
+  "updated_at": "2026-08-31T23:53:05.650428+00:00"
 }
