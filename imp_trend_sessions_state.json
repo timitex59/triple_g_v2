@@ -1,38 +1,17 @@
 {
   "version": 1,
-  "updated_at": "2026-08-30T22:23:36.916941+00:00",
+  "updated_at": "2026-08-31T05:19:04.084058+00:00",
   "sessions": {
     "Sydney": {
-      "realized_pips": 105.20000000000601,
-      "current_session_realized_pips": 0.0,
-      "last_session_pips": 11.599999999999966,
+      "realized_pips": 9.400000000007594,
+      "current_session_realized_pips": -95.79999999999842,
+      "last_session_pips": -95.79999999999842,
       "unrealized_pips": 0.0,
-      "total_pips": 105.20000000000601,
-      "daily_pips": 0.0,
-      "is_active": true,
-      "active_session_id": "2026-08-30",
-      "positions": {
-        "EURJPY": {
-          "direction": "BULL",
-          "entry_price": 185.468,
-          "entry_time_utc": "2026-08-30T22:23:36.916941+00:00"
-        },
-        "USDJPY": {
-          "direction": "BULL",
-          "entry_price": 160.14,
-          "entry_time_utc": "2026-08-30T22:23:36.916941+00:00"
-        },
-        "GBPJPY": {
-          "direction": "BULL",
-          "entry_price": 216.699,
-          "entry_time_utc": "2026-08-30T22:23:36.916941+00:00"
-        },
-        "NZDJPY": {
-          "direction": "BULL",
-          "entry_price": 94.693,
-          "entry_time_utc": "2026-08-30T22:23:36.916941+00:00"
-        }
-      },
+      "total_pips": 9.400000000007594,
+      "daily_pips": -95.79999999999842,
+      "is_active": false,
+      "active_session_id": null,
+      "positions": {},
       "events": [
         {
           "time_utc": "2026-08-24T20:28:11.372005+00:00",
@@ -707,24 +686,68 @@
           "pair": "NZDJPY",
           "direction": "BULL",
           "entry_price": 94.693
+        },
+        {
+          "time_utc": "2026-08-31T05:19:04.084058+00:00",
+          "event": "EXIT",
+          "pair": "EURJPY",
+          "direction": "BULL",
+          "entry_price": 185.468,
+          "exit_price": 185.221,
+          "pips": -24.699999999998568,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-08-31T05:19:04.084058+00:00",
+          "event": "EXIT",
+          "pair": "USDJPY",
+          "direction": "BULL",
+          "entry_price": 160.14,
+          "exit_price": 159.808,
+          "pips": -33.19999999999936,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-08-31T05:19:04.084058+00:00",
+          "event": "EXIT",
+          "pair": "GBPJPY",
+          "direction": "BULL",
+          "entry_price": 216.699,
+          "exit_price": 216.441,
+          "pips": -25.800000000000978,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-08-31T05:19:04.084058+00:00",
+          "event": "EXIT",
+          "pair": "NZDJPY",
+          "direction": "BULL",
+          "entry_price": 94.693,
+          "exit_price": 94.572,
+          "pips": -12.099999999999511,
+          "reason": "SESSION_END"
         }
       ],
       "daily_pips_history": [
         {
           "time_utc": "2026-08-30T22:23:36.916941+00:00",
           "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-08-31T05:19:04.084058+00:00",
+          "daily_pips": -95.79999999999842
         }
       ],
       "comparison_baseline": 30.000000000003364,
-      "comparison_pips": 75.20000000000265
+      "comparison_pips": -20.59999999999577
     },
     "Tokyo": {
       "realized_pips": 67.89999999999935,
       "current_session_realized_pips": 0.0,
       "last_session_pips": 10.799999999997567,
-      "unrealized_pips": 0.0,
-      "total_pips": 67.89999999999935,
-      "daily_pips": 0.0,
+      "unrealized_pips": -95.79999999999842,
+      "total_pips": -27.899999999999068,
+      "daily_pips": -95.79999999999842,
       "is_active": true,
       "active_session_id": "2026-08-31",
       "positions": {
@@ -1463,10 +1486,14 @@
         {
           "time_utc": "2026-08-30T22:23:36.916941+00:00",
           "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-08-31T05:19:04.084058+00:00",
+          "daily_pips": -95.79999999999842
         }
       ],
       "comparison_baseline": 12.200000000002504,
-      "comparison_pips": 55.69999999999685
+      "comparison_pips": -40.10000000000157
     },
     "Londres": {
       "realized_pips": 58.900000000003544,
