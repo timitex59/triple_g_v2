@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-01T14:19:02.318547+00:00",
+  "updated_at": "2026-09-01T14:54:09.007825+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": 67.1000000000059,
@@ -1671,12 +1671,12 @@
       "comparison_pips": -112.70000000000041
     },
     "Londres": {
-      "realized_pips": -85.0999999999949,
-      "current_session_realized_pips": -91.9000000000008,
+      "realized_pips": -87.499999999995,
+      "current_session_realized_pips": -94.30000000000089,
       "last_session_pips": -52.09999999999764,
-      "unrealized_pips": -0.7000000000005002,
-      "total_pips": -85.7999999999954,
-      "daily_pips": -92.6000000000013,
+      "unrealized_pips": -0.5000000000009663,
+      "total_pips": -87.99999999999596,
+      "daily_pips": -94.80000000000186,
       "is_active": true,
       "active_session_id": "2026-09-01",
       "positions": {
@@ -1699,11 +1699,6 @@
           "direction": "BULL",
           "entry_price": 94.374,
           "entry_time_utc": "2026-09-01T12:19:08.002903+00:00"
-        },
-        "CADJPY": {
-          "direction": "BULL",
-          "entry_price": 115.2,
-          "entry_time_utc": "2026-09-01T14:19:02.318547+00:00"
         }
       },
       "events": [
@@ -2676,6 +2671,16 @@
           "pair": "CADJPY",
           "direction": "BULL",
           "entry_price": 115.2
+        },
+        {
+          "time_utc": "2026-09-01T14:54:09.007825+00:00",
+          "event": "EXIT",
+          "pair": "CADJPY",
+          "direction": "BULL",
+          "entry_price": 115.2,
+          "exit_price": 115.176,
+          "pips": -2.400000000000091,
+          "reason": "INVALIDATED"
         }
       ],
       "daily_pips_history": [
@@ -2718,18 +2723,22 @@
         {
           "time_utc": "2026-09-01T14:19:02.318547+00:00",
           "daily_pips": -92.6000000000013
+        },
+        {
+          "time_utc": "2026-09-01T14:54:09.007825+00:00",
+          "daily_pips": -94.80000000000186
         }
       ],
       "comparison_baseline": 14.300000000000686,
-      "comparison_pips": -100.0999999999961
+      "comparison_pips": -102.29999999999666
     },
     "New York": {
-      "realized_pips": 107.80000000000322,
-      "current_session_realized_pips": -3.2000000000014683,
+      "realized_pips": 105.40000000000313,
+      "current_session_realized_pips": -5.600000000001559,
       "last_session_pips": -2.3999999999937387,
-      "unrealized_pips": -0.7000000000005002,
-      "total_pips": 107.10000000000272,
-      "daily_pips": -3.9000000000019686,
+      "unrealized_pips": -0.5000000000009663,
+      "total_pips": 104.90000000000217,
+      "daily_pips": -6.100000000002526,
       "is_active": true,
       "active_session_id": "2026-09-01",
       "positions": {
@@ -2752,11 +2761,6 @@
           "direction": "BULL",
           "entry_price": 94.374,
           "entry_time_utc": "2026-09-01T12:19:08.002903+00:00"
-        },
-        "CADJPY": {
-          "direction": "BULL",
-          "entry_price": 115.2,
-          "entry_time_utc": "2026-09-01T14:19:02.318547+00:00"
         }
       },
       "events": [
@@ -3780,6 +3784,16 @@
           "pair": "CADJPY",
           "direction": "BULL",
           "entry_price": 115.2
+        },
+        {
+          "time_utc": "2026-09-01T14:54:09.007825+00:00",
+          "event": "EXIT",
+          "pair": "CADJPY",
+          "direction": "BULL",
+          "entry_price": 115.2,
+          "exit_price": 115.176,
+          "pips": -2.400000000000091,
+          "reason": "INVALIDATED"
         }
       ],
       "daily_pips_history": [
@@ -3798,10 +3812,14 @@
         {
           "time_utc": "2026-09-01T14:19:02.318547+00:00",
           "daily_pips": -3.9000000000019686
+        },
+        {
+          "time_utc": "2026-09-01T14:54:09.007825+00:00",
+          "daily_pips": -6.100000000002526
         }
       ],
       "comparison_baseline": 69.39999999999876,
-      "comparison_pips": 37.70000000000397
+      "comparison_pips": 35.50000000000341
     }
   }
 }

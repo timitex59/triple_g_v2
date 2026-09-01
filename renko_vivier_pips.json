@@ -2271,23 +2271,25 @@
           "start_price": 1.16058,
           "start_time_paris": "2026-09-01T07:00:00+02:00",
           "start_time_utc": "2026-09-01T05:00:00+00:00"
+        },
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-09-01",
+          "direction": 1,
+          "end_price": 1.16004,
+          "end_time_paris": "2026-09-01T16:00:00+02:00",
+          "end_time_utc": "2026-09-01T14:00:00+00:00",
+          "pair": "EURUSD",
+          "pips": 0.0,
+          "start_price": 1.16004,
+          "start_time_paris": "2026-09-01T16:00:00+02:00",
+          "start_time_utc": "2026-09-01T14:00:00+00:00"
         }
       ]
     }
   },
   "open_confirmed_segments": {},
   "open_segments": {
-    "EURUSD": {
-      "current_pips": 0.0,
-      "date": "2026-09-01",
-      "direction": 1,
-      "last_price": 1.16004,
-      "last_time_utc": "2026-09-01T14:00:00+00:00",
-      "pair": "EURUSD",
-      "start_price": 1.16004,
-      "start_time_paris": "2026-09-01T16:00:00+02:00",
-      "start_time_utc": "2026-09-01T14:00:00+00:00"
-    },
     "GBPCAD": {
       "current_pips": 31.599999999998296,
       "date": "2026-09-01",
@@ -2333,6 +2335,6 @@
       "2026-W35"
     ]
   },
-  "updated_at_paris": "2026-09-01T16:15:46.286999+02:00",
+  "updated_at_paris": "2026-09-01T16:51:08.014562+02:00",
   "version": 3
 }
