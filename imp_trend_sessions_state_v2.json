@@ -1228,27 +1228,11 @@
       "comparison_pips": -89.09999999999303
     },
     "Londres": {
-      "realized_pips": -98.19999999999331,
-      "current_session_realized_pips": -88.59999999999646,
-      "last_session_pips": -50.39999999999911,
-      "active_session_id": "2026-09-01",
-      "positions": {
-        "GBPJPY": {
-          "direction": "BULL",
-          "entry_price": 216.722,
-          "entry_time_utc": "2026-09-01T12:20:19.737316+00:00"
-        },
-        "USDJPY": {
-          "direction": "BULL",
-          "entry_price": 160.136,
-          "entry_time_utc": "2026-09-01T12:20:19.737316+00:00"
-        },
-        "EURJPY": {
-          "direction": "BULL",
-          "entry_price": 185.631,
-          "entry_time_utc": "2026-09-01T12:20:19.737316+00:00"
-        }
-      },
+      "realized_pips": -124.99999999999338,
+      "current_session_realized_pips": -115.39999999999652,
+      "last_session_pips": -115.39999999999652,
+      "active_session_id": null,
+      "positions": {},
       "events": [
         {
           "time_utc": "2026-08-26T06:19:23.545377+00:00",
@@ -2001,12 +1985,42 @@
           "pair": "EURJPY",
           "direction": "BULL",
           "entry_price": 185.631
+        },
+        {
+          "time_utc": "2026-09-01T15:20:02.277461+00:00",
+          "event": "EXIT",
+          "pair": "GBPJPY",
+          "direction": "BULL",
+          "entry_price": 216.722,
+          "exit_price": 216.584,
+          "pips": -13.800000000000523,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-01T15:20:02.277461+00:00",
+          "event": "EXIT",
+          "pair": "USDJPY",
+          "direction": "BULL",
+          "entry_price": 160.136,
+          "exit_price": 160.059,
+          "pips": -7.699999999999818,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-01T15:20:02.277461+00:00",
+          "event": "EXIT",
+          "pair": "EURJPY",
+          "direction": "BULL",
+          "entry_price": 185.631,
+          "exit_price": 185.578,
+          "pips": -5.299999999999727,
+          "reason": "SESSION_END"
         }
       ],
-      "unrealized_pips": -14.099999999999113,
-      "total_pips": -112.29999999999242,
-      "is_active": true,
-      "daily_pips": -102.69999999999557,
+      "unrealized_pips": 0.0,
+      "total_pips": -124.99999999999338,
+      "is_active": false,
+      "daily_pips": -115.39999999999652,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-01T06:19:59.576455+00:00",
@@ -2051,10 +2065,14 @@
         {
           "time_utc": "2026-09-01T14:55:20.571666+00:00",
           "daily_pips": -102.69999999999557
+        },
+        {
+          "time_utc": "2026-09-01T15:20:02.277461+00:00",
+          "daily_pips": -115.39999999999652
         }
       ],
       "comparison_baseline": -13.500000000001933,
-      "comparison_pips": -98.79999999999049
+      "comparison_pips": -111.49999999999145
     },
     "New York": {
       "realized_pips": 1.8000000000089358,
@@ -2883,10 +2901,10 @@
           "entry_price": 185.631
         }
       ],
-      "unrealized_pips": -14.099999999999113,
-      "total_pips": -12.299999999990177,
+      "unrealized_pips": -26.800000000000068,
+      "total_pips": -24.999999999991132,
       "is_active": true,
-      "daily_pips": -14.599999999997948,
+      "daily_pips": -27.299999999998903,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-01T11:19:59.357429+00:00",
@@ -2907,11 +2925,15 @@
         {
           "time_utc": "2026-09-01T14:55:20.571666+00:00",
           "daily_pips": -14.599999999997948
+        },
+        {
+          "time_utc": "2026-09-01T15:20:02.277461+00:00",
+          "daily_pips": -27.299999999998903
         }
       ],
       "comparison_baseline": 5.399999999995986,
-      "comparison_pips": -17.69999999998616
+      "comparison_pips": -30.399999999987116
     }
   },
-  "updated_at": "2026-09-01T14:55:20.571666+00:00"
+  "updated_at": "2026-09-01T15:20:02.277461+00:00"
 }
