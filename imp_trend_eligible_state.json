@@ -5,7 +5,7 @@
       "direction": "BULL",
       "confirmations": 12,
       "entered_at": "2026-08-26T10:18:21.917053+00:00",
-      "last_seen_at": "2026-09-01T17:21:35.543274+00:00",
+      "last_seen_at": "2026-09-01T18:21:57.548991+00:00",
       "snapshot": {
         "pair": "USDJPY",
         "direction": "BULL",
@@ -27,10 +27,10 @@
         "D1_DIRECTIONAL_AVG_PIPS": 35.056250000000055,
         "H1_IMP21": "BULL",
         "H1_ALL_AVG": "BULL",
-        "H1_ALL_AVG_PIPS": 11.5238095238096,
+        "H1_ALL_AVG_PIPS": 14.528571428571505,
         "H1_BULL_AVG": "BULL",
         "H1_BEAR_AVG": "BULL",
-        "H1_DIRECTIONAL_AVG_PIPS": 5.526315789473894,
+        "H1_DIRECTIONAL_AVG_PIPS": 7.120000000000175,
         "CURRENCY_INDEX": "BULL"
       }
     },
@@ -38,7 +38,7 @@
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-01T17:21:35.543274+00:00",
+      "last_seen_at": "2026-09-01T18:21:57.548991+00:00",
       "snapshot": {
         "pair": "EURJPY",
         "direction": "BULL",
@@ -71,7 +71,7 @@
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-01T17:21:35.543274+00:00",
+      "last_seen_at": "2026-09-01T18:21:57.548991+00:00",
       "snapshot": {
         "pair": "AUDCHF",
         "direction": "BULL",
@@ -104,7 +104,7 @@
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-01T17:21:35.543274+00:00",
+      "last_seen_at": "2026-09-01T18:21:57.548991+00:00",
       "snapshot": {
         "pair": "AUDJPY",
         "direction": "BULL",
@@ -137,7 +137,7 @@
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-08-27T07:19:00.234021+00:00",
-      "last_seen_at": "2026-09-01T17:21:35.543274+00:00",
+      "last_seen_at": "2026-09-01T18:21:57.548991+00:00",
       "snapshot": {
         "pair": "AUDNZD",
         "direction": "BULL",
@@ -170,7 +170,7 @@
       "direction": "BULL",
       "confirmations": 9,
       "entered_at": "2026-08-26T20:18:41.094802+00:00",
-      "last_seen_at": "2026-09-01T17:21:35.543274+00:00",
+      "last_seen_at": "2026-09-01T18:21:57.548991+00:00",
       "snapshot": {
         "pair": "GBPJPY",
         "direction": "BULL",
@@ -199,11 +199,44 @@
         "CURRENCY_INDEX": "NEUTRAL"
       }
     },
+    "NZDJPY": {
+      "direction": "BULL",
+      "confirmations": 9,
+      "entered_at": "2026-09-01T18:21:57.548991+00:00",
+      "last_seen_at": "2026-09-01T18:21:57.548991+00:00",
+      "snapshot": {
+        "pair": "NZDJPY",
+        "direction": "BULL",
+        "confirmations": 9,
+        "renko_confirmations": 3,
+        "avg_vote_confirmations": 2,
+        "directional_avg_confirmations": 0,
+        "tradable": true,
+        "rank_tier": 4,
+        "rank_reason": "9/12 MAIS AVG BULL 0/2",
+        "RENKO_M": "BULL",
+        "RENKO_W": "BULL",
+        "RENKO_D": "BULL",
+        "D1_IMP21": "BULL",
+        "D1_ALL_AVG": "BULL",
+        "D1_ALL_AVG_PIPS": 27.100000000000016,
+        "D1_BULL_AVG": "BEAR",
+        "D1_BEAR_AVG": "BULL",
+        "D1_DIRECTIONAL_AVG_PIPS": -48.78571428571428,
+        "H1_IMP21": "BULL",
+        "H1_ALL_AVG": "BEAR",
+        "H1_ALL_AVG_PIPS": -2.380952380952381,
+        "H1_BULL_AVG": "BEAR",
+        "H1_BEAR_AVG": "BULL",
+        "H1_DIRECTIONAL_AVG_PIPS": -11.362499999999986,
+        "CURRENCY_INDEX": "BULL"
+      }
+    },
     "EURAUD": {
       "direction": "BEAR",
       "confirmations": 10,
       "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-01T17:21:35.543274+00:00",
+      "last_seen_at": "2026-09-01T18:21:57.548991+00:00",
       "snapshot": {
         "pair": "EURAUD",
         "direction": "BEAR",
@@ -577,7 +610,15 @@
       "direction": "BULL",
       "reason": "LESS_THAN_9_OF_12",
       "entered_at": "2026-09-01T12:19:08.002099+00:00"
+    },
+    {
+      "time_utc": "2026-09-01T18:21:57.548991+00:00",
+      "event": "ELIGIBLE",
+      "pair": "NZDJPY",
+      "direction": "BULL",
+      "previous_direction": null,
+      "confirmations": 9
     }
   ],
-  "updated_at": "2026-09-01T17:21:35.543274+00:00"
+  "updated_at": "2026-09-01T18:21:57.548991+00:00"
 }

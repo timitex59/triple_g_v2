@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-01T17:21:35.544053+00:00",
+  "updated_at": "2026-09-01T18:21:57.549822+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": 67.1000000000059,
@@ -2759,9 +2759,9 @@
       "realized_pips": 109.60000000000329,
       "current_session_realized_pips": -1.4000000000014001,
       "last_session_pips": -2.3999999999937387,
-      "unrealized_pips": -10.600000000002296,
-      "total_pips": 99.000000000001,
-      "daily_pips": -12.000000000003697,
+      "unrealized_pips": 4.900000000000659,
+      "total_pips": 114.50000000000395,
+      "daily_pips": 3.4999999999992593,
       "is_active": true,
       "active_session_id": "2026-09-01",
       "positions": {
@@ -2779,6 +2779,11 @@
           "direction": "BULL",
           "entry_price": 216.712,
           "entry_time_utc": "2026-09-01T12:19:08.002903+00:00"
+        },
+        "NZDJPY": {
+          "direction": "BULL",
+          "entry_price": 94.406,
+          "entry_time_utc": "2026-09-01T18:21:57.549822+00:00"
         }
       },
       "events": [
@@ -3822,6 +3827,13 @@
           "exit_price": 94.416,
           "pips": 4.200000000000159,
           "reason": "INVALIDATED"
+        },
+        {
+          "time_utc": "2026-09-01T18:21:57.549822+00:00",
+          "event": "ENTRY",
+          "pair": "NZDJPY",
+          "direction": "BULL",
+          "entry_price": 94.406
         }
       ],
       "daily_pips_history": [
@@ -3856,10 +3868,14 @@
         {
           "time_utc": "2026-09-01T17:21:35.544053+00:00",
           "daily_pips": -12.000000000003697
+        },
+        {
+          "time_utc": "2026-09-01T18:21:57.549822+00:00",
+          "daily_pips": 3.4999999999992593
         }
       ],
       "comparison_baseline": 69.39999999999876,
-      "comparison_pips": 29.60000000000224
+      "comparison_pips": 45.100000000005195
     }
   }
 }
