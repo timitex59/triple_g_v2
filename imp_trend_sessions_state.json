@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-02T06:18:50.321985+00:00",
+  "updated_at": "2026-09-02T07:18:42.153925+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -24.199999999992343,
@@ -877,31 +877,15 @@
       "comparison_pips": -54.19999999999571
     },
     "Tokyo": {
-      "realized_pips": -100.49999999999791,
-      "current_session_realized_pips": 0.0,
-      "last_session_pips": 17.599999999999838,
-      "unrealized_pips": -219.90000000000123,
-      "total_pips": -320.3999999999991,
-      "daily_pips": -219.90000000000123,
-      "is_active": true,
-      "active_session_id": "2026-09-02",
-      "positions": {
-        "USDJPY": {
-          "direction": "BULL",
-          "entry_price": 160.224,
-          "entry_time_utc": "2026-09-02T00:11:38.313877+00:00"
-        },
-        "EURJPY": {
-          "direction": "BULL",
-          "entry_price": 185.656,
-          "entry_time_utc": "2026-09-02T00:11:38.313877+00:00"
-        },
-        "GBPJPY": {
-          "direction": "BULL",
-          "entry_price": 216.459,
-          "entry_time_utc": "2026-09-02T00:11:38.313877+00:00"
-        }
-      },
+      "realized_pips": -302.899999999998,
+      "current_session_realized_pips": -202.4000000000001,
+      "last_session_pips": -202.4000000000001,
+      "unrealized_pips": 0.0,
+      "total_pips": -302.899999999998,
+      "daily_pips": -202.4000000000001,
+      "is_active": false,
+      "active_session_id": null,
+      "positions": {},
       "events": [
         {
           "time_utc": "2026-08-24T22:44:11.394317+00:00",
@@ -1739,6 +1723,36 @@
           "pair": "GBPJPY",
           "direction": "BULL",
           "entry_price": 216.459
+        },
+        {
+          "time_utc": "2026-09-02T07:18:42.153925+00:00",
+          "event": "EXIT",
+          "pair": "USDJPY",
+          "direction": "BULL",
+          "entry_price": 160.224,
+          "exit_price": 159.751,
+          "pips": -47.29999999999848,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-02T07:18:42.153925+00:00",
+          "event": "EXIT",
+          "pair": "EURJPY",
+          "direction": "BULL",
+          "entry_price": 185.656,
+          "exit_price": 184.874,
+          "pips": -78.20000000000107,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-02T07:18:42.153925+00:00",
+          "event": "EXIT",
+          "pair": "GBPJPY",
+          "direction": "BULL",
+          "entry_price": 216.459,
+          "exit_price": 215.69,
+          "pips": -76.90000000000055,
+          "reason": "SESSION_END"
         }
       ],
       "daily_pips_history": [
@@ -1757,18 +1771,22 @@
         {
           "time_utc": "2026-09-02T06:18:50.321985+00:00",
           "daily_pips": -219.90000000000123
+        },
+        {
+          "time_utc": "2026-09-02T07:18:42.153925+00:00",
+          "daily_pips": -202.4000000000001
         }
       ],
       "comparison_baseline": 12.200000000002504,
-      "comparison_pips": -332.6000000000016
+      "comparison_pips": -315.1000000000005
     },
     "Londres": {
       "realized_pips": -102.39999999999367,
       "current_session_realized_pips": 0.0,
       "last_session_pips": -109.19999999999956,
-      "unrealized_pips": 0.0,
-      "total_pips": -102.39999999999367,
-      "daily_pips": 0.0,
+      "unrealized_pips": 17.500000000001137,
+      "total_pips": -84.89999999999253,
+      "daily_pips": 17.500000000001137,
       "is_active": true,
       "active_session_id": "2026-09-02",
       "positions": {
@@ -2835,10 +2853,14 @@
         {
           "time_utc": "2026-09-02T06:18:50.321985+00:00",
           "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-09-02T07:18:42.153925+00:00",
+          "daily_pips": 17.500000000001137
         }
       ],
       "comparison_baseline": 14.300000000000686,
-      "comparison_pips": -116.69999999999436
+      "comparison_pips": -99.19999999999322
     },
     "New York": {
       "realized_pips": 97.90000000000143,

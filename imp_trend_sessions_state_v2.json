@@ -672,27 +672,11 @@
       "comparison_pips": -82.69999999999581
     },
     "Tokyo": {
-      "realized_pips": -83.39999999999029,
-      "current_session_realized_pips": 0.0,
-      "last_session_pips": 18.299999999998875,
-      "active_session_id": "2026-09-02",
-      "positions": {
-        "EURJPY": {
-          "direction": "BULL",
-          "entry_price": 185.652,
-          "entry_time_utc": "2026-09-02T00:12:49.497215+00:00"
-        },
-        "USDJPY": {
-          "direction": "BULL",
-          "entry_price": 160.207,
-          "entry_time_utc": "2026-09-02T00:12:49.497215+00:00"
-        },
-        "GBPJPY": {
-          "direction": "BULL",
-          "entry_price": 216.438,
-          "entry_time_utc": "2026-09-02T00:12:49.497215+00:00"
-        }
-      },
+      "realized_pips": -276.39999999998815,
+      "current_session_realized_pips": -192.99999999999784,
+      "last_session_pips": -192.99999999999784,
+      "active_session_id": null,
+      "positions": {},
       "events": [
         {
           "time_utc": "2026-08-25T22:37:53.464686+00:00",
@@ -1292,12 +1276,42 @@
           "pair": "GBPJPY",
           "direction": "BULL",
           "entry_price": 216.438
+        },
+        {
+          "time_utc": "2026-09-02T07:19:53.593736+00:00",
+          "event": "EXIT",
+          "pair": "EURJPY",
+          "direction": "BULL",
+          "entry_price": 185.652,
+          "exit_price": 184.897,
+          "pips": -75.49999999999955,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-02T07:19:53.593736+00:00",
+          "event": "EXIT",
+          "pair": "USDJPY",
+          "direction": "BULL",
+          "entry_price": 160.207,
+          "exit_price": 159.744,
+          "pips": -46.299999999999386,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-02T07:19:53.593736+00:00",
+          "event": "EXIT",
+          "pair": "GBPJPY",
+          "direction": "BULL",
+          "entry_price": 216.438,
+          "exit_price": 215.726,
+          "pips": -71.19999999999891,
+          "reason": "SESSION_END"
         }
       ],
-      "unrealized_pips": -221.0999999999956,
-      "total_pips": -304.4999999999859,
-      "is_active": true,
-      "daily_pips": -221.0999999999956,
+      "unrealized_pips": 0.0,
+      "total_pips": -276.39999999998815,
+      "is_active": false,
+      "daily_pips": -192.99999999999784,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-02T00:12:49.497215+00:00",
@@ -1314,10 +1328,14 @@
         {
           "time_utc": "2026-09-02T06:20:02.674334+00:00",
           "daily_pips": -221.0999999999956
+        },
+        {
+          "time_utc": "2026-09-02T07:19:53.593736+00:00",
+          "daily_pips": -192.99999999999784
         }
       ],
       "comparison_baseline": 5.700000000002742,
-      "comparison_pips": -310.1999999999886
+      "comparison_pips": -282.09999999999087
     },
     "Londres": {
       "realized_pips": -124.99999999999338,
@@ -2146,18 +2164,22 @@
           "entry_price": 215.55
         }
       ],
-      "unrealized_pips": 0.0,
-      "total_pips": -124.99999999999338,
+      "unrealized_pips": 28.09999999999775,
+      "total_pips": -96.89999999999563,
       "is_active": true,
-      "daily_pips": 0.0,
+      "daily_pips": 28.09999999999775,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-02T06:20:02.674334+00:00",
           "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-09-02T07:19:53.593736+00:00",
+          "daily_pips": 28.09999999999775
         }
       ],
       "comparison_baseline": -13.500000000001933,
-      "comparison_pips": -111.49999999999145
+      "comparison_pips": -83.3999999999937
     },
     "New York": {
       "realized_pips": -12.399999999993497,
@@ -3058,5 +3080,5 @@
       "comparison_pips": -17.79999999998948
     }
   },
-  "updated_at": "2026-09-02T06:20:02.674334+00:00"
+  "updated_at": "2026-09-02T07:19:53.593736+00:00"
 }
