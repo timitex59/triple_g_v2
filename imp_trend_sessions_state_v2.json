@@ -2,27 +2,11 @@
   "version": 1,
   "sessions": {
     "Sydney": {
-      "realized_pips": 18.000000000002323,
-      "current_session_realized_pips": 0.0,
-      "last_session_pips": 58.30000000000112,
-      "active_session_id": "2026-09-01",
-      "positions": {
-        "EURJPY": {
-          "direction": "BULL",
-          "entry_price": 185.664,
-          "entry_time_utc": "2026-09-01T20:20:03.289414+00:00"
-        },
-        "USDJPY": {
-          "direction": "BULL",
-          "entry_price": 160.213,
-          "entry_time_utc": "2026-09-01T20:20:03.289414+00:00"
-        },
-        "GBPJPY": {
-          "direction": "BULL",
-          "entry_price": 216.47,
-          "entry_time_utc": "2026-09-01T20:20:03.289414+00:00"
-        }
-      },
+      "realized_pips": -74.09999999999405,
+      "current_session_realized_pips": -92.09999999999638,
+      "last_session_pips": -92.09999999999638,
+      "active_session_id": null,
+      "positions": {},
       "events": [
         {
           "time_utc": "2026-08-25T22:37:53.464686+00:00",
@@ -622,12 +606,42 @@
           "pair": "GBPJPY",
           "direction": "BULL",
           "entry_price": 216.47
+        },
+        {
+          "time_utc": "2026-09-02T05:20:21.789961+00:00",
+          "event": "EXIT",
+          "pair": "EURJPY",
+          "direction": "BULL",
+          "entry_price": 185.664,
+          "exit_price": 185.31,
+          "pips": -35.3999999999985,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-02T05:20:21.789961+00:00",
+          "event": "EXIT",
+          "pair": "USDJPY",
+          "direction": "BULL",
+          "entry_price": 160.213,
+          "exit_price": 160.048,
+          "pips": -16.499999999999204,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-02T05:20:21.789961+00:00",
+          "event": "EXIT",
+          "pair": "GBPJPY",
+          "direction": "BULL",
+          "entry_price": 216.47,
+          "exit_price": 216.068,
+          "pips": -40.19999999999868,
+          "reason": "SESSION_END"
         }
       ],
-      "unrealized_pips": -46.79999999999893,
-      "total_pips": -28.799999999996608,
-      "is_active": true,
-      "daily_pips": -46.79999999999893,
+      "unrealized_pips": 0.0,
+      "total_pips": -74.09999999999405,
+      "is_active": false,
+      "daily_pips": -92.09999999999638,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-01T20:20:03.289414+00:00",
@@ -648,10 +662,14 @@
         {
           "time_utc": "2026-09-02T04:31:10.378075+00:00",
           "daily_pips": -46.79999999999893
+        },
+        {
+          "time_utc": "2026-09-02T05:20:21.789961+00:00",
+          "daily_pips": -92.09999999999638
         }
       ],
       "comparison_baseline": 8.600000000001764,
-      "comparison_pips": -37.39999999999837
+      "comparison_pips": -82.69999999999581
     },
     "Tokyo": {
       "realized_pips": -83.39999999999029,
@@ -1276,10 +1294,10 @@
           "entry_price": 216.438
         }
       ],
-      "unrealized_pips": -41.799999999997794,
-      "total_pips": -125.19999999998808,
+      "unrealized_pips": -87.09999999999525,
+      "total_pips": -170.49999999998553,
       "is_active": true,
-      "daily_pips": -41.799999999997794,
+      "daily_pips": -87.09999999999525,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-02T00:12:49.497215+00:00",
@@ -1288,10 +1306,14 @@
         {
           "time_utc": "2026-09-02T04:31:10.378075+00:00",
           "daily_pips": -41.799999999997794
+        },
+        {
+          "time_utc": "2026-09-02T05:20:21.789961+00:00",
+          "daily_pips": -87.09999999999525
         }
       ],
       "comparison_baseline": 5.700000000002742,
-      "comparison_pips": -130.89999999999083
+      "comparison_pips": -176.19999999998828
     },
     "Londres": {
       "realized_pips": -124.99999999999338,
@@ -3039,5 +3061,5 @@
       "comparison_pips": -17.79999999998948
     }
   },
-  "updated_at": "2026-09-02T04:31:10.378075+00:00"
+  "updated_at": "2026-09-02T05:20:21.789961+00:00"
 }
