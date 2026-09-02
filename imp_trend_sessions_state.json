@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-02T10:19:16.370916+00:00",
+  "updated_at": "2026-09-02T11:19:03.434389+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -24.199999999992343,
@@ -1784,9 +1784,9 @@
       "realized_pips": -102.39999999999367,
       "current_session_realized_pips": 0.0,
       "last_session_pips": -109.19999999999956,
-      "unrealized_pips": 24.100000000001387,
-      "total_pips": -78.29999999999228,
-      "daily_pips": 24.100000000001387,
+      "unrealized_pips": 18.10000000000116,
+      "total_pips": -84.29999999999251,
+      "daily_pips": 18.10000000000116,
       "is_active": true,
       "active_session_id": "2026-09-02",
       "positions": {
@@ -2873,21 +2873,41 @@
         {
           "time_utc": "2026-09-02T10:19:16.370916+00:00",
           "daily_pips": 24.100000000001387
+        },
+        {
+          "time_utc": "2026-09-02T11:19:03.434389+00:00",
+          "daily_pips": 18.10000000000116
         }
       ],
       "comparison_baseline": 14.300000000000686,
-      "comparison_pips": -92.59999999999297
+      "comparison_pips": -98.5999999999932
     },
     "New York": {
       "realized_pips": 97.90000000000143,
-      "current_session_realized_pips": -13.100000000003265,
+      "current_session_realized_pips": 0.0,
       "last_session_pips": -13.100000000003265,
       "unrealized_pips": 0.0,
       "total_pips": 97.90000000000143,
-      "daily_pips": -13.100000000003265,
-      "is_active": false,
-      "active_session_id": null,
-      "positions": {},
+      "daily_pips": 0.0,
+      "is_active": true,
+      "active_session_id": "2026-09-02",
+      "positions": {
+        "USDJPY": {
+          "direction": "BULL",
+          "entry_price": 159.819,
+          "entry_time_utc": "2026-09-02T11:19:03.434389+00:00"
+        },
+        "EURJPY": {
+          "direction": "BULL",
+          "entry_price": 184.984,
+          "entry_time_utc": "2026-09-02T11:19:03.434389+00:00"
+        },
+        "GBPJPY": {
+          "direction": "BULL",
+          "entry_price": 215.518,
+          "entry_time_utc": "2026-09-02T11:19:03.434389+00:00"
+        }
+      },
       "events": [
         {
           "time_utc": "2026-08-25T11:18:23.828242+00:00",
@@ -3976,56 +3996,33 @@
           "exit_price": 216.472,
           "pips": -23.999999999998067,
           "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-02T11:19:03.434389+00:00",
+          "event": "ENTRY",
+          "pair": "USDJPY",
+          "direction": "BULL",
+          "entry_price": 159.819
+        },
+        {
+          "time_utc": "2026-09-02T11:19:03.434389+00:00",
+          "event": "ENTRY",
+          "pair": "EURJPY",
+          "direction": "BULL",
+          "entry_price": 184.984
+        },
+        {
+          "time_utc": "2026-09-02T11:19:03.434389+00:00",
+          "event": "ENTRY",
+          "pair": "GBPJPY",
+          "direction": "BULL",
+          "entry_price": 215.518
         }
       ],
       "daily_pips_history": [
         {
-          "time_utc": "2026-09-01T11:18:48.034277+00:00",
+          "time_utc": "2026-09-02T11:19:03.434389+00:00",
           "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-01T12:19:08.002903+00:00",
-          "daily_pips": -1.4000000000014001
-        },
-        {
-          "time_utc": "2026-09-01T13:18:55.117386+00:00",
-          "daily_pips": -2.0000000000000018
-        },
-        {
-          "time_utc": "2026-09-01T14:19:02.318547+00:00",
-          "daily_pips": -3.9000000000019686
-        },
-        {
-          "time_utc": "2026-09-01T14:54:09.007825+00:00",
-          "daily_pips": -6.100000000002526
-        },
-        {
-          "time_utc": "2026-09-01T15:18:50.488833+00:00",
-          "daily_pips": -20.500000000000227
-        },
-        {
-          "time_utc": "2026-09-01T16:20:30.522196+00:00",
-          "daily_pips": -23.800000000001774
-        },
-        {
-          "time_utc": "2026-09-01T17:21:35.544053+00:00",
-          "daily_pips": -12.000000000003697
-        },
-        {
-          "time_utc": "2026-09-01T18:21:57.549822+00:00",
-          "daily_pips": 3.4999999999992593
-        },
-        {
-          "time_utc": "2026-09-01T18:33:38.408894+00:00",
-          "daily_pips": -6.399999999999695
-        },
-        {
-          "time_utc": "2026-09-01T19:18:50.983076+00:00",
-          "daily_pips": -10.500000000002219
-        },
-        {
-          "time_utc": "2026-09-01T20:18:51.760165+00:00",
-          "daily_pips": -13.100000000003265
         }
       ],
       "comparison_baseline": 69.39999999999876,
