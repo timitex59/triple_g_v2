@@ -1499,27 +1499,15 @@ def build_telegram_message(
 
 
 def send_telegram_message(message: str) -> bool:
-    token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-    chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
-    if not token or not chat_id:
-        print("Telegram: identifiants manquants, envoi ignore.")
-        return False
-    try:
-        response = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            json={"chat_id": chat_id, "text": message},
-            timeout=15,
-        )
-        response.raise_for_status()
-        payload = response.json()
-        if not payload.get("ok"):
-            print(f"Telegram: echec ({payload.get('description', 'reponse inconnue')}).")
-            return False
-        print("Telegram: message IMP TREND envoye.")
-        return True
-    except Exception as exc:
-        print(f"Telegram: echec non fatal ({exc}).")
-        return False
+    """Do not send IMP TREND V1/V2 reports to Telegram.
+
+    V2 imports this function, so keeping the block here guarantees that both
+    scheduled scripts stay silent even when they are launched with
+    ``--telegram``.
+    """
+    del message
+    print("Telegram: envoi IMP TREND V1/V2 desactive.")
+    return False
 
 
 def telegram_window_is_open(now: datetime | None = None) -> bool:
