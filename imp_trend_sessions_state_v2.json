@@ -2338,8 +2338,8 @@
       "comparison_pips": -137.99999999999395
     },
     "New York": {
-      "realized_pips": -78.1999999999922,
-      "current_session_realized_pips": -65.7999999999987,
+      "realized_pips": -64.99999999999312,
+      "current_session_realized_pips": -52.599999999999625,
       "last_session_pips": -14.700000000001268,
       "active_session_id": "2026-09-02",
       "positions": {
@@ -2362,16 +2362,6 @@
           "direction": "BEAR",
           "entry_price": 1.6191,
           "entry_time_utc": "2026-09-02T13:20:15.741127+00:00"
-        },
-        "AUDJPY": {
-          "direction": "BULL",
-          "entry_price": 113.768,
-          "entry_time_utc": "2026-09-02T14:20:12.492116+00:00"
-        },
-        "EURJPY": {
-          "direction": "BULL",
-          "entry_price": 184.062,
-          "entry_time_utc": "2026-09-02T14:20:12.492116+00:00"
         }
       },
       "events": [
@@ -3300,12 +3290,32 @@
           "pair": "EURJPY",
           "direction": "BULL",
           "entry_price": 184.062
+        },
+        {
+          "time_utc": "2026-09-02T16:21:40.214213+00:00",
+          "event": "EXIT",
+          "pair": "AUDJPY",
+          "direction": "BULL",
+          "entry_price": 113.768,
+          "exit_price": 113.853,
+          "pips": 8.499999999999375,
+          "reason": "INVALIDATED"
+        },
+        {
+          "time_utc": "2026-09-02T16:21:40.214213+00:00",
+          "event": "EXIT",
+          "pair": "EURJPY",
+          "direction": "BULL",
+          "entry_price": 184.062,
+          "exit_price": 184.109,
+          "pips": 4.699999999999704,
+          "reason": "INVALIDATED"
         }
       ],
-      "unrealized_pips": 20.499999999997385,
-      "total_pips": -57.699999999994816,
+      "unrealized_pips": 16.700000000000603,
+      "total_pips": -48.29999999999252,
       "is_active": true,
-      "daily_pips": -45.30000000000132,
+      "daily_pips": -35.899999999999025,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-02T11:20:15.390502+00:00",
@@ -3330,11 +3340,15 @@
         {
           "time_utc": "2026-09-02T15:20:04.835755+00:00",
           "daily_pips": -45.30000000000132
+        },
+        {
+          "time_utc": "2026-09-02T16:21:40.214213+00:00",
+          "daily_pips": -35.899999999999025
         }
       ],
       "comparison_baseline": 5.399999999995986,
-      "comparison_pips": -63.0999999999908
+      "comparison_pips": -53.699999999988506
     }
   },
-  "updated_at": "2026-09-02T15:20:04.835755+00:00"
+  "updated_at": "2026-09-02T16:21:40.214213+00:00"
 }
