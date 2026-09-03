@@ -1,7 +1,7 @@
 [
   {
     "pair": "AUDCAD",
-    "reference_price": 0.99093,
+    "reference_price": 0.99068,
     "renko": {
       "M": {
         "status": "BULL",
@@ -56,7 +56,7 @@
   },
   {
     "pair": "AUDCHF",
-    "reference_price": 0.5815,
+    "reference_price": 0.58094,
     "renko": {
       "M": {
         "status": "BULL",
@@ -74,7 +74,7 @@
       },
       "D": {
         "status": "BULL",
-        "px": 1,
+        "px": 0,
         "streak": 6,
         "open": 0.5775,
         "close": 0.581
@@ -111,7 +111,7 @@
   },
   {
     "pair": "AUDJPY",
-    "reference_price": 112.989,
+    "reference_price": 112.638,
     "renko": {
       "M": {
         "status": "BULL",
@@ -166,7 +166,7 @@
   },
   {
     "pair": "AUDNZD",
-    "reference_price": 1.22201,
+    "reference_price": 1.22384,
     "renko": {
       "M": {
         "status": "BULL",
@@ -221,7 +221,7 @@
   },
   {
     "pair": "AUDUSD",
-    "reference_price": 0.71662,
+    "reference_price": 0.71628,
     "renko": {
       "M": {
         "status": "BULL",
@@ -276,7 +276,7 @@
   },
   {
     "pair": "CADCHF",
-    "reference_price": 0.58683,
+    "reference_price": 0.58646,
     "renko": {
       "M": {
         "status": "BEAR",
@@ -331,7 +331,7 @@
   },
   {
     "pair": "CADJPY",
-    "reference_price": 114.04,
+    "reference_price": 113.7,
     "renko": {
       "M": {
         "status": "BULL",
@@ -341,9 +341,9 @@
         "close": 104.5
       },
       "W": {
-        "status": "BULL",
-        "px": 0,
-        "streak": 5,
+        "status": "BEAR",
+        "px": -1,
+        "streak": 0,
         "open": 114.0,
         "close": 116.0
       },
@@ -376,9 +376,9 @@
       "bear_count": 7,
       "bull_avg_pips": 13.528571428571265,
       "bull_avg_n": 14,
-      "bear_avg_pips": 126.25714285714314,
+      "bear_avg_pips": 121.40000000000025,
       "bear_avg_n": 7,
-      "all_avg_pips": 51.10476190476191,
+      "all_avg_pips": 49.48571428571428,
       "all_avg_n": 21,
       "last_imp": "BEAR",
       "last_imp_time": "2026-09-02T21:00:00+00:00"
@@ -386,7 +386,7 @@
   },
   {
     "pair": "CHFJPY",
-    "reference_price": 194.324,
+    "reference_price": 193.862,
     "renko": {
       "M": {
         "status": "BEAR",
@@ -441,7 +441,7 @@
   },
   {
     "pair": "EURAUD",
-    "reference_price": 1.61836,
+    "reference_price": 1.6194,
     "renko": {
       "M": {
         "status": "BEAR",
@@ -496,7 +496,7 @@
   },
   {
     "pair": "EURCAD",
-    "reference_price": 1.6036,
+    "reference_price": 1.60416,
     "renko": {
       "M": {
         "status": "BULL",
@@ -551,7 +551,7 @@
   },
   {
     "pair": "EURCHF",
-    "reference_price": 0.94104,
+    "reference_price": 0.94088,
     "renko": {
       "M": {
         "status": "BEAR",
@@ -606,12 +606,12 @@
   },
   {
     "pair": "EURGBP",
-    "reference_price": 0.85941,
+    "reference_price": 0.86004,
     "renko": {
       "M": {
-        "status": "BEAR",
-        "px": 0,
-        "streak": 1,
+        "status": "BULL",
+        "px": 1,
+        "streak": 0,
         "open": 0.86,
         "close": 0.84
       },
@@ -635,14 +635,14 @@
       "imp_ratio": 20.0,
       "bull_count": 20,
       "bear_count": 1,
-      "bull_avg_pips": 2.6894736842105575,
-      "bull_avg_n": 19,
-      "bear_avg_pips": 27.749999999999716,
-      "bear_avg_n": 2,
-      "all_avg_pips": 5.076190476190478,
+      "bull_avg_pips": 2.7650000000000174,
+      "bull_avg_n": 20,
+      "bear_avg_pips": 15.399999999999858,
+      "bear_avg_n": 1,
+      "all_avg_pips": 3.3666666666666765,
       "all_avg_n": 21,
       "last_imp": "BULL",
-      "last_imp_time": "2026-09-03T01:00:00+00:00"
+      "last_imp_time": "2026-09-03T05:00:00+00:00"
     },
     "D1": {
       "imp_status": "NEUTRAL",
@@ -661,7 +661,7 @@
   },
   {
     "pair": "EURJPY",
-    "reference_price": 182.852,
+    "reference_price": 182.41,
     "renko": {
       "M": {
         "status": "BULL",
@@ -671,9 +671,9 @@
         "close": 182.0
       },
       "W": {
-        "status": "BULL",
-        "px": 0,
-        "streak": 10,
+        "status": "BEAR",
+        "px": -1,
+        "streak": 0,
         "open": 182.5,
         "close": 185.0
       },
@@ -716,7 +716,7 @@
   },
   {
     "pair": "EURNZD",
-    "reference_price": 1.9779,
+    "reference_price": 1.98184,
     "renko": {
       "M": {
         "status": "BULL",
@@ -726,15 +726,15 @@
         "close": 2.015
       },
       "W": {
-        "status": "BEAR",
-        "px": -1,
-        "streak": 0,
+        "status": "BULL",
+        "px": 0,
+        "streak": 1,
         "open": 1.98,
         "close": 2.01
       },
       "D": {
         "status": "BULL",
-        "px": 0,
+        "px": 1,
         "streak": 1,
         "open": 1.97,
         "close": 1.98
@@ -771,7 +771,7 @@
   },
   {
     "pair": "EURUSD",
-    "reference_price": 1.15964,
+    "reference_price": 1.15982,
     "renko": {
       "M": {
         "status": "BULL",
@@ -797,17 +797,17 @@
     },
     "H1": {
       "imp_status": "BULL",
-      "imp_ratio": 2.5,
-      "bull_count": 15,
-      "bear_count": 6,
-      "bull_avg_pips": -4.033333333333407,
+      "imp_ratio": 3.2,
+      "bull_count": 16,
+      "bear_count": 5,
+      "bull_avg_pips": -3.1399999999999957,
       "bull_avg_n": 15,
       "bear_avg_pips": 18.683333333333238,
       "bear_avg_n": 6,
-      "all_avg_pips": 2.457142857142778,
+      "all_avg_pips": 3.0952380952380727,
       "all_avg_n": 21,
       "last_imp": "BULL",
-      "last_imp_time": "2026-09-02T13:00:00+00:00"
+      "last_imp_time": "2026-09-03T05:00:00+00:00"
     },
     "D1": {
       "imp_status": "NEUTRAL",
@@ -826,7 +826,7 @@
   },
   {
     "pair": "GBPAUD",
-    "reference_price": 1.8833,
+    "reference_price": 1.883,
     "renko": {
       "M": {
         "status": "BEAR",
@@ -881,7 +881,7 @@
   },
   {
     "pair": "GBPCAD",
-    "reference_price": 1.86596,
+    "reference_price": 1.86532,
     "renko": {
       "M": {
         "status": "BULL",
@@ -936,7 +936,7 @@
   },
   {
     "pair": "GBPCHF",
-    "reference_price": 1.09502,
+    "reference_price": 1.09402,
     "renko": {
       "M": {
         "status": "BEAR",
@@ -947,15 +947,15 @@
       },
       "W": {
         "status": "BULL",
-        "px": 1,
+        "px": 0,
         "streak": 2,
         "open": 1.08,
         "close": 1.095
       },
       "D": {
-        "status": "BULL",
-        "px": 1,
-        "streak": 0,
+        "status": "BEAR",
+        "px": 0,
+        "streak": 1,
         "open": 1.0945,
         "close": 1.089
       }
@@ -991,7 +991,7 @@
   },
   {
     "pair": "GBPJPY",
-    "reference_price": 212.758,
+    "reference_price": 212.124,
     "renko": {
       "M": {
         "status": "BULL",
@@ -1046,7 +1046,7 @@
   },
   {
     "pair": "GBPNZD",
-    "reference_price": 2.30146,
+    "reference_price": 2.30442,
     "renko": {
       "M": {
         "status": "BULL",
@@ -1101,7 +1101,7 @@
   },
   {
     "pair": "GBPUSD",
-    "reference_price": 1.34934,
+    "reference_price": 1.34855,
     "renko": {
       "M": {
         "status": "BULL",
@@ -1156,19 +1156,19 @@
   },
   {
     "pair": "NZDCAD",
-    "reference_price": 0.81076,
+    "reference_price": 0.80945,
     "renko": {
       "M": {
-        "status": "BULL",
-        "px": 0,
-        "streak": 1,
+        "status": "BEAR",
+        "px": -1,
+        "streak": 0,
         "open": 0.8099999999999999,
         "close": 0.84
       },
       "W": {
-        "status": "BULL",
-        "px": 0,
-        "streak": 1,
+        "status": "BEAR",
+        "px": -1,
+        "streak": 0,
         "open": 0.8099999999999999,
         "close": 0.825
       },
@@ -1211,11 +1211,11 @@
   },
   {
     "pair": "NZDCHF",
-    "reference_price": 0.47578,
+    "reference_price": 0.47476,
     "renko": {
       "M": {
         "status": "BEAR",
-        "px": 0,
+        "px": -1,
         "streak": 6,
         "open": 0.5,
         "close": 0.475
@@ -1266,7 +1266,7 @@
   },
   {
     "pair": "NZDJPY",
-    "reference_price": 92.444,
+    "reference_price": 92.059,
     "renko": {
       "M": {
         "status": "BULL",
@@ -1321,7 +1321,7 @@
   },
   {
     "pair": "NZDUSD",
-    "reference_price": 0.58628,
+    "reference_price": 0.58517,
     "renko": {
       "M": {
         "status": "BEAR",
@@ -1376,7 +1376,7 @@
   },
   {
     "pair": "USDCAD",
-    "reference_price": 1.38314,
+    "reference_price": 1.3835,
     "renko": {
       "M": {
         "status": "BEAR",
@@ -1431,7 +1431,7 @@
   },
   {
     "pair": "USDCHF",
-    "reference_price": 0.81154,
+    "reference_price": 0.8113,
     "renko": {
       "M": {
         "status": "BULL",
@@ -1486,11 +1486,11 @@
   },
   {
     "pair": "USDJPY",
-    "reference_price": 157.687,
+    "reference_price": 157.312,
     "renko": {
       "M": {
         "status": "BULL",
-        "px": 1,
+        "px": 0,
         "streak": 6,
         "open": 150.0,
         "close": 157.5
@@ -1504,7 +1504,7 @@
       },
       "D": {
         "status": "BEAR",
-        "px": 0,
+        "px": -1,
         "streak": 3,
         "open": 159.0,
         "close": 157.5
@@ -1512,36 +1512,36 @@
     },
     "H1": {
       "imp_status": "BULL",
-      "imp_ratio": 20.0,
-      "bull_count": 20,
-      "bear_count": 1,
-      "bull_avg_pips": 4.1850000000000875,
+      "imp_ratio": 9.5,
+      "bull_count": 19,
+      "bear_count": 2,
+      "bull_avg_pips": -12.30499999999978,
       "bull_avg_n": 20,
       "bear_avg_pips": 162.6999999999981,
       "bear_avg_n": 1,
-      "all_avg_pips": 11.733333333333327,
+      "all_avg_pips": -3.971428571428451,
       "all_avg_n": 21,
-      "last_imp": "BULL",
-      "last_imp_time": "2026-09-02T00:00:00+00:00"
+      "last_imp": "BEAR",
+      "last_imp_time": "2026-09-03T05:00:00+00:00"
     },
     "D1": {
       "imp_status": "BULL",
       "imp_ratio": 4.25,
       "bull_count": 17,
       "bear_count": 4,
-      "bull_avg_pips": 35.056250000000055,
-      "bull_avg_n": 16,
-      "bear_avg_pips": 130.1800000000003,
-      "bear_avg_n": 5,
-      "all_avg_pips": 57.70476190476201,
+      "bull_avg_pips": 16.576470588235196,
+      "bull_avg_n": 17,
+      "bear_avg_pips": 210.60000000000016,
+      "bear_avg_n": 4,
+      "all_avg_pips": 53.53333333333328,
       "all_avg_n": 21,
-      "last_imp": "BULL",
-      "last_imp_time": "2026-08-27T21:00:00+00:00"
+      "last_imp": "BEAR",
+      "last_imp_time": "2026-09-02T21:00:00+00:00"
     }
   },
   {
     "pair": "XAUUSD",
-    "reference_price": 4428.17,
+    "reference_price": 4426.16,
     "renko": {
       "M": {
         "status": "BULL",
