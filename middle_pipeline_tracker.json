@@ -1,6 +1,6 @@
 {
-  "updated": "2026-09-02",
-  "prev_update": "2026-09-01",
+  "updated": "2026-09-03",
+  "prev_update": "2026-09-02",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -157,13 +157,13 @@
       "dropped_on": "2026-08-28"
     },
     "QLYS": {
-      "streak": 14,
-      "days": 28,
+      "streak": 15,
+      "days": 29,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-09-02",
-      "last_rank": 3,
+      "last_seen": "2026-09-03",
+      "last_rank": 4,
       "peak_rank": 1,
-      "last_rel": 47.98,
+      "last_rel": 51.99,
       "active": true
     },
     "CXT": {
@@ -174,7 +174,8 @@
       "last_rank": 4,
       "peak_rank": 4,
       "last_rel": 34.13,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-09-03"
     },
     "TWLO": {
       "streak": 2,
@@ -210,13 +211,13 @@
       "dropped_on": "2026-08-07"
     },
     "MANH": {
-      "streak": 11,
-      "days": 14,
+      "streak": 12,
+      "days": 15,
       "first_seen": "2026-07-31",
-      "last_seen": "2026-09-02",
+      "last_seen": "2026-09-03",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 39.66,
+      "last_rel": 43.05,
       "active": true
     },
     "NTNX": {
@@ -275,25 +276,24 @@
       "dropped_on": "2026-08-20"
     },
     "PATH": {
-      "streak": 4,
-      "days": 11,
+      "streak": 5,
+      "days": 12,
       "first_seen": "2026-08-18",
-      "last_seen": "2026-09-02",
-      "last_rank": 2,
+      "last_seen": "2026-09-03",
+      "last_rank": 3,
       "peak_rank": 2,
-      "last_rel": 50.11,
+      "last_rel": 55.15,
       "active": true
     },
     "GWRE": {
-      "streak": 3,
-      "days": 7,
+      "streak": 1,
+      "days": 8,
       "first_seen": "2026-08-21",
-      "last_seen": "2026-09-01",
-      "last_rank": 3,
-      "peak_rank": 3,
-      "last_rel": 14.78,
-      "active": false,
-      "dropped_on": "2026-09-02"
+      "last_seen": "2026-09-03",
+      "last_rank": 2,
+      "peak_rank": 2,
+      "last_rel": 29.07,
+      "active": true
     },
     "APPF": {
       "streak": 3,
@@ -307,13 +307,13 @@
       "dropped_on": "2026-09-02"
     },
     "BILL": {
-      "streak": 1,
-      "days": 1,
+      "streak": 2,
+      "days": 2,
       "first_seen": "2026-09-02",
-      "last_seen": "2026-09-02",
+      "last_seen": "2026-09-03",
       "last_rank": 5,
       "peak_rank": 5,
-      "last_rel": 33.87,
+      "last_rel": 36.13,
       "active": true
     }
   },
@@ -321,77 +321,82 @@
     "persistent": [
       [
         "QLYS",
-        14
+        15
       ],
       [
         "MANH",
-        11
+        12
       ],
       [
         "PATH",
-        4
-      ],
-      [
-        "CXT",
-        1
+        5
       ],
       [
         "BILL",
+        2
+      ],
+      [
+        "GWRE",
         1
       ]
     ],
     "new": [
-      "CXT",
-      "BILL"
+      "GWRE"
     ],
     "weakening": [
       {
-        "ticker": "QLYS",
+        "ticker": "PATH",
         "rank": 3,
-        "prev_rank": 4,
-        "rel": 47.98,
-        "prev_rel": 53.58
+        "prev_rank": 2,
+        "rel": 55.15,
+        "prev_rel": 50.11
+      },
+      {
+        "ticker": "QLYS",
+        "rank": 4,
+        "prev_rank": 3,
+        "rel": 51.99,
+        "prev_rel": 47.98
       }
     ],
     "dropped": [
-      "GWRE",
-      "APPF"
+      "CXT"
     ],
     "durable": [
       [
         "QLYS",
-        14,
-        47.98,
-        671.7
+        15,
+        51.99,
+        779.9
       ],
       [
         "MANH",
-        11,
-        39.66,
-        436.3
+        12,
+        43.05,
+        516.6
       ],
       [
         "PATH",
-        4,
-        50.11,
-        200.4
-      ],
-      [
-        "CXT",
-        1,
-        34.13,
-        34.1
+        5,
+        55.15,
+        275.8
       ],
       [
         "BILL",
+        2,
+        36.13,
+        72.3
+      ],
+      [
+        "GWRE",
         1,
-        33.87,
-        33.9
+        29.07,
+        29.1
       ]
     ],
     "switch": null
   },
   "leader_raw": "Logiciels",
-  "leader_raw_days": 24,
+  "leader_raw_days": 25,
   "leader_confirmed": "Logiciels"
 }
