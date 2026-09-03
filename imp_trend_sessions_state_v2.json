@@ -2,8 +2,8 @@
   "version": 1,
   "sessions": {
     "Sydney": {
-      "realized_pips": -315.79999999999404,
-      "current_session_realized_pips": 0.0,
+      "realized_pips": -322.399999999994,
+      "current_session_realized_pips": -6.599999999999939,
       "last_session_pips": -241.70000000000002,
       "active_session_id": "2026-09-03",
       "positions": {
@@ -31,11 +31,6 @@
           "direction": "BEAR",
           "entry_price": 192.912,
           "entry_time_utc": "2026-09-03T20:20:18.278253+00:00"
-        },
-        "AUDCAD": {
-          "direction": "BULL",
-          "entry_price": 0.99386,
-          "entry_time_utc": "2026-09-03T21:20:06.634108+00:00"
         }
       },
       "events": [
@@ -828,12 +823,22 @@
           "pair": "AUDCAD",
           "direction": "BULL",
           "entry_price": 0.99386
+        },
+        {
+          "time_utc": "2026-09-03T21:45:41.795188+00:00",
+          "event": "EXIT",
+          "pair": "AUDCAD",
+          "direction": "BULL",
+          "entry_price": 0.99386,
+          "exit_price": 0.9932,
+          "pips": -6.599999999999939,
+          "reason": "INVALIDATED"
         }
       ],
-      "unrealized_pips": -12.099999999998756,
-      "total_pips": -327.8999999999928,
+      "unrealized_pips": -27.799999999998448,
+      "total_pips": -350.19999999999243,
       "is_active": true,
-      "daily_pips": -12.099999999998756,
+      "daily_pips": -34.399999999998386,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-03T20:20:18.278253+00:00",
@@ -842,10 +847,14 @@
         {
           "time_utc": "2026-09-03T21:20:06.634108+00:00",
           "daily_pips": -12.099999999998756
+        },
+        {
+          "time_utc": "2026-09-03T21:45:41.795188+00:00",
+          "daily_pips": -34.399999999998386
         }
       ],
       "comparison_baseline": 8.600000000001764,
-      "comparison_pips": -336.4999999999946
+      "comparison_pips": -358.7999999999942
     },
     "Tokyo": {
       "realized_pips": -469.0999999999891,
@@ -3854,5 +3863,5 @@
       "comparison_pips": -72.39999999999003
     }
   },
-  "updated_at": "2026-09-03T21:20:06.634108+00:00"
+  "updated_at": "2026-09-03T21:45:41.795188+00:00"
 }

@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "updated_at": "2026-09-03T21:18:55.031706+00:00",
+  "updated_at": "2026-09-03T21:44:30.798680+00:00",
   "sessions": {
     "Sydney": {
-      "realized_pips": -258.69999999999203,
-      "current_session_realized_pips": 0.0,
+      "realized_pips": -264.89999999999156,
+      "current_session_realized_pips": -6.199999999999539,
       "last_session_pips": -234.4999999999997,
-      "unrealized_pips": 12.099999999998223,
-      "total_pips": -246.5999999999938,
-      "daily_pips": 12.099999999998223,
+      "unrealized_pips": -5.899999999999794,
+      "total_pips": -270.79999999999137,
+      "daily_pips": -12.099999999999334,
       "is_active": true,
       "active_session_id": "2026-09-03",
       "positions": {
@@ -31,11 +31,6 @@
           "direction": "BEAR",
           "entry_price": 1.61462,
           "entry_time_utc": "2026-09-03T20:19:07.396134+00:00"
-        },
-        "AUDCAD": {
-          "direction": "BULL",
-          "entry_price": 0.99386,
-          "entry_time_utc": "2026-09-03T21:18:55.031706+00:00"
         }
       },
       "events": [
@@ -1008,6 +1003,16 @@
           "pair": "AUDCAD",
           "direction": "BULL",
           "entry_price": 0.99386
+        },
+        {
+          "time_utc": "2026-09-03T21:44:30.798680+00:00",
+          "event": "EXIT",
+          "pair": "AUDCAD",
+          "direction": "BULL",
+          "entry_price": 0.99386,
+          "exit_price": 0.99324,
+          "pips": -6.199999999999539,
+          "reason": "INVALIDATED"
         }
       ],
       "daily_pips_history": [
@@ -1018,10 +1023,14 @@
         {
           "time_utc": "2026-09-03T21:18:55.031706+00:00",
           "daily_pips": 12.099999999998223
+        },
+        {
+          "time_utc": "2026-09-03T21:44:30.798680+00:00",
+          "daily_pips": -12.099999999999334
         }
       ],
       "comparison_baseline": 30.000000000003364,
-      "comparison_pips": -276.5999999999972
+      "comparison_pips": -300.7999999999947
     },
     "Tokyo": {
       "realized_pips": -596.3999999999976,
