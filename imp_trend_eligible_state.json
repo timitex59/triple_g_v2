@@ -5,7 +5,7 @@
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-09-04T04:20:20.490152+00:00",
-      "last_seen_at": "2026-09-04T19:18:55.384075+00:00",
+      "last_seen_at": "2026-09-04T20:18:55.280610+00:00",
       "snapshot": {
         "pair": "AUDCAD",
         "direction": "BULL",
@@ -38,7 +38,7 @@
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-09-04T17:21:40.689144+00:00",
-      "last_seen_at": "2026-09-04T19:18:55.384075+00:00",
+      "last_seen_at": "2026-09-04T20:18:55.280610+00:00",
       "snapshot": {
         "pair": "AUDNZD",
         "direction": "BULL",
@@ -71,7 +71,7 @@
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-09-04T14:24:08.604144+00:00",
-      "last_seen_at": "2026-09-04T19:18:55.384075+00:00",
+      "last_seen_at": "2026-09-04T20:18:55.280610+00:00",
       "snapshot": {
         "pair": "AUDUSD",
         "direction": "BULL",
@@ -104,7 +104,7 @@
       "direction": "BULL",
       "confirmations": 10,
       "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-04T19:18:55.384075+00:00",
+      "last_seen_at": "2026-09-04T20:18:55.280610+00:00",
       "snapshot": {
         "pair": "AUDCHF",
         "direction": "BULL",
@@ -133,44 +133,11 @@
         "CURRENCY_INDEX": "NEUTRAL"
       }
     },
-    "EURAUD": {
-      "direction": "BEAR",
-      "confirmations": 11,
-      "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-04T19:18:55.384075+00:00",
-      "snapshot": {
-        "pair": "EURAUD",
-        "direction": "BEAR",
-        "confirmations": 11,
-        "renko_confirmations": 3,
-        "avg_vote_confirmations": 3,
-        "directional_avg_confirmations": 1,
-        "tradable": true,
-        "rank_tier": 2,
-        "rank_reason": "11/12",
-        "RENKO_M": "BEAR",
-        "RENKO_W": "BEAR",
-        "RENKO_D": "BEAR",
-        "D1_IMP21": "BEAR",
-        "D1_ALL_AVG": "BEAR",
-        "D1_ALL_AVG_PIPS": -85.45238095238089,
-        "D1_BULL_AVG": "BEAR",
-        "D1_BEAR_AVG": "BEAR",
-        "D1_DIRECTIONAL_AVG_PIPS": -56.621428571428524,
-        "H1_IMP21": "BEAR",
-        "H1_ALL_AVG": "BEAR",
-        "H1_ALL_AVG_PIPS": -7.1047619047619275,
-        "H1_BULL_AVG": "BEAR",
-        "H1_BEAR_AVG": "BULL",
-        "H1_DIRECTIONAL_AVG_PIPS": 2.7937499999999833,
-        "CURRENCY_INDEX": "BEAR"
-      }
-    },
     "GBPAUD": {
       "direction": "BEAR",
       "confirmations": 11,
       "entered_at": "2026-09-04T14:24:08.604144+00:00",
-      "last_seen_at": "2026-09-04T19:18:55.384075+00:00",
+      "last_seen_at": "2026-09-04T20:18:55.280610+00:00",
       "snapshot": {
         "pair": "GBPAUD",
         "direction": "BEAR",
@@ -196,6 +163,39 @@
         "H1_BULL_AVG": "BEAR",
         "H1_BEAR_AVG": "BEAR",
         "H1_DIRECTIONAL_AVG_PIPS": -15.784615384615456,
+        "CURRENCY_INDEX": "NEUTRAL"
+      }
+    },
+    "EURAUD": {
+      "direction": "BEAR",
+      "confirmations": 10,
+      "entered_at": "2026-08-21T21:49:08.313491+00:00",
+      "last_seen_at": "2026-09-04T20:18:55.280610+00:00",
+      "snapshot": {
+        "pair": "EURAUD",
+        "direction": "BEAR",
+        "confirmations": 10,
+        "renko_confirmations": 3,
+        "avg_vote_confirmations": 3,
+        "directional_avg_confirmations": 1,
+        "tradable": true,
+        "rank_tier": 3,
+        "rank_reason": "10/12",
+        "RENKO_M": "BEAR",
+        "RENKO_W": "BEAR",
+        "RENKO_D": "BEAR",
+        "D1_IMP21": "BEAR",
+        "D1_ALL_AVG": "BEAR",
+        "D1_ALL_AVG_PIPS": -85.45238095238089,
+        "D1_BULL_AVG": "BEAR",
+        "D1_BEAR_AVG": "BEAR",
+        "D1_DIRECTIONAL_AVG_PIPS": -56.621428571428524,
+        "H1_IMP21": "BEAR",
+        "H1_ALL_AVG": "BEAR",
+        "H1_ALL_AVG_PIPS": -7.1047619047619275,
+        "H1_BULL_AVG": "BEAR",
+        "H1_BEAR_AVG": "BULL",
+        "H1_DIRECTIONAL_AVG_PIPS": 2.7937499999999833,
         "CURRENCY_INDEX": "NEUTRAL"
       }
     }
@@ -666,5 +666,5 @@
       "confirmations": 11
     }
   ],
-  "updated_at": "2026-09-04T19:18:55.384075+00:00"
+  "updated_at": "2026-09-04T20:18:55.280610+00:00"
 }
