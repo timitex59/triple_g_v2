@@ -2988,8 +2988,8 @@
       "comparison_pips": 153.70000000000186
     },
     "New York": {
-      "realized_pips": -19.89999999999386,
-      "current_session_realized_pips": 47.100000000000186,
+      "realized_pips": -21.399999999992584,
+      "current_session_realized_pips": 45.60000000000146,
       "last_session_pips": -18.000000000000284,
       "active_session_id": "2026-09-04",
       "positions": {
@@ -3001,11 +3001,6 @@
         "AUDCHF": {
           "direction": "BULL",
           "entry_price": 0.5835,
-          "entry_time_utc": "2026-09-04T15:19:56.405335+00:00"
-        },
-        "AUDNZD": {
-          "direction": "BULL",
-          "entry_price": 1.22417,
           "entry_time_utc": "2026-09-04T15:19:56.405335+00:00"
         },
         "AUDUSD": {
@@ -4239,12 +4234,22 @@
           "pair": "GBPAUD",
           "direction": "BEAR",
           "entry_price": 1.87568
+        },
+        {
+          "time_utc": "2026-09-04T16:21:38.712219+00:00",
+          "event": "EXIT",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.22417,
+          "exit_price": 1.22402,
+          "pips": -1.4999999999987246,
+          "reason": "INVALIDATED"
         }
       ],
-      "unrealized_pips": 0.0,
-      "total_pips": -19.89999999999386,
+      "unrealized_pips": 18.700000000003712,
+      "total_pips": -2.699999999988872,
       "is_active": true,
-      "daily_pips": 47.100000000000186,
+      "daily_pips": 64.30000000000517,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-04T11:19:55.141236+00:00",
@@ -4265,11 +4270,15 @@
         {
           "time_utc": "2026-09-04T15:19:56.405335+00:00",
           "daily_pips": 47.100000000000186
+        },
+        {
+          "time_utc": "2026-09-04T16:21:38.712219+00:00",
+          "daily_pips": 64.30000000000517
         }
       ],
       "comparison_baseline": 5.399999999995986,
-      "comparison_pips": -25.299999999989844
+      "comparison_pips": -8.099999999984858
     }
   },
-  "updated_at": "2026-09-04T15:19:56.405335+00:00"
+  "updated_at": "2026-09-04T16:21:38.712219+00:00"
 }

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-04T15:18:47.513657+00:00",
+  "updated_at": "2026-09-04T16:20:27.813763+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -242.0999999999943,
@@ -3567,23 +3567,18 @@
       "comparison_pips": -25.799999999986767
     },
     "New York": {
-      "realized_pips": 92.10000000000986,
-      "current_session_realized_pips": 32.29999999999956,
+      "realized_pips": 90.70000000000957,
+      "current_session_realized_pips": 30.899999999999267,
       "last_session_pips": -6.199999999998429,
-      "unrealized_pips": 0.0,
-      "total_pips": 92.10000000000986,
-      "daily_pips": 32.29999999999956,
+      "unrealized_pips": 11.200000000001209,
+      "total_pips": 101.90000000001078,
+      "daily_pips": 42.10000000000048,
       "is_active": true,
       "active_session_id": "2026-09-04",
       "positions": {
         "AUDCAD": {
           "direction": "BULL",
           "entry_price": 0.99774,
-          "entry_time_utc": "2026-09-04T15:18:47.513657+00:00"
-        },
-        "AUDNZD": {
-          "direction": "BULL",
-          "entry_price": 1.22422,
           "entry_time_utc": "2026-09-04T15:18:47.513657+00:00"
         },
         "AUDUSD": {
@@ -5043,6 +5038,16 @@
           "pair": "EURAUD",
           "direction": "BEAR",
           "entry_price": 1.61214
+        },
+        {
+          "time_utc": "2026-09-04T16:20:27.813763+00:00",
+          "event": "EXIT",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.22422,
+          "exit_price": 1.22408,
+          "pips": -1.40000000000029,
+          "reason": "INVALIDATED"
         }
       ],
       "daily_pips_history": [
@@ -5065,10 +5070,14 @@
         {
           "time_utc": "2026-09-04T15:18:47.513657+00:00",
           "daily_pips": 32.29999999999956
+        },
+        {
+          "time_utc": "2026-09-04T16:20:27.813763+00:00",
+          "daily_pips": 42.10000000000048
         }
       ],
       "comparison_baseline": 69.39999999999876,
-      "comparison_pips": 22.7000000000111
+      "comparison_pips": 32.50000000001202
     }
   }
 }
