@@ -85,7 +85,20 @@ desormais 2 lignes par paire au lieu d'une (🟢 puis 🔴, part des runs montes
 et part des runs baisses sur le total de runs decisifs) plutot qu'une bille
 + % unique de la direction majoritaire -- montre l'ecart entre les 2 sens
 sans que le lecteur ait a le deduire, et reste lisible meme a 100%/0% (tout
-premiers runs du jour)."""
+premiers runs du jour).
+
+2026-09-04 (encore plus tard): `update_index_trend_state` pondere desormais
+chaque run par recence (decroissance exponentielle, demi-vie
+`INDEX_TREND_HALF_LIFE_HOURS` = 4h) plutot que de compter chaque run a poids
+egal -- suite a une anomalie constatee en prod le jour meme: le fichier
+d'etat du compteur n'etait pas persiste en CI (cf. commit suivant sur
+`.github/workflows/triple_g_workflow.yml`), donc TENDANCE ne comptait jamais
+qu'un seul run et restait fige a 100%/0%. Une fois le compteur reellement
+cumulatif, un comptage brut aurait pose un autre probleme: un retournement
+recent (EURUSD passe de haussier a baissier a 14h20 ce jour-la) restait noye
+sous la majorite de la matinee (73%/27% a 16h25 avec un comptage brut, contre
+~50%/50% avec la ponderation -- cf. historique git pour le detail du calcul
+sur ces 15 runs reels)."""
 
 from __future__ import annotations
 
@@ -127,6 +140,10 @@ INDEX_TREND_STATE_FILE = Path("paire_check_index_trend_state.json")
 # Avant cette heure Paris, --telegram construit le message (INDEX, TENDANCE,
 # etc. tournent normalement) mais n'envoie rien -- cf. `main`.
 TELEGRAM_SEND_START_HOUR_PARIS = 5
+# Demi-vie (en heures) de la ponderation par recence du compteur TENDANCE --
+# un run perd la moitie de son poids toutes les `INDEX_TREND_HALF_LIFE_HOURS`
+# heures, cf. `update_index_trend_state`.
+INDEX_TREND_HALF_LIFE_HOURS = 4.0
 
 
 def needed_currencies(pairs: list[str]) -> set[str]:
@@ -281,49 +298,83 @@ def pair_index_icon(pair: str, index_by_currency: dict[str, dict]) -> str | None
 def update_index_trend_state(
     state: dict, pairs: list[str], index_by_currency: dict[str, dict], now: datetime,
 ) -> dict:
-    """Ajoute le run courant au compteur monte(🟢)/baisse(🔴) de chaque paire
-    de `pairs`, base sur `pair_index_icon` -- une bille ⚪ (egalite) ou
-    absente (donnees manquantes) ne compte ni pour l'un ni pour l'autre, mais
-    ne fait pas non plus perdre l'historique deja accumule.
+    """Ajoute le run courant au poids monte(🟢)/baisse(🔴) de chaque paire de
+    `pairs`, base sur `pair_index_icon` -- une bille ⚪ (egalite) ou absente
+    (donnees manquantes) ne compte ni pour l'un ni pour l'autre, mais ne fait
+    pas non plus perdre l'historique deja accumule.
+
+    Pondere par recence: avant d'ajouter le run courant, le poids deja
+    accumule (`weighted_up`/`weighted_down`) est decote d'une decroissance
+    exponentielle sur le temps ecoule depuis le run precedent (cf.
+    `INDEX_TREND_HALF_LIFE_HOURS` -- un vote perd la moitie de son poids
+    toutes les {demi-vie}h). Un simple comptage traite un run vieux de 10h
+    exactement comme le dernier -- un retournement recent (cf. celui d'EURUSD
+    le 2026-09-04: 11 runs montes de 06h a 13h20, puis 4 runs baisses de 14h20
+    a 16h25) restait alors noye dans la majorite du matin (73%/27%) au lieu de
+    ressortir. Avec 4h de demi-vie, ce meme historique donne ~50%/50% au
+    dernier run: la moitie haussiere de la matinee et le retournement recent
+    se contrebalancent, plutot que 73%/27% (comptage brut) ou 0%/100% (bug
+    d'origine, cf. historique git -- fichier d'etat pas persiste en CI).
 
     Remise a zero chaque jour (nouvelle date Paris), meme mecanisme que la
     reference 06h de `update_price_trends` -- coherent avec un message qui
-    raisonne "depuis 06h" sur le reste de sa journee."""
+    raisonne "depuis 06h" sur le reste de sa journee (la decroissance seule
+    ferait deja tomber un run de la veille a un poids negligeable, mais la
+    remise a zero reste plus simple a raisonner)."""
     today = now.astimezone(PARIS_TZ).date().isoformat()
     old = state if isinstance(state, dict) else {}
     old_counts = old.get("pairs", {}) if old.get("date") == today else {}
     new_counts: dict[str, dict] = {}
     for pair in pairs:
-        counts = dict(old_counts.get(pair) or {"up": 0, "down": 0})
+        prior = old_counts.get(pair) or {}
+        weighted_up = float(prior.get("weighted_up", 0.0))
+        weighted_down = float(prior.get("weighted_down", 0.0))
+        last_update = _parse_iso_datetime(prior.get("last_update"))
+        if last_update is not None:
+            elapsed_hours = max((now - last_update).total_seconds(), 0.0) / 3600.0
+            decay = 0.5 ** (elapsed_hours / INDEX_TREND_HALF_LIFE_HOURS)
+            weighted_up *= decay
+            weighted_down *= decay
         icon = pair_index_icon(pair, index_by_currency)
         if icon == "🟢":
-            counts["up"] = counts.get("up", 0) + 1
+            weighted_up += 1.0
         elif icon == "🔴":
-            counts["down"] = counts.get("down", 0) + 1
-        new_counts[pair] = counts
+            weighted_down += 1.0
+        new_counts[pair] = {
+            "weighted_up": weighted_up, "weighted_down": weighted_down, "last_update": now.isoformat(),
+        }
     return {"date": today, "pairs": new_counts}
 
 
+def _parse_iso_datetime(value: object) -> datetime | None:
+    """`datetime.fromisoformat(value)` tolerant: None si `value` n'est pas une
+    chaine ISO exploitable (etat absent, corrompu, ou tout premier run)."""
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
 def index_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
-    """Section `📈 TENDANCE`: pour chaque paire de `pairs` ayant au moins un
-    run decisif (🟢 ou 🔴) accumule aujourd'hui (cf.
-    `update_index_trend_state`), 2 lignes `🟢 {PAIR} ({pct_up}%)` puis
-    `🔴 {PAIR} ({pct_down}%)` -- part des runs montes puis part des runs
-    baisses, sur le total de runs decisifs (les egalites/donnees manquantes
-    ne comptent dans aucun des deux, cf. `update_index_trend_state`). Les 2
-    lignes sont toujours affichees ensemble, meme quand l'une est a 0.00% --
-    contrairement a une bille+% unique, elles montrent directement l'ecart
-    entre les 2 sens sans qu'un lecteur ait a le deduire.
-    Vide si aucune paire n'a de run decisif accumule (ex. tout premier run,
-    ou seulement des egalites/donnees manquantes jusqu'ici)."""
+    """Section `📈 TENDANCE`: pour chaque paire de `pairs` ayant un poids
+    monte/baisse accumule aujourd'hui (cf. `update_index_trend_state`), 2
+    lignes `🟢 {PAIR} ({pct_up}%)` puis `🔴 {PAIR} ({pct_down}%)` -- part
+    ponderee par recence des runs montes puis baisses, sur le poids total.
+    Les 2 lignes sont toujours affichees ensemble, meme quand l'une est a
+    0.00% -- contrairement a une bille+% unique, elles montrent directement
+    l'ecart entre les 2 sens sans qu'un lecteur ait a le deduire.
+    Vide si aucune paire n'a de poids accumule (ex. tout premier run, ou
+    seulement des egalites/donnees manquantes jusqu'ici)."""
     counts_by_pair = trend_state.get("pairs", {}) if isinstance(trend_state, dict) else {}
     lines = []
     for pair in pairs:
         counts = counts_by_pair.get(pair) or {}
-        up = int(counts.get("up", 0))
-        down = int(counts.get("down", 0))
+        up = float(counts.get("weighted_up", 0.0))
+        down = float(counts.get("weighted_down", 0.0))
         total = up + down
-        if total == 0:
+        if total <= 0.0:
             continue
         lines.append(f"🟢 {pair} ({up / total * 100.0:.2f}%)")
         lines.append(f"🔴 {pair} ({down / total * 100.0:.2f}%)")

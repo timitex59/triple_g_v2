@@ -560,6 +560,8 @@ class PaireCheckTests(unittest.TestCase):
         self.assertIsNone(pair_index_icon("NOTAPAIR", {}))
 
     def test_update_index_trend_state_accumulates_up_and_down_across_runs(self):
+        # Meme `now` a chaque run (pas de temps ecoule) -> decroissance nulle,
+        # le poids se comporte comme un comptage simple.
         bull_index = {
             "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
             "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
@@ -574,7 +576,33 @@ class PaireCheckTests(unittest.TestCase):
         for index_by_currency in (bull_index, bull_index, bull_index, bull_index, bull_index, bear_index, bear_index):
             state = update_index_trend_state(state, ["EURUSD"], index_by_currency, now)
 
-        self.assertEqual(state["pairs"]["EURUSD"], {"up": 5, "down": 2})
+        counts = state["pairs"]["EURUSD"]
+        self.assertAlmostEqual(counts["weighted_up"], 5.0)
+        self.assertAlmostEqual(counts["weighted_down"], 2.0)
+
+    def test_update_index_trend_state_decays_older_weight_after_one_half_life(self):
+        # 4h ecoulees (1 demi-vie) entre 2 runs: le poids deja accumule doit
+        # etre divise par 2 avant que le run courant ne s'ajoute.
+        bull_index = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        bear_index = {
+            "EUR": index_row("EXY", "EUR", -1, -1, -1, daily_chg=-1.57),
+            "USD": index_row("DXY", "USD", 1, 1, 1, daily_chg=1.61),
+        }
+        t0 = dt.datetime(2026, 7, 16, 6, 0, tzinfo=PARIS)
+        state = update_index_trend_state({}, ["EURUSD"], bull_index, t0)
+        for _ in range(9):  # 10 runs montes au total au meme instant t0
+            state = update_index_trend_state(state, ["EURUSD"], bull_index, t0)
+        self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_up"], 10.0)
+
+        t1 = t0 + dt.timedelta(hours=4)  # exactement 1 demi-vie plus tard
+        state = update_index_trend_state(state, ["EURUSD"], bear_index, t1)
+
+        counts = state["pairs"]["EURUSD"]
+        self.assertAlmostEqual(counts["weighted_up"], 5.0)  # 10.0 * 0.5
+        self.assertAlmostEqual(counts["weighted_down"], 1.0)  # 0 * 0.5 + 1
 
     def test_update_index_trend_state_resets_on_a_new_paris_day(self):
         index_by_currency = {
@@ -584,13 +612,15 @@ class PaireCheckTests(unittest.TestCase):
         state = update_index_trend_state(
             {}, ["EURUSD"], index_by_currency, dt.datetime(2026, 7, 16, 23, 0, tzinfo=PARIS),
         )
-        self.assertEqual(state["pairs"]["EURUSD"], {"up": 1, "down": 0})
+        self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_up"], 1.0)
+        self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_down"], 0.0)
 
         state = update_index_trend_state(
             state, ["EURUSD"], index_by_currency, dt.datetime(2026, 7, 17, 0, 5, tzinfo=PARIS),
         )
 
-        self.assertEqual(state["pairs"]["EURUSD"], {"up": 1, "down": 0})
+        self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_up"], 1.0)
+        self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_down"], 0.0)
 
     def test_update_index_trend_state_keeps_counts_on_a_tie_or_missing_data(self):
         tied_index = {
@@ -599,15 +629,20 @@ class PaireCheckTests(unittest.TestCase):
         }
         now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
 
-        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 3, "down": 1}}}
+        state = {
+            "date": "2026-07-16",
+            "pairs": {"EURUSD": {"weighted_up": 3.0, "weighted_down": 1.0, "last_update": now.isoformat()}},
+        }
         state = update_index_trend_state(state, ["EURUSD"], tied_index, now)
-        self.assertEqual(state["pairs"]["EURUSD"], {"up": 3, "down": 1})
+        self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_up"], 3.0)
+        self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_down"], 1.0)
 
         state = update_index_trend_state(state, ["EURUSD"], {}, now)
-        self.assertEqual(state["pairs"]["EURUSD"], {"up": 3, "down": 1})
+        self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_up"], 3.0)
+        self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_down"], 1.0)
 
     def test_index_trend_lines_reports_both_up_and_down_percentages(self):
-        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 5, "down": 2}}}
+        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"weighted_up": 5.0, "weighted_down": 2.0}}}
 
         self.assertEqual(
             index_trend_lines(["EURUSD"], state),
@@ -615,9 +650,10 @@ class PaireCheckTests(unittest.TestCase):
         )
 
     def test_index_trend_lines_shows_the_zero_side_too(self):
-        # Le 1er run decisif du jour (up=1, down=0): les 2 lignes restent
-        # affichees, y compris le 0.00% -- pas seulement la majoritaire.
-        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 1, "down": 0}}}
+        # Le 1er run decisif du jour (weighted_up=1, weighted_down=0): les 2
+        # lignes restent affichees, y compris le 0.00% -- pas seulement la
+        # majoritaire.
+        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"weighted_up": 1.0, "weighted_down": 0.0}}}
 
         self.assertEqual(
             index_trend_lines(["EURUSD"], state),
@@ -625,7 +661,7 @@ class PaireCheckTests(unittest.TestCase):
         )
 
     def test_index_trend_lines_empty_without_any_decisive_run_yet(self):
-        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 0, "down": 0}}}
+        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"weighted_up": 0.0, "weighted_down": 0.0}}}
 
         self.assertEqual(index_trend_lines(["EURUSD"], state), [])
         self.assertEqual(index_trend_lines(["EURUSD"], {}), [])
