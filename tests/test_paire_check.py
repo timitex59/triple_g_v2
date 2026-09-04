@@ -366,7 +366,10 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertEqual(lines[0], "🏆 BEST PAIRE JPY")
 
-    def test_build_message_lists_one_compact_line_per_pair_under_a_paires_label(self):
+    def test_build_message_no_longer_has_a_paires_section(self):
+        # 2026-09-04: la section PAIRES est retiree du message -- `pairs`
+        # reste utilise en interne (billes des sections BEST PAIRE), mais
+        # n'a plus sa propre section affichee (cf. TENDANCE a la place).
         rows_by_pair = {
             "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
             "GBPUSD": {"pair": "GBPUSD", "asset_type": "PAIR"},
@@ -381,15 +384,13 @@ class PaireCheckTests(unittest.TestCase):
             ["EURUSD"], rows_by_pair, price_trends, {}, now,
         )
 
-        self.assertTrue(has_content)
-        self.assertEqual(message, "\n".join([
-            "📐 PAIRE_CHECK", "",
-            "PAIRES",
-            "EURUSD 🟢",
-            "", "⏰ 2026-07-16 10:00 Paris",
-        ]))
+        # Aucune autre section (INDEX/BEST PAIRE/TENDANCE) n'est exploitable
+        # ici -> pas de contenu malgre des billes PAIRES calculables.
+        self.assertFalse(has_content)
+        self.assertNotIn("PAIRES", message)
+        self.assertNotIn("EURUSD", message)
 
-    def test_build_message_adds_index_chg_block_before_paires(self):
+    def test_build_message_adds_index_chg_block_before_best_pair(self):
         rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
         price_trends = {"EURUSD": {"pips_vs_06h": 20.0}}
         index_by_currency = {
@@ -412,13 +413,11 @@ class PaireCheckTests(unittest.TestCase):
         self.assertTrue(has_content)
         self.assertIn("💱 INDEX CHG%D", message)
         self.assertIn("🏆 BEST PAIRE", message)
-        self.assertIn("PAIRES", message)
+        self.assertNotIn("PAIRES", message)  # 2026-09-04: section retiree
         self.assertLess(message.index("💱 INDEX CHG%D"), message.index("🏆 BEST PAIRE"))
-        self.assertLess(message.index("🏆 BEST PAIRE"), message.index("PAIRES"))
-        # EUR verte, USD rouge ici -> BEST PAIRE = EURUSD, memes billes que la
-        # ligne PAIRES (qui suit) puisque c'est la meme paire dans ce test.
-        after_paires = message[message.index("PAIRES"):]
-        self.assertIn("EURUSD 🟢", after_paires)
+        # EUR verte, USD rouge ici -> BEST PAIRE = EURUSD, memes billes que
+        # pair_check_compact_line produirait pour cette paire.
+        self.assertIn("EURUSD 🟢", message[message.index("🏆 BEST PAIRE"):])
 
     def test_build_message_without_imp_by_currency_has_no_best_pair_section(self):
         # Sans donnee de consensus, aligned_currency_names ne peut rien
@@ -471,10 +470,10 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertIn("🏆 BEST PAIRE", message)
         self.assertIn("🏆 BEST PAIRE JPY", message)
+        self.assertNotIn("PAIRES", message)  # 2026-09-04: section retiree
         self.assertLess(message.index("🏆 BEST PAIRE\n"), message.index("🏆 BEST PAIRE JPY"))
-        self.assertLess(message.index("🏆 BEST PAIRE JPY"), message.index("PAIRES"))
         general_section = message[message.index("🏆 BEST PAIRE\n"):message.index("🏆 BEST PAIRE JPY")]
-        focus_section = message[message.index("🏆 BEST PAIRE JPY"):message.index("PAIRES")]
+        focus_section = message[message.index("🏆 BEST PAIRE JPY"):]
         self.assertIn("EURUSD", general_section)
         self.assertIn("EURJPY", general_section)  # les deux dans la section generale
         self.assertIn("EURJPY", focus_section)
@@ -607,20 +606,22 @@ class PaireCheckTests(unittest.TestCase):
         state = update_index_trend_state(state, ["EURUSD"], {}, now)
         self.assertEqual(state["pairs"]["EURUSD"], {"up": 3, "down": 1})
 
-    def test_index_trend_lines_reports_majority_direction_and_percentage(self):
+    def test_index_trend_lines_reports_both_up_and_down_percentages(self):
         state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 5, "down": 2}}}
 
         self.assertEqual(
             index_trend_lines(["EURUSD"], state),
-            ["📈 TENDANCE", "🟢 EURUSD (71.43%)"],
+            ["📈 TENDANCE", "🟢 EURUSD (71.43%)", "🔴 EURUSD (28.57%)"],
         )
 
-    def test_index_trend_lines_flips_ball_when_down_is_majority(self):
-        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 2, "down": 5}}}
+    def test_index_trend_lines_shows_the_zero_side_too(self):
+        # Le 1er run decisif du jour (up=1, down=0): les 2 lignes restent
+        # affichees, y compris le 0.00% -- pas seulement la majoritaire.
+        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 1, "down": 0}}}
 
         self.assertEqual(
             index_trend_lines(["EURUSD"], state),
-            ["📈 TENDANCE", "🔴 EURUSD (71.43%)"],
+            ["📈 TENDANCE", "🟢 EURUSD (100.00%)", "🔴 EURUSD (0.00%)"],
         )
 
     def test_index_trend_lines_empty_without_any_decisive_run_yet(self):

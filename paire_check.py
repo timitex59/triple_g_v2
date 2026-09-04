@@ -75,7 +75,17 @@ runs de la nuit tournent (INDEX + TENDANCE se construisent normalement) mais
 n'envoient rien tant que 5h Paris n'est pas atteint, le temps que PAIRES et
 TENDANCE aient assez de matiere pour etre utiles. Le compteur TENDANCE, lui,
 continue de se remettre a zero a minuit Paris comme le reste de l'etat du
-script (pas de decalage d'heure sur son propre cycle)."""
+script (pas de decalage d'heure sur son propre cycle).
+
+2026-09-04 (encore plus tard): section `PAIRES` retiree du message -- seule
+la section `📈 TENDANCE` reste pour suivre `--pairs` (les billes
+INDEX/06h/RUN de `pair_check_compact_line` restent calculees en interne,
+seulement pour les sections BEST PAIRE). `index_trend_lines` affiche
+desormais 2 lignes par paire au lieu d'une (🟢 puis 🔴, part des runs montes
+et part des runs baisses sur le total de runs decisifs) plutot qu'une bille
++ % unique de la direction majoritaire -- montre l'ecart entre les 2 sens
+sans que le lecteur ait a le deduire, et reste lisible meme a 100%/0% (tout
+premiers runs du jour)."""
 
 from __future__ import annotations
 
@@ -295,10 +305,15 @@ def update_index_trend_state(
 
 
 def index_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
-    """Section `📈 TENDANCE`: une ligne `{bille} {PAIR} ({pct}%)` par paire de
-    `pairs` ayant au moins un run decisif (🟢 ou 🔴) accumule aujourd'hui (cf.
-    `update_index_trend_state`) -- bille et pourcentage de la direction
-    majoritaire (🟢 si monte > baisse, 🔴 si baisse > monte, ⚪ si egalite).
+    """Section `📈 TENDANCE`: pour chaque paire de `pairs` ayant au moins un
+    run decisif (🟢 ou 🔴) accumule aujourd'hui (cf.
+    `update_index_trend_state`), 2 lignes `🟢 {PAIR} ({pct_up}%)` puis
+    `🔴 {PAIR} ({pct_down}%)` -- part des runs montes puis part des runs
+    baisses, sur le total de runs decisifs (les egalites/donnees manquantes
+    ne comptent dans aucun des deux, cf. `update_index_trend_state`). Les 2
+    lignes sont toujours affichees ensemble, meme quand l'une est a 0.00% --
+    contrairement a une bille+% unique, elles montrent directement l'ecart
+    entre les 2 sens sans qu'un lecteur ait a le deduire.
     Vide si aucune paire n'a de run decisif accumule (ex. tout premier run,
     ou seulement des egalites/donnees manquantes jusqu'ici)."""
     counts_by_pair = trend_state.get("pairs", {}) if isinstance(trend_state, dict) else {}
@@ -310,13 +325,8 @@ def index_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
         total = up + down
         if total == 0:
             continue
-        if up > down:
-            ball, pct = "🟢", up / total * 100.0
-        elif down > up:
-            ball, pct = "🔴", down / total * 100.0
-        else:
-            ball, pct = "⚪", 50.0
-        lines.append(f"{ball} {pair} ({pct:.2f}%)")
+        lines.append(f"🟢 {pair} ({up / total * 100.0:.2f}%)")
+        lines.append(f"🔴 {pair} ({down / total * 100.0:.2f}%)")
     if not lines:
         return []
     return ["📈 TENDANCE", *lines]
@@ -460,7 +470,9 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
                   focus_currencies: list[str] | None = None,
                   trend_lines: list[str] | None = None) -> tuple[str, bool]:
     """Assemble le message PAIRE_CHECK. Renvoie (message, has_content): le 2e
-    indique si au moins une paire a produit une ligne PAIRES ou TENDANCE
+    indique si au moins une paire de `pairs` (billes INDEX/06h/RUN, encore
+    utilisees en interne pour les sections BEST PAIRE meme si `pairs`
+    lui-meme n'a plus sa propre section, cf. plus bas) ou TENDANCE est
     exploitable, pour conditionner l'envoi Telegram cote `main` (la section
     INDEX CHG%D seule ne suffit pas a envoyer -- c'est un rappel, pas le
     coeur du message).
@@ -470,16 +482,15 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
     `best_pair_names(..., only_currency=devise)`.
 
     `trend_lines` (cf. `index_trend_lines`) ajoute la section `📈 TENDANCE`
-    en fin de message, avant l'horodatage -- disponible meme quand PAIRES est
-    encore vide (avant 06h Paris), puisqu'elle ne depend que de INDEX."""
-    pair_lines = [
-        line for line in (
-            pair_check_compact_line(pair, rows_by_pair, price_trends, index_by_currency)
-            for pair in pairs
-        )
-        if line is not None
-    ]
+    en fin de message, avant l'horodatage -- disponible meme quand les
+    billes INDEX/06h/RUN de `pairs` sont encore vides (avant 06h Paris),
+    puisqu'elle ne depend que de INDEX.
 
+    2026-09-04: `pairs` n'a plus sa propre section `PAIRES` dans le message
+    (uniquement TENDANCE desormais) -- `rows_by_pair`/`price_trends` restent
+    necessaires pour les billes des sections BEST PAIRE ci-dessous, mais
+    `pairs` lui-meme n'est plus lu ici (conserve dans la signature au cas ou
+    une section dediee reviendrait -- cf. historique git)."""
     lines = ["📐 PAIRE_CHECK", ""]
     index_rows = list(index_by_currency.values())
     index_lines = index_chg_lines(index_rows, imp_by_currency)
@@ -492,6 +503,7 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
     if best_lines:
         lines.extend(best_lines)
         lines.append("")
+    has_focus_content = False
     for currency in (focus_currencies or []):
         focus_lines = best_pair_lines(
             best_pair_names(index_rows, imp_by_currency or {}, only_currency=currency),
@@ -500,14 +512,13 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
         if focus_lines:
             lines.extend(focus_lines)
             lines.append("")
-    if pair_lines:
-        lines.extend(["PAIRES", *pair_lines])
-        lines.append("")
+            has_focus_content = True
     if trend_lines:
         lines.extend(trend_lines)
         lines.append("")
     lines.append(f"⏰ {now:%Y-%m-%d %H:%M} Paris")
-    return "\n".join(lines), bool(pair_lines) or bool(trend_lines)
+    has_content = bool(best_lines) or has_focus_content or bool(trend_lines)
+    return "\n".join(lines), has_content
 
 
 def telegram_send_decision(now: datetime, has_content: bool) -> tuple[bool, str | None]:
