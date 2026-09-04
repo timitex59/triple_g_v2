@@ -1,6 +1,6 @@
 {
-  "updated": "2026-09-03",
-  "prev_update": "2026-09-02",
+  "updated": "2026-09-04",
+  "prev_update": "2026-09-03",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -146,36 +146,34 @@
       "dropped_on": "2026-07-31"
     },
     "OKTA": {
-      "streak": 2,
-      "days": 22,
+      "streak": 1,
+      "days": 23,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-08-27",
+      "last_seen": "2026-09-04",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 75.01,
-      "active": false,
-      "dropped_on": "2026-08-28"
+      "last_rel": 39.41,
+      "active": true
     },
     "QLYS": {
-      "streak": 15,
-      "days": 29,
+      "streak": 16,
+      "days": 30,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-09-03",
-      "last_rank": 4,
+      "last_seen": "2026-09-04",
+      "last_rank": 3,
       "peak_rank": 1,
-      "last_rel": 51.99,
+      "last_rel": 52.5,
       "active": true
     },
     "CXT": {
       "streak": 1,
-      "days": 2,
+      "days": 3,
       "first_seen": "2026-07-06",
-      "last_seen": "2026-09-02",
-      "last_rank": 4,
+      "last_seen": "2026-09-04",
+      "last_rank": 5,
       "peak_rank": 4,
-      "last_rel": 34.13,
-      "active": false,
-      "dropped_on": "2026-09-03"
+      "last_rel": 33.81,
+      "active": true
     },
     "TWLO": {
       "streak": 2,
@@ -211,13 +209,13 @@
       "dropped_on": "2026-08-07"
     },
     "MANH": {
-      "streak": 12,
-      "days": 15,
+      "streak": 13,
+      "days": 16,
       "first_seen": "2026-07-31",
-      "last_seen": "2026-09-03",
-      "last_rank": 1,
+      "last_seen": "2026-09-04",
+      "last_rank": 2,
       "peak_rank": 1,
-      "last_rel": 43.05,
+      "last_rel": 39.67,
       "active": true
     },
     "NTNX": {
@@ -283,7 +281,8 @@
       "last_rank": 3,
       "peak_rank": 2,
       "last_rel": 55.15,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-09-04"
     },
     "GWRE": {
       "streak": 1,
@@ -293,7 +292,8 @@
       "last_rank": 2,
       "peak_rank": 2,
       "last_rel": 29.07,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-09-04"
     },
     "APPF": {
       "streak": 3,
@@ -314,6 +314,17 @@
       "last_rank": 5,
       "peak_rank": 5,
       "last_rel": 36.13,
+      "active": false,
+      "dropped_on": "2026-09-04"
+    },
+    "DOCU": {
+      "streak": 1,
+      "days": 1,
+      "first_seen": "2026-09-04",
+      "last_seen": "2026-09-04",
+      "last_rank": 4,
+      "peak_rank": 4,
+      "last_rel": 37.67,
       "active": true
     }
   },
@@ -321,82 +332,79 @@
     "persistent": [
       [
         "QLYS",
-        15
+        16
       ],
       [
         "MANH",
-        12
+        13
       ],
       [
-        "PATH",
-        5
+        "OKTA",
+        1
       ],
       [
-        "BILL",
-        2
+        "DOCU",
+        1
       ],
       [
-        "GWRE",
+        "CXT",
         1
       ]
     ],
     "new": [
-      "GWRE"
+      "OKTA",
+      "DOCU",
+      "CXT"
     ],
     "weakening": [
       {
-        "ticker": "PATH",
-        "rank": 3,
-        "prev_rank": 2,
-        "rel": 55.15,
-        "prev_rel": 50.11
-      },
-      {
-        "ticker": "QLYS",
-        "rank": 4,
-        "prev_rank": 3,
-        "rel": 51.99,
-        "prev_rel": 47.98
+        "ticker": "MANH",
+        "rank": 2,
+        "prev_rank": 1,
+        "rel": 39.67,
+        "prev_rel": 43.05
       }
     ],
     "dropped": [
-      "CXT"
+      "BILL",
+      "PATH",
+      "GWRE"
     ],
     "durable": [
       [
         "QLYS",
-        15,
-        51.99,
-        779.9
+        16,
+        52.5,
+        840.0
       ],
       [
         "MANH",
-        12,
-        43.05,
-        516.6
+        13,
+        39.67,
+        515.7
       ],
       [
-        "PATH",
-        5,
-        55.15,
-        275.8
-      ],
-      [
-        "BILL",
-        2,
-        36.13,
-        72.3
-      ],
-      [
-        "GWRE",
+        "OKTA",
         1,
-        29.07,
-        29.1
+        39.41,
+        39.4
+      ],
+      [
+        "DOCU",
+        1,
+        37.67,
+        37.7
+      ],
+      [
+        "CXT",
+        1,
+        33.81,
+        33.8
       ]
     ],
     "switch": null
   },
   "leader_raw": "Logiciels",
-  "leader_raw_days": 25,
+  "leader_raw_days": 26,
   "leader_confirmed": "Logiciels"
 }
