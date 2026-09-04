@@ -16,6 +16,7 @@ from paire_check import (
     needed_helper_pairs,
     pair_check_compact_line,
     pair_index_icon,
+    telegram_send_decision,
     update_index_trend_state,
 )
 
@@ -576,9 +577,7 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertEqual(state["pairs"]["EURUSD"], {"up": 5, "down": 2})
 
-    def test_update_index_trend_state_keeps_accumulating_across_midnight(self):
-        # Le jour de comptage va de 5h a 5h Paris (pas minuit a minuit): un
-        # run juste apres minuit continue d'alimenter le meme compteur.
+    def test_update_index_trend_state_resets_on_a_new_paris_day(self):
         index_by_currency = {
             "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
             "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
@@ -590,22 +589,6 @@ class PaireCheckTests(unittest.TestCase):
 
         state = update_index_trend_state(
             state, ["EURUSD"], index_by_currency, dt.datetime(2026, 7, 17, 0, 5, tzinfo=PARIS),
-        )
-
-        self.assertEqual(state["pairs"]["EURUSD"], {"up": 2, "down": 0})
-
-    def test_update_index_trend_state_resets_at_5am_paris(self):
-        index_by_currency = {
-            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
-            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
-        }
-        state = update_index_trend_state(
-            {}, ["EURUSD"], index_by_currency, dt.datetime(2026, 7, 17, 4, 59, tzinfo=PARIS),
-        )
-        self.assertEqual(state["pairs"]["EURUSD"], {"up": 1, "down": 0})
-
-        state = update_index_trend_state(
-            state, ["EURUSD"], index_by_currency, dt.datetime(2026, 7, 17, 5, 1, tzinfo=PARIS),
         )
 
         self.assertEqual(state["pairs"]["EURUSD"], {"up": 1, "down": 0})
@@ -645,6 +628,24 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertEqual(index_trend_lines(["EURUSD"], state), [])
         self.assertEqual(index_trend_lines(["EURUSD"], {}), [])
+
+    def test_telegram_send_decision_holds_before_5am_paris_even_with_content(self):
+        ok, reason = telegram_send_decision(dt.datetime(2026, 7, 16, 4, 59, tzinfo=PARIS), has_content=True)
+
+        self.assertFalse(ok)
+        self.assertIn("5h Paris", reason)
+
+    def test_telegram_send_decision_sends_at_5am_paris_with_content(self):
+        ok, reason = telegram_send_decision(dt.datetime(2026, 7, 16, 5, 0, tzinfo=PARIS), has_content=True)
+
+        self.assertTrue(ok)
+        self.assertIsNone(reason)
+
+    def test_telegram_send_decision_holds_without_content_even_after_5am(self):
+        ok, reason = telegram_send_decision(dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS), has_content=False)
+
+        self.assertFalse(ok)
+        self.assertIn("Aucune paire exploitable", reason)
 
 
 if __name__ == "__main__":

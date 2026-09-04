@@ -59,21 +59,28 @@ a `[]` -- PAIRE_CHECK se concentre desormais sur EURUSD seul par defaut (cf.
 `--pairs`/`--focus-currency` pour revenir a un suivi multi-paires).
 
 2026-09-04 (plus tard): section `📈 TENDANCE` -- pour chaque paire de
-`--pairs`, compte run apres run (remis a zero chaque jour de comptage, cf.
-`_index_trend_day` -- 5h Paris a 5h Paris, pas minuit a minuit) le nombre de
-fois ou sa bille INDEX (cf. `pair_index_icon`, meme calcul que la 1ere bille
-de `pair_check_signals`: force signee EUR vs USD) est monte (🟢) contre
+`--pairs`, compte run apres run (remis a zero chaque jour Paris) le nombre
+de fois ou sa bille INDEX (cf. `pair_index_icon`, meme calcul que la 1ere
+bille de `pair_check_signals`: force signee EUR vs USD) est monte (🟢) contre
 baissee (🔴), et affiche `{bille} {PAIR} ({pct}%)` -- bille et pourcentage
-de la direction majoritaire du jour de comptage en cours. Contrairement a
-PAIRES, disponible des le 1er run (n'a pas besoin de la reference 06h).
-Compteur persiste dans son propre fichier (cf. `INDEX_TREND_STATE_FILE`),
-independant de `STATE_FILE` (etat 06h/RUN, remplace entierement a chaque run
-par `update_price_trends`, cf. ce module)."""
+de la direction majoritaire du jour. Contrairement a PAIRES, disponible des
+le 1er run du jour (n'a pas besoin de la reference 06h). Compteur persiste
+dans son propre fichier (cf. `INDEX_TREND_STATE_FILE`), independant de
+`STATE_FILE` (etat 06h/RUN, remplace entierement a chaque run par
+`update_price_trends`, cf. ce module).
+
+2026-09-04 (encore plus tard): l'envoi Telegram (`--telegram`) est desormais
+retenu avant `TELEGRAM_SEND_START_HOUR_PARIS` (5h Paris) -- les tout premiers
+runs de la nuit tournent (INDEX + TENDANCE se construisent normalement) mais
+n'envoient rien tant que 5h Paris n'est pas atteint, le temps que PAIRES et
+TENDANCE aient assez de matiere pour etre utiles. Le compteur TENDANCE, lui,
+continue de se remettre a zero a minuit Paris comme le reste de l'etat du
+script (pas de decalage d'heure sur son propre cycle)."""
 
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from ichimoku_v4 import fetch_tv_ohlc, send_telegram_message
@@ -107,10 +114,9 @@ STATE_FILE = Path("paire_check_price_trend_state.json")
 # script, distinct de STATE_FILE (etat 06h/RUN, gere par update_price_trends
 # qui ne preserve pas de cle en plus des siennes).
 INDEX_TREND_STATE_FILE = Path("paire_check_index_trend_state.json")
-# Heure Paris de remise a zero du compteur TENDANCE -- un "jour" de comptage
-# va de cette heure a la meme heure le lendemain, pas de minuit a minuit (cf.
-# `_index_trend_day`).
-INDEX_TREND_RESET_HOUR_PARIS = 5
+# Avant cette heure Paris, --telegram construit le message (INDEX, TENDANCE,
+# etc. tournent normalement) mais n'envoie rien -- cf. `main`.
+TELEGRAM_SEND_START_HOUR_PARIS = 5
 
 
 def needed_currencies(pairs: list[str]) -> set[str]:
@@ -262,16 +268,6 @@ def pair_index_icon(pair: str, index_by_currency: dict[str, dict]) -> str | None
     return "⚪"
 
 
-def _index_trend_day(now: datetime) -> str:
-    """"Jour de comptage" TENDANCE: de `INDEX_TREND_RESET_HOUR_PARIS` (5h) a
-    la meme heure le lendemain, pas de minuit a minuit -- un run a 04h59
-    Paris compte encore pour le jour precedent, un run a 05h01 demarre deja
-    le nouveau."""
-    clock = now.astimezone(PARIS_TZ)
-    reference = clock if clock.hour >= INDEX_TREND_RESET_HOUR_PARIS else clock - timedelta(days=1)
-    return reference.date().isoformat()
-
-
 def update_index_trend_state(
     state: dict, pairs: list[str], index_by_currency: dict[str, dict], now: datetime,
 ) -> dict:
@@ -280,9 +276,10 @@ def update_index_trend_state(
     absente (donnees manquantes) ne compte ni pour l'un ni pour l'autre, mais
     ne fait pas non plus perdre l'historique deja accumule.
 
-    Remise a zero chaque jour de comptage (cf. `_index_trend_day`, 5h Paris a
-    5h Paris)."""
-    today = _index_trend_day(now)
+    Remise a zero chaque jour (nouvelle date Paris), meme mecanisme que la
+    reference 06h de `update_price_trends` -- coherent avec un message qui
+    raisonne "depuis 06h" sur le reste de sa journee."""
+    today = now.astimezone(PARIS_TZ).date().isoformat()
     old = state if isinstance(state, dict) else {}
     old_counts = old.get("pairs", {}) if old.get("date") == today else {}
     new_counts: dict[str, dict] = {}
@@ -513,6 +510,21 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
     return "\n".join(lines), bool(pair_lines) or bool(trend_lines)
 
 
+def telegram_send_decision(now: datetime, has_content: bool) -> tuple[bool, str | None]:
+    """(faut_il_envoyer, raison_si_non): retient l'envoi Telegram avant
+    `TELEGRAM_SEND_START_HOUR_PARIS` -- le message se construit et s'affiche
+    normalement des le 1er run de la nuit (cf. `main`), mais rien ne part
+    tant que 5h Paris n'est pas atteint, le temps que PAIRES/TENDANCE aient
+    assez de matiere pour etre utiles. Passe ensuite le relai a
+    `has_content` (cf. `build_message`), comme avant l'introduction de cette
+    heure de depart."""
+    if now.astimezone(PARIS_TZ).hour < TELEGRAM_SEND_START_HOUR_PARIS:
+        return False, f"Avant {TELEGRAM_SEND_START_HOUR_PARIS}h Paris: message Telegram retenu."
+    if not has_content:
+        return False, "Aucune paire exploitable: message Telegram ignoré."
+    return True, None
+
+
 def main() -> int:
     args = parse_args()
     now = datetime.now(PARIS_TZ)
@@ -559,10 +571,11 @@ def main() -> int:
     )
     print(message)
     if args.telegram:
-        if not has_content:
-            print("Aucune paire exploitable: message Telegram ignoré.")
-        else:
+        send_ok, held_reason = telegram_send_decision(now, has_content)
+        if send_ok:
             send_telegram_message(message)
+        else:
+            print(held_reason)
     return 0
 
 
