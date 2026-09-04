@@ -52,12 +52,28 @@ la section BEST PAIRE generale. `best_pair_names(..., only_currency=devise)`
 restreint aux combinaisons impliquant CETTE devise -- elle doublement BULL
 associee a chaque devise doublement BEAR, ou l'inverse -- meme logique de
 double confirmation que la section generale, juste filtree sur une devise
-precise plutot que sur les 8."""
+precise plutot que sur les 8.
+
+2026-09-04: DEFAULT_PAIRS reduit a `["EURUSD"]` et DEFAULT_FOCUS_CURRENCIES
+a `[]` -- PAIRE_CHECK se concentre desormais sur EURUSD seul par defaut (cf.
+`--pairs`/`--focus-currency` pour revenir a un suivi multi-paires).
+
+2026-09-04 (plus tard): section `📈 TENDANCE` -- pour chaque paire de
+`--pairs`, compte run apres run (remis a zero chaque jour de comptage, cf.
+`_index_trend_day` -- 5h Paris a 5h Paris, pas minuit a minuit) le nombre de
+fois ou sa bille INDEX (cf. `pair_index_icon`, meme calcul que la 1ere bille
+de `pair_check_signals`: force signee EUR vs USD) est monte (🟢) contre
+baissee (🔴), et affiche `{bille} {PAIR} ({pct}%)` -- bille et pourcentage
+de la direction majoritaire du jour de comptage en cours. Contrairement a
+PAIRES, disponible des le 1er run (n'a pas besoin de la reference 06h).
+Compteur persiste dans son propre fichier (cf. `INDEX_TREND_STATE_FILE`),
+independant de `STATE_FILE` (etat 06h/RUN, remplace entierement a chaque run
+par `update_price_trends`, cf. ce module)."""
 
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from ichimoku_v4 import fetch_tv_ohlc, send_telegram_message
@@ -76,6 +92,7 @@ from renko_full_alignment_29pairs import (
     load_price_trend_state,
     pair_check_signals,
     save_price_trend_state,
+    signed_strength,
     update_price_trends,
 )
 
@@ -86,6 +103,14 @@ DEFAULT_PAIRS = ["EURUSD"]
 # Devises avec leur propre section "🏆 BEST PAIRE {devise}" (ou --focus-currency).
 DEFAULT_FOCUS_CURRENCIES: list[str] = []
 STATE_FILE = Path("paire_check_price_trend_state.json")
+# Compteur monte/baisse (bille INDEX) par paire suivie -- fichier propre a ce
+# script, distinct de STATE_FILE (etat 06h/RUN, gere par update_price_trends
+# qui ne preserve pas de cle en plus des siennes).
+INDEX_TREND_STATE_FILE = Path("paire_check_index_trend_state.json")
+# Heure Paris de remise a zero du compteur TENDANCE -- un "jour" de comptage
+# va de cette heure a la meme heure le lendemain, pas de minuit a minuit (cf.
+# `_index_trend_day`).
+INDEX_TREND_RESET_HOUR_PARIS = 5
 
 
 def needed_currencies(pairs: list[str]) -> set[str]:
@@ -183,6 +208,10 @@ def parse_args() -> argparse.Namespace:
         help="Fichier d'etat JSON (reference 06h + run precedent), propre a ce script.",
     )
     parser.add_argument(
+        "--index-trend-state-file", default=str(INDEX_TREND_STATE_FILE),
+        help="Fichier d'etat JSON du compteur monte/baisse (section TENDANCE), remis a zero chaque jour.",
+    )
+    parser.add_argument(
         "--telegram", action="store_true",
         help="Envoie le resultat sur Telegram. Par defaut, affichage seul.",
     )
@@ -200,6 +229,100 @@ def pair_check_compact_line(
     if not signals:
         return None
     return f"{pair} " + "".join(icon for _label, icon in signals)
+
+
+def pair_index_icon(pair: str, index_by_currency: dict[str, dict]) -> str | None:
+    """Bille 🟢/🔴/⚪ de la seule comparaison INDEX (force signee, cf.
+    `signed_strength`) entre les 2 devises de `pair` -- le meme calcul que la
+    1ere bille de `pair_check_signals`, mais dispo independamment de l'etat
+    06h/RUN (qui peut etre vide avant que la reference du jour ne soit posee,
+    cf. `pair_check_signals` -- return[] tant que `currency_pip_sum` n'a pas
+    de compte pour les 2 devises). Sert de base a
+    `update_index_trend_state`: elle doit pouvoir compter des le tout premier
+    run du jour, meme avant 06h Paris.
+
+    None si `pair` n'est pas une paire de devises reconnue, ou si l'indice
+    d'au moins une des 2 devises est absent (fetch echoue)."""
+    currencies = _pair_currencies(pair)
+    if currencies is None:
+        return None
+    base, quote = currencies
+    base_index = index_by_currency.get(base)
+    quote_index = index_by_currency.get(quote)
+    if base_index is None or quote_index is None:
+        return None
+    base_strength = signed_strength(base_index)
+    quote_strength = signed_strength(quote_index)
+    if base_strength is None or quote_strength is None:
+        return None
+    if base_strength > quote_strength:
+        return "🟢"
+    if base_strength < quote_strength:
+        return "🔴"
+    return "⚪"
+
+
+def _index_trend_day(now: datetime) -> str:
+    """"Jour de comptage" TENDANCE: de `INDEX_TREND_RESET_HOUR_PARIS` (5h) a
+    la meme heure le lendemain, pas de minuit a minuit -- un run a 04h59
+    Paris compte encore pour le jour precedent, un run a 05h01 demarre deja
+    le nouveau."""
+    clock = now.astimezone(PARIS_TZ)
+    reference = clock if clock.hour >= INDEX_TREND_RESET_HOUR_PARIS else clock - timedelta(days=1)
+    return reference.date().isoformat()
+
+
+def update_index_trend_state(
+    state: dict, pairs: list[str], index_by_currency: dict[str, dict], now: datetime,
+) -> dict:
+    """Ajoute le run courant au compteur monte(🟢)/baisse(🔴) de chaque paire
+    de `pairs`, base sur `pair_index_icon` -- une bille ⚪ (egalite) ou
+    absente (donnees manquantes) ne compte ni pour l'un ni pour l'autre, mais
+    ne fait pas non plus perdre l'historique deja accumule.
+
+    Remise a zero chaque jour de comptage (cf. `_index_trend_day`, 5h Paris a
+    5h Paris)."""
+    today = _index_trend_day(now)
+    old = state if isinstance(state, dict) else {}
+    old_counts = old.get("pairs", {}) if old.get("date") == today else {}
+    new_counts: dict[str, dict] = {}
+    for pair in pairs:
+        counts = dict(old_counts.get(pair) or {"up": 0, "down": 0})
+        icon = pair_index_icon(pair, index_by_currency)
+        if icon == "🟢":
+            counts["up"] = counts.get("up", 0) + 1
+        elif icon == "🔴":
+            counts["down"] = counts.get("down", 0) + 1
+        new_counts[pair] = counts
+    return {"date": today, "pairs": new_counts}
+
+
+def index_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
+    """Section `📈 TENDANCE`: une ligne `{bille} {PAIR} ({pct}%)` par paire de
+    `pairs` ayant au moins un run decisif (🟢 ou 🔴) accumule aujourd'hui (cf.
+    `update_index_trend_state`) -- bille et pourcentage de la direction
+    majoritaire (🟢 si monte > baisse, 🔴 si baisse > monte, ⚪ si egalite).
+    Vide si aucune paire n'a de run decisif accumule (ex. tout premier run,
+    ou seulement des egalites/donnees manquantes jusqu'ici)."""
+    counts_by_pair = trend_state.get("pairs", {}) if isinstance(trend_state, dict) else {}
+    lines = []
+    for pair in pairs:
+        counts = counts_by_pair.get(pair) or {}
+        up = int(counts.get("up", 0))
+        down = int(counts.get("down", 0))
+        total = up + down
+        if total == 0:
+            continue
+        if up > down:
+            ball, pct = "🟢", up / total * 100.0
+        elif down > up:
+            ball, pct = "🔴", down / total * 100.0
+        else:
+            ball, pct = "⚪", 50.0
+        lines.append(f"{ball} {pair} ({pct:.2f}%)")
+    if not lines:
+        return []
+    return ["📈 TENDANCE", *lines]
 
 
 def currency_consensus_ball(currency_row: dict) -> str:
@@ -337,15 +460,21 @@ def best_pair_lines(
 def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
                   price_trends: dict[str, dict], index_by_currency: dict[str, dict],
                   now: datetime, imp_by_currency: dict[str, dict] | None = None,
-                  focus_currencies: list[str] | None = None) -> tuple[str, bool]:
+                  focus_currencies: list[str] | None = None,
+                  trend_lines: list[str] | None = None) -> tuple[str, bool]:
     """Assemble le message PAIRE_CHECK. Renvoie (message, has_content): le 2e
-    indique si au moins une paire a produit une ligne exploitable, pour
-    conditionner l'envoi Telegram cote `main` (la section INDEX CHG%D seule
-    ne suffit pas a envoyer -- c'est un rappel, pas le coeur du message).
+    indique si au moins une paire a produit une ligne PAIRES ou TENDANCE
+    exploitable, pour conditionner l'envoi Telegram cote `main` (la section
+    INDEX CHG%D seule ne suffit pas a envoyer -- c'est un rappel, pas le
+    coeur du message).
 
     `focus_currencies` (ex. `["JPY"]`) ajoute une section `🏆 BEST PAIRE
     {devise}` par devise, apres la section BEST PAIRE generale -- cf.
-    `best_pair_names(..., only_currency=devise)`."""
+    `best_pair_names(..., only_currency=devise)`.
+
+    `trend_lines` (cf. `index_trend_lines`) ajoute la section `📈 TENDANCE`
+    en fin de message, avant l'horodatage -- disponible meme quand PAIRES est
+    encore vide (avant 06h Paris), puisqu'elle ne depend que de INDEX."""
     pair_lines = [
         line for line in (
             pair_check_compact_line(pair, rows_by_pair, price_trends, index_by_currency)
@@ -377,8 +506,11 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
     if pair_lines:
         lines.extend(["PAIRES", *pair_lines])
         lines.append("")
+    if trend_lines:
+        lines.extend(trend_lines)
+        lines.append("")
     lines.append(f"⏰ {now:%Y-%m-%d %H:%M} Paris")
-    return "\n".join(lines), bool(pair_lines)
+    return "\n".join(lines), bool(pair_lines) or bool(trend_lines)
 
 
 def main() -> int:
@@ -416,8 +548,14 @@ def main() -> int:
     new_state, price_trends = update_price_trends(state, rows, now)
     save_price_trend_state(args.state_file, new_state)
 
+    trend_state = load_price_trend_state(args.index_trend_state_file)
+    new_trend_state = update_index_trend_state(trend_state, args.pairs, index_by_currency, now)
+    save_price_trend_state(args.index_trend_state_file, new_trend_state)
+    trend_lines = index_trend_lines(args.pairs, new_trend_state)
+
     message, has_content = build_message(
         args.pairs, rows_by_pair, price_trends, index_by_currency, now, imp_by_currency, args.focus_currency,
+        trend_lines,
     )
     print(message)
     if args.telegram:

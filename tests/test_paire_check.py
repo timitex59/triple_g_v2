@@ -11,9 +11,12 @@ from paire_check import (
     build_message,
     currency_consensus_ball,
     index_chg_lines,
+    index_trend_lines,
     needed_currencies,
     needed_helper_pairs,
     pair_check_compact_line,
+    pair_index_icon,
+    update_index_trend_state,
 )
 
 PARIS = ZoneInfo("Europe/Paris")
@@ -523,6 +526,125 @@ class PaireCheckTests(unittest.TestCase):
         self.assertIn("📐 PAIRE_CHECK", message)
         self.assertNotIn("PAIRES", message)
         self.assertNotIn("EURUSD", message)
+
+    def test_build_message_has_content_from_trend_lines_alone(self):
+        # Meme sans aucune paire exploitable (avant 06h Paris par ex.),
+        # trend_lines suffit a considerer le message exploitable.
+        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+
+        message, has_content = build_message(
+            ["EURUSD"], {}, {}, {}, now, trend_lines=["📈 TENDANCE", "🟢 EURUSD (100.00%)"],
+        )
+
+        self.assertTrue(has_content)
+        self.assertIn("📈 TENDANCE", message)
+        self.assertIn("🟢 EURUSD (100.00%)", message)
+        self.assertLess(message.index("📈 TENDANCE"), message.index("⏰"))
+
+    def test_pair_index_icon_compares_signed_strength_of_the_two_currencies(self):
+        # EUR rouge de -0.08 (le moins baissier), USD rouge de -0.16: EUR est
+        # relativement plus fort -> EURUSD monte, meme si les 2 sont rouges.
+        index_by_currency = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=-0.08),
+            "USD": index_row("DXY", "USD", 1, 1, 1, daily_chg=-0.16),
+        }
+
+        self.assertEqual(pair_index_icon("EURUSD", index_by_currency), "🟢")
+
+    def test_pair_index_icon_none_when_a_currency_index_is_missing(self):
+        index_by_currency = {"EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.0)}
+
+        self.assertIsNone(pair_index_icon("EURUSD", index_by_currency))
+
+    def test_pair_index_icon_none_for_unrecognized_pair(self):
+        self.assertIsNone(pair_index_icon("NOTAPAIR", {}))
+
+    def test_update_index_trend_state_accumulates_up_and_down_across_runs(self):
+        bull_index = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        bear_index = {
+            "EUR": index_row("EXY", "EUR", -1, -1, -1, daily_chg=-1.57),
+            "USD": index_row("DXY", "USD", 1, 1, 1, daily_chg=1.61),
+        }
+        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+
+        state = {}
+        for index_by_currency in (bull_index, bull_index, bull_index, bull_index, bull_index, bear_index, bear_index):
+            state = update_index_trend_state(state, ["EURUSD"], index_by_currency, now)
+
+        self.assertEqual(state["pairs"]["EURUSD"], {"up": 5, "down": 2})
+
+    def test_update_index_trend_state_keeps_accumulating_across_midnight(self):
+        # Le jour de comptage va de 5h a 5h Paris (pas minuit a minuit): un
+        # run juste apres minuit continue d'alimenter le meme compteur.
+        index_by_currency = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        state = update_index_trend_state(
+            {}, ["EURUSD"], index_by_currency, dt.datetime(2026, 7, 16, 23, 0, tzinfo=PARIS),
+        )
+        self.assertEqual(state["pairs"]["EURUSD"], {"up": 1, "down": 0})
+
+        state = update_index_trend_state(
+            state, ["EURUSD"], index_by_currency, dt.datetime(2026, 7, 17, 0, 5, tzinfo=PARIS),
+        )
+
+        self.assertEqual(state["pairs"]["EURUSD"], {"up": 2, "down": 0})
+
+    def test_update_index_trend_state_resets_at_5am_paris(self):
+        index_by_currency = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        state = update_index_trend_state(
+            {}, ["EURUSD"], index_by_currency, dt.datetime(2026, 7, 17, 4, 59, tzinfo=PARIS),
+        )
+        self.assertEqual(state["pairs"]["EURUSD"], {"up": 1, "down": 0})
+
+        state = update_index_trend_state(
+            state, ["EURUSD"], index_by_currency, dt.datetime(2026, 7, 17, 5, 1, tzinfo=PARIS),
+        )
+
+        self.assertEqual(state["pairs"]["EURUSD"], {"up": 1, "down": 0})
+
+    def test_update_index_trend_state_keeps_counts_on_a_tie_or_missing_data(self):
+        tied_index = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.0),
+            "USD": index_row("DXY", "USD", 1, 1, 1, daily_chg=1.0),
+        }
+        now = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+
+        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 3, "down": 1}}}
+        state = update_index_trend_state(state, ["EURUSD"], tied_index, now)
+        self.assertEqual(state["pairs"]["EURUSD"], {"up": 3, "down": 1})
+
+        state = update_index_trend_state(state, ["EURUSD"], {}, now)
+        self.assertEqual(state["pairs"]["EURUSD"], {"up": 3, "down": 1})
+
+    def test_index_trend_lines_reports_majority_direction_and_percentage(self):
+        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 5, "down": 2}}}
+
+        self.assertEqual(
+            index_trend_lines(["EURUSD"], state),
+            ["📈 TENDANCE", "🟢 EURUSD (71.43%)"],
+        )
+
+    def test_index_trend_lines_flips_ball_when_down_is_majority(self):
+        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 2, "down": 5}}}
+
+        self.assertEqual(
+            index_trend_lines(["EURUSD"], state),
+            ["📈 TENDANCE", "🔴 EURUSD (71.43%)"],
+        )
+
+    def test_index_trend_lines_empty_without_any_decisive_run_yet(self):
+        state = {"date": "2026-07-16", "pairs": {"EURUSD": {"up": 0, "down": 0}}}
+
+        self.assertEqual(index_trend_lines(["EURUSD"], state), [])
+        self.assertEqual(index_trend_lines(["EURUSD"], {}), [])
 
 
 if __name__ == "__main__":
