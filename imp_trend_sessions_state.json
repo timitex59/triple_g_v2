@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "updated_at": "2026-09-03T21:44:30.798680+00:00",
+  "updated_at": "2026-09-04T00:05:56.475956+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -264.89999999999156,
       "current_session_realized_pips": -6.199999999999539,
       "last_session_pips": -234.4999999999997,
-      "unrealized_pips": -5.899999999999794,
-      "total_pips": -270.79999999999137,
-      "daily_pips": -12.099999999999334,
+      "unrealized_pips": -14.300000000001534,
+      "total_pips": -279.1999999999931,
+      "daily_pips": -20.500000000001073,
       "is_active": true,
       "active_session_id": "2026-09-03",
       "positions": {
@@ -1027,21 +1027,46 @@
         {
           "time_utc": "2026-09-03T21:44:30.798680+00:00",
           "daily_pips": -12.099999999999334
+        },
+        {
+          "time_utc": "2026-09-04T00:05:56.475956+00:00",
+          "daily_pips": -20.500000000001073
         }
       ],
       "comparison_baseline": 30.000000000003364,
-      "comparison_pips": -300.7999999999947
+      "comparison_pips": -309.19999999999646
     },
     "Tokyo": {
       "realized_pips": -596.3999999999976,
-      "current_session_realized_pips": -293.4999999999998,
+      "current_session_realized_pips": 0.0,
       "last_session_pips": -293.4999999999998,
       "unrealized_pips": 0.0,
       "total_pips": -596.3999999999976,
-      "daily_pips": -293.4999999999998,
-      "is_active": false,
-      "active_session_id": null,
-      "positions": {},
+      "daily_pips": 0.0,
+      "is_active": true,
+      "active_session_id": "2026-09-04",
+      "positions": {
+        "AUDUSD": {
+          "direction": "BULL",
+          "entry_price": 0.72006,
+          "entry_time_utc": "2026-09-04T00:05:56.475956+00:00"
+        },
+        "AUDCHF": {
+          "direction": "BULL",
+          "entry_price": 0.58134,
+          "entry_time_utc": "2026-09-04T00:05:56.475956+00:00"
+        },
+        "AUDNZD": {
+          "direction": "BULL",
+          "entry_price": 1.22354,
+          "entry_time_utc": "2026-09-04T00:05:56.475956+00:00"
+        },
+        "EURAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.61504,
+          "entry_time_utc": "2026-09-04T00:05:56.475956+00:00"
+        }
+      },
       "events": [
         {
           "time_utc": "2026-08-24T22:44:11.394317+00:00",
@@ -2011,28 +2036,40 @@
           "exit_price": 1.61901,
           "pips": -19.200000000001438,
           "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-04T00:05:56.475956+00:00",
+          "event": "ENTRY",
+          "pair": "AUDUSD",
+          "direction": "BULL",
+          "entry_price": 0.72006
+        },
+        {
+          "time_utc": "2026-09-04T00:05:56.475956+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCHF",
+          "direction": "BULL",
+          "entry_price": 0.58134
+        },
+        {
+          "time_utc": "2026-09-04T00:05:56.475956+00:00",
+          "event": "ENTRY",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.22354
+        },
+        {
+          "time_utc": "2026-09-04T00:05:56.475956+00:00",
+          "event": "ENTRY",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.61504
         }
       ],
       "daily_pips_history": [
         {
-          "time_utc": "2026-09-03T00:14:57.604436+00:00",
+          "time_utc": "2026-09-04T00:05:56.475956+00:00",
           "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-03T04:23:33.632683+00:00",
-          "daily_pips": -208.60000000000042
-        },
-        {
-          "time_utc": "2026-09-03T05:18:47.116612+00:00",
-          "daily_pips": -237.59999999999923
-        },
-        {
-          "time_utc": "2026-09-03T06:19:05.856649+00:00",
-          "daily_pips": -286.6
-        },
-        {
-          "time_utc": "2026-09-03T07:18:47.992815+00:00",
-          "daily_pips": -293.4999999999998
         }
       ],
       "comparison_baseline": 12.200000000002504,
