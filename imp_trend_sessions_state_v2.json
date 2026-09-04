@@ -31,6 +31,11 @@
           "direction": "BEAR",
           "entry_price": 192.912,
           "entry_time_utc": "2026-09-03T20:20:18.278253+00:00"
+        },
+        "AUDCAD": {
+          "direction": "BULL",
+          "entry_price": 0.99439,
+          "entry_time_utc": "2026-09-04T04:21:31.443853+00:00"
         }
       },
       "events": [
@@ -833,12 +838,19 @@
           "exit_price": 0.9932,
           "pips": -6.599999999999939,
           "reason": "INVALIDATED"
+        },
+        {
+          "time_utc": "2026-09-04T04:21:31.443853+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCAD",
+          "direction": "BULL",
+          "entry_price": 0.99439
         }
       ],
-      "unrealized_pips": 34.99999999999961,
-      "total_pips": -287.3999999999944,
+      "unrealized_pips": -27.199999999998557,
+      "total_pips": -349.5999999999926,
       "is_active": true,
-      "daily_pips": 28.39999999999967,
+      "daily_pips": -33.7999999999985,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-03T20:20:18.278253+00:00",
@@ -855,10 +867,14 @@
         {
           "time_utc": "2026-09-04T00:07:08.089561+00:00",
           "daily_pips": 28.39999999999967
+        },
+        {
+          "time_utc": "2026-09-04T04:21:31.443853+00:00",
+          "daily_pips": -33.7999999999985
         }
       ],
       "comparison_baseline": 8.600000000001764,
-      "comparison_pips": -295.9999999999962
+      "comparison_pips": -358.19999999999436
     },
     "Tokyo": {
       "realized_pips": -469.0999999999891,
@@ -890,6 +906,11 @@
           "direction": "BEAR",
           "entry_price": 192.451,
           "entry_time_utc": "2026-09-04T00:07:08.089561+00:00"
+        },
+        "AUDCAD": {
+          "direction": "BULL",
+          "entry_price": 0.99439,
+          "entry_time_utc": "2026-09-04T04:21:31.443853+00:00"
         }
       },
       "events": [
@@ -1675,20 +1696,31 @@
           "pair": "CHFJPY",
           "direction": "BEAR",
           "entry_price": 192.451
+        },
+        {
+          "time_utc": "2026-09-04T04:21:31.443853+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCAD",
+          "direction": "BULL",
+          "entry_price": 0.99439
         }
       ],
-      "unrealized_pips": 0.0,
-      "total_pips": -469.0999999999891,
+      "unrealized_pips": -62.19999999999817,
+      "total_pips": -531.2999999999872,
       "is_active": true,
-      "daily_pips": 0.0,
+      "daily_pips": -62.19999999999817,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-04T00:07:08.089561+00:00",
           "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-09-04T04:21:31.443853+00:00",
+          "daily_pips": -62.19999999999817
         }
       ],
       "comparison_baseline": 5.700000000002742,
-      "comparison_pips": -474.7999999999918
+      "comparison_pips": -536.99999999999
     },
     "Londres": {
       "realized_pips": 36.500000000001734,
@@ -3912,5 +3944,5 @@
       "comparison_pips": -72.39999999999003
     }
   },
-  "updated_at": "2026-09-04T00:07:08.089561+00:00"
+  "updated_at": "2026-09-04T04:21:31.443853+00:00"
 }
