@@ -2364,10 +2364,28 @@
           "start_time_utc": "2026-09-03T08:00:00+00:00"
         }
       ]
+    },
+    "2026-09-04": {
+      "confirmed_segments": [],
+      "date": "2026-09-04",
+      "finalized": false,
+      "segments": []
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {},
+  "open_segments": {
+    "EURUSD": {
+      "current_pips": 0.0,
+      "date": "2026-09-04",
+      "direction": 1,
+      "last_price": 1.16265,
+      "last_time_utc": "2026-09-04T05:00:00+00:00",
+      "pair": "EURUSD",
+      "start_price": 1.16265,
+      "start_time_paris": "2026-09-04T07:00:00+02:00",
+      "start_time_utc": "2026-09-04T05:00:00+00:00"
+    }
+  },
   "reports_sent": {
     "general_daily": [
       "2026-08-10",
@@ -2404,6 +2422,6 @@
       "2026-W35"
     ]
   },
-  "updated_at_paris": "2026-09-04T06:25:59.386628+02:00",
+  "updated_at_paris": "2026-09-04T07:15:49.276436+02:00",
   "version": 3
 }
