@@ -1807,8 +1807,8 @@
     "Londres": {
       "realized_pips": 140.19999999999993,
       "current_session_realized_pips": 103.69999999999818,
-      "last_session_pips": 187.99999999999764,
-      "active_session_id": "2026-09-04",
+      "last_session_pips": 103.69999999999818,
+      "active_session_id": null,
       "positions": {},
       "events": [
         {
@@ -2936,7 +2936,7 @@
       ],
       "unrealized_pips": 0.0,
       "total_pips": 140.19999999999993,
-      "is_active": true,
+      "is_active": false,
       "daily_pips": 103.69999999999818,
       "daily_pips_history": [
         {
@@ -2978,6 +2978,10 @@
         {
           "time_utc": "2026-09-04T14:25:18.188793+00:00",
           "daily_pips": 103.69999999999818
+        },
+        {
+          "time_utc": "2026-09-04T15:19:56.405335+00:00",
+          "daily_pips": 103.69999999999818
         }
       ],
       "comparison_baseline": -13.500000000001933,
@@ -2988,7 +2992,38 @@
       "current_session_realized_pips": 47.100000000000186,
       "last_session_pips": -18.000000000000284,
       "active_session_id": "2026-09-04",
-      "positions": {},
+      "positions": {
+        "AUDCAD": {
+          "direction": "BULL",
+          "entry_price": 0.99766,
+          "entry_time_utc": "2026-09-04T15:19:56.405335+00:00"
+        },
+        "AUDCHF": {
+          "direction": "BULL",
+          "entry_price": 0.5835,
+          "entry_time_utc": "2026-09-04T15:19:56.405335+00:00"
+        },
+        "AUDNZD": {
+          "direction": "BULL",
+          "entry_price": 1.22417,
+          "entry_time_utc": "2026-09-04T15:19:56.405335+00:00"
+        },
+        "AUDUSD": {
+          "direction": "BULL",
+          "entry_price": 0.72086,
+          "entry_time_utc": "2026-09-04T15:19:56.405335+00:00"
+        },
+        "EURAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.61213,
+          "entry_time_utc": "2026-09-04T15:19:56.405335+00:00"
+        },
+        "GBPAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.87568,
+          "entry_time_utc": "2026-09-04T15:19:56.405335+00:00"
+        }
+      },
       "events": [
         {
           "time_utc": "2026-08-26T11:19:39.893466+00:00",
@@ -4162,6 +4197,48 @@
           "exit_price": 1.61312,
           "pips": 7.399999999999629,
           "reason": "INVALIDATED"
+        },
+        {
+          "time_utc": "2026-09-04T15:19:56.405335+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCAD",
+          "direction": "BULL",
+          "entry_price": 0.99766
+        },
+        {
+          "time_utc": "2026-09-04T15:19:56.405335+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCHF",
+          "direction": "BULL",
+          "entry_price": 0.5835
+        },
+        {
+          "time_utc": "2026-09-04T15:19:56.405335+00:00",
+          "event": "ENTRY",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.22417
+        },
+        {
+          "time_utc": "2026-09-04T15:19:56.405335+00:00",
+          "event": "ENTRY",
+          "pair": "AUDUSD",
+          "direction": "BULL",
+          "entry_price": 0.72086
+        },
+        {
+          "time_utc": "2026-09-04T15:19:56.405335+00:00",
+          "event": "ENTRY",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.61213
+        },
+        {
+          "time_utc": "2026-09-04T15:19:56.405335+00:00",
+          "event": "ENTRY",
+          "pair": "GBPAUD",
+          "direction": "BEAR",
+          "entry_price": 1.87568
         }
       ],
       "unrealized_pips": 0.0,
@@ -4184,11 +4261,15 @@
         {
           "time_utc": "2026-09-04T14:25:18.188793+00:00",
           "daily_pips": 47.100000000000186
+        },
+        {
+          "time_utc": "2026-09-04T15:19:56.405335+00:00",
+          "daily_pips": 47.100000000000186
         }
       ],
       "comparison_baseline": 5.399999999995986,
       "comparison_pips": -25.299999999989844
     }
   },
-  "updated_at": "2026-09-04T14:25:18.188793+00:00"
+  "updated_at": "2026-09-04T15:19:56.405335+00:00"
 }
