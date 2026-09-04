@@ -82,9 +82,9 @@ from renko_full_alignment_29pairs import (
 VOTE_BALL = {"BULL": "🟢", "BEAR": "🔴", "NEUTRAL": "⚪"}
 
 # Modifier cette liste (ou passer --pairs) pour suivre d'autres paires.
-DEFAULT_PAIRS = ["EURUSD", "EURJPY", "USDJPY", "CHFJPY"]
+DEFAULT_PAIRS = ["EURUSD"]
 # Devises avec leur propre section "🏆 BEST PAIRE {devise}" (ou --focus-currency).
-DEFAULT_FOCUS_CURRENCIES = ["JPY"]
+DEFAULT_FOCUS_CURRENCIES: list[str] = []
 STATE_FILE = Path("paire_check_price_trend_state.json")
 
 
