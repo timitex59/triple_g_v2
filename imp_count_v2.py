@@ -24,6 +24,7 @@ from typing import Any
 
 import pandas as pd
 
+import break_line as bl
 import imp_trend_29pairs as tv
 
 
@@ -157,6 +158,16 @@ def calculate(pair: str, args: argparse.Namespace) -> dict[str, Any]:
     trend = 1 if bull_votes > bear_votes else -1 if bear_votes > bull_votes else 0
     percent = max(bull_votes, bear_votes) * 25 if trend else 0
 
+    # Cassure de ligne H1 (break_line.py) : ligne verte = support ascendant
+    # (cross bull SAR), ligne rouge = résistance descendante (cross bear SAR).
+    # GREEN = close H1 au-dessus des deux lignes (cassure haussière de la
+    # rouge) ; RED = close H1 sous les deux lignes (cassure baissière de la
+    # verte). On ne retient la cassure que si elle confirme le sens du trend.
+    h1_line = bl.compute_break_line_state(h1)
+    line_break_confirmed = (trend == 1 and h1_line.state == 1) or (
+        trend == -1 and h1_line.state == -1
+    )
+
     return {
         "pair": pair,
         "as_of_h1": h1["time"].iloc[-1].isoformat(),
@@ -169,6 +180,8 @@ def calculate(pair: str, args: argparse.Namespace) -> dict[str, Any]:
         "last_cross_h1_active": bool(active_h1),
         "trend": _direction_text(trend),
         "trend_percent": percent,
+        "h1_line_state": bl.state_name(h1_line.state),
+        "line_break_confirmed": bool(line_break_confirmed),
     }
 
 
@@ -180,6 +193,7 @@ def _print_table(result: dict[str, Any]) -> None:
         ("LAST CROSS D", result["last_cross_d"], active(result["last_cross_d_active"])),
         ("LAST CROSS H1", result["last_cross_h1"], active(result["last_cross_h1_active"])),
         ("TREND", result["trend"], f'{result["trend_percent"]}%'),
+        ("LIGNE H1", result["h1_line_state"], "CONFIRME" if result["line_break_confirmed"] else "-"),
     )
     print(f'\n{result["pair"]}  H1={result["as_of_h1"]}  D={result["as_of_daily"]}')
     print("+---------------+---------+-------------+")
@@ -189,18 +203,19 @@ def _print_table(result: dict[str, Any]) -> None:
 
 
 def _print_summary(results: list[dict[str, Any]], errors: list[dict[str, str]]) -> None:
-    print("\n+---------+-------+-------+---------+--------+---------+--------+")
-    print("| PAIRE   | MOM D | MOM H1| LAST D  | ETAT D | TREND   | %      |")
-    print("+---------+-------+-------+---------+--------+---------+--------+")
+    print("\n+---------+-------+-------+---------+--------+---------+--------+---------+")
+    print("| PAIRE   | MOM D | MOM H1| LAST D  | ETAT D | TREND   | %      | LIGNE H1|")
+    print("+---------+-------+-------+---------+--------+---------+--------+---------+")
     for result in sorted(results, key=lambda item: item["pair"]):
         state_d = "ACTIF" if result["last_cross_d_active"] else "INACTIF"
         print(
             f'| {result["pair"]:<7} | {result["momentum_d"]:^5} '
             f'| {result["momentum_h1"]:^5} | {result["last_cross_d"]:^7} '
             f'| {state_d:^6} | {result["trend"]:^7} '
-            f'| {str(result["trend_percent"]) + "%":^6} |'
+            f'| {str(result["trend_percent"]) + "%":^6} '
+            f'| {result["h1_line_state"]:^7} |'
         )
-    print("+---------+-------+-------+---------+--------+---------+--------+")
+    print("+---------+-------+-------+---------+--------+---------+--------+---------+")
     print(f"Analysés: {len(results)}/{len(results) + len(errors)}")
     if errors:
         print("\nErreurs :")
@@ -233,7 +248,10 @@ def filter_active(results: list[dict[str, Any]], min_percent: int) -> list[dict[
 
     Exclut aussi toute paire dont le sens contredit une force de devise déjà
     établie par un signal à 100% (ex. si CAD est faible d'après AUDCAD BULL
-    100%, CADCHF BULL est écartée car elle prétendrait CAD fort).
+    100%, CADCHF BULL est écartée car elle prétendrait CAD fort), ainsi que
+    toute paire dont la cassure de ligne H1 (break_line.py) ne confirme pas
+    le sens du trend (BULL => ligne rouge cassée à la hausse / GREEN,
+    BEAR => ligne verte cassée à la baisse / RED).
     """
     strength = _currency_strength(results)
     kept = []
@@ -241,6 +259,8 @@ def filter_active(results: list[dict[str, Any]], min_percent: int) -> list[dict[
         if not result["last_cross_d_active"] or result["trend_percent"] < min_percent:
             continue
         if result["trend"] == "NEUTRE":
+            continue
+        if not result["line_break_confirmed"]:
             continue
         base, quote = result["pair"][:3], result["pair"][3:]
         base_state, quote_state = (
@@ -255,19 +275,20 @@ def filter_active(results: list[dict[str, Any]], min_percent: int) -> list[dict[
 
 
 def _print_filtered(results: list[dict[str, Any]], min_percent: int) -> None:
-    print(f"\nPaires ETAT D=ACTIF et TREND >= {min_percent}% :")
+    print(f"\nPaires ETAT D=ACTIF, TREND >= {min_percent}% et ligne H1 cassée dans le sens du trend :")
     if not results:
         print("(aucune)")
         return
-    print("+---------+---------+--------+")
-    print("| PAIRE   | TREND   | %      |")
-    print("+---------+---------+--------+")
+    print("+---------+---------+--------+---------+")
+    print("| PAIRE   | TREND   | %      | LIGNE H1|")
+    print("+---------+---------+--------+---------+")
     for result in results:
         print(
             f'| {result["pair"]:<7} | {result["trend"]:^7} '
-            f'| {str(result["trend_percent"]) + "%":^6} |'
+            f'| {str(result["trend_percent"]) + "%":^6} '
+            f'| {result["h1_line_state"]:^7} |'
         )
-    print("+---------+---------+--------+")
+    print("+---------+---------+--------+---------+")
 
 
 def parse_args() -> argparse.Namespace:
