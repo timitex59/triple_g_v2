@@ -294,26 +294,18 @@ def _print_filtered(results: list[dict[str, Any]], min_percent: int) -> None:
 
 def build_telegram_message(filtered: list[dict[str, Any]]) -> str | None:
     """Message Telegram au même format que VIVIER (renko_score_29pairs_v16.py) :
-    icônes 🟢/🔴, groupé BULL/BEAR, horodatage Paris en pied de message.
-    Retourne None si rien à annoncer (aucune paire confirmée), comme VIVIER.
+    icônes 🟢/🔴 collées au nom de paire, groupé BULL puis BEAR, horodatage
+    Paris en pied de message. Retourne None si rien à annoncer (aucune paire
+    confirmée), comme VIVIER.
     """
     if not filtered:
         return None
 
     lines = ["📊 SAR BREAK", ""]
-    has_content = False
-    for icon, title, direction in (("🟢", "BULL", "BULL"), ("🔴", "BEAR", "BEAR")):
-        entries = [r for r in filtered if r["trend"] == direction]
-        if not entries:
-            continue
-        if has_content:
-            lines.append("")
-        lines.append(f"{icon} {title}")
-        for result in entries:
-            lines.append(
-                f"{result['pair']} ({result['trend_percent']}% · {result['h1_line_state']})"
-            )
-        has_content = True
+    for icon, direction in (("🟢", "BULL"), ("🔴", "BEAR")):
+        for result in filtered:
+            if result["trend"] == direction:
+                lines.append(f"{icon}{result['pair']} ({result['trend_percent']}%)")
 
     lines.append("")
     lines.append(f"⏰ {datetime.now(tv.PARIS).strftime('%Y-%m-%d %H:%M')} Paris")
