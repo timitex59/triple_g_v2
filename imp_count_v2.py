@@ -20,6 +20,7 @@ import json
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 import pandas as pd
@@ -291,6 +292,34 @@ def _print_filtered(results: list[dict[str, Any]], min_percent: int) -> None:
     print("+---------+---------+--------+---------+")
 
 
+def build_telegram_message(filtered: list[dict[str, Any]]) -> str | None:
+    """Message Telegram au même format que VIVIER (renko_score_29pairs_v16.py) :
+    icônes 🟢/🔴, groupé BULL/BEAR, horodatage Paris en pied de message.
+    Retourne None si rien à annoncer (aucune paire confirmée), comme VIVIER.
+    """
+    if not filtered:
+        return None
+
+    lines = ["📊 SAR BREAK", ""]
+    has_content = False
+    for icon, title, direction in (("🟢", "BULL", "BULL"), ("🔴", "BEAR", "BEAR")):
+        entries = [r for r in filtered if r["trend"] == direction]
+        if not entries:
+            continue
+        if has_content:
+            lines.append("")
+        lines.append(f"{icon} {title}")
+        for result in entries:
+            lines.append(
+                f"{result['pair']} ({result['trend_percent']}% · {result['h1_line_state']})"
+            )
+        has_content = True
+
+    lines.append("")
+    lines.append(f"⏰ {datetime.now(tv.PARIS).strftime('%Y-%m-%d %H:%M')} Paris")
+    return "\n".join(lines)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -309,6 +338,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-percent", type=int, default=50,
                         help="Seuil de trend_percent pour le tri des paires actives (50 par défaut)")
     parser.add_argument("--json", action="store_true", dest="as_json")
+    parser.add_argument("--telegram", action="store_true",
+                        help="Envoie les paires filtrées sur Telegram (format VIVIER)")
     return parser.parse_args()
 
 
@@ -339,6 +370,13 @@ def main() -> int:
                     print(f"[{len(results) + len(errors):02d}/29] {pair} ERREUR")
 
     filtered = filter_active(results, args.min_percent)
+    if args.telegram:
+        message = build_telegram_message(filtered)
+        if message is None:
+            print("Telegram: rien à envoyer (aucune paire confirmée).")
+        else:
+            bl.send_telegram_message(message)
+
     if args.as_json:
         print(json.dumps({"results": sorted(results, key=lambda item: item["pair"]),
                           "errors": errors, "filtered": filtered},
