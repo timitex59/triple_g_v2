@@ -509,6 +509,11 @@ def build_telegram_message(
     juste avant l'horodatage, sur le même principe que `paire_check.py` :
     disponible même les jours où `filtered` est vide, tant qu'un historique
     existe déjà pour au moins une paire suivie.
+
+    La section FORCE DEVISES (cf. `_currency_exposure_lines`) n'est plus
+    envoyée sur Telegram -- message volontairement resserré sur SAR BREAK +
+    TENDANCE. Elle reste calculée et affichée en console (cf. `main`,
+    `_print_currency_exposure`).
     """
     if not filtered and not trend_lines:
         return None
@@ -518,12 +523,6 @@ def build_telegram_message(
         for result in filtered:
             if result["trend"] == direction:
                 lines.append(f"{icon}{result['pair']} ({result['trend_percent']}%)")
-
-    currency_lines = _currency_exposure_lines(filtered)
-    if currency_lines:
-        lines.append("")
-        lines.append("💱 FORCE DEVISES")
-        lines.extend(currency_lines)
 
     if trend_lines:
         lines.append("")
