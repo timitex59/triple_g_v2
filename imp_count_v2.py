@@ -501,9 +501,12 @@ def build_telegram_message(
     filtered: list[dict[str, Any]], trend_lines: list[str] | None = None,
 ) -> str | None:
     """Message Telegram au même format que VIVIER (renko_score_29pairs_v16.py) :
-    icônes 🟢/🔴 collées au nom de paire, groupé BULL puis BEAR, horodatage
-    Paris en pied de message. Retourne None si rien à annoncer : ni paire
-    confirmée, ni TENDANCE accumulée (cf. `trend_lines`) -- comme VIVIER.
+    icônes 🟢/🔴 collées au nom de paire, triées du plus BULL au plus BEAR
+    (score signé +trend_percent si BULL / -trend_percent si BEAR,
+    décroissant -- un 🔴100% est le signal le plus BEAR, il termine donc la
+    liste, après un 🔴50% qui l'est moins), horodatage Paris en pied de
+    message. Retourne None si rien à annoncer : ni paire confirmée, ni
+    TENDANCE accumulée (cf. `trend_lines`) -- comme VIVIER.
 
     `trend_lines` (cf. `currency_trend_lines`) ajoute la section `📈 TENDANCE`
     juste avant l'horodatage, sur le même principe que `paire_check.py` :
@@ -518,11 +521,15 @@ def build_telegram_message(
     if not filtered and not trend_lines:
         return None
 
+    def _signed_pct(result: dict[str, Any]) -> int:
+        return result["trend_percent"] if result["trend"] == "BULL" else -result["trend_percent"]
+
+    ordered = sorted(filtered, key=lambda r: (-_signed_pct(r), r["pair"]))
+
     lines = ["📊 SAR BREAK", ""]
-    for icon, direction in (("🟢", "BULL"), ("🔴", "BEAR")):
-        for result in filtered:
-            if result["trend"] == direction:
-                lines.append(f"{icon}{result['pair']} ({result['trend_percent']}%)")
+    for result in ordered:
+        icon = "🟢" if result["trend"] == "BULL" else "🔴"
+        lines.append(f"{icon}{result['pair']} ({result['trend_percent']}%)")
 
     if trend_lines:
         lines.append("")
