@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-07T10:22:16.408050+00:00",
+  "updated_at": "2026-09-07T11:18:44.988130+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -218.69999999999422,
@@ -2665,9 +2665,9 @@
       "realized_pips": -11.49999999998608,
       "current_session_realized_pips": 0.0,
       "last_session_pips": 52.20000000000003,
-      "unrealized_pips": -1.5000000000031655,
-      "total_pips": -12.999999999989246,
-      "daily_pips": -1.5000000000031655,
+      "unrealized_pips": -12.500000000000844,
+      "total_pips": -23.999999999986926,
+      "daily_pips": -12.500000000000844,
       "is_active": true,
       "active_session_id": "2026-09-07",
       "positions": {
@@ -4092,21 +4092,56 @@
         {
           "time_utc": "2026-09-07T10:22:16.408050+00:00",
           "daily_pips": -1.5000000000031655
+        },
+        {
+          "time_utc": "2026-09-07T11:18:44.988130+00:00",
+          "daily_pips": -12.500000000000844
         }
       ],
       "comparison_baseline": 14.300000000000686,
-      "comparison_pips": -27.299999999989932
+      "comparison_pips": -38.29999999998761
     },
     "New York": {
       "realized_pips": 91.2000000000084,
-      "current_session_realized_pips": 31.399999999998098,
+      "current_session_realized_pips": 0.0,
       "last_session_pips": 31.399999999998098,
       "unrealized_pips": 0.0,
       "total_pips": 91.2000000000084,
-      "daily_pips": 31.399999999998098,
-      "is_active": false,
-      "active_session_id": null,
-      "positions": {},
+      "daily_pips": 0.0,
+      "is_active": true,
+      "active_session_id": "2026-09-07",
+      "positions": {
+        "AUDUSD": {
+          "direction": "BULL",
+          "entry_price": 0.72171,
+          "entry_time_utc": "2026-09-07T11:18:44.988130+00:00"
+        },
+        "AUDCAD": {
+          "direction": "BULL",
+          "entry_price": 0.99718,
+          "entry_time_utc": "2026-09-07T11:18:44.988130+00:00"
+        },
+        "AUDNZD": {
+          "direction": "BULL",
+          "entry_price": 1.2274,
+          "entry_time_utc": "2026-09-07T11:18:44.988130+00:00"
+        },
+        "AUDCHF": {
+          "direction": "BULL",
+          "entry_price": 0.58382,
+          "entry_time_utc": "2026-09-07T11:18:44.988130+00:00"
+        },
+        "GBPAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.87574,
+          "entry_time_utc": "2026-09-07T11:18:44.988130+00:00"
+        },
+        "EURAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.61072,
+          "entry_time_utc": "2026-09-07T11:18:44.988130+00:00"
+        }
+      },
       "events": [
         {
           "time_utc": "2026-08-25T11:18:23.828242+00:00",
@@ -5620,48 +5655,54 @@
           "exit_price": 1.225,
           "pips": 5.399999999999849,
           "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-07T11:18:44.988130+00:00",
+          "event": "ENTRY",
+          "pair": "AUDUSD",
+          "direction": "BULL",
+          "entry_price": 0.72171
+        },
+        {
+          "time_utc": "2026-09-07T11:18:44.988130+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCAD",
+          "direction": "BULL",
+          "entry_price": 0.99718
+        },
+        {
+          "time_utc": "2026-09-07T11:18:44.988130+00:00",
+          "event": "ENTRY",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.2274
+        },
+        {
+          "time_utc": "2026-09-07T11:18:44.988130+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCHF",
+          "direction": "BULL",
+          "entry_price": 0.58382
+        },
+        {
+          "time_utc": "2026-09-07T11:18:44.988130+00:00",
+          "event": "ENTRY",
+          "pair": "GBPAUD",
+          "direction": "BEAR",
+          "entry_price": 1.87574
+        },
+        {
+          "time_utc": "2026-09-07T11:18:44.988130+00:00",
+          "event": "ENTRY",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.61072
         }
       ],
       "daily_pips_history": [
         {
-          "time_utc": "2026-09-04T11:18:45.810726+00:00",
+          "time_utc": "2026-09-07T11:18:44.988130+00:00",
           "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-04T12:19:01.094322+00:00",
-          "daily_pips": 6.500000000001505
-        },
-        {
-          "time_utc": "2026-09-04T13:19:07.772129+00:00",
-          "daily_pips": 32.29999999999956
-        },
-        {
-          "time_utc": "2026-09-04T14:24:08.604949+00:00",
-          "daily_pips": 32.29999999999956
-        },
-        {
-          "time_utc": "2026-09-04T15:18:47.513657+00:00",
-          "daily_pips": 32.29999999999956
-        },
-        {
-          "time_utc": "2026-09-04T16:20:27.813763+00:00",
-          "daily_pips": 42.10000000000048
-        },
-        {
-          "time_utc": "2026-09-04T17:21:40.689953+00:00",
-          "daily_pips": 36.99999999999815
-        },
-        {
-          "time_utc": "2026-09-04T18:30:23.093160+00:00",
-          "daily_pips": 16.899999999997476
-        },
-        {
-          "time_utc": "2026-09-04T19:18:55.384833+00:00",
-          "daily_pips": 23.59999999999696
-        },
-        {
-          "time_utc": "2026-09-04T20:18:55.281349+00:00",
-          "daily_pips": 31.399999999998098
         }
       ],
       "comparison_baseline": 69.39999999999876,
