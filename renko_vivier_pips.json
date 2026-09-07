@@ -236,9 +236,9 @@
         "best_pips": 2.80000000000058,
         "flat": 0,
         "negative": 4,
-        "observations": 7,
-        "pips": -7.300000000001194,
-        "positive": 3,
+        "observations": 8,
+        "pips": -6.40000000000196,
+        "positive": 4,
         "samples": [
           1.60000000000049,
           1.7999999999995797,
@@ -246,7 +246,8 @@
           -4.3999999999999595,
           -4.60000000000127,
           2.80000000000058,
-          -3.1000000000003247
+          -3.1000000000003247,
+          0.8999999999992347
         ],
         "worst_pips": -4.60000000000127
       }
@@ -2399,40 +2400,43 @@
       ]
     },
     "2026-09-07": {
-      "confirmed_segments": [],
+      "confirmed_segments": [
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-09-07",
+          "direction": 1,
+          "end_price": 1.16231,
+          "end_time_paris": "2026-09-07T23:00:00+02:00",
+          "end_time_utc": "2026-09-07T21:00:00+00:00",
+          "pair": "EURUSD",
+          "pips": -0.5000000000010552,
+          "start_price": 1.16236,
+          "start_time_paris": "2026-09-07T10:00:00+02:00",
+          "start_time_utc": "2026-09-07T08:00:00+00:00"
+        }
+      ],
       "date": "2026-09-07",
-      "finalized": false,
-      "segments": []
+      "finalized": true,
+      "finalized_at_paris": "2026-09-07T23:15:43.663075+02:00",
+      "segments": [
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-09-07",
+          "direction": 1,
+          "end_price": 1.16231,
+          "end_time_paris": "2026-09-07T23:00:00+02:00",
+          "end_time_utc": "2026-09-07T21:00:00+00:00",
+          "pair": "EURUSD",
+          "pips": 11.699999999998933,
+          "start_price": 1.16114,
+          "start_time_paris": "2026-09-07T07:00:00+02:00",
+          "start_time_utc": "2026-09-07T05:00:00+00:00"
+        }
+      ]
     }
   },
-  "open_confirmed_segments": {
-    "EURUSD": {
-      "current_pips": -1.40000000000029,
-      "date": "2026-09-07",
-      "direction": 1,
-      "hourly_last_price": 1.16222,
-      "hourly_last_time_utc": "2026-09-07T20:00:00+00:00",
-      "last_price": 1.16222,
-      "last_time_utc": "2026-09-07T20:00:00+00:00",
-      "pair": "EURUSD",
-      "start_price": 1.16236,
-      "start_time_paris": "2026-09-07T10:00:00+02:00",
-      "start_time_utc": "2026-09-07T08:00:00+00:00"
-    }
-  },
-  "open_segments": {
-    "EURUSD": {
-      "current_pips": 10.799999999999699,
-      "date": "2026-09-07",
-      "direction": 1,
-      "last_price": 1.16222,
-      "last_time_utc": "2026-09-07T20:00:00+00:00",
-      "pair": "EURUSD",
-      "start_price": 1.16114,
-      "start_time_paris": "2026-09-07T07:00:00+02:00",
-      "start_time_utc": "2026-09-07T05:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
+  "open_segments": {},
   "reports_sent": {
     "general_daily": [
       "2026-08-10",
@@ -2454,7 +2458,8 @@
       "2026-09-01",
       "2026-09-02",
       "2026-09-03",
-      "2026-09-04"
+      "2026-09-04",
+      "2026-09-07"
     ],
     "monthly": [
       "2026-07",
@@ -2471,6 +2476,6 @@
       "2026-W36"
     ]
   },
-  "updated_at_paris": "2026-09-07T22:15:43.834503+02:00",
+  "updated_at_paris": "2026-09-07T23:15:43.663075+02:00",
   "version": 3
 }
