@@ -91,15 +91,16 @@
       "13-14": {
         "best_pips": 25.199999999998557,
         "flat": 0,
-        "negative": 0,
-        "observations": 2,
-        "pips": 25.79999999999916,
+        "negative": 1,
+        "observations": 3,
+        "pips": 24.40000000000109,
         "positive": 2,
         "samples": [
           0.6000000000006,
-          25.199999999998557
+          25.199999999998557,
+          -1.3999999999980695
         ],
-        "worst_pips": 0.6000000000006
+        "worst_pips": -1.3999999999980695
       },
       "14-15": {
         "best_pips": -3.00000000000078,
@@ -2398,13 +2399,13 @@
   },
   "open_confirmed_segments": {
     "EURUSD": {
-      "current_pips": 0.7999999999985796,
+      "current_pips": -0.5999999999994898,
       "date": "2026-09-07",
       "direction": 1,
-      "hourly_last_price": 1.16244,
-      "hourly_last_time_utc": "2026-09-07T11:00:00+00:00",
-      "last_price": 1.16244,
-      "last_time_utc": "2026-09-07T11:00:00+00:00",
+      "hourly_last_price": 1.1623,
+      "hourly_last_time_utc": "2026-09-07T12:00:00+00:00",
+      "last_price": 1.1623,
+      "last_time_utc": "2026-09-07T12:00:00+00:00",
       "pair": "EURUSD",
       "start_price": 1.16236,
       "start_time_paris": "2026-09-07T10:00:00+02:00",
@@ -2413,11 +2414,11 @@
   },
   "open_segments": {
     "EURUSD": {
-      "current_pips": 12.999999999998568,
+      "current_pips": 11.600000000000499,
       "date": "2026-09-07",
       "direction": 1,
-      "last_price": 1.16244,
-      "last_time_utc": "2026-09-07T11:00:00+00:00",
+      "last_price": 1.1623,
+      "last_time_utc": "2026-09-07T12:00:00+00:00",
       "pair": "EURUSD",
       "start_price": 1.16114,
       "start_time_paris": "2026-09-07T07:00:00+02:00",
@@ -2462,6 +2463,6 @@
       "2026-W36"
     ]
   },
-  "updated_at_paris": "2026-09-07T13:15:42.754260+02:00",
+  "updated_at_paris": "2026-09-07T14:15:50.017763+02:00",
   "version": 3
 }
