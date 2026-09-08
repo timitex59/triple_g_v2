@@ -379,17 +379,14 @@ def _parse_iso_datetime(value: object) -> datetime | None:
 
 
 def _trend_arrow(current_pct: float | None, ref_pct: float | None) -> str:
-    """📈 si `current_pct` a monte depuis `ref_pct`, 📉 s'il a baisse, "" si
-    egal ou si l'une des deux valeurs est absente (pas encore de reference).
-    Emoji plutot que ▲/▼ noirs : seuls 📈/📉 rendent un vrai vert/rouge natif
-    sur toutes les plateformes -- Unicode n'a pas de triangle vert (🔺/🔻 sont
-    tous les deux "red triangle" cote nommage officiel)."""
+    """🟢 si `current_pct` a monte depuis `ref_pct`, 🔴 s'il a baisse, "" si
+    egal ou si l'une des deux valeurs est absente (pas encore de reference)."""
     if current_pct is None or ref_pct is None:
         return ""
     if current_pct > ref_pct:
-        return "📈"
+        return "🟢"
     if current_pct < ref_pct:
-        return "📉"
+        return "🔴"
     return ""
 
 
@@ -404,9 +401,10 @@ def index_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
     Vide si aucune paire n'a de poids accumule (ex. tout premier run, ou
     seulement des egalites/donnees manquantes jusqu'ici).
 
-    Chaque ligne se termine par 📈/📉 (cf. `_trend_arrow`) quand son % a
-    bouge depuis la reference du jour (~00h Paris, puis ~14h Paris -- cf.
-    `update_index_trend_state`) ; rien si egal ou pas encore de reference."""
+    Chaque ligne se termine par une 2e bille 🟢/🔴 (cf. `_trend_arrow`) quand
+    son % a bouge depuis la reference du jour (~00h Paris, puis ~14h Paris --
+    cf. `update_index_trend_state`) ; rien si egal ou pas encore de
+    reference."""
     counts_by_pair = trend_state.get("pairs", {}) if isinstance(trend_state, dict) else {}
     lines = []
     for pair in pairs:
