@@ -21,6 +21,7 @@ import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -244,6 +245,210 @@ def _currency_strength(results: list[dict[str, Any]]) -> dict[str, str]:
     return {currency: states.pop() for currency, states in implications.items() if len(states) == 1}
 
 
+def currency_exposure(filtered: list[dict[str, Any]]) -> dict[str, dict[str, float | int]]:
+    """Compte les apparitions de chaque devise dans les paires retenues et
+    calcule un score cumulé pondéré par occurrence, séparément pour le sens
+    fort (BULL) et faible (BEAR).
+
+    Une devise est en position "fort" dans une paire XY si elle est la base
+    d'une paire BULL, ou la quote d'une paire BEAR ; "faible" sinon. Chaque
+    paire compte pour ses deux devises (ex. EURAUD compte à la fois pour EUR
+    et pour AUD).
+
+    Le score n'est pas une simple moyenne des trend_percent (qui ignorerait
+    le nombre d'apparitions et pourrait classer une devise vue 2 fois devant
+    une devise vue 3 fois) : c'est la somme des confiances divisée par le
+    nombre d'apparitions maximum observé dans ce lot, de sorte qu'une devise
+    présente plus souvent, avec de bonnes confiances, monte plus haut qu'une
+    devise moins présente même si sa moyenne individuelle est plus faible.
+    """
+    pcts: dict[str, dict[str, list[int]]] = {}
+    for result in filtered:
+        base, quote = result["pair"][:3], result["pair"][3:]
+        pct = result["trend_percent"]
+        sides = (
+            ((base, "bull"), (quote, "bear"))
+            if result["trend"] == "BULL"
+            else ((base, "bear"), (quote, "bull"))
+        )
+        for currency, side in sides:
+            pcts.setdefault(currency, {"bull": [], "bear": []})[side].append(pct)
+
+    if not pcts:
+        return {}
+    max_count = max(len(sides["bull"]) + len(sides["bear"]) for sides in pcts.values())
+
+    report: dict[str, dict[str, float | int]] = {}
+    for currency, sides in pcts.items():
+        bull_pcts, bear_pcts = sides["bull"], sides["bear"]
+        report[currency] = {
+            "count": len(bull_pcts) + len(bear_pcts),
+            "bull_count": len(bull_pcts),
+            "bull_pct": sum(bull_pcts) / max_count if bull_pcts else 0.0,
+            "bear_count": len(bear_pcts),
+            "bear_pct": sum(bear_pcts) / max_count if bear_pcts else 0.0,
+        }
+    return report
+
+
+def _currency_exposure_lines(filtered: list[dict[str, Any]]) -> list[str]:
+    """Lignes `icone DEVISE (Nx) XX% SENS`, triées du plus BULL au plus BEAR
+    (score net = score BULL - score BEAR, décroissant). Une devise dont les
+    apparitions sont mélangées (fort ET faible selon les paires) affiche les
+    deux scores et se classe selon son solde net."""
+    report = currency_exposure(filtered)
+    ordered = sorted(
+        report.items(),
+        key=lambda kv: (-(kv[1]["bull_pct"] - kv[1]["bear_pct"]), -kv[1]["count"], kv[0]),
+    )
+    lines = []
+    for currency, data in ordered:
+        count = data["count"]
+        if data["bull_pct"] and data["bear_pct"]:
+            lines.append(
+                f"⚪{currency} ({count}x) 🟢{data['bull_pct']:.0f}% / 🔴{data['bear_pct']:.0f}%"
+            )
+        elif data["bull_pct"]:
+            lines.append(f"🟢{currency} ({count}x) {data['bull_pct']:.0f}% BULL")
+        else:
+            lines.append(f"🔴{currency} ({count}x) {data['bear_pct']:.0f}% BEAR")
+    return lines
+
+
+def _print_currency_exposure(filtered: list[dict[str, Any]]) -> None:
+    print("\nForce par devise (paires retenues) :")
+    lines = _currency_exposure_lines(filtered)
+    if not lines:
+        print("(aucune)")
+        return
+    for line in lines:
+        print(f"  {line}")
+
+
+# --- Suivi TENDANCE (run après run) --------------------------------------
+# Même technique que `paire_check.py` (`update_index_trend_state` /
+# `index_trend_lines`), mais appliquée au classement BULL->BEAR de
+# `currency_exposure` (net = bull_pct - bear_pct) plutôt qu'au score Renko
+# INDEX : à chaque run, on compare les scores nets des 2 devises d'une paire
+# suivie, on cumule un poids "monté" (🟢, base plus forte que quote) / "baissé"
+# (🔴) pondéré par récence (demi-vie 4h -- un run vieux de 4h pèse moitié
+# moins que le dernier), et on remet le compteur à zéro chaque jour Paris.
+#
+# Le rapport passé à `update_currency_trend_state` doit venir de `results`
+# complets (les 29 instruments, sans le filtrage de `filter_active` --
+# min_percent, cassure de ligne H1 confirmée, contradiction avec une devise
+# déjà verrouillée à 100%), pas de `filtered` : sinon un jour sans paire
+# retenue pour SAR BREAK viderait aussi TENDANCE, alors que `results` fournit
+# un trend/trend_percent par paire dès que sa D1 est active (cf. `calculate`,
+# qui remet déjà `trend` à NEUTRE si `last_cross_d_active` est faux -- il
+# suffit donc d'exclure les NEUTRE, cf. `main`).
+CURRENCY_TREND_HALF_LIFE_HOURS = 4.0
+CURRENCY_TREND_STATE_FILE = Path("imp_count_v2_currency_trend_state.json")
+
+
+def signed_currency_net(currency: str, report: dict[str, dict[str, float | int]]) -> float | None:
+    """bull_pct - bear_pct pour `currency` dans `report` (cf. currency_exposure).
+    None si la devise n'apparaît dans aucune paire retenue de ce run."""
+    data = report.get(currency)
+    if data is None:
+        return None
+    return data["bull_pct"] - data["bear_pct"]
+
+
+def pair_trend_icon(pair: str, report: dict[str, dict[str, float | int]]) -> str | None:
+    """Bille 🟢/🔴/⚪ comparant les scores nets des 2 devises de `pair` (base
+    plus fort que quote => 🟢, l'inverse => 🔴, égalité => ⚪) -- même principe
+    que `pair_index_icon` dans paire_check.py, mais basé sur notre classement
+    BULL->BEAR. None si une des deux devises est absente de `report` (aucune
+    paire retenue ne l'impliquait ce run-là)."""
+    base, quote = pair[:3], pair[3:]
+    base_net = signed_currency_net(base, report)
+    quote_net = signed_currency_net(quote, report)
+    if base_net is None or quote_net is None:
+        return None
+    if base_net > quote_net:
+        return "🟢"
+    if base_net < quote_net:
+        return "🔴"
+    return "⚪"
+
+
+def _parse_iso_datetime(value: object) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def load_currency_trend_state(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_currency_trend_state(path: Path, state: dict) -> None:
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def update_currency_trend_state(
+    state: dict, pairs: list[str], report: dict[str, dict[str, float | int]], now: datetime,
+) -> dict:
+    """Ajoute le run courant au poids monté(🟢)/baissé(🔴) de chaque paire de
+    `pairs`, décoté par récence puis incrémenté par `pair_trend_icon` -- une
+    bille ⚪ ou absente ne compte ni pour l'un ni pour l'autre mais ne fait
+    pas perdre l'historique. Remis à zéro à chaque nouvelle date Paris."""
+    today = now.astimezone(tv.PARIS).date().isoformat()
+    old = state if isinstance(state, dict) else {}
+    old_counts = old.get("pairs", {}) if old.get("date") == today else {}
+    new_counts: dict[str, dict] = {}
+    for pair in pairs:
+        prior = old_counts.get(pair) or {}
+        weighted_up = float(prior.get("weighted_up", 0.0))
+        weighted_down = float(prior.get("weighted_down", 0.0))
+        last_update = _parse_iso_datetime(prior.get("last_update"))
+        if last_update is not None:
+            elapsed_hours = max((now - last_update).total_seconds(), 0.0) / 3600.0
+            decay = 0.5 ** (elapsed_hours / CURRENCY_TREND_HALF_LIFE_HOURS)
+            weighted_up *= decay
+            weighted_down *= decay
+        icon = pair_trend_icon(pair, report)
+        if icon == "🟢":
+            weighted_up += 1.0
+        elif icon == "🔴":
+            weighted_down += 1.0
+        new_counts[pair] = {
+            "weighted_up": weighted_up, "weighted_down": weighted_down, "last_update": now.isoformat(),
+        }
+    return {"date": today, "pairs": new_counts}
+
+
+def currency_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
+    """Section `📈 TENDANCE` : pour chaque paire de `pairs` ayant un poids
+    accumulé aujourd'hui, 2 lignes `🟢 {PAIR} ({pct_up}%)` puis
+    `🔴 {PAIR} ({pct_down}%)` -- part pondérée par récence des runs montés
+    puis baissés, sur le poids total. Vide si aucune paire n'a de poids
+    accumulé (ex. tout premier run du jour)."""
+    counts_by_pair = trend_state.get("pairs", {}) if isinstance(trend_state, dict) else {}
+    lines = []
+    for pair in pairs:
+        counts = counts_by_pair.get(pair) or {}
+        up = float(counts.get("weighted_up", 0.0))
+        down = float(counts.get("weighted_down", 0.0))
+        total = up + down
+        if total <= 0.0:
+            continue
+        lines.append(f"🟢 {pair} ({up / total * 100.0:.2f}%)")
+        lines.append(f"🔴 {pair} ({down / total * 100.0:.2f}%)")
+    if not lines:
+        return []
+    return ["📈 TENDANCE", *lines]
+
+
 def filter_active(results: list[dict[str, Any]], min_percent: int) -> list[dict[str, Any]]:
     """Paires avec LAST CROSS D actif et trend_percent >= min_percent, triées par % décroissant.
 
@@ -292,20 +497,43 @@ def _print_filtered(results: list[dict[str, Any]], min_percent: int) -> None:
     print("+---------+---------+--------+---------+")
 
 
-def build_telegram_message(filtered: list[dict[str, Any]]) -> str | None:
+def build_telegram_message(
+    filtered: list[dict[str, Any]], trend_lines: list[str] | None = None,
+) -> str | None:
     """Message Telegram au même format que VIVIER (renko_score_29pairs_v16.py) :
-    icônes 🟢/🔴 collées au nom de paire, groupé BULL puis BEAR, horodatage
-    Paris en pied de message. Retourne None si rien à annoncer (aucune paire
-    confirmée), comme VIVIER.
+    icônes 🟢/🔴 collées au nom de paire, triées du plus BULL au plus BEAR
+    (score signé +trend_percent si BULL / -trend_percent si BEAR,
+    décroissant -- un 🔴100% est le signal le plus BEAR, il termine donc la
+    liste, après un 🔴50% qui l'est moins), horodatage Paris en pied de
+    message. Retourne None si rien à annoncer : ni paire confirmée, ni
+    TENDANCE accumulée (cf. `trend_lines`) -- comme VIVIER.
+
+    `trend_lines` (cf. `currency_trend_lines`) ajoute la section `📈 TENDANCE`
+    juste avant l'horodatage, sur le même principe que `paire_check.py` :
+    disponible même les jours où `filtered` est vide, tant qu'un historique
+    existe déjà pour au moins une paire suivie.
+
+    La section FORCE DEVISES (cf. `_currency_exposure_lines`) n'est plus
+    envoyée sur Telegram -- message volontairement resserré sur SAR BREAK +
+    TENDANCE. Elle reste calculée et affichée en console (cf. `main`,
+    `_print_currency_exposure`).
     """
-    if not filtered:
+    if not filtered and not trend_lines:
         return None
 
+    def _signed_pct(result: dict[str, Any]) -> int:
+        return result["trend_percent"] if result["trend"] == "BULL" else -result["trend_percent"]
+
+    ordered = sorted(filtered, key=lambda r: (-_signed_pct(r), r["pair"]))
+
     lines = ["📊 SAR BREAK", ""]
-    for icon, direction in (("🟢", "BULL"), ("🔴", "BEAR")):
-        for result in filtered:
-            if result["trend"] == direction:
-                lines.append(f"{icon}{result['pair']} ({result['trend_percent']}%)")
+    for result in ordered:
+        icon = "🟢" if result["trend"] == "BULL" else "🔴"
+        lines.append(f"{icon}{result['pair']} ({result['trend_percent']}%)")
+
+    if trend_lines:
+        lines.append("")
+        lines.extend(trend_lines)
 
     lines.append("")
     lines.append(f"⏰ {datetime.now(tv.PARIS).strftime('%Y-%m-%d %H:%M')} Paris")
@@ -332,6 +560,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--json", action="store_true", dest="as_json")
     parser.add_argument("--telegram", action="store_true",
                         help="Envoie les paires filtrées sur Telegram (format VIVIER)")
+    parser.add_argument(
+        "--trend-pairs", nargs="+", default=["EURUSD"],
+        help="Paires suivies run après run par la section TENDANCE (EURUSD par défaut).",
+    )
+    parser.add_argument(
+        "--trend-state-file", default=str(CURRENCY_TREND_STATE_FILE),
+        help="Fichier d'état JSON du compteur monté/baissé de TENDANCE, remis à zéro chaque jour Paris.",
+    )
     return parser.parse_args()
 
 
@@ -362,10 +598,23 @@ def main() -> int:
                     print(f"[{len(results) + len(errors):02d}/29] {pair} ERREUR")
 
     filtered = filter_active(results, args.min_percent)
+
+    # TENDANCE se base sur `results` complets (hors NEUTRE), pas `filtered` :
+    # elle reste alimentée même les jours sans paire retenue pour SAR BREAK
+    # (cf. commentaire au-dessus de `signed_currency_net`).
+    trend_candidates = [r for r in results if r["trend"] != "NEUTRE"]
+    trend_report = currency_exposure(trend_candidates)
+    now = datetime.now(tv.PARIS)
+    trend_state_path = Path(args.trend_state_file)
+    trend_state = load_currency_trend_state(trend_state_path)
+    new_trend_state = update_currency_trend_state(trend_state, args.trend_pairs, trend_report, now)
+    save_currency_trend_state(trend_state_path, new_trend_state)
+    trend_lines = currency_trend_lines(args.trend_pairs, new_trend_state)
+
     if args.telegram:
-        message = build_telegram_message(filtered)
+        message = build_telegram_message(filtered, trend_lines)
         if message is None:
-            print("Telegram: rien à envoyer (aucune paire confirmée).")
+            print("Telegram: rien à envoyer (aucune paire confirmée ni tendance accumulée).")
         else:
             bl.send_telegram_message(message)
 
@@ -376,6 +625,11 @@ def main() -> int:
     else:
         _print_summary(results, errors)
         _print_filtered(filtered, args.min_percent)
+        _print_currency_exposure(filtered)
+        if trend_lines:
+            print()
+            for line in trend_lines:
+                print(line)
     return 0 if not errors else 1
 
 
