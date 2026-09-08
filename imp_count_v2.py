@@ -451,14 +451,17 @@ def update_currency_trend_state(
 
 
 def _trend_arrow(current_pct: float | None, ref_pct: float | None) -> str:
-    """▲ si `current_pct` a monté depuis `ref_pct`, ▼ s'il a baissé, "" si égal
-    ou si l'une des deux valeurs est absente (pas encore de référence)."""
+    """📈 si `current_pct` a monté depuis `ref_pct`, 📉 s'il a baissé, "" si
+    égal ou si l'une des deux valeurs est absente (pas encore de référence).
+    Emoji plutôt que ▲/▼ noirs : seuls 📈/📉 rendent un vrai vert/rouge natif
+    sur toutes les plateformes -- Unicode n'a pas de triangle vert (🔺/🔻 sont
+    tous les deux "red triangle" côté nommage officiel)."""
     if current_pct is None or ref_pct is None:
         return ""
     if current_pct > ref_pct:
-        return "▲"
+        return "📈"
     if current_pct < ref_pct:
-        return "▼"
+        return "📉"
     return ""
 
 
@@ -469,9 +472,9 @@ def currency_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
     puis baissés, sur le poids total. Vide si aucune paire n'a de poids
     accumulé (ex. tout premier run du jour).
 
-    Chaque ligne est préfixée d'une flèche ▲/▼ (cf. `_trend_arrow`) quand son
-    % a bougé depuis la référence du jour (~00h Paris, puis ~14h Paris --
-    cf. `update_currency_trend_state`) ; rien si égal ou pas encore de
+    Chaque ligne se termine par 📈/📉 (cf. `_trend_arrow`) quand son % a
+    bougé depuis la référence du jour (~00h Paris, puis ~14h Paris -- cf.
+    `update_currency_trend_state`) ; rien si égal ou pas encore de
     référence."""
     counts_by_pair = trend_state.get("pairs", {}) if isinstance(trend_state, dict) else {}
     lines = []
@@ -485,8 +488,8 @@ def currency_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
         up_pct, down_pct = up / total * 100.0, down / total * 100.0
         up_arrow = _trend_arrow(up_pct, counts.get("ref_up_pct"))
         down_arrow = _trend_arrow(down_pct, counts.get("ref_down_pct"))
-        lines.append(f"🟢 {up_arrow}{pair} ({up_pct:.2f}%)")
-        lines.append(f"🔴 {down_arrow}{pair} ({down_pct:.2f}%)")
+        lines.append(f"🟢 {pair} ({up_pct:.2f}%){' ' + up_arrow if up_arrow else ''}")
+        lines.append(f"🔴 {pair} ({down_pct:.2f}%){' ' + down_arrow if down_arrow else ''}")
     if not lines:
         return []
     return ["📈 TENDANCE", *lines]

@@ -734,8 +734,8 @@ class PaireCheckTests(unittest.TestCase):
         self.assertEqual(index_trend_lines(["EURUSD"], {}), [])
 
     def test_index_trend_lines_shows_up_arrow_when_above_the_reference(self):
-        # %monte actuel (71.43%) > reference du jour (50%) -> ▲ sur la ligne
-        # verte, ▼ sur la ligne rouge (le %baisse a lui recule vs sa reference).
+        # %monte actuel (71.43%) > reference du jour (50%) -> 📈 sur la ligne
+        # verte, 📉 sur la ligne rouge (le %baisse a lui recule vs sa reference).
         state = {
             "date": "2026-07-16",
             "pairs": {
@@ -748,7 +748,7 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertEqual(
             index_trend_lines(["EURUSD"], state),
-            ["📈 TENDANCE", "🟢 ▲EURUSD (71.43%)", "🔴 ▼EURUSD (28.57%)"],
+            ["📈 TENDANCE", "🟢 EURUSD (71.43%) 📈", "🔴 EURUSD (28.57%) 📉"],
         )
 
     def test_index_trend_lines_shows_down_arrow_when_below_the_reference(self):
@@ -764,7 +764,7 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertEqual(
             index_trend_lines(["EURUSD"], state),
-            ["📈 TENDANCE", "🟢 ▼EURUSD (28.57%)", "🔴 ▲EURUSD (71.43%)"],
+            ["📈 TENDANCE", "🟢 EURUSD (28.57%) 📉", "🔴 EURUSD (71.43%) 📈"],
         )
 
     def test_index_trend_lines_no_arrow_when_equal_to_or_without_reference(self):
