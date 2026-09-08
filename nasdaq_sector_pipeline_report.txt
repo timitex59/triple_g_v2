@@ -1,50 +1,47 @@
 NASDAQ SECTOR PIPELINE
-Generated: 2026-09-07 20:17 CEST
+Generated: 2026-09-08 18:17 CEST
 Universe: Nasdaq-100 | News window: 14 days
 
 DOMINANT THEMES
-| Theme                 |   Score |   N | 21D    | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
-|-----------------------|---------|-----|--------|---------|----------------|----------|------------|
-| Healthcare / Biotech  |   62.21 |  10 | +6.60% | +19.16% | +17.08%        | 80%      | 12/8       |
-| Cybersecurity         |   61.94 |   5 | -2.39% | +22.50% | +20.42%        | 40%      | 12/10      |
-| Cloud / Data software |   61.53 |  14 | +1.96% | +18.18% | +16.09%        | 71%      | 12/9       |
+| Theme                |   Score |   N | 21D    | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
+|----------------------|---------|-----|--------|---------|----------------|----------|------------|
+| Cybersecurity        |   61.23 |   5 | -4.06% | +25.21% | +24.66%        | 40%      | 12/11      |
+| Energy               |   58.82 |   2 | +5.70% | +0.49%  | -0.06%         | 100%     | 12/9       |
+| Healthcare / Biotech |   57.39 |  10 | -1.87% | +12.52% | +11.97%        | 60%      | 12/11      |
 
 TOP STOCKS BY DOMINANT THEME
-
-Healthcare / Biotech
-| Ticker   | Name                         | Theme                |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|------------------------------|----------------------|---------|---------|---------|---------|-------|----------|
-| REGN     | Regeneron Pharmaceuticals In | Healthcare / Biotech |   88.88 | +7.33%  | +30.41% | +28.33% |  56   | Y        |
-| AMGN     | Amgen Inc.                   | Healthcare / Biotech |   85.03 | +8.63%  | +25.80% | +23.72% |  62.8 | Y        |
-| VRTX     | Vertex Pharmaceuticals Incor | Healthcare / Biotech |   83.54 | +12.83% | +22.22% | +20.14% |  65   | Y        |
 
 Cybersecurity
 | Ticker   | Name                      | Theme         |   Score | 21D    | 63D     | Rel63   |   RSI | >SMA50   |
 |----------|---------------------------|---------------|---------|--------|---------|---------|-------|----------|
-| ZS       | Zscaler Inc.              | Cybersecurity |  100    | +4.43% | +29.84% | +27.75% |  41.6 | Y        |
-| CRWD     | CrowdStrike Holdings Inc. | Cybersecurity |   93.21 | +2.75% | +27.03% | +24.95% |  49.7 | Y        |
-| PANW     | Palo Alto Networks Inc.   | Cybersecurity |   70.97 | -7.30% | +22.50% | +20.42% |  38   | N        |
+| CRWD     | CrowdStrike Holdings Inc. | Cybersecurity |   92.21 | -2.89% | +26.43% | +25.88% |  48.3 | Y        |
+| ZS       | Zscaler Inc.              | Cybersecurity |   81.9  | -4.06% | +25.21% | +24.66% |  37.3 | Y        |
+| PANW     | Palo Alto Networks Inc.   | Cybersecurity |   77.59 | -8.33% | +25.24% | +24.69% |  38.4 | N        |
 
-Cloud / Data software
-| Ticker   | Name                       | Theme                 |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|----------------------------|-----------------------|---------|---------|---------|---------|-------|----------|
-| TEAM     | Atlassian Corporation      | Cloud / Data software |  100    | +72.08% | +90.59% | +88.51% |  71.2 | Y        |
-| MSTR     | MicroStrategy Incorporated | Cloud / Data software |  100    | +47.44% | +18.57% | +16.48% |  71.2 | Y        |
-| WDAY     | Workday Inc.               | Cloud / Data software |   99.75 | +15.01% | +35.70% | +33.62% |  53.6 | Y        |
+Energy
+| Ticker   | Name                    | Theme   |   Score | 21D    | 63D    | Rel63   |   RSI | >SMA50   |
+|----------|-------------------------|---------|---------|--------|--------|---------|-------|----------|
+| FANG     | Diamondback Energy Inc. | Energy  |   57    | +7.12% | +1.63% | +1.07%  |  33.7 | Y        |
+| BKR      | Baker Hughes Company    | Energy  |   52.51 | +4.28% | -0.65% | -1.20%  |  48.3 | Y        |
+
+Healthcare / Biotech
+| Ticker   | Name                         | Theme                |   Score | 21D    | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|------------------------------|----------------------|---------|--------|---------|---------|-------|----------|
+| REGN     | Regeneron Pharmaceuticals In | Healthcare / Biotech |   92.17 | +3.19% | +32.40% | +31.84% |  49.6 | Y        |
+| INSM     | Insmed Incorporated          | Healthcare / Biotech |   82.33 | -4.62% | +32.78% | +32.23% |  43.7 | Y        |
+| VRTX     | Vertex Pharmaceuticals Incor | Healthcare / Biotech |   80.31 | +6.23% | +18.96% | +18.41% |  49.4 | Y        |
 
 BEST ETF PROXIES
-| ETF   | Name                             | Theme                 |   Score | 21D    | 63D     | 126D    | Rel63   |
-|-------|----------------------------------|-----------------------|---------|--------|---------|---------|---------|
-| WCLD  | WisdomTree Cloud Computing Fund  | Cloud / Data software |  100    | +8.67% | +26.46% | +36.90% | +24.38% |
-| IBB   | iShares Biotechnology ETF        | Healthcare / Biotech  |   91.88 | +9.82% | +25.83% | +26.58% | +23.75% |
-| XBI   | SPDR S&P Biotech ETF             | Healthcare / Biotech  |   89.1  | +6.03% | +27.44% | +32.23% | +25.35% |
-| BUG   | Global X Cybersecurity ETF       | Cybersecurity         |   67.41 | +1.60% | +17.46% | +54.60% | +15.38% |
-| SKYY  | First Trust Cloud Computing ETF  | Cloud / Data software |   65.38 | +7.28% | +14.78% | +42.76% | +12.69% |
-| CLOU  | Global X Cloud Computing ETF     | Cloud / Data software |   60.82 | +5.83% | +16.37% | +40.00% | +14.29% |
-| HACK  | Amplify Cybersecurity ETF        | Cybersecurity         |   38.64 | -2.16% | +13.82% | +42.41% | +11.74% |
-| IGV   | iShares Expanded Tech-Software E | Cloud / Data software |   37.17 | +5.18% | +9.12%  | +18.89% | +7.03%  |
-| CIBR  | First Trust Nasdaq Cybersecurity | Cybersecurity         |   31.6  | -1.87% | +9.19%  | +43.69% | +7.11%  |
-| IHAK  | iShares Cybersecurity and Tech E | Cybersecurity         |   18.51 | -2.17% | +10.55% | +39.33% | +8.47%  |
+| ETF   | Name                             | Theme                |   Score | 21D    | 63D     | 126D    | Rel63   |
+|-------|----------------------------------|----------------------|---------|--------|---------|---------|---------|
+| XBI   | SPDR S&P Biotech ETF             | Healthcare / Biotech |  100    | +3.46% | +26.90% | +28.21% | +26.35% |
+| IBB   | iShares Biotechnology ETF        | Healthcare / Biotech |   87.52 | +5.22% | +24.65% | +21.56% | +24.09% |
+| BUG   | Global X Cybersecurity ETF       | Cybersecurity        |   62.04 | -2.82% | +16.63% | +50.69% | +16.07% |
+| HACK  | Amplify Cybersecurity ETF        | Cybersecurity        |   41.78 | -5.21% | +13.05% | +39.85% | +12.49% |
+| CIBR  | First Trust Nasdaq Cybersecurity | Cybersecurity        |   30.38 | -4.53% | +8.55%  | +41.31% | +8.00%  |
+| IHAK  | iShares Cybersecurity and Tech E | Cybersecurity        |   26.61 | -5.63% | +9.28%  | +36.49% | +8.73%  |
+| QQQM  | Invesco Nasdaq 100 ETF           | Nasdaq-100 benchmark |   21.93 | -0.51% | +0.58%  | +18.67% | +0.02%  |
+| QQQ   | Invesco QQQ Trust                | Nasdaq-100 benchmark |   19.79 | -0.52% | +0.55%  | +18.62% | +0.00%  |
 
 ETF UCITS EUROPE / FRANCE
 | Theme         | Ticker   | ISIN         | Listing            | Ccy   | UCITS ETF                          |
@@ -55,98 +52,80 @@ ETF UCITS EUROPE / FRANCE
 ETF UCITS SCORED
 | Ticker   | Theme         |   Score | 63D     | Rel63 vs EQQQ   | Listing / ISIN                    |
 |----------|---------------|---------|---------|-----------------|-----------------------------------|
-| WCBR     | Cybersecurity |      95 | +22.42% | +20.29%         | Euronext Paris | IE00BLPK3577     |
-| ISPY     | Cybersecurity |       0 | +11.42% | +9.30%          | Euronext Amsterdam | IE00BYPLS672 |
+| WCBR     | Cybersecurity |      77 | +20.46% | +18.19%         | Euronext Paris | IE00BLPK3577     |
+| ISPY     | Cybersecurity |       7 | +10.94% | +8.67%          | Euronext Amsterdam | IE00BYPLS672 |
 
 FINAL SELECTION - RENKO VALIDATED
-| Final     | Type   | Ticker   | Theme                 | Renko          | Bias   | 3M/M/W   | ROC14   | ROC21    | PnL    |
-|-----------|--------|----------|-----------------------|----------------|--------|----------|---------|----------|--------|
-| VALIDATED | ETF    | IBB      | Healthcare / Biotech  | BULL CONFIRMED | BULL   | 1/1/1    | +23.08% | +25.12%  | +0.00% |
-| VALIDATED | ETF    | XBI      | Healthcare / Biotech  | BULL CONFIRMED | BULL   | 1/1/1    | +19.84% | +26.55%  | +0.00% |
-| VALIDATED | STOCK  | TEAM     | Cloud / Data software | BULL CONFIRMED | BULL   | 1/1/1    | +76.17% | +231.72% | +0.00% |
-| VALIDATED | STOCK  | AMGN     | Healthcare / Biotech  | BULL CONFIRMED | BULL   | 1/1/1    | +29.82% | +24.56%  | +0.00% |
-| VALIDATED | STOCK  | REGN     | Healthcare / Biotech  | BULL CONFIRMED | BULL   | 1/1/1    | +34.64% | +10.53%  | +0.00% |
-| VALIDATED | STOCK  | VRTX     | Healthcare / Biotech  | BULL CONFIRMED | BULL   | 1/1/1    | +22.03% | +25.18%  | +0.00% |
+| Final     | Type   | Ticker   | Theme                | Renko          | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL    |
+|-----------|--------|----------|----------------------|----------------|--------|----------|---------|---------|--------|
+| VALIDATED | ETF    | XBI      | Healthcare / Biotech | BULL CONFIRMED | BULL   | 1/1/1    | +26.49% | +17.37% | +0.00% |
+| VALIDATED | STOCK  | REGN     | Healthcare / Biotech | BULL CONFIRMED | BULL   | 1/1/1    | +27.23% | +7.72%  | +0.00% |
 
 TOP 5 GLOBAL - ETF AND STOCKS COMBINED
-|   # | Ticker   | Type   | Theme                 |   Rank |   Score | 63D     | Rel63   | R14     | R21      | PnL Renko   |
-|-----|----------|--------|-----------------------|--------|---------|---------|---------|---------|----------|-------------|
-|   1 | TEAM     | STOCK  | Cloud / Data software | 103.45 |  100    | +90.59% | +88.51% | +76.17% | +231.72% | +0.00%      |
-|   2 | REGN     | STOCK  | Healthcare / Biotech  |  42.87 |   88.88 | +30.41% | +28.33% | +34.64% | +10.53%  | +0.00%      |
-|   3 | IBB      | ETF    | Healthcare / Biotech  |  42.64 |   91.88 | +25.83% | +23.75% | +23.08% | +25.12%  | +0.00%      |
-|   4 | XBI      | ETF    | Healthcare / Biotech  |  42.09 |   89.1  | +27.44% | +25.35% | +19.84% | +26.55%  | +0.00%      |
-|   5 | AMGN     | STOCK  | Healthcare / Biotech  |  41.44 |   85.03 | +25.80% | +23.72% | +29.82% | +24.56%  | +0.00%      |
+|   # | Ticker   | Type   | Theme                |   Rank |   Score | 63D     | Rel63   | R14     | R21     | PnL Renko   |
+|-----|----------|--------|----------------------|--------|---------|---------|---------|---------|---------|-------------|
+|   1 | XBI      | ETF    | Healthcare / Biotech |  45.17 |  100    | +26.90% | +26.35% | +26.49% | +17.37% | +0.00%      |
+|   2 | REGN     | STOCK  | Healthcare / Biotech |  43.44 |   92.17 | +32.40% | +31.84% | +27.23% | +7.72%  | +0.00%      |
 
 GLOBAL RANKING - RETAINED ASSETS
-|   # | Ticker   | Type   | Theme                 |   Rank |   Score | 63D     | Rel63   | R14     | R21      | PnL Renko   |
-|-----|----------|--------|-----------------------|--------|---------|---------|---------|---------|----------|-------------|
-|   1 | TEAM     | STOCK  | Cloud / Data software | 103.45 |  100    | +90.59% | +88.51% | +76.17% | +231.72% | +0.00%      |
-|   2 | REGN     | STOCK  | Healthcare / Biotech  |  42.87 |   88.88 | +30.41% | +28.33% | +34.64% | +10.53%  | +0.00%      |
-|   3 | IBB      | ETF    | Healthcare / Biotech  |  42.64 |   91.88 | +25.83% | +23.75% | +23.08% | +25.12%  | +0.00%      |
-|   4 | XBI      | ETF    | Healthcare / Biotech  |  42.09 |   89.1  | +27.44% | +25.35% | +19.84% | +26.55%  | +0.00%      |
-|   5 | AMGN     | STOCK  | Healthcare / Biotech  |  41.44 |   85.03 | +25.80% | +23.72% | +29.82% | +24.56%  | +0.00%      |
-|   6 | VRTX     | STOCK  | Healthcare / Biotech  |  38.77 |   83.54 | +22.22% | +20.14% | +22.03% | +25.18%  | +0.00%      |
+|   # | Ticker   | Type   | Theme                |   Rank |   Score | 63D     | Rel63   | R14     | R21     | PnL Renko   |
+|-----|----------|--------|----------------------|--------|---------|---------|---------|---------|---------|-------------|
+|   1 | XBI      | ETF    | Healthcare / Biotech |  45.17 |  100    | +26.90% | +26.35% | +26.49% | +17.37% | +0.00%      |
+|   2 | REGN     | STOCK  | Healthcare / Biotech |  43.44 |   92.17 | +32.40% | +31.84% | +27.23% | +7.72%  | +0.00%      |
 
 ANALYTIC CLASSIFICATION - RETAINED ASSETS
-| Theme                 | Bucket         | Type   | Ticker   |   Score | 63D     | Rel63   | R14     | R21      | Role                        | Use                                              |
-|-----------------------|----------------|--------|----------|---------|---------|---------|---------|----------|-----------------------------|--------------------------------------------------|
-| Cloud / Data software | LEADER STOCK   | STOCK  | TEAM     |  100    | +90.59% | +88.51% | +76.17% | +231.72% | Primary momentum leader     | Best single-name expression of the theme         |
-| Healthcare / Biotech  | CORE ETF       | ETF    | IBB      |   91.88 | +25.83% | +23.75% | +23.08% | +25.12%  | Diversified sector vehicle  | Use first for broad exposure to the theme        |
-| Healthcare / Biotech  | CORE ETF       | ETF    | XBI      |   89.1  | +27.44% | +25.35% | +19.84% | +26.55%  | Diversified sector vehicle  | Use first for broad exposure to the theme        |
-| Healthcare / Biotech  | TACTICAL STOCK | STOCK  | AMGN     |   85.03 | +25.80% | +23.72% | +29.82% | +24.56%  | Strong single-name momentum | Actionable, but monitor extension and volatility |
-| Healthcare / Biotech  | TACTICAL STOCK | STOCK  | REGN     |   88.88 | +30.41% | +28.33% | +34.64% | +10.53%  | Strong single-name momentum | Actionable, but monitor extension and volatility |
-| Healthcare / Biotech  | TACTICAL STOCK | STOCK  | VRTX     |   83.54 | +22.22% | +20.14% | +22.03% | +25.18%  | Strong single-name momentum | Actionable, but monitor extension and volatility |
+| Theme                | Bucket         | Type   | Ticker   |   Score | 63D     | Rel63   | R14     | R21     | Role                        | Use                                              |
+|----------------------|----------------|--------|----------|---------|---------|---------|---------|---------|-----------------------------|--------------------------------------------------|
+| Healthcare / Biotech | CORE ETF       | ETF    | XBI      |  100    | +26.90% | +26.35% | +26.49% | +17.37% | Diversified sector vehicle  | Use first for broad exposure to the theme        |
+| Healthcare / Biotech | TACTICAL STOCK | STOCK  | REGN     |   92.17 | +32.40% | +31.84% | +27.23% | +7.72%  | Strong single-name momentum | Actionable, but monitor extension and volatility |
 
 WATCHLIST - GOOD THEME, WAITING FOR RENKO
-| Final     | Type   | Ticker   | Theme                 | Renko      | Bias   | 3M/M/W   | ROC14   | ROC21    | PnL     |
-|-----------|--------|----------|-----------------------|------------|--------|----------|---------|----------|---------|
-| WATCHLIST | ETF    | CLOU     | Cloud / Data software | MIXED      | MIXED  | 1/1/0    | +14.50% | +57.90%  | ---     |
-| WATCHLIST | ETF    | IGV      | Cloud / Data software | MIXED      | MIXED  | 1/1/0    | +2.86%  | +40.04%  | ---     |
-| WATCHLIST | ETF    | SKYY     | Cloud / Data software | MIXED      | MIXED  | 1/1/0    | +11.75% | +55.11%  | ---     |
-| WATCHLIST | ETF    | WCLD     | Cloud / Data software | MIXED      | MIXED  | 1/1/0    | +23.58% | +69.03%  | ---     |
-| WATCHLIST | ETF    | BUG      | Cybersecurity         | MIXED      | MIXED  | 1/0/0    | +13.87% | +77.55%  | ---     |
-| WATCHLIST | ETF    | CIBR     | Cybersecurity         | MIXED      | MIXED  | 1/0/-1   | +6.23%  | +55.73%  | ---     |
-| WATCHLIST | ETF    | HACK     | Cybersecurity         | MIXED      | MIXED  | 1/1/-1   | +11.47% | +55.61%  | ---     |
-| WATCHLIST | ETF    | IHAK     | Cybersecurity         | MIXED      | MIXED  | 1/0/0    | +9.10%  | +50.22%  | ---     |
-| WATCHLIST | STOCK  | CRWD     | Cybersecurity         | BULL MIXED | BULL   | 1/0/1    | +16.61% | +124.90% | -57.86% |
-| WATCHLIST | STOCK  | PANW     | Cybersecurity         | BULL MIXED | BULL   | 1/-1/-1  | +18.31% | +114.00% | +89.64% |
-| WATCHLIST | STOCK  | BKR      | Energy                | BULL MIXED | BULL   | 1/0/1    | -0.59%  | +1.07%   | +1.07%  |
-| WATCHLIST | STOCK  | FANG     | Energy                | BULL MIXED | BULL   | 1/0/0    | +4.04%  | +5.85%   | +1.77%  |
+| Final     | Type   | Ticker   | Theme                | Renko         | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
+|-----------|--------|----------|----------------------|---------------|--------|----------|---------|---------|---------|
+| WATCHLIST | ETF    | BUG      | Cybersecurity        | MIXED         | MIXED  | 1/0/0    | +15.05% | +54.95% | ---     |
+| WATCHLIST | ETF    | CIBR     | Cybersecurity        | MIXED         | MIXED  | 1/-1/-1  | +7.74%  | +40.51% | ---     |
+| WATCHLIST | ETF    | HACK     | Cybersecurity        | MIXED         | MIXED  | 1/0/-1   | +12.41% | +39.21% | ---     |
+| WATCHLIST | ETF    | IHAK     | Cybersecurity        | MIXED         | MIXED  | 1/0/-1   | +8.52%  | +32.47% | ---     |
+| WATCHLIST | ETF    | IBB      | Healthcare / Biotech | MIXED         | MIXED  | 1/1/0    | +23.49% | +17.74% | ---     |
+| WATCHLIST | STOCK  | CRWD     | Cybersecurity        | BULL MIXED    | BULL   | 1/0/0    | +24.11% | +96.44% | -58.83% |
+| WATCHLIST | STOCK  | PANW     | Cybersecurity        | BULL MIXED    | BULL   | 1/-1/-1  | +22.53% | +98.59% | +89.68% |
+| WATCHLIST | STOCK  | BKR      | Energy               | BULL MIXED    | BULL   | 1/0/1    | +2.49%  | +7.31%  | +2.10%  |
+| WATCHLIST | STOCK  | FANG     | Energy               | BULL MIXED    | BULL   | 1/1/0    | +3.89%  | +11.01% | +2.23%  |
+| WATCHLIST | STOCK  | INSM     | Healthcare / Biotech | BULL WEAK ROC | BULL   | 1/1/1    | +32.74% | -13.44% | +0.00%  |
+| WATCHLIST | STOCK  | VRTX     | Healthcare / Biotech | MIXED         | MIXED  | 1/1/0    | +17.98% | +19.48% | ---     |
 
 EARLY SHIFT - ONLY IF DOMINANT THEMES SLOW
 Slowing dominant themes: Cybersecurity
-| Ticker   | Type   | Theme                 |   Early | 21D    | Rel63   | Renko   | R14     | R21     |
-|----------|--------|-----------------------|---------|--------|---------|---------|---------|---------|
-| WCLD     | ETF    | Cloud / Data software |   27.78 | +8.67% | +24.38% | 1/1/0   | +23.58% | +69.03% |
-| CLOU     | ETF    | Cloud / Data software |   19.18 | +5.83% | +14.29% | 1/1/0   | +14.50% | +57.90% |
-| SKYY     | ETF    | Cloud / Data software |   17.79 | +7.28% | +12.69% | 1/1/0   | +11.75% | +55.11% |
+| Ticker   | Type   | Theme                |   Early | 21D    | Rel63   | Renko   | R14     | R21     |
+|----------|--------|----------------------|---------|--------|---------|---------|---------|---------|
+| IBB      | ETF    | Healthcare / Biotech |   19.25 | +5.22% | +24.09% | 1/1/0   | +23.49% | +17.74% |
+| INSM     | STOCK  | Healthcare / Biotech |   18.11 | -4.62% | +32.23% | 1/1/1   | +32.74% | -13.44% |
+| VRTX     | STOCK  | Healthcare / Biotech |   16.05 | +6.23% | +18.41% | 1/1/0   | +17.98% | +19.48% |
 
 REJECTED BY RENKO
-| Final    | Type   | Ticker   | Theme                 | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
-|----------|--------|----------|-----------------------|---------|--------|----------|---------|---------|---------|
-| REJECTED | STOCK  | MSTR     | Cloud / Data software | BEAR    | BEAR   | 1/-1/1   | -10.24% | +11.01% | -11.95% |
-| REJECTED | STOCK  | WDAY     | Cloud / Data software | BEAR    | BEAR   | 0/1/1    | +33.93% | +74.04% | -74.04% |
-| REJECTED | STOCK  | ZS       | Cybersecurity         | BEAR    | BEAR   | -1/0/0   | +21.52% | +43.84% | -43.84% |
+| Final    | Type   | Ticker   | Theme         | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
+|----------|--------|----------|---------------|---------|--------|----------|---------|---------|---------|
+| REJECTED | STOCK  | ZS       | Cybersecurity | BEAR    | BEAR   | -1/0/0   | +23.72% | +20.14% | -37.06% |
 
 NEWS VALIDATION
 
-Healthcare / Biotech: score=100.0 hits=12 sources=8
-- 2026-09-02 | Yahoo Finance | Medical Devices & Supplies - Diversified Stocks Q2 Teardown: Stryker (NYSE:SYK) Vs The Rest - Yahoo Finance
-  https://news.google.com/rss/articles/CBMipwFBVV95cUxPcE5iZTFYeVFUOTQyaWM2VFFVaDRBWlRwY2pYV29hQU1oeWM4VDlhV21tc0l0YkRpa0tON2pBaDdoSUY2QmttNVRqTmhNMFRFSFlVSFVOeWRBSzdGTzVvTkpZbk1IdEdqT3RtU0U0SjMtSHQ3VEdZUWFGYWdhR09yX0lkUmZPWEdrbTUzbG1RY2NrV3JhVjZ2MzNJcDU0dGlIelN2ckVhQQ?oc=5
-- 2026-09-02 | Barchart.com | How Is Vertex Pharmaceuticals' Stock Performance Compared to Other Biotech Stocks? - Barchart.com
-  https://news.google.com/rss/articles/CBMiwgFBVV95cUxQWUJlVXZnM29tX3drdGtRNFoxc3JYRkFlMXNwelNoZnB6SFFQdWloRlBSYnk0LWYtbjY5eWZMeVJGanhxZ01ydnZuZ3JUS2VWcHNmTFNXQ0hUR1VaMWUzbWlsdFU3RjhELS1kVExKZ0Fod2tfTTAtY1ktT1dYMGs3bFpRTVY3TFo5Z080S1I2T0ktMVV6Y1NBLS1GbjhxUWhFU19JRnBRVU5pUlg2dTF0V2VHam9KblVtSElRUGJyYk1UQQ?oc=5
-
-Cybersecurity: score=100.0 hits=12 sources=10
-- 2026-09-07 | MarketBeat | Palo Alto vs. Zscaler: Which Cybersecurity Stock Looks Stronger After Earnings? - MarketBeat
-  https://news.google.com/rss/articles/CBMiswFBVV95cUxQUFJSU3lVN0l1WUtkUjBlbjdocDg4WDB5SFJkcDhDaEVNd3hsV2liX0ZyaER2SGhtX1hJM0JZTzdBNFBLQ2lGWXM0OU1sQ0Z4M0ZGand1dEo4Y3dxQWhoSVlaRWczSTUwemFYNTVranBoTWEzeG5wY1p1Tl9LLTAtZTlLbExXNkFJUmxhZy15YWI4alhjN1pubGpJeHcxMnJGcGVUSWltMkZ2X2ZDcVBHUHdwOA?oc=5
+Cybersecurity: score=100.0 hits=12 sources=11
 - 2026-09-04 | Yahoo Finance | Jim Cramer Is Excited About These Two Cybersecurity Stocks - Yahoo Finance
   https://news.google.com/rss/articles/CBMiogFBVV95cUxQbHZMMDBtQlJBU0JUdkVrODhOUlJqS19SRmlZcUhCSWIwZE5Ba0U2ZGRsclROOE5ZMk5HdHZ6ZkoyNkUwTmZ4cG5IbVA0a2prM2VXWGJBcnVCWV9ZLWFNU2NWdTJEelg2SmkyM2tGSFdRODBxYUNMcURHbUxEcmpXeGtMRzhOaXVUSUMxZ0xmYkJ3azU5SDFoYnFGQjRkc2RkQ1E?oc=5
+- 2026-09-07 | Stocktwits | S&P 500, Nasdaq End Higher On Support From Chipmakers, Cybersecurity Stocks And Soft Inflation Data — NVDA, GS, SKHY, VZ, LCID In Focus - Stocktwits
+  https://news.google.com/rss/articles/CBMixgFBVV95cUxONnJpVDlCRmllRnVYYUx4c1RsT0tDOVV2cDUtUDlWRFFIbXJKbi1QZEM0cG5kMnM4QnVJOG56dWptTGI5U01FZnBWY1I4MndJSEF5TUU5d0dhS0haNjZmQmFWMEJOb3FqR3FfNF9hUHA1d3dkSXVvcXBNTFA2UkQxckhlRGdUT1B0OTFhMHQ2Yk5VZ0FsWnNLSldBUnV1VGktVGhLR1JTTWU2N2RqTmpWdEdESlc3TU8tUUtnZVJVcXNZWGxNbWc?oc=5
 
-Cloud / Data software: score=100.0 hits=12 sources=9
-- 2026-09-07 | Yahoo Finance | Investors Pulled $700 Million From IGV Hours Before Snowflake Reignited Software - Yahoo Finance
-  https://news.google.com/rss/articles/CBMingFBVV95cUxNOVZxeWJkSHVpbUR0V0hwdnQzR0JuZGxsOUdGU0FBN1hXMVMwZmY4ajZUTk1RVThGdzBSYXBuY3d0YWt4aEZqV3c5SlpQLU0tWS1DeDlFUmJoZHp1RmVYQ3N5eFpRaTA5b051VTItcWRzY3FvMW1WblBxckZWeU12Mmlnc3JIWkJqZkpfUHphR1d2ZF9qbUxET0I3TFZiUQ?oc=5
-- 2026-09-03 | Reuters | Snowflake's AI-powered results send shares soaring, buoy software stocks - Reuters
-  https://news.google.com/rss/articles/CBMiqAFBVV95cUxNMGllenZQOUdyWUY5dll4MzN6UThlWUp1MWdhN2NTNE00U2JvR2tGcE01a2wzdDA1U0tEb2lwS1NnYkU2STNXNHVXY3lJSGxwbTllTGIxc042dGdwUkduOTQ0c2lTM2xCOHBVcFlXNWdJa2xGMl9XcEZOTjdtdWgwcG4wbjRIWkptSjVRWEpBNUUyaHktWU5YUnNEMlZpZnphUUg3bWlXNFU?oc=5
+Energy: score=100.0 hits=12 sources=9
+- 2026-09-08 | ChartMill | Expand Energy (NASDAQ:EXE) Presents Technical Breakout Setup with Strong Trend and Timing Scores - ChartMill
+  https://news.google.com/rss/articles/CBMi3AFBVV95cUxQRV82bEN2RGlhamJGVzN1QmNVMldzY0dZQXoySmpnNUNHVjVBLVM5MmFpMDVVZlg3VUJaa3lrWlVsaUVXSnlBbTRYa0UxbUVnT1czdUpBcnVXanBoOEEtaEREdlkyMExlLWE5VEZfa2FQcDEzZmJMSUJld3NGTWVZc0ZZaGZWcERDUnlHcGR0WEVGN3pWTkFsamdFUVlUV1dMRTIxOE9rOTh5ZlZqdzRZTGM5MDltc3M5OTFMNDFmOHNkbFgzQjhLR2k5d1djZU9fQ29EOFQtSk1jYVVK?oc=5
+- 2026-09-08 | Yahoo Finance | U.S. Energy Stocks Rise Premarket as Brent Approaches $100 - Yahoo Finance
+  https://news.google.com/rss/articles/CBMikAFBVV95cUxOYlNuZS11UTdQUlJibnJ2MDBJVmFraGdjRFc1dldwczlmLUk0aWpGbTlIZzZHYTJONlJsX1plWEpfN2JXbzVIc1hlMFJNQjZnenktMjdwdTJCeXFTSUFmVlFvNDJhem9TQVlTQ1V1NDJ1eVREaG9DMzlkaGtfTGpORVk2SE8xdU1SOHlSYXp6djA?oc=5
+
+Healthcare / Biotech: score=100.0 hits=12 sources=11
+- 2026-09-08 | Investor's Business Daily | Why These Two Hot Biotech Stocks Just Surged To Record Highs - Investor's Business Daily
+  https://news.google.com/rss/articles/CBMimwFBVV95cUxQUzV0UTNwTEw2MFV0WlBBZ1ZsdkluZmYzdFBVc25yRzhQZzkzVDhTMTNqMlNpV2xuU1U1aG40cGlOVnlidHFhS0tXNXVMOGtDdWg0cmxHZVJJSlNZa2Z3cklWM09xMnMtdWFDWGJROU43TDFPZTRWcHZuQzdQMXgzOG9mVUhvamlXdW43SzVOdUFtNTVWLU9QUWJxZw?oc=5
+- 2026-09-08 | Zacks Investment Research | 3 Promising Genomics Stocks in the Spotlight in 2026 - Zacks Investment Research
+  https://news.google.com/rss/articles/CBMimAFBVV95cUxNckhpLVoyQTNVTmRNWm9RSFR1eV81UHpxVlM1VHJZUDNBZUtvZlVJVG52Z3ZUdGVBS1B0OC0taE4yM042SnlTUWVSNE9McURoMjBZblFSLU5NeDVKNGNoeDlveTZYdnNHVkI4M2ZvZWpWWXBkOXdEUUFrMHc0bXJ5R3RSamxaSGxBdnFQMDBscUVqQXJjcHl6Uw?oc=5
 
 METHOD
 Score action = momentum 21D/63D/126D + force relative vs QQQ + volume + tendance SMA50/SMA200 + proximite high 20D.
