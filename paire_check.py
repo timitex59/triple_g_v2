@@ -144,6 +144,10 @@ TELEGRAM_SEND_START_HOUR_PARIS = 5
 # un run perd la moitie de son poids toutes les `INDEX_TREND_HALF_LIFE_HOURS`
 # heures, cf. `update_index_trend_state`.
 INDEX_TREND_HALF_LIFE_HOURS = 4.0
+# Heure Paris a partir de laquelle la reference de comparaison (fleche ▲/▼,
+# cf. `update_index_trend_state`) est recapturee -- avant cette heure, la
+# reference reste celle du tout premier run du jour (~00h, date Paris).
+INDEX_TREND_REFERENCE_RESET_HOUR_PARIS = 14
 
 
 def needed_currencies(pairs: list[str]) -> set[str]:
@@ -320,10 +324,18 @@ def update_index_trend_state(
     reference 06h de `update_price_trends` -- coherent avec un message qui
     raisonne "depuis 06h" sur le reste de sa journee (la decroissance seule
     ferait deja tomber un run de la veille a un poids negligeable, mais la
-    remise a zero reste plus simple a raisonner)."""
+    remise a zero reste plus simple a raisonner).
+
+    Capture aussi une reference (`ref_up_pct`/`ref_down_pct`) utilisee par
+    `index_trend_lines` pour afficher une fleche ▲/▼ : le %monte/%baisse du
+    tout premier run du jour (~00h Paris), remplacee par le % du premier run
+    >= `INDEX_TREND_REFERENCE_RESET_HOUR_PARIS`h (14h) une fois cette heure
+    atteinte -- `ref_period` ("am"/"pm") memorise laquelle est active pour
+    detecter cette transition unique."""
     today = now.astimezone(PARIS_TZ).date().isoformat()
     old = state if isinstance(state, dict) else {}
     old_counts = old.get("pairs", {}) if old.get("date") == today else {}
+    current_period = "pm" if now.astimezone(PARIS_TZ).hour >= INDEX_TREND_REFERENCE_RESET_HOUR_PARIS else "am"
     new_counts: dict[str, dict] = {}
     for pair in pairs:
         prior = old_counts.get(pair) or {}
@@ -340,8 +352,17 @@ def update_index_trend_state(
             weighted_up += 1.0
         elif icon == "🔴":
             weighted_down += 1.0
+        total = weighted_up + weighted_down
+        up_pct = weighted_up / total * 100.0 if total > 0.0 else None
+        down_pct = weighted_down / total * 100.0 if total > 0.0 else None
+        if prior.get("ref_period") == current_period:
+            ref_up_pct = prior.get("ref_up_pct")
+            ref_down_pct = prior.get("ref_down_pct")
+        else:
+            ref_up_pct, ref_down_pct = up_pct, down_pct
         new_counts[pair] = {
             "weighted_up": weighted_up, "weighted_down": weighted_down, "last_update": now.isoformat(),
+            "ref_up_pct": ref_up_pct, "ref_down_pct": ref_down_pct, "ref_period": current_period,
         }
     return {"date": today, "pairs": new_counts}
 
@@ -357,6 +378,18 @@ def _parse_iso_datetime(value: object) -> datetime | None:
         return None
 
 
+def _trend_arrow(current_pct: float | None, ref_pct: float | None) -> str:
+    """▲ si `current_pct` a monte depuis `ref_pct`, ▼ s'il a baisse, "" si
+    egal ou si l'une des deux valeurs est absente (pas encore de reference)."""
+    if current_pct is None or ref_pct is None:
+        return ""
+    if current_pct > ref_pct:
+        return "▲"
+    if current_pct < ref_pct:
+        return "▼"
+    return ""
+
+
 def index_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
     """Section `📈 TENDANCE`: pour chaque paire de `pairs` ayant un poids
     monte/baisse accumule aujourd'hui (cf. `update_index_trend_state`), 2
@@ -366,7 +399,12 @@ def index_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
     0.00% -- contrairement a une bille+% unique, elles montrent directement
     l'ecart entre les 2 sens sans qu'un lecteur ait a le deduire.
     Vide si aucune paire n'a de poids accumule (ex. tout premier run, ou
-    seulement des egalites/donnees manquantes jusqu'ici)."""
+    seulement des egalites/donnees manquantes jusqu'ici).
+
+    Chaque ligne est prefixee d'une fleche ▲/▼ (cf. `_trend_arrow`) quand son
+    % a bouge depuis la reference du jour (~00h Paris, puis ~14h Paris --
+    cf. `update_index_trend_state`) ; rien si egal ou pas encore de
+    reference."""
     counts_by_pair = trend_state.get("pairs", {}) if isinstance(trend_state, dict) else {}
     lines = []
     for pair in pairs:
@@ -376,8 +414,11 @@ def index_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
         total = up + down
         if total <= 0.0:
             continue
-        lines.append(f"🟢 {pair} ({up / total * 100.0:.2f}%)")
-        lines.append(f"🔴 {pair} ({down / total * 100.0:.2f}%)")
+        up_pct, down_pct = up / total * 100.0, down / total * 100.0
+        up_arrow = _trend_arrow(up_pct, counts.get("ref_up_pct"))
+        down_arrow = _trend_arrow(down_pct, counts.get("ref_down_pct"))
+        lines.append(f"🟢 {up_arrow}{pair} ({up_pct:.2f}%)")
+        lines.append(f"🔴 {down_arrow}{pair} ({down_pct:.2f}%)")
     if not lines:
         return []
     return ["📈 TENDANCE", *lines]

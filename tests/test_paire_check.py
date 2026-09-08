@@ -641,6 +641,73 @@ class PaireCheckTests(unittest.TestCase):
         self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_up"], 3.0)
         self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_down"], 1.0)
 
+    def test_update_index_trend_state_captures_reference_on_first_run_of_day(self):
+        # Tout premier run du jour (~00h Paris ou plus tard, mais avant 14h):
+        # la reference "am" est le %monte/%baisse de ce run lui-meme.
+        bull_index = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        now = dt.datetime(2026, 7, 16, 0, 5, tzinfo=PARIS)
+
+        state = update_index_trend_state({}, ["EURUSD"], bull_index, now)
+
+        counts = state["pairs"]["EURUSD"]
+        self.assertEqual(counts["ref_period"], "am")
+        self.assertAlmostEqual(counts["ref_up_pct"], 100.0)
+        self.assertAlmostEqual(counts["ref_down_pct"], 0.0)
+
+    def test_update_index_trend_state_keeps_the_am_reference_across_the_morning(self):
+        # La reference "am" reste celle du 1er run, meme apres que d'autres
+        # runs aient fait bouger le %monte/%baisse dans la journee (avant 14h).
+        bull_index = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        bear_index = {
+            "EUR": index_row("EXY", "EUR", -1, -1, -1, daily_chg=-1.57),
+            "USD": index_row("DXY", "USD", 1, 1, 1, daily_chg=1.61),
+        }
+        t0 = dt.datetime(2026, 7, 16, 0, 5, tzinfo=PARIS)
+        state = update_index_trend_state({}, ["EURUSD"], bull_index, t0)  # ref: 100%/0%
+
+        t1 = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
+        state = update_index_trend_state(state, ["EURUSD"], bear_index, t1)
+
+        counts = state["pairs"]["EURUSD"]
+        self.assertEqual(counts["ref_period"], "am")
+        self.assertAlmostEqual(counts["ref_up_pct"], 100.0)
+        self.assertAlmostEqual(counts["ref_down_pct"], 0.0)
+        self.assertLess(counts["weighted_up"] / (counts["weighted_up"] + counts["weighted_down"]) * 100.0, 100.0)
+
+    def test_update_index_trend_state_recaptures_reference_at_14h(self):
+        # Au 1er run >= 14h, la reference bascule sur "pm" et prend le
+        # %monte/%baisse de ce run-la -- puis reste stable pour le reste de
+        # l'apres-midi.
+        bull_index = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        bear_index = {
+            "EUR": index_row("EXY", "EUR", -1, -1, -1, daily_chg=-1.57),
+            "USD": index_row("DXY", "USD", 1, 1, 1, daily_chg=1.61),
+        }
+        t0 = dt.datetime(2026, 7, 16, 0, 5, tzinfo=PARIS)
+        state = update_index_trend_state({}, ["EURUSD"], bull_index, t0)  # ref am: 100%/0%
+
+        t1 = dt.datetime(2026, 7, 16, 14, 0, tzinfo=PARIS)
+        state = update_index_trend_state(state, ["EURUSD"], bear_index, t1)
+        counts = state["pairs"]["EURUSD"]
+        self.assertEqual(counts["ref_period"], "pm")
+        pm_ref_up = counts["ref_up_pct"]
+        self.assertLess(pm_ref_up, 100.0)  # plus la reference figee du matin
+
+        t2 = dt.datetime(2026, 7, 16, 16, 0, tzinfo=PARIS)
+        state = update_index_trend_state(state, ["EURUSD"], bear_index, t2)
+        counts = state["pairs"]["EURUSD"]
+        self.assertEqual(counts["ref_period"], "pm")
+        self.assertAlmostEqual(counts["ref_up_pct"], pm_ref_up)  # inchangee le reste de l'aprem
+
     def test_index_trend_lines_reports_both_up_and_down_percentages(self):
         state = {"date": "2026-07-16", "pairs": {"EURUSD": {"weighted_up": 5.0, "weighted_down": 2.0}}}
 
@@ -665,6 +732,61 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertEqual(index_trend_lines(["EURUSD"], state), [])
         self.assertEqual(index_trend_lines(["EURUSD"], {}), [])
+
+    def test_index_trend_lines_shows_up_arrow_when_above_the_reference(self):
+        # %monte actuel (71.43%) > reference du jour (50%) -> ▲ sur la ligne
+        # verte, ▼ sur la ligne rouge (le %baisse a lui recule vs sa reference).
+        state = {
+            "date": "2026-07-16",
+            "pairs": {
+                "EURUSD": {
+                    "weighted_up": 5.0, "weighted_down": 2.0,
+                    "ref_up_pct": 50.0, "ref_down_pct": 50.0,
+                },
+            },
+        }
+
+        self.assertEqual(
+            index_trend_lines(["EURUSD"], state),
+            ["📈 TENDANCE", "🟢 ▲EURUSD (71.43%)", "🔴 ▼EURUSD (28.57%)"],
+        )
+
+    def test_index_trend_lines_shows_down_arrow_when_below_the_reference(self):
+        state = {
+            "date": "2026-07-16",
+            "pairs": {
+                "EURUSD": {
+                    "weighted_up": 2.0, "weighted_down": 5.0,
+                    "ref_up_pct": 50.0, "ref_down_pct": 50.0,
+                },
+            },
+        }
+
+        self.assertEqual(
+            index_trend_lines(["EURUSD"], state),
+            ["📈 TENDANCE", "🟢 ▼EURUSD (28.57%)", "🔴 ▲EURUSD (71.43%)"],
+        )
+
+    def test_index_trend_lines_no_arrow_when_equal_to_or_without_reference(self):
+        equal_state = {
+            "date": "2026-07-16",
+            "pairs": {
+                "EURUSD": {
+                    "weighted_up": 5.0, "weighted_down": 5.0,
+                    "ref_up_pct": 50.0, "ref_down_pct": 50.0,
+                },
+            },
+        }
+        self.assertEqual(
+            index_trend_lines(["EURUSD"], equal_state),
+            ["📈 TENDANCE", "🟢 EURUSD (50.00%)", "🔴 EURUSD (50.00%)"],
+        )
+
+        no_ref_state = {"date": "2026-07-16", "pairs": {"EURUSD": {"weighted_up": 5.0, "weighted_down": 2.0}}}
+        self.assertEqual(
+            index_trend_lines(["EURUSD"], no_ref_state),
+            ["📈 TENDANCE", "🟢 EURUSD (71.43%)", "🔴 EURUSD (28.57%)"],
+        )
 
     def test_telegram_send_decision_holds_before_5am_paris_even_with_content(self):
         ok, reason = telegram_send_decision(dt.datetime(2026, 7, 16, 4, 59, tzinfo=PARIS), has_content=True)

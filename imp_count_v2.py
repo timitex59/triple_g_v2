@@ -395,16 +395,30 @@ def save_currency_trend_state(path: Path, state: dict) -> None:
     path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+# Heure Paris a partir de laquelle la reference de comparaison (cf.
+# `update_currency_trend_state`) est recapturee -- avant cette heure, la
+# reference reste celle du tout premier run du jour (~00h, date Paris).
+CURRENCY_TREND_REFERENCE_RESET_HOUR_PARIS = 14
+
+
 def update_currency_trend_state(
     state: dict, pairs: list[str], report: dict[str, dict[str, float | int]], now: datetime,
 ) -> dict:
     """Ajoute le run courant au poids monté(🟢)/baissé(🔴) de chaque paire de
     `pairs`, décoté par récence puis incrémenté par `pair_trend_icon` -- une
     bille ⚪ ou absente ne compte ni pour l'un ni pour l'autre mais ne fait
-    pas perdre l'historique. Remis à zéro à chaque nouvelle date Paris."""
+    pas perdre l'historique. Remis à zéro à chaque nouvelle date Paris.
+
+    Capture aussi une référence (`ref_up_pct`/`ref_down_pct`) utilisée par
+    `currency_trend_lines` pour afficher une flèche ▲/▼ : le %monté/%baissé
+    du tout premier run du jour (~00h Paris), remplacée par le % du premier
+    run ≥ `CURRENCY_TREND_REFERENCE_RESET_HOUR_PARIS`h (14h) une fois cette
+    heure atteinte -- `ref_period` ("am"/"pm") mémorise laquelle est active
+    pour détecter cette transition unique."""
     today = now.astimezone(tv.PARIS).date().isoformat()
     old = state if isinstance(state, dict) else {}
     old_counts = old.get("pairs", {}) if old.get("date") == today else {}
+    current_period = "pm" if now.astimezone(tv.PARIS).hour >= CURRENCY_TREND_REFERENCE_RESET_HOUR_PARIS else "am"
     new_counts: dict[str, dict] = {}
     for pair in pairs:
         prior = old_counts.get(pair) or {}
@@ -421,10 +435,31 @@ def update_currency_trend_state(
             weighted_up += 1.0
         elif icon == "🔴":
             weighted_down += 1.0
+        total = weighted_up + weighted_down
+        up_pct = weighted_up / total * 100.0 if total > 0.0 else None
+        down_pct = weighted_down / total * 100.0 if total > 0.0 else None
+        if prior.get("ref_period") == current_period:
+            ref_up_pct = prior.get("ref_up_pct")
+            ref_down_pct = prior.get("ref_down_pct")
+        else:
+            ref_up_pct, ref_down_pct = up_pct, down_pct
         new_counts[pair] = {
             "weighted_up": weighted_up, "weighted_down": weighted_down, "last_update": now.isoformat(),
+            "ref_up_pct": ref_up_pct, "ref_down_pct": ref_down_pct, "ref_period": current_period,
         }
     return {"date": today, "pairs": new_counts}
+
+
+def _trend_arrow(current_pct: float | None, ref_pct: float | None) -> str:
+    """▲ si `current_pct` a monté depuis `ref_pct`, ▼ s'il a baissé, "" si égal
+    ou si l'une des deux valeurs est absente (pas encore de référence)."""
+    if current_pct is None or ref_pct is None:
+        return ""
+    if current_pct > ref_pct:
+        return "▲"
+    if current_pct < ref_pct:
+        return "▼"
+    return ""
 
 
 def currency_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
@@ -432,7 +467,12 @@ def currency_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
     accumulé aujourd'hui, 2 lignes `🟢 {PAIR} ({pct_up}%)` puis
     `🔴 {PAIR} ({pct_down}%)` -- part pondérée par récence des runs montés
     puis baissés, sur le poids total. Vide si aucune paire n'a de poids
-    accumulé (ex. tout premier run du jour)."""
+    accumulé (ex. tout premier run du jour).
+
+    Chaque ligne est préfixée d'une flèche ▲/▼ (cf. `_trend_arrow`) quand son
+    % a bougé depuis la référence du jour (~00h Paris, puis ~14h Paris --
+    cf. `update_currency_trend_state`) ; rien si égal ou pas encore de
+    référence."""
     counts_by_pair = trend_state.get("pairs", {}) if isinstance(trend_state, dict) else {}
     lines = []
     for pair in pairs:
@@ -442,8 +482,11 @@ def currency_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
         total = up + down
         if total <= 0.0:
             continue
-        lines.append(f"🟢 {pair} ({up / total * 100.0:.2f}%)")
-        lines.append(f"🔴 {pair} ({down / total * 100.0:.2f}%)")
+        up_pct, down_pct = up / total * 100.0, down / total * 100.0
+        up_arrow = _trend_arrow(up_pct, counts.get("ref_up_pct"))
+        down_arrow = _trend_arrow(down_pct, counts.get("ref_down_pct"))
+        lines.append(f"🟢 {up_arrow}{pair} ({up_pct:.2f}%)")
+        lines.append(f"🔴 {down_arrow}{pair} ({down_pct:.2f}%)")
     if not lines:
         return []
     return ["📈 TENDANCE", *lines]
