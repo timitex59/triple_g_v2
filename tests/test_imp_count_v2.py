@@ -86,49 +86,58 @@ class UpdateCurrencyTrendStateTests(unittest.TestCase):
         )
         self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_up"], 1.0)
 
-    def test_captures_reference_on_first_run_of_day(self):
+    def test_no_second_ball_on_first_run_of_a_chain(self):
+        # Tout premier run du jour (~00h Paris ou plus tard, mais avant 14h):
+        # rien a comparer -- pas de bille.
         bull_report = currency_report(70.0, 10.0, 10.0, 70.0)
         now = dt.datetime(2026, 7, 16, 0, 5, tzinfo=PARIS)
 
         state = update_currency_trend_state({}, ["EURUSD"], bull_report, now)
 
         counts = state["pairs"]["EURUSD"]
-        self.assertEqual(counts["ref_period"], "am")
-        self.assertAlmostEqual(counts["ref_up_pct"], 100.0)
-        self.assertAlmostEqual(counts["ref_down_pct"], 0.0)
+        self.assertEqual(counts["period"], "am")
+        self.assertEqual(counts["up_arrow"], "")
+        self.assertEqual(counts["down_arrow"], "")
 
-    def test_keeps_the_am_reference_across_the_morning(self):
+    def test_second_ball_compares_to_the_previous_run(self):
+        # Run precedent bull (100%/0%), run courant bear (%monte redescend):
+        # bille rouge sur la ligne verte, verte sur la ligne rouge -- meme
+        # dans la meme "chaine" (avant 14h ici).
         bull_report = currency_report(70.0, 10.0, 10.0, 70.0)
         bear_report = currency_report(10.0, 70.0, 70.0, 10.0)
         t0 = dt.datetime(2026, 7, 16, 0, 5, tzinfo=PARIS)
-        state = update_currency_trend_state({}, ["EURUSD"], bull_report, t0)  # ref: 100%/0%
+        state = update_currency_trend_state({}, ["EURUSD"], bull_report, t0)  # 1er run: pas de bille
 
         t1 = dt.datetime(2026, 7, 16, 10, 0, tzinfo=PARIS)
         state = update_currency_trend_state(state, ["EURUSD"], bear_report, t1)
 
         counts = state["pairs"]["EURUSD"]
-        self.assertEqual(counts["ref_period"], "am")
-        self.assertAlmostEqual(counts["ref_up_pct"], 100.0)
-        self.assertAlmostEqual(counts["ref_down_pct"], 0.0)
+        self.assertEqual(counts["period"], "am")
+        self.assertEqual(counts["up_arrow"], "🔴")  # %monte a recule vs le run precedent
+        self.assertEqual(counts["down_arrow"], "🟢")  # %baisse a progresse vs le run precedent
 
-    def test_recaptures_reference_at_14h(self):
+    def test_no_second_ball_right_after_the_14h_reset(self):
+        # Au 1er run >= 14h, la chaine repart de zero: pas de bille meme si
+        # le %monte/%baisse a change depuis le dernier run du matin.
         bull_report = currency_report(70.0, 10.0, 10.0, 70.0)
         bear_report = currency_report(10.0, 70.0, 70.0, 10.0)
         t0 = dt.datetime(2026, 7, 16, 0, 5, tzinfo=PARIS)
-        state = update_currency_trend_state({}, ["EURUSD"], bull_report, t0)  # ref am: 100%/0%
+        state = update_currency_trend_state({}, ["EURUSD"], bull_report, t0)
 
         t1 = dt.datetime(2026, 7, 16, 14, 0, tzinfo=PARIS)
         state = update_currency_trend_state(state, ["EURUSD"], bear_report, t1)
         counts = state["pairs"]["EURUSD"]
-        self.assertEqual(counts["ref_period"], "pm")
-        pm_ref_up = counts["ref_up_pct"]
-        self.assertLess(pm_ref_up, 100.0)
+        self.assertEqual(counts["period"], "pm")
+        self.assertEqual(counts["up_arrow"], "")
+        self.assertEqual(counts["down_arrow"], "")
 
+        # Le run suivant (toujours "pm") compare de nouveau au run precedent.
         t2 = dt.datetime(2026, 7, 16, 16, 0, tzinfo=PARIS)
         state = update_currency_trend_state(state, ["EURUSD"], bear_report, t2)
         counts = state["pairs"]["EURUSD"]
-        self.assertEqual(counts["ref_period"], "pm")
-        self.assertAlmostEqual(counts["ref_up_pct"], pm_ref_up)
+        self.assertEqual(counts["period"], "pm")
+        self.assertEqual(counts["up_arrow"], "🔴")  # continue de baisser (2e run bear consecutif)
+        self.assertEqual(counts["down_arrow"], "🟢")
 
 
 class CurrencyTrendLinesTests(unittest.TestCase):
@@ -146,13 +155,16 @@ class CurrencyTrendLinesTests(unittest.TestCase):
         self.assertEqual(currency_trend_lines(["EURUSD"], state), [])
         self.assertEqual(currency_trend_lines(["EURUSD"], {}), [])
 
-    def test_shows_a_green_second_ball_when_above_the_reference(self):
+    def test_renders_the_stored_second_ball(self):
+        # currency_trend_lines se contente d'afficher up_arrow/down_arrow
+        # tels que calcules par update_currency_trend_state (progression run
+        # a run).
         state = {
             "date": "2026-07-16",
             "pairs": {
                 "EURUSD": {
                     "weighted_up": 5.0, "weighted_down": 2.0,
-                    "ref_up_pct": 50.0, "ref_down_pct": 50.0,
+                    "up_arrow": "🟢", "down_arrow": "🔴",
                 },
             },
         }
@@ -162,40 +174,29 @@ class CurrencyTrendLinesTests(unittest.TestCase):
             ["📈 TENDANCE", "🟢 EURUSD (71.43%) 🟢", "🔴 EURUSD (28.57%) 🔴"],
         )
 
-    def test_shows_a_red_second_ball_when_below_the_reference(self):
-        state = {
-            "date": "2026-07-16",
-            "pairs": {
-                "EURUSD": {
-                    "weighted_up": 2.0, "weighted_down": 5.0,
-                    "ref_up_pct": 50.0, "ref_down_pct": 50.0,
-                },
-            },
-        }
-
+        state["pairs"]["EURUSD"].update({"up_arrow": "🔴", "down_arrow": "🟢"})
         self.assertEqual(
             currency_trend_lines(["EURUSD"], state),
-            ["📈 TENDANCE", "🟢 EURUSD (28.57%) 🔴", "🔴 EURUSD (71.43%) 🟢"],
+            ["📈 TENDANCE", "🟢 EURUSD (71.43%) 🔴", "🔴 EURUSD (28.57%) 🟢"],
         )
 
-    def test_no_second_ball_when_equal_to_or_without_reference(self):
-        equal_state = {
+    def test_no_second_ball_when_absent(self):
+        # 1er run d'une chaine (cf. update_currency_trend_state): up_arrow/
+        # down_arrow valent "" -- pas de bille.
+        no_arrow_state = {
             "date": "2026-07-16",
-            "pairs": {
-                "EURUSD": {
-                    "weighted_up": 5.0, "weighted_down": 5.0,
-                    "ref_up_pct": 50.0, "ref_down_pct": 50.0,
-                },
-            },
+            "pairs": {"EURUSD": {"weighted_up": 5.0, "weighted_down": 2.0, "up_arrow": "", "down_arrow": ""}},
         }
         self.assertEqual(
-            currency_trend_lines(["EURUSD"], equal_state),
-            ["📈 TENDANCE", "🟢 EURUSD (50.00%)", "🔴 EURUSD (50.00%)"],
+            currency_trend_lines(["EURUSD"], no_arrow_state),
+            ["📈 TENDANCE", "🟢 EURUSD (71.43%)", "🔴 EURUSD (28.57%)"],
         )
 
-        no_ref_state = {"date": "2026-07-16", "pairs": {"EURUSD": {"weighted_up": 5.0, "weighted_down": 2.0}}}
+        # Etat sans ces cles du tout (ex. ancien format persiste avant cette
+        # fonctionnalite) -- ne doit pas planter, pas de bille non plus.
+        no_key_state = {"date": "2026-07-16", "pairs": {"EURUSD": {"weighted_up": 5.0, "weighted_down": 2.0}}}
         self.assertEqual(
-            currency_trend_lines(["EURUSD"], no_ref_state),
+            currency_trend_lines(["EURUSD"], no_key_state),
             ["📈 TENDANCE", "🟢 EURUSD (71.43%)", "🔴 EURUSD (28.57%)"],
         )
 

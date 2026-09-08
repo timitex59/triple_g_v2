@@ -395,10 +395,24 @@ def save_currency_trend_state(path: Path, state: dict) -> None:
     path.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-# Heure Paris a partir de laquelle la reference de comparaison (cf.
-# `update_currency_trend_state`) est recapturee -- avant cette heure, la
-# reference reste celle du tout premier run du jour (~00h, date Paris).
+# Heure Paris a partir de laquelle la chaine de comparaison run-a-run (cf.
+# `update_currency_trend_state`) repart de zero -- avant cette heure, la
+# chaine est celle demarree au tout premier run du jour (~00h, date Paris).
 CURRENCY_TREND_REFERENCE_RESET_HOUR_PARIS = 14
+
+
+def _trend_arrow(current_pct: float | None, prev_pct: float | None) -> str:
+    """🟢 si `current_pct` a monté depuis `prev_pct`, 🔴 s'il a baissé, "" si
+    égal ou si l'une des deux valeurs est absente (pas de run précédent à
+    comparer -- tout premier run de la chaîne, cf.
+    `update_currency_trend_state`)."""
+    if current_pct is None or prev_pct is None:
+        return ""
+    if current_pct > prev_pct:
+        return "🟢"
+    if current_pct < prev_pct:
+        return "🔴"
+    return ""
 
 
 def update_currency_trend_state(
@@ -409,12 +423,14 @@ def update_currency_trend_state(
     bille ⚪ ou absente ne compte ni pour l'un ni pour l'autre mais ne fait
     pas perdre l'historique. Remis à zéro à chaque nouvelle date Paris.
 
-    Capture aussi une référence (`ref_up_pct`/`ref_down_pct`) utilisée par
-    `currency_trend_lines` pour afficher une flèche ▲/▼ : le %monté/%baissé
-    du tout premier run du jour (~00h Paris), remplacée par le % du premier
-    run ≥ `CURRENCY_TREND_REFERENCE_RESET_HOUR_PARIS`h (14h) une fois cette
-    heure atteinte -- `ref_period` ("am"/"pm") mémorise laquelle est active
-    pour détecter cette transition unique."""
+    Calcule aussi une 2e bille 🟢/🔴 (`up_arrow`/`down_arrow`, cf.
+    `_trend_arrow`) utilisée par `currency_trend_lines` : elle compare le
+    %monté/%baissé de ce run à celui du run précédent (progression run à
+    run, pas une référence figée) -- absente sur le tout premier run d'une
+    chaîne. La chaîne démarre au tout premier run du jour (~00h Paris) et
+    repart de zéro au premier run ≥
+    `CURRENCY_TREND_REFERENCE_RESET_HOUR_PARIS`h (14h) -- `period` ("am"/
+    "pm") mémorise laquelle est active pour détecter cette transition."""
     today = now.astimezone(tv.PARIS).date().isoformat()
     old = state if isinstance(state, dict) else {}
     old_counts = old.get("pairs", {}) if old.get("date") == today else {}
@@ -438,28 +454,16 @@ def update_currency_trend_state(
         total = weighted_up + weighted_down
         up_pct = weighted_up / total * 100.0 if total > 0.0 else None
         down_pct = weighted_down / total * 100.0 if total > 0.0 else None
-        if prior.get("ref_period") == current_period:
-            ref_up_pct = prior.get("ref_up_pct")
-            ref_down_pct = prior.get("ref_down_pct")
+        if prior.get("period") == current_period:
+            prev_up_pct, prev_down_pct = prior.get("prev_up_pct"), prior.get("prev_down_pct")
         else:
-            ref_up_pct, ref_down_pct = up_pct, down_pct
+            prev_up_pct = prev_down_pct = None  # nouvelle chaine (1er run du jour, ou bascule 14h)
         new_counts[pair] = {
             "weighted_up": weighted_up, "weighted_down": weighted_down, "last_update": now.isoformat(),
-            "ref_up_pct": ref_up_pct, "ref_down_pct": ref_down_pct, "ref_period": current_period,
+            "prev_up_pct": up_pct, "prev_down_pct": down_pct, "period": current_period,
+            "up_arrow": _trend_arrow(up_pct, prev_up_pct), "down_arrow": _trend_arrow(down_pct, prev_down_pct),
         }
     return {"date": today, "pairs": new_counts}
-
-
-def _trend_arrow(current_pct: float | None, ref_pct: float | None) -> str:
-    """🟢 si `current_pct` a monté depuis `ref_pct`, 🔴 s'il a baissé, "" si
-    égal ou si l'une des deux valeurs est absente (pas encore de référence)."""
-    if current_pct is None or ref_pct is None:
-        return ""
-    if current_pct > ref_pct:
-        return "🟢"
-    if current_pct < ref_pct:
-        return "🔴"
-    return ""
 
 
 def currency_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
@@ -469,10 +473,9 @@ def currency_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
     puis baissés, sur le poids total. Vide si aucune paire n'a de poids
     accumulé (ex. tout premier run du jour).
 
-    Chaque ligne se termine par une 2e bille 🟢/🔴 (cf. `_trend_arrow`) quand
-    son % a bougé depuis la référence du jour (~00h Paris, puis ~14h Paris --
-    cf. `update_currency_trend_state`) ; rien si égal ou pas encore de
-    référence."""
+    Chaque ligne se termine par la 2e bille 🟢/🔴 calculée par
+    `update_currency_trend_state` (progression vs le run précédent) ; rien
+    sur le tout premier run d'une chaîne (~00h Paris, ou ~14h Paris)."""
     counts_by_pair = trend_state.get("pairs", {}) if isinstance(trend_state, dict) else {}
     lines = []
     for pair in pairs:
@@ -483,8 +486,8 @@ def currency_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
         if total <= 0.0:
             continue
         up_pct, down_pct = up / total * 100.0, down / total * 100.0
-        up_arrow = _trend_arrow(up_pct, counts.get("ref_up_pct"))
-        down_arrow = _trend_arrow(down_pct, counts.get("ref_down_pct"))
+        up_arrow = counts.get("up_arrow", "")
+        down_arrow = counts.get("down_arrow", "")
         lines.append(f"🟢 {pair} ({up_pct:.2f}%){' ' + up_arrow if up_arrow else ''}")
         lines.append(f"🔴 {pair} ({down_pct:.2f}%){' ' + down_arrow if down_arrow else ''}")
     if not lines:

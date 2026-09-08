@@ -326,12 +326,14 @@ def update_index_trend_state(
     ferait deja tomber un run de la veille a un poids negligeable, mais la
     remise a zero reste plus simple a raisonner).
 
-    Capture aussi une reference (`ref_up_pct`/`ref_down_pct`) utilisee par
-    `index_trend_lines` pour afficher une fleche ▲/▼ : le %monte/%baisse du
-    tout premier run du jour (~00h Paris), remplacee par le % du premier run
-    >= `INDEX_TREND_REFERENCE_RESET_HOUR_PARIS`h (14h) une fois cette heure
-    atteinte -- `ref_period` ("am"/"pm") memorise laquelle est active pour
-    detecter cette transition unique."""
+    Calcule aussi une 2e bille 🟢/🔴 (`up_arrow`/`down_arrow`, cf.
+    `_trend_arrow`) utilisee par `index_trend_lines` : elle compare le
+    %monte/%baisse de ce run a celui du run precedent (progression run a
+    run, pas une reference figee) -- absente sur le tout premier run d'une
+    chaine. La chaine demarre au tout premier run du jour (~00h Paris) et
+    repart de zero au premier run >= `INDEX_TREND_REFERENCE_RESET_HOUR_PARIS`
+    h (14h) -- `period` ("am"/"pm") memorise laquelle est active pour
+    detecter cette transition."""
     today = now.astimezone(PARIS_TZ).date().isoformat()
     old = state if isinstance(state, dict) else {}
     old_counts = old.get("pairs", {}) if old.get("date") == today else {}
@@ -355,14 +357,14 @@ def update_index_trend_state(
         total = weighted_up + weighted_down
         up_pct = weighted_up / total * 100.0 if total > 0.0 else None
         down_pct = weighted_down / total * 100.0 if total > 0.0 else None
-        if prior.get("ref_period") == current_period:
-            ref_up_pct = prior.get("ref_up_pct")
-            ref_down_pct = prior.get("ref_down_pct")
+        if prior.get("period") == current_period:
+            prev_up_pct, prev_down_pct = prior.get("prev_up_pct"), prior.get("prev_down_pct")
         else:
-            ref_up_pct, ref_down_pct = up_pct, down_pct
+            prev_up_pct = prev_down_pct = None  # nouvelle chaine (1er run du jour, ou bascule 14h)
         new_counts[pair] = {
             "weighted_up": weighted_up, "weighted_down": weighted_down, "last_update": now.isoformat(),
-            "ref_up_pct": ref_up_pct, "ref_down_pct": ref_down_pct, "ref_period": current_period,
+            "prev_up_pct": up_pct, "prev_down_pct": down_pct, "period": current_period,
+            "up_arrow": _trend_arrow(up_pct, prev_up_pct), "down_arrow": _trend_arrow(down_pct, prev_down_pct),
         }
     return {"date": today, "pairs": new_counts}
 
@@ -378,14 +380,16 @@ def _parse_iso_datetime(value: object) -> datetime | None:
         return None
 
 
-def _trend_arrow(current_pct: float | None, ref_pct: float | None) -> str:
-    """🟢 si `current_pct` a monte depuis `ref_pct`, 🔴 s'il a baisse, "" si
-    egal ou si l'une des deux valeurs est absente (pas encore de reference)."""
-    if current_pct is None or ref_pct is None:
+def _trend_arrow(current_pct: float | None, prev_pct: float | None) -> str:
+    """🟢 si `current_pct` a monte depuis `prev_pct`, 🔴 s'il a baisse, "" si
+    egal ou si l'une des deux valeurs est absente (pas de run precedent a
+    comparer -- tout premier run de la chaine, cf.
+    `update_index_trend_state`)."""
+    if current_pct is None or prev_pct is None:
         return ""
-    if current_pct > ref_pct:
+    if current_pct > prev_pct:
         return "🟢"
-    if current_pct < ref_pct:
+    if current_pct < prev_pct:
         return "🔴"
     return ""
 
@@ -401,10 +405,9 @@ def index_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
     Vide si aucune paire n'a de poids accumule (ex. tout premier run, ou
     seulement des egalites/donnees manquantes jusqu'ici).
 
-    Chaque ligne se termine par une 2e bille 🟢/🔴 (cf. `_trend_arrow`) quand
-    son % a bouge depuis la reference du jour (~00h Paris, puis ~14h Paris --
-    cf. `update_index_trend_state`) ; rien si egal ou pas encore de
-    reference."""
+    Chaque ligne se termine par la 2e bille 🟢/🔴 calculee par
+    `update_index_trend_state` (progression vs le run precedent) ; rien sur
+    le tout premier run d'une chaine (~00h Paris, ou ~14h Paris)."""
     counts_by_pair = trend_state.get("pairs", {}) if isinstance(trend_state, dict) else {}
     lines = []
     for pair in pairs:
@@ -415,8 +418,8 @@ def index_trend_lines(pairs: list[str], trend_state: dict) -> list[str]:
         if total <= 0.0:
             continue
         up_pct, down_pct = up / total * 100.0, down / total * 100.0
-        up_arrow = _trend_arrow(up_pct, counts.get("ref_up_pct"))
-        down_arrow = _trend_arrow(down_pct, counts.get("ref_down_pct"))
+        up_arrow = counts.get("up_arrow", "")
+        down_arrow = counts.get("down_arrow", "")
         lines.append(f"🟢 {pair} ({up_pct:.2f}%){' ' + up_arrow if up_arrow else ''}")
         lines.append(f"🔴 {pair} ({down_pct:.2f}%){' ' + down_arrow if down_arrow else ''}")
     if not lines:
