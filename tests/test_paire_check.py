@@ -641,9 +641,9 @@ class PaireCheckTests(unittest.TestCase):
         self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_up"], 3.0)
         self.assertAlmostEqual(state["pairs"]["EURUSD"]["weighted_down"], 1.0)
 
-    def test_update_index_trend_state_no_second_ball_on_first_run_of_a_chain(self):
+    def test_update_index_trend_state_no_balls_on_first_run_of_a_chain(self):
         # Tout premier run du jour (~00h Paris ou plus tard, mais avant 14h):
-        # rien a comparer -- pas de bille.
+        # rien a comparer, ni pour l'ancre ni pour le run precedent.
         bull_index = {
             "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
             "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
@@ -654,13 +654,17 @@ class PaireCheckTests(unittest.TestCase):
 
         counts = state["pairs"]["EURUSD"]
         self.assertEqual(counts["period"], "am")
+        self.assertEqual(counts["anchor_up_arrow"], "")
+        self.assertEqual(counts["anchor_down_arrow"], "")
         self.assertEqual(counts["up_arrow"], "")
         self.assertEqual(counts["down_arrow"], "")
+        # L'ancre se fige sur le %monte/%baisse de ce tout premier run.
+        self.assertAlmostEqual(counts["anchor_up_pct"], 100.0)
+        self.assertAlmostEqual(counts["anchor_down_pct"], 0.0)
 
-    def test_update_index_trend_state_second_ball_compares_to_the_previous_run(self):
-        # Run precedent bull (100%/0%), run courant bear (%monte redescend):
-        # bille rouge sur la ligne verte, verte sur la ligne rouge -- meme
-        # dans la meme "chaine" (avant 14h ici).
+    def test_update_index_trend_state_second_run_matches_both_balls_to_the_same_reference(self):
+        # Sur le 2e run d'une chaine, l'ancre ET le run precedent valent tous
+        # les deux le 1er run -- les 2 billes sont donc identiques.
         bull_index = {
             "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
             "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
@@ -677,10 +681,39 @@ class PaireCheckTests(unittest.TestCase):
 
         counts = state["pairs"]["EURUSD"]
         self.assertEqual(counts["period"], "am")
-        self.assertEqual(counts["up_arrow"], "🔴")  # %monte a recule vs le run precedent
-        self.assertEqual(counts["down_arrow"], "🟢")  # %baisse a progresse vs le run precedent
+        self.assertEqual(counts["anchor_up_arrow"], "🔴")  # %monte a recule vs l'ancre (=1er run)
+        self.assertEqual(counts["up_arrow"], "🔴")  # ... et vs le run precedent (le meme run ici)
+        self.assertEqual(counts["anchor_down_arrow"], "🟢")
+        self.assertEqual(counts["down_arrow"], "🟢")
 
-    def test_update_index_trend_state_no_second_ball_right_after_the_14h_reset(self):
+    def test_update_index_trend_state_anchor_and_previous_run_diverge_on_a_pullback(self):
+        # 1er run bull (ancre), 2e run bull (monte encore), 3e run bear
+        # (redescend vs le 2e, mais reste au-dessus de l'ancre du 1er) --
+        # l'ancre et le run precedent doivent alors diverger.
+        bull_index = {
+            "EUR": index_row("EXY", "EUR", 1, 1, 1, daily_chg=1.61),
+            "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
+        }
+        bear_index = {
+            "EUR": index_row("EXY", "EUR", -1, -1, -1, daily_chg=-1.57),
+            "USD": index_row("DXY", "USD", 1, 1, 1, daily_chg=1.61),
+        }
+        t0 = dt.datetime(2026, 7, 16, 6, 0, tzinfo=PARIS)
+        state = update_index_trend_state({}, ["EURUSD"], bull_index, t0)  # ancre: 100%/0%
+
+        t1 = t0 + dt.timedelta(minutes=5)
+        state = update_index_trend_state(state, ["EURUSD"], bull_index, t1)  # reste a 100%/0% (deja sature)
+
+        t2 = t1 + dt.timedelta(minutes=5)
+        state = update_index_trend_state(state, ["EURUSD"], bear_index, t2)  # 1 run bear -> repli local
+
+        counts = state["pairs"]["EURUSD"]
+        up_pct = counts["weighted_up"] / (counts["weighted_up"] + counts["weighted_down"]) * 100.0
+        self.assertLess(up_pct, 100.0)  # a bien recule depuis l'ancre (100%)
+        self.assertEqual(counts["anchor_up_arrow"], "🔴")  # ... donc rouge vs l'ancre du 1er run
+        self.assertEqual(counts["up_arrow"], "🔴")  # ... et rouge vs le run precedent (encore a 100%)
+
+    def test_update_index_trend_state_no_balls_right_after_the_14h_reset(self):
         # Au 1er run >= 14h, la chaine repart de zero: pas de bille meme si
         # le %monte/%baisse a change depuis le dernier run du matin.
         bull_index = {
@@ -698,16 +731,18 @@ class PaireCheckTests(unittest.TestCase):
         state = update_index_trend_state(state, ["EURUSD"], bear_index, t1)
         counts = state["pairs"]["EURUSD"]
         self.assertEqual(counts["period"], "pm")
+        self.assertEqual(counts["anchor_up_arrow"], "")
+        self.assertEqual(counts["anchor_down_arrow"], "")
         self.assertEqual(counts["up_arrow"], "")
         self.assertEqual(counts["down_arrow"], "")
 
-        # Le run suivant (toujours "pm") compare de nouveau au run precedent.
+        # Le run suivant (toujours "pm") compare de nouveau, aux 2 references.
         t2 = dt.datetime(2026, 7, 16, 16, 0, tzinfo=PARIS)
         state = update_index_trend_state(state, ["EURUSD"], bear_index, t2)
         counts = state["pairs"]["EURUSD"]
         self.assertEqual(counts["period"], "pm")
-        self.assertEqual(counts["up_arrow"], "🔴")  # continue de baisser (2e run bear consecutif)
-        self.assertEqual(counts["down_arrow"], "🟢")
+        self.assertEqual(counts["anchor_up_arrow"], "🔴")  # continue de baisser vs l'ancre 14h
+        self.assertEqual(counts["up_arrow"], "🔴")  # ... et vs le run precedent (2e run bear consecutif)
 
     def test_index_trend_lines_reports_both_up_and_down_percentages(self):
         state = {"date": "2026-07-16", "pairs": {"EURUSD": {"weighted_up": 5.0, "weighted_down": 2.0}}}
@@ -734,36 +769,58 @@ class PaireCheckTests(unittest.TestCase):
         self.assertEqual(index_trend_lines(["EURUSD"], state), [])
         self.assertEqual(index_trend_lines(["EURUSD"], {}), [])
 
-    def test_index_trend_lines_renders_the_stored_second_ball(self):
-        # index_trend_lines se contente d'afficher up_arrow/down_arrow tels
-        # que calcules par update_index_trend_state (progression run a run).
+    def test_index_trend_lines_renders_both_stored_balls_glued_together(self):
+        # index_trend_lines se contente d'afficher anchor_*_arrow puis
+        # *_arrow, colles l'un a l'autre, tels que calcules par
+        # update_index_trend_state (reference de la chaine, puis run
+        # precedent).
         state = {
             "date": "2026-07-16",
             "pairs": {
                 "EURUSD": {
                     "weighted_up": 5.0, "weighted_down": 2.0,
-                    "up_arrow": "🟢", "down_arrow": "🔴",
+                    "anchor_up_arrow": "🟢", "up_arrow": "🟢",
+                    "anchor_down_arrow": "🔴", "down_arrow": "🔴",
                 },
             },
         }
 
         self.assertEqual(
             index_trend_lines(["EURUSD"], state),
-            ["📈 TENDANCE", "🟢 EURUSD (71.43%) 🟢", "🔴 EURUSD (28.57%) 🔴"],
+            ["📈 TENDANCE", "🟢 EURUSD (71.43%) 🟢🟢", "🔴 EURUSD (28.57%) 🔴🔴"],
         )
 
-        state["pairs"]["EURUSD"].update({"up_arrow": "🔴", "down_arrow": "🟢"})
+    def test_index_trend_lines_renders_a_single_ball_when_only_one_side_diverges(self):
+        # L'ancre et le run precedent peuvent diverger (cf. update_index_
+        # trend_state): seule la bille dont la comparaison a quelque chose a
+        # montrer s'affiche.
+        state = {
+            "date": "2026-07-16",
+            "pairs": {
+                "EURUSD": {
+                    "weighted_up": 5.0, "weighted_down": 2.0,
+                    "anchor_up_arrow": "", "up_arrow": "🔴",
+                    "anchor_down_arrow": "", "down_arrow": "🟢",
+                },
+            },
+        }
+
         self.assertEqual(
             index_trend_lines(["EURUSD"], state),
             ["📈 TENDANCE", "🟢 EURUSD (71.43%) 🔴", "🔴 EURUSD (28.57%) 🟢"],
         )
 
-    def test_index_trend_lines_no_second_ball_when_absent(self):
-        # 1er run d'une chaine (cf. update_index_trend_state): up_arrow/
-        # down_arrow valent "" -- pas de bille.
+    def test_index_trend_lines_no_balls_when_absent(self):
+        # 1er run d'une chaine (cf. update_index_trend_state): les 4 cles
+        # valent "" -- pas de bille du tout.
         no_arrow_state = {
             "date": "2026-07-16",
-            "pairs": {"EURUSD": {"weighted_up": 5.0, "weighted_down": 2.0, "up_arrow": "", "down_arrow": ""}},
+            "pairs": {
+                "EURUSD": {
+                    "weighted_up": 5.0, "weighted_down": 2.0,
+                    "anchor_up_arrow": "", "up_arrow": "", "anchor_down_arrow": "", "down_arrow": "",
+                },
+            },
         }
         self.assertEqual(
             index_trend_lines(["EURUSD"], no_arrow_state),
