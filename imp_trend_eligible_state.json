@@ -1,11 +1,44 @@
 {
   "version": 1,
   "active": {
+    "AUDNZD": {
+      "direction": "BULL",
+      "confirmations": 12,
+      "entered_at": "2026-09-04T17:21:40.689144+00:00",
+      "last_seen_at": "2026-09-09T13:19:01.222371+00:00",
+      "snapshot": {
+        "pair": "AUDNZD",
+        "direction": "BULL",
+        "confirmations": 12,
+        "renko_confirmations": 3,
+        "avg_vote_confirmations": 4,
+        "directional_avg_confirmations": 2,
+        "tradable": true,
+        "rank_tier": 1,
+        "rank_reason": "12/12",
+        "RENKO_M": "BULL",
+        "RENKO_W": "BULL",
+        "RENKO_D": "BULL",
+        "D1_IMP21": "BULL",
+        "D1_ALL_AVG": "BULL",
+        "D1_ALL_AVG_PIPS": 58.47619047619049,
+        "D1_BULL_AVG": "BULL",
+        "D1_BEAR_AVG": "BULL",
+        "D1_DIRECTIONAL_AVG_PIPS": 51.61250000000007,
+        "H1_IMP21": "BULL",
+        "H1_ALL_AVG": "BULL",
+        "H1_ALL_AVG_PIPS": 15.419047619047655,
+        "H1_BULL_AVG": "BULL",
+        "H1_BEAR_AVG": "BULL",
+        "H1_DIRECTIONAL_AVG_PIPS": 17.043750000000216,
+        "CURRENCY_INDEX": "BULL"
+      }
+    },
     "AUDUSD": {
       "direction": "BULL",
       "confirmations": 12,
       "entered_at": "2026-09-04T14:24:08.604144+00:00",
-      "last_seen_at": "2026-09-09T12:18:51.328373+00:00",
+      "last_seen_at": "2026-09-09T13:19:01.222371+00:00",
       "snapshot": {
         "pair": "AUDUSD",
         "direction": "BULL",
@@ -38,7 +71,7 @@
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-09-04T04:20:20.490152+00:00",
-      "last_seen_at": "2026-09-09T12:18:51.328373+00:00",
+      "last_seen_at": "2026-09-09T13:19:01.222371+00:00",
       "snapshot": {
         "pair": "AUDCAD",
         "direction": "BULL",
@@ -67,44 +100,11 @@
         "CURRENCY_INDEX": "NEUTRAL"
       }
     },
-    "AUDNZD": {
-      "direction": "BULL",
-      "confirmations": 11,
-      "entered_at": "2026-09-04T17:21:40.689144+00:00",
-      "last_seen_at": "2026-09-09T12:18:51.328373+00:00",
-      "snapshot": {
-        "pair": "AUDNZD",
-        "direction": "BULL",
-        "confirmations": 11,
-        "renko_confirmations": 3,
-        "avg_vote_confirmations": 4,
-        "directional_avg_confirmations": 2,
-        "tradable": true,
-        "rank_tier": 2,
-        "rank_reason": "11/12",
-        "RENKO_M": "BULL",
-        "RENKO_W": "BULL",
-        "RENKO_D": "BULL",
-        "D1_IMP21": "BULL",
-        "D1_ALL_AVG": "BULL",
-        "D1_ALL_AVG_PIPS": 58.47619047619049,
-        "D1_BULL_AVG": "BULL",
-        "D1_BEAR_AVG": "BULL",
-        "D1_DIRECTIONAL_AVG_PIPS": 51.61250000000007,
-        "H1_IMP21": "BULL",
-        "H1_ALL_AVG": "BULL",
-        "H1_ALL_AVG_PIPS": 15.419047619047655,
-        "H1_BULL_AVG": "BULL",
-        "H1_BEAR_AVG": "BULL",
-        "H1_DIRECTIONAL_AVG_PIPS": 17.043750000000216,
-        "CURRENCY_INDEX": "NEUTRAL"
-      }
-    },
     "AUDCHF": {
       "direction": "BULL",
       "confirmations": 10,
       "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-09T12:18:51.328373+00:00",
+      "last_seen_at": "2026-09-09T13:19:01.222371+00:00",
       "snapshot": {
         "pair": "AUDCHF",
         "direction": "BULL",
@@ -137,7 +137,7 @@
       "direction": "BEAR",
       "confirmations": 11,
       "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-09T12:18:51.328373+00:00",
+      "last_seen_at": "2026-09-09T13:19:01.222371+00:00",
       "snapshot": {
         "pair": "EURAUD",
         "direction": "BEAR",
@@ -170,7 +170,7 @@
       "direction": "BEAR",
       "confirmations": 11,
       "entered_at": "2026-09-04T14:24:08.604144+00:00",
-      "last_seen_at": "2026-09-09T12:18:51.328373+00:00",
+      "last_seen_at": "2026-09-09T13:19:01.222371+00:00",
       "snapshot": {
         "pair": "GBPAUD",
         "direction": "BEAR",
@@ -666,5 +666,5 @@
       "confirmations": 11
     }
   ],
-  "updated_at": "2026-09-09T12:18:51.328373+00:00"
+  "updated_at": "2026-09-09T13:19:01.222371+00:00"
 }
