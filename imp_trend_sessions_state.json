@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "updated_at": "2026-09-09T19:18:51.037116+00:00",
+  "updated_at": "2026-09-09T20:18:50.470769+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -146.19999999999555,
-      "current_session_realized_pips": 75.50000000000055,
+      "current_session_realized_pips": 0.0,
       "last_session_pips": 75.50000000000055,
       "unrealized_pips": 0.0,
       "total_pips": -146.19999999999555,
-      "daily_pips": 75.50000000000055,
-      "is_active": false,
-      "active_session_id": null,
+      "daily_pips": 0.0,
+      "is_active": true,
+      "active_session_id": "2026-09-09",
       "positions": {},
       "events": [
         {
@@ -1563,32 +1563,8 @@
       ],
       "daily_pips_history": [
         {
-          "time_utc": "2026-09-08T20:18:50.834030+00:00",
+          "time_utc": "2026-09-09T20:18:50.470769+00:00",
           "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-08T21:18:50.272486+00:00",
-          "daily_pips": 31.89999999999915
-        },
-        {
-          "time_utc": "2026-09-08T21:52:31.783599+00:00",
-          "daily_pips": 17.199999999997218
-        },
-        {
-          "time_utc": "2026-09-08T22:43:03.280568+00:00",
-          "daily_pips": 5.599999999998939
-        },
-        {
-          "time_utc": "2026-09-09T00:14:17.067396+00:00",
-          "daily_pips": 26.89999999999859
-        },
-        {
-          "time_utc": "2026-09-09T04:40:21.764421+00:00",
-          "daily_pips": 58.699999999998184
-        },
-        {
-          "time_utc": "2026-09-09T05:18:44.766807+00:00",
-          "daily_pips": 75.50000000000055
         }
       ],
       "comparison_baseline": 30.000000000003364,
@@ -4797,12 +4773,12 @@
     "New York": {
       "realized_pips": 66.4000000000047,
       "current_session_realized_pips": 6.199999999995098,
-      "last_session_pips": -45.49999999999943,
+      "last_session_pips": 6.199999999995098,
       "unrealized_pips": 0.0,
       "total_pips": 66.4000000000047,
       "daily_pips": 6.199999999995098,
-      "is_active": true,
-      "active_session_id": "2026-09-09",
+      "is_active": false,
+      "active_session_id": null,
       "positions": {},
       "events": [
         {
@@ -6770,6 +6746,10 @@
         },
         {
           "time_utc": "2026-09-09T19:18:51.037116+00:00",
+          "daily_pips": 6.199999999995098
+        },
+        {
+          "time_utc": "2026-09-09T20:18:50.470769+00:00",
           "daily_pips": 6.199999999995098
         }
       ],
