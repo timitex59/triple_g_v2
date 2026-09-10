@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-09-10 15:18",
+  "updated_at_paris": "2026-09-10 16:17",
   "pairs": {
     "EURUSD": {
       "direction": 1,
       "entered_at_paris": "2026-09-10 15:18",
-      "last_seen_at_paris": "2026-09-10 15:18",
+      "last_seen_at_paris": "2026-09-10 16:17",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -18,11 +18,11 @@
       },
       "base_pct": 83.33333333333334,
       "weighted_pct": 0.0,
-      "daily_chg": -0.28367087301858984,
+      "daily_chg": -0.1263624797991834,
       "daily_sar_dir": -1,
       "daily_sar_value": 1.16544,
-      "fib_position": "Fibo <0.500",
-      "fib_pct_of_range": 47.25378787878829,
+      "fib_position": "Fibo <0.618",
+      "fib_pct_of_range": 55.77651515151566,
       "fib_source": "PREVIOUS",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 47.25378787878829,
@@ -40,16 +40,7 @@
     }
   },
   "pending_objectives": {},
-  "objective_events": [
-    {
-      "event_type": "POST_ALIGNMENT_OBJECTIVE_REATTACHED",
-      "pair": "EURUSD",
-      "direction": 1,
-      "time_utc": "2026-09-10T13:00:00+00:00",
-      "objective_value": 1.17116,
-      "origin_month_utc": "2026-08"
-    }
-  ],
+  "objective_events": [],
   "telegram_last_body_hash": "75b5d66d0ccf4e44b1e5c835e4d11a468e534c9d50177fafc0739197bb9a45b2",
   "telegram_last_sent_at_paris": "2026-09-10 14:15"
 }
