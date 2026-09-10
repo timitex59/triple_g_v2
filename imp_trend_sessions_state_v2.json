@@ -4,8 +4,8 @@
     "Sydney": {
       "realized_pips": -259.79999999999745,
       "current_session_realized_pips": 0.0,
-      "last_session_pips": 77.69999999999943,
-      "active_session_id": "2026-09-09",
+      "last_session_pips": 0.0,
+      "active_session_id": null,
       "positions": {},
       "events": [
         {
@@ -1388,7 +1388,7 @@
       ],
       "unrealized_pips": 0.0,
       "total_pips": -259.79999999999745,
-      "is_active": true,
+      "is_active": false,
       "daily_pips": 0.0,
       "daily_pips_history": [
         {
@@ -1409,6 +1409,10 @@
         },
         {
           "time_utc": "2026-09-10T04:43:32.919763+00:00",
+          "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-09-10T05:20:11.085656+00:00",
           "daily_pips": 0.0
         }
       ],
@@ -2692,6 +2696,10 @@
         },
         {
           "time_utc": "2026-09-10T04:43:32.919763+00:00",
+          "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-09-10T05:20:11.085656+00:00",
           "daily_pips": 0.0
         }
       ],
@@ -5957,5 +5965,5 @@
       "comparison_pips": -43.79999999998558
     }
   },
-  "updated_at": "2026-09-10T04:43:32.919763+00:00"
+  "updated_at": "2026-09-10T05:20:11.085656+00:00"
 }
