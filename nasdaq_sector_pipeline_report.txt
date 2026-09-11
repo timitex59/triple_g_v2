@@ -1,138 +1,141 @@
 NASDAQ SECTOR PIPELINE
-Generated: 2026-09-10 20:27 CEST
+Generated: 2026-09-11 18:17 CEST
 Universe: Nasdaq-100 | News window: 14 days
 
 DOMINANT THEMES
 | Theme                        |   Score |   N | 21D    | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
 |------------------------------|---------|-----|--------|---------|----------------|----------|------------|
-| Cybersecurity                |   63.41 |   5 | -8.96% | +28.30% | +25.93%        | 40%      | 12/12      |
-| AI platforms / Mega-cap tech |   62.48 |   6 | -2.86% | +12.35% | +9.98%         | 67%      | 12/7       |
-| Healthcare / Biotech         |   53.69 |  10 | -5.20% | +13.18% | +10.82%        | 50%      | 12/11      |
+| AI platforms / Mega-cap tech |   67.08 |   6 | +0.17% | +13.98% | +14.00%        | 67%      | 12/11      |
+| Cybersecurity                |   58.62 |   5 | -7.24% | +17.90% | +17.93%        | 40%      | 12/9       |
+| Cloud / Data software        |   55.74 |  14 | -3.53% | +15.43% | +15.45%        | 36%      | 12/10      |
 
 TOP STOCKS BY DOMINANT THEME
+
+AI platforms / Mega-cap tech
+| Ticker   | Name                  | Theme                        |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|-----------------------|------------------------------|---------|---------|---------|---------|-------|----------|
+| AAPL     | Apple Inc.            | AI platforms / Mega-cap tech |   94.43 | +10.76% | +13.34% | +13.36% |  71.9 | Y        |
+| MSFT     | Microsoft Corporation | AI platforms / Mega-cap tech |   88.53 | +0.87%  | +27.25% | +27.27% |  57.6 | Y        |
+| META     | Meta Platforms Inc.   | AI platforms / Mega-cap tech |   86.55 | +12.46% | +14.63% | +14.65% |  84.2 | Y        |
 
 Cybersecurity
 | Ticker   | Name                      | Theme         |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
 |----------|---------------------------|---------------|---------|---------|---------|---------|-------|----------|
-| CRWD     | CrowdStrike Holdings Inc. | Cybersecurity |   93.28 | -5.99%  | +28.83% | +26.46% |  57.6 | Y        |
-| PANW     | Palo Alto Networks Inc.   | Cybersecurity |   79.12 | -12.01% | +28.30% | +25.93% |  46.3 | N        |
-| ZS       | Zscaler Inc.              | Cybersecurity |   78.65 | -8.96%  | +30.33% | +27.96% |  43.2 | Y        |
+| ZS       | Zscaler Inc.              | Cybersecurity |   80.47 | -7.24%  | +30.43% | +30.45% |  39.7 | Y        |
+| CRWD     | CrowdStrike Holdings Inc. | Cybersecurity |   79.8  | -7.12%  | +19.16% | +19.18% |  55.8 | Y        |
+| PANW     | Palo Alto Networks Inc.   | Cybersecurity |   61.87 | -14.84% | +17.90% | +17.93% |  41.2 | N        |
 
-AI platforms / Mega-cap tech
-| Ticker   | Name                       | Theme                        |   Score | 21D    | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|----------------------------|------------------------------|---------|--------|---------|---------|-------|----------|
-| AAPL     | Apple Inc.                 | AI platforms / Mega-cap tech |   91.37 | +6.31% | +11.26% | +8.90%  |  63   | Y        |
-| META     | Meta Platforms Inc.        | AI platforms / Mega-cap tech |   82.61 | +8.00% | +13.43% | +11.07% |  85.5 | Y        |
-| PLTR     | Palantir Technologies Inc. | AI platforms / Mega-cap tech |   78.49 | -5.15% | +27.43% | +25.07% |  44.5 | Y        |
-
-Healthcare / Biotech
-| Ticker   | Name                         | Theme                |   Score | 21D    | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|------------------------------|----------------------|---------|--------|---------|---------|-------|----------|
-| INSM     | Insmed Incorporated          | Healthcare / Biotech |   94.53 | -4.34% | +38.03% | +35.66% |  53.4 | Y        |
-| REGN     | Regeneron Pharmaceuticals In | Healthcare / Biotech |   88.56 | +0.19% | +32.73% | +30.36% |  41.4 | Y        |
-| GILD     | Gilead Sciences Inc.         | Healthcare / Biotech |   78.82 | +6.69% | +20.02% | +17.66% |  53.1 | Y        |
+Cloud / Data software
+| Ticker   | Name                       | Theme                 |   Score | 21D     | 63D      | Rel63    |   RSI | >SMA50   |
+|----------|----------------------------|-----------------------|---------|---------|----------|----------|-------|----------|
+| WDAY     | Workday Inc.               | Cloud / Data software |     100 | +5.75%  | +42.01%  | +42.03%  |  38.2 | Y        |
+| TEAM     | Atlassian Corporation      | Cloud / Data software |     100 | +15.17% | +100.44% | +100.46% |  54.9 | Y        |
+| MSTR     | MicroStrategy Incorporated | Cloud / Data software |     100 | +40.87% | +11.19%  | +11.21%  |  57.6 | Y        |
 
 BEST ETF PROXIES
-| ETF   | Name                             | Theme                        |   Score | 21D     | 63D     | 126D    | Rel63   |
-|-------|----------------------------------|------------------------------|---------|---------|---------|---------|---------|
-| IBB   | iShares Biotechnology ETF        | Healthcare / Biotech         |   93.17 | +1.50%  | +22.20% | +18.75% | +19.84% |
-| BUG   | Global X Cybersecurity ETF       | Cybersecurity                |   85.07 | -5.06%  | +21.32% | +52.34% | +18.95% |
-| XBI   | SPDR S&P Biotech ETF             | Healthcare / Biotech         |   80.69 | -0.81%  | +21.81% | +24.19% | +19.44% |
-| HACK  | Amplify Cybersecurity ETF        | Cybersecurity                |   57.12 | -6.76%  | +17.71% | +41.22% | +15.35% |
-| THNQ  | ROBO Global Artificial Intellige | AI platforms / Mega-cap tech |   56.79 | -1.83%  | +8.67%  | +44.56% | +6.31%  |
-| CIBR  | First Trust Nasdaq Cybersecurity | Cybersecurity                |   52.02 | -5.76%  | +13.21% | +43.57% | +10.84% |
-| IRBO  | iShares Robotics and AI ETF      | AI platforms / Mega-cap tech |   41.88 | -12.83% | +13.56% | +29.67% | +11.20% |
-| IHAK  | iShares Cybersecurity and Tech E | Cybersecurity                |   41.4  | -7.19%  | +12.54% | +38.37% | +10.17% |
-| QQQ   | Invesco QQQ Trust                | Nasdaq-100 benchmark         |   24.81 | -1.27%  | +2.36%  | +17.00% | +0.00%  |
-| QQQM  | Invesco Nasdaq 100 ETF           | Nasdaq-100 benchmark         |   24.71 | -1.25%  | +2.29%  | +17.05% | -0.07%  |
+| ETF   | Name                             | Theme                        |   Score | 21D    | 63D     | 126D    | Rel63   |
+|-------|----------------------------------|------------------------------|---------|--------|---------|---------|---------|
+| WCLD  | WisdomTree Cloud Computing Fund  | Cloud / Data software        |  100    | -2.30% | +26.25% | +36.96% | +26.27% |
+| CLOU  | Global X Cloud Computing ETF     | Cloud / Data software        |   91.32 | -1.87% | +19.78% | +39.24% | +19.80% |
+| SKYY  | First Trust Cloud Computing ETF  | Cloud / Data software        |   82.76 | -2.52% | +18.46% | +41.85% | +18.48% |
+| BUG   | Global X Cybersecurity ETF       | Cybersecurity                |   65.33 | -6.15% | +17.60% | +51.66% | +17.62% |
+| THNQ  | ROBO Global Artificial Intellige | AI platforms / Mega-cap tech |   63.75 | -3.33% | +4.70%  | +48.89% | +4.72%  |
+| IGV   | iShares Expanded Tech-Software E | Cloud / Data software        |   57.5  | -1.50% | +11.69% | +19.48% | +11.71% |
+| HACK  | Amplify Cybersecurity ETF        | Cybersecurity                |   48.22 | -7.44% | +13.87% | +41.11% | +13.89% |
+| CIBR  | First Trust Nasdaq Cybersecurity | Cybersecurity                |   44.07 | -6.07% | +10.43% | +44.79% | +10.45% |
+| QQQM  | Invesco Nasdaq 100 ETF           | Nasdaq-100 benchmark         |   35.11 | -1.04% | +0.06%  | +20.20% | +0.09%  |
+| QQQ   | Invesco QQQ Trust                | Nasdaq-100 benchmark         |   33.57 | -1.04% | -0.02%  | +20.19% | +0.00%  |
 
 ETF UCITS EUROPE / FRANCE
 | Theme                        | Ticker   | ISIN         | Listing            | Ccy              | UCITS ETF                                  |
 |------------------------------|----------|--------------|--------------------|------------------|--------------------------------------------|
-| Cybersecurity                | WCBR     | IE00BLPK3577 | Euronext Paris     | EUR              | WisdomTree Cybersecurity UCITS ETF         |
-| Cybersecurity                | ISPY     | IE00BYPLS672 | Euronext Amsterdam | EUR              | L&G Cyber Security UCITS ETF               |
 | AI platforms / Mega-cap tech | WTAI     | IE00BDVPNG13 | Euronext Paris     | EUR              | WisdomTree Artificial Intelligence UCITS E |
 | AI platforms / Mega-cap tech | BOTZ     | IE00BLCHJB90 | Europe UCITS       | EUR/USD listings | Global X Robotics & Artificial Intelligenc |
+| Cybersecurity                | WCBR     | IE00BLPK3577 | Euronext Paris     | EUR              | WisdomTree Cybersecurity UCITS ETF         |
+| Cybersecurity                | ISPY     | IE00BYPLS672 | Euronext Amsterdam | EUR              | L&G Cyber Security UCITS ETF               |
 
 ETF UCITS SCORED
 | Ticker   | Theme                        |   Score | 63D     | Rel63 vs EQQQ   | Listing / ISIN                    |
 |----------|------------------------------|---------|---------|-----------------|-----------------------------------|
-| WCBR     | Cybersecurity                |   94.16 | +22.01% | +24.06%         | Euronext Paris | IE00BLPK3577     |
-| ISPY     | Cybersecurity                |   47.27 | +10.86% | +12.90%         | Euronext Amsterdam | IE00BYPLS672 |
-| WTAI     | AI platforms / Mega-cap tech |   32.09 | -5.50%  | -3.46%          | Euronext Paris | IE00BDVPNG13     |
-| BOTZ     | AI platforms / Mega-cap tech |    4.48 | -1.75%  | +0.29%          | Europe UCITS | IE00BLCHJB90       |
+| WCBR     | Cybersecurity                |   74.22 | +17.88% | +21.38%         | Euronext Paris | IE00BLPK3577     |
+| WTAI     | AI platforms / Mega-cap tech |   48.15 | -7.57%  | -4.07%          | Euronext Paris | IE00BDVPNG13     |
+| ISPY     | Cybersecurity                |   43.86 | +8.27%  | +11.77%         | Euronext Amsterdam | IE00BYPLS672 |
+| BOTZ     | AI platforms / Mega-cap tech |   11.77 | -3.33%  | +0.17%          | Europe UCITS | IE00BLCHJB90       |
 
 FINAL SELECTION - RENKO VALIDATED
 | Final     | Type   | Ticker   | Theme                        | Renko          | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
 |-----------|--------|----------|------------------------------|----------------|--------|----------|---------|---------|---------|
-| VALIDATED | STOCK  | AAPL     | AI platforms / Mega-cap tech | BULL CONFIRMED | BULL   | 1/1/1    | +5.51%  | +20.00% | +15.62% |
+| VALIDATED | STOCK  | AAPL     | AI platforms / Mega-cap tech | BULL CONFIRMED | BULL   | 1/1/1    | +8.89%  | +23.84% | +19.32% |
+| VALIDATED | STOCK  | MSFT     | AI platforms / Mega-cap tech | BULL CONFIRMED | BULL   | 1/1/1    | +18.97% | +17.24% | +14.85% |
 
 TOP 5 GLOBAL - ETF AND STOCKS COMBINED
-|   # | Ticker   | Type   | Theme                        |   Rank |   Score | 63D     | Rel63   | R14    | R21     | PnL Renko   |
-|-----|----------|--------|------------------------------|--------|---------|---------|---------|--------|---------|-------------|
-|   1 | AAPL     | STOCK  | AI platforms / Mega-cap tech |  35.54 |   91.37 | +11.26% | +8.90%  | +5.51% | +20.00% | +15.62%     |
+|   # | Ticker   | Type   | Theme                        |   Rank |   Score | 63D     | Rel63   | R14     | R21     | PnL Renko   |
+|-----|----------|--------|------------------------------|--------|---------|---------|---------|---------|---------|-------------|
+|   1 | MSFT     | STOCK  | AI platforms / Mega-cap tech |  42.08 |   88.53 | +27.25% | +27.27% | +18.97% | +17.24% | +14.85%     |
+|   2 | AAPL     | STOCK  | AI platforms / Mega-cap tech |  39    |   94.43 | +13.34% | +13.36% | +8.89%  | +23.84% | +19.32%     |
 
 GLOBAL RANKING - RETAINED ASSETS
-|   # | Ticker   | Type   | Theme                        |   Rank |   Score | 63D     | Rel63   | R14    | R21     | PnL Renko   |
-|-----|----------|--------|------------------------------|--------|---------|---------|---------|--------|---------|-------------|
-|   1 | AAPL     | STOCK  | AI platforms / Mega-cap tech |  35.54 |   91.37 | +11.26% | +8.90%  | +5.51% | +20.00% | +15.62%     |
+|   # | Ticker   | Type   | Theme                        |   Rank |   Score | 63D     | Rel63   | R14     | R21     | PnL Renko   |
+|-----|----------|--------|------------------------------|--------|---------|---------|---------|---------|---------|-------------|
+|   1 | MSFT     | STOCK  | AI platforms / Mega-cap tech |  42.08 |   88.53 | +27.25% | +27.27% | +18.97% | +17.24% | +14.85%     |
+|   2 | AAPL     | STOCK  | AI platforms / Mega-cap tech |  39    |   94.43 | +13.34% | +13.36% | +8.89%  | +23.84% | +19.32%     |
 
 ANALYTIC CLASSIFICATION - RETAINED ASSETS
-| Theme                        | Bucket          | Type   | Ticker   |   Score | 63D     | Rel63   | R14    | R21     | Role                        | Use                                               |
-|------------------------------|-----------------|--------|----------|---------|---------|---------|--------|---------|-----------------------------|---------------------------------------------------|
-| AI platforms / Mega-cap tech | SATELLITE STOCK | STOCK  | AAPL     |   91.37 | +11.26% | +8.90%  | +5.51% | +20.00% | Confirmed but less dominant | Use after stronger leaders or for diversification |
+| Theme                        | Bucket         | Type   | Ticker   |   Score | 63D     | Rel63   | R14     | R21     | Role                        | Use                                              |
+|------------------------------|----------------|--------|----------|---------|---------|---------|---------|---------|-----------------------------|--------------------------------------------------|
+| AI platforms / Mega-cap tech | TACTICAL STOCK | STOCK  | AAPL     |   94.43 | +13.34% | +13.36% | +8.89%  | +23.84% | Strong single-name momentum | Actionable, but monitor extension and volatility |
+| AI platforms / Mega-cap tech | TACTICAL STOCK | STOCK  | MSFT     |   88.53 | +27.25% | +27.27% | +18.97% | +17.24% | Strong single-name momentum | Actionable, but monitor extension and volatility |
 
 WATCHLIST - GOOD THEME, WAITING FOR RENKO
-| Final     | Type   | Ticker   | Theme                        | Renko         | Bias   | 3M/M/W         | ROC14   | ROC21    | PnL     |
-|-----------|--------|----------|------------------------------|---------------|--------|----------------|---------|----------|---------|
-| WATCHLIST | ETF    | IRBO     | AI platforms / Mega-cap tech | ERROR         | MIXED  | None/None/None | ---     | ---      | ---     |
-| WATCHLIST | ETF    | THNQ     | AI platforms / Mega-cap tech | MIXED         | MIXED  | 0/0/0          | +6.32%  | +29.57%  | ---     |
-| WATCHLIST | ETF    | BUG      | Cybersecurity                | MIXED         | MIXED  | 1/0/0          | +15.67% | +55.79%  | ---     |
-| WATCHLIST | ETF    | CIBR     | Cybersecurity                | MIXED         | MIXED  | 1/0/-1         | +8.63%  | +41.67%  | ---     |
-| WATCHLIST | ETF    | HACK     | Cybersecurity                | MIXED         | MIXED  | 1/1/-1         | +13.71% | +40.82%  | ---     |
-| WATCHLIST | ETF    | IHAK     | Cybersecurity                | MIXED         | MIXED  | 1/0/-1         | +8.77%  | +32.77%  | ---     |
-| WATCHLIST | ETF    | IBB      | Healthcare / Biotech         | MIXED         | MIXED  | 1/1/0          | +20.39% | +14.79%  | ---     |
-| WATCHLIST | ETF    | XBI      | Healthcare / Biotech         | MIXED         | MIXED  | 1/1/0          | +21.85% | +13.06%  | ---     |
-| WATCHLIST | STOCK  | META     | AI platforms / Mega-cap tech | MIXED         | MIXED  | 0/1/1          | +9.11%  | -6.03%   | ---     |
-| WATCHLIST | STOCK  | CRWD     | Cybersecurity                | BULL MIXED    | BULL   | 1/0/0          | +24.40% | +96.89%  | -58.74% |
-| WATCHLIST | STOCK  | PANW     | Cybersecurity                | BULL MIXED    | BULL   | 1/-1/-1        | +24.15% | +101.23% | +92.20% |
-| WATCHLIST | STOCK  | GILD     | Healthcare / Biotech         | MIXED         | MIXED  | 1/1/0          | +12.13% | +5.22%   | ---     |
-| WATCHLIST | STOCK  | INSM     | Healthcare / Biotech         | BULL WEAK ROC | BULL   | 1/1/1          | +34.53% | -12.27%  | +0.00%  |
+| Final     | Type   | Ticker   | Theme                        | Renko      | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
+|-----------|--------|----------|------------------------------|------------|--------|----------|---------|---------|---------|
+| WATCHLIST | ETF    | THNQ     | AI platforms / Mega-cap tech | MIXED      | MIXED  | 0/0/0    | +6.36%  | +29.62% | ---     |
+| WATCHLIST | ETF    | CLOU     | Cloud / Data software        | MIXED      | MIXED  | 1/0/0    | +14.15% | +38.38% | ---     |
+| WATCHLIST | ETF    | IGV      | Cloud / Data software        | MIXED      | MIXED  | 1/1/0    | +5.92%  | +19.32% | ---     |
+| WATCHLIST | ETF    | SKYY     | Cloud / Data software        | MIXED      | MIXED  | 1/0/0    | +12.58% | +35.25% | ---     |
+| WATCHLIST | ETF    | WCLD     | Cloud / Data software        | MIXED      | MIXED  | 1/0/-1   | +20.00% | +42.43% | ---     |
+| WATCHLIST | ETF    | BUG      | Cybersecurity                | MIXED      | MIXED  | 1/0/-1   | +13.97% | +53.50% | ---     |
+| WATCHLIST | ETF    | CIBR     | Cybersecurity                | MIXED      | MIXED  | 1/0/-1   | +8.73%  | +41.80% | ---     |
+| WATCHLIST | ETF    | HACK     | Cybersecurity                | MIXED      | MIXED  | 1/0/-1   | +12.86% | +39.76% | ---     |
+| WATCHLIST | STOCK  | META     | AI platforms / Mega-cap tech | MIXED      | MIXED  | 0/1/1    | +9.75%  | -5.48%  | ---     |
+| WATCHLIST | STOCK  | CRWD     | Cybersecurity                | BULL MIXED | BULL   | 1/0/0    | +22.71% | +94.23% | -59.29% |
+| WATCHLIST | STOCK  | PANW     | Cybersecurity                | BULL MIXED | BULL   | 1/-1/-1  | +21.16% | +96.37% | +87.57% |
 
 EARLY SHIFT - ONLY IF DOMINANT THEMES SLOW
-Slowing dominant themes: Cybersecurity, AI platforms / Mega-cap tech
-| Ticker   | Type   | Theme                |   Early | 21D    | Rel63   | Renko   | R14     | R21     |
-|----------|--------|----------------------|---------|--------|---------|---------|---------|---------|
-| INSM     | STOCK  | Healthcare / Biotech |   20.25 | -4.34% | +35.66% | 1/1/1   | +34.53% | -12.27% |
-| IBB      | ETF    | Healthcare / Biotech |   15.52 | +1.50% | +19.84% | 1/1/0   | +20.39% | +14.79% |
-| XBI      | ETF    | Healthcare / Biotech |   14.92 | -0.81% | +19.44% | 1/1/0   | +21.85% | +13.06% |
+Slowing dominant themes: AI platforms / Mega-cap tech, Cybersecurity
+| Ticker   | Type   | Theme                 |   Early | 21D    | Rel63   | Renko   | R14     | R21     |
+|----------|--------|-----------------------|---------|--------|---------|---------|---------|---------|
+| WCLD     | ETF    | Cloud / Data software |   21.73 | -2.30% | +26.27% | 1/0/-1  | +20.00% | +42.43% |
+| CLOU     | ETF    | Cloud / Data software |   17.12 | -1.87% | +19.80% | 1/0/0   | +14.15% | +38.38% |
+| SKYY     | ETF    | Cloud / Data software |   15.61 | -2.52% | +18.48% | 1/0/0   | +12.58% | +35.25% |
 
 REJECTED BY RENKO
-| Final    | Type   | Ticker   | Theme                        | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
-|----------|--------|----------|------------------------------|---------|--------|----------|---------|---------|---------|
-| REJECTED | STOCK  | PLTR     | AI platforms / Mega-cap tech | BEAR    | BEAR   | 1/-1/0   | +22.35% | +13.27% | -29.49% |
-| REJECTED | STOCK  | ZS       | Cybersecurity                | BEAR    | BEAR   | -1/0/0   | +24.30% | +20.70% | -37.70% |
-| REJECTED | STOCK  | REGN     | Healthcare / Biotech         | BEAR    | BEAR   | 1/1/0    | +25.51% | +6.26%  | -28.16% |
+| Final    | Type   | Ticker   | Theme                 | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21    | PnL      |
+|----------|--------|----------|-----------------------|---------|--------|----------|---------|----------|----------|
+| REJECTED | STOCK  | MSTR     | Cloud / Data software | BEAR    | BEAR   | 1/-1/0   | +11.05% | -19.68%  | -4.85%   |
+| REJECTED | STOCK  | TEAM     | Cloud / Data software | BEAR    | BEAR   | 1/1/0    | +79.75% | +167.10% | -212.86% |
+| REJECTED | STOCK  | WDAY     | Cloud / Data software | BEAR    | BEAR   | 0/1/0    | +28.42% | +49.62%  | -64.69%  |
+| REJECTED | STOCK  | ZS       | Cybersecurity         | BEAR    | BEAR   | -1/0/0   | +25.78% | +22.14%  | -39.35%  |
 
 NEWS VALIDATION
 
-Cybersecurity: score=100.0 hits=12 sources=12
-- 2026-09-08 | InvestmentNews | Mizuho analyst offers outlook on software, cybersecurity stocks - InvestmentNews
-  https://news.google.com/rss/articles/CBMivgFBVV95cUxQWlFBbm1ZX3o4Njc1NDVGWlVGam9jRDNOWUl1VkhQNkx3MXpkeWF6NlBrTmVRRGdQekM5ZXE1TUZ1Y0pIYTZRTGpxQnFuei10VnFaNFRVWVN3V3NlMl9KOVQ5MW9sVDBKLWU4NF9lWHBWYnp6U3NaNkstbE1Fd1VWbTlmU1lZb2ZsWmVVY0Nsd1M4bmVaNGdUQ3RUeFdLVlhNeG1abGNha3NCQ1VXdEh2d0w4eGJ6R3lMZ3NoQ25B?oc=5
-- 2026-09-09 | Stocktwits | S&P 500, Nasdaq End Higher On Support From Chipmakers, Cybersecurity Stocks And Soft Inflation Data — NVDA, GS, SKHY, VZ, LCID In Focus - Stocktwits
-  https://news.google.com/rss/articles/CBMixgFBVV95cUxONnJpVDlCRmllRnVYYUx4c1RsT0tDOVV2cDUtUDlWRFFIbXJKbi1QZEM0cG5kMnM4QnVJOG56dWptTGI5U01FZnBWY1I4MndJSEF5TUU5d0dhS0haNjZmQmFWMEJOb3FqR3FfNF9hUHA1d3dkSXVvcXBNTFA2UkQxckhlRGdUT1B0OTFhMHQ2Yk5VZ0FsWnNLSldBUnV1VGktVGhLR1JTTWU2N2RqTmpWdEdESlc3TU8tUUtnZVJVcXNZWGxNbWc?oc=5
+AI platforms / Mega-cap tech: score=100.0 hits=12 sources=11
+- 2026-09-11 | Yahoo Finance | Goldman Sachs and Billionaires Like These 2 AI Stocks - Yahoo Finance
+  https://news.google.com/rss/articles/CBMinAFBVV95cUxPbTRhRHh2QWhFTVBQaXhaSDA0NkREVHlFcDlYRXliVzdZdFZMM3JheXJxNlE1U2ZIbmJWTDRKM0RHYm1lQXlvOFYxQ21NTW5qN2JqOV9rUi1Wb3hxMVJwRm1ieXJhM0lPX1pudkl2UTRjd19PWlVPOUhMOUt5SW51OFVxVXRhcmMxTG1Cd2I2eTlweW50Vk1PTVU5dXg?oc=5
+- 2026-09-08 | CNBC | Jim Cramer says investors are too focused on AI stocks. Here’s where he says to look instead - CNBC
+  https://news.google.com/rss/articles/CBMigAFBVV95cUxQOGlPS3dzQjJLZ1UxM2NYUTVGWFZ3MVQzQ0lCY2JsNUhwbXlmMWlOaHo5bTBCZW5pVFpubkVBbGlVRm5ScXh4SmlMWjJXSnB0QUtCR09saVl5d2c3dnJRaWtwUUJ4WjhJbDVrTWktMjZDazBrVEdqR0lpWjBRMmFsctIBhgFBVV95cUxNZnFKUXVqZHFGS3dEelVRdUtsTDZzemlGSDJjZmtUTkZFMVItVGswSk51OHd2Mk5KZTExcVI5eXI3TGlHSjMxTEVaR1BabHV4Y0ZTSHgzNFhENlhqa1hKMU9mSkFVYWl0SENWUUFpNmZkSVJRMlZnUUdEdGMxX0prcjhqVFp2Zw?oc=5
 
-AI platforms / Mega-cap tech: score=100.0 hits=12 sources=7
-- 2026-09-10 | Yahoo Finance | Got $5,000? 3 No-Brainer Artificial Intelligence (AI) Stocks to Buy Right Now. - Yahoo Finance
-  https://news.google.com/rss/articles/CBMihgFBVV95cUxNZGNzclE4LVkxS280MTFTRGxtcjJjS0YtTF9PU0RZWWVGU0l1UFU2eGZiazRhLVZvNHNES0xxWHQ2LW9GRllVTTFXSm4yejVmNGJPSmc3bUhSdFRPbTM2cHh6OFp0QmZTNDRzZHVhYXRWNHBLMllXWWVkSjhTMzdZZnhhWGJsZw?oc=5
-- 2026-09-10 | 24/7 Wall St. | 3 Stocks Powering the AI Boom That Are Not Named Nvidia - 24/7 Wall St.
-  https://news.google.com/rss/articles/CBMioAFBVV95cUxOVWNKNFZ3ZEFNN0JhTzB1VW5vaVNCMlFOSlBfcmRkLUM1bVZSbUsybjNKMkx3dlFCMXRUQ21MQ1B3RV8wcFNtQjh0OG9GenFwQy1uVHkwRXZLQjJzemFrU1A0THVtYmN5UUNGNm9sV216dGNnQmNadXcyNnRRUjEwVVdxOGNYcjZkU3JSNWZKcjNFU0x5LVJYSGdqczJ3b2FQ?oc=5
+Cybersecurity: score=100.0 hits=12 sources=9
+- 2026-09-11 | Investing.com | Wedbush Names Top Cybersecurity Stocks as AI Reshapes Sector - Investing.com
+  https://news.google.com/rss/articles/CBMivwFBVV95cUxNV1ZSVkVqMzk1TDk4NDdEZjUyUnBaZlEyVkh5RGcxQ3ItMWFCcXNiYkl4Q0M4RDhiNDBFZWVsdTNtWGdrdFcyMVk1SzFnRzJvTnFGNDhROWpaZGUtNXduMFV1bVlzM0hiREoySTVmN1V6dkd3T09DNjA0QTNielppLV8tbXY1V29oV1pRUUo1anVCSU9CMWNwUFdEMC1iZmxUNHJFNTg4SmVDNEFUempNTUZrdUhKYkVYa0cyUVRhMA?oc=5
+- 2026-09-11 | Seeking Alpha | Wedbush picks winners and losers in the cybersecurity sector (CIBR:NASDAQ) - Seeking Alpha
+  https://news.google.com/rss/articles/CBMinwFBVV95cUxQVzhlUGVFLUMtc2tzTnFHMUtvSHdEdHgyWHo0TGg3bkx4WDFlUnIyN3ZhNTFFVGIyLWNvNVhhbGprQllpTlpmdG0yb1pHdTY2NS1nVWFSV1hQT0FkdDhkMFdkeFBiLVBjUDE1U0hYZFJ6aExYSUpKTVA4c21RdGxhQkw2TEREcVdOTTMwSnV5d3J2MXpiaDlVRGxmSEtzSzg?oc=5
 
-Healthcare / Biotech: score=100.0 hits=12 sources=11
-- 2026-09-10 | MarketBeat | Best Biotech Stocks To Add to Your Watchlist - September 10th - MarketBeat
-  https://news.google.com/rss/articles/CBMiugFBVV95cUxPVVA5WGtrZkw1MlBnMEJ4VjhBdF9RdUtSSWtQZUpWc2p6Si1xMFI4cDJXWjVLd2IxcmJjUU9jWDJ1RXJCdnA1WmRqRjd4TUtVN0p0VjJRZlRjSXI1RTlGOW91Vmc0NXMycVNsMGxVQ0tZdWhnX2lQel9UVkNyc1lWSlF3cTFoVGZsTmNvOHMyRTF1bWZfaFNOUDVVSFhTWWNJNFZDZGtSZV9lc1Y3TjdpcFFLVmRhVWp5aVE?oc=5
-- 2026-09-09 | Yahoo Finance | A Look Back at Medical Devices & Supplies - Diversified Stocks’ Q1 Earnings: CooperCompanies (NASDAQ:COO) Vs The Rest Of The Pack - Yahoo Finance
-  https://news.google.com/rss/articles/CBMimwFBVV95cUxPLV8wOWNXUWFJZ3c2bHJodGs5ODE0VWR2dWR4ekYwRTRYNGdIRlkyU19JYk1jYzVyOGZ0VVB3Y0JuUkpxWnAyVkpuamZ1Y0lKQzA4aUpmR01DaXJEek1HbG4xUTFubGQ3SGF4M0JfUWtGbU92cmRpZkhKa25HcUd5S3hsWjFCRm1IRGxoRmx6YTFBRmFGUFZFVGZkTQ?oc=5
+Cloud / Data software: score=100.0 hits=12 sources=10
+- 2026-09-11 | Yahoo Finance | Q2 Earnings Highs And Lows: Intuit (NASDAQ:INTU) Vs The Rest Of The Finance and HR Software Stocks - Yahoo Finance
+  https://news.google.com/rss/articles/CBMimgFBVV95cUxPUjdIMDgyc0c3U0VjRjM5NklFUVNkMjJMdkV1dnh2NlBrYWdfaXowWkVpb3JSV0wtcGNscDJmMlpWYWVDMkJkV2tPX21OUkNKNnNZSVZ6aE5KcDlocDRHY2ZXYlNfc1NJcjJLV0g1ZTlxNGhac0RqUDVkTmJxWDRpakVETnVZRHhYLWprZDVBa3RLNlhrLU5JUjR3?oc=5
+- 2026-09-11 | StockStory | Adobe (NASDAQ:ADBE) Beats Q3 CY2026 Sales Expectations - StockStory
+  https://news.google.com/rss/articles/CBMirwFBVV95cUxNb3ZmaTdnME5EaDB3bURyc2h5NG4zNktKcEh6QjJXems0WHhWS1R5UnAzdHpTb1BhcFZtWXg0UlJYTFhYUG16M0FxTl9qSURMVEJiYW9QV0tuQjJOX19ZWE5MMkN4S2RxRXZWaDNXc21FVEVob1Y1Wlg4YUVCamFOWjRMSEQxRVpxU3g3c1NqbGdiOG5leGRMYmE4T3VMS0tEWmo4R1RNRFgtbDF3ejVZ?oc=5
 
 METHOD
 Score action = momentum 21D/63D/126D + force relative vs QQQ + volume + tendance SMA50/SMA200 + proximite high 20D.

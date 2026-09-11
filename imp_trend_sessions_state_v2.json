@@ -4322,6 +4322,11 @@
           "direction": "BEAR",
           "entry_price": 1.88363,
           "entry_time_utc": "2026-09-11T12:19:59.653344+00:00"
+        },
+        "AUDNZD": {
+          "direction": "BULL",
+          "entry_price": 1.23336,
+          "entry_time_utc": "2026-09-11T16:21:45.577442+00:00"
         }
       },
       "events": [
@@ -6059,12 +6064,19 @@
           "pair": "GBPAUD",
           "direction": "BEAR",
           "entry_price": 1.88363
+        },
+        {
+          "time_utc": "2026-09-11T16:21:45.577442+00:00",
+          "event": "ENTRY",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.23336
         }
       ],
-      "unrealized_pips": -39.59999999999964,
-      "total_pips": -77.99999999998923,
+      "unrealized_pips": -4.700000000001925,
+      "total_pips": -43.099999999991525,
       "is_active": true,
-      "daily_pips": -39.59999999999964,
+      "daily_pips": -4.700000000001925,
       "daily_pips_history": [
         {
           "time_utc": "2026-09-11T11:20:02.198367+00:00",
@@ -6089,11 +6101,15 @@
         {
           "time_utc": "2026-09-11T15:20:08.973391+00:00",
           "daily_pips": -39.59999999999964
+        },
+        {
+          "time_utc": "2026-09-11T16:21:45.577442+00:00",
+          "daily_pips": -4.700000000001925
         }
       ],
       "comparison_baseline": 5.399999999995986,
-      "comparison_pips": -83.39999999998521
+      "comparison_pips": -48.49999999998751
     }
   },
-  "updated_at": "2026-09-11T15:20:08.973391+00:00"
+  "updated_at": "2026-09-11T16:21:45.577442+00:00"
 }
