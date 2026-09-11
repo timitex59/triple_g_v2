@@ -2571,6 +2571,19 @@
           "start_price": 1.16046,
           "start_time_paris": "2026-09-11T07:00:00+02:00",
           "start_time_utc": "2026-09-11T05:00:00+00:00"
+        },
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-09-11",
+          "direction": 1,
+          "end_price": 1.15997,
+          "end_time_paris": "2026-09-11T19:00:00+02:00",
+          "end_time_utc": "2026-09-11T17:00:00+00:00",
+          "pair": "EURUSD",
+          "pips": -3.5000000000007248,
+          "start_price": 1.16032,
+          "start_time_paris": "2026-09-11T15:00:00+02:00",
+          "start_time_utc": "2026-09-11T13:00:00+00:00"
         }
       ]
     }
@@ -2578,37 +2591,26 @@
   "open_confirmed_segments": {},
   "open_segments": {
     "AUDCAD": {
-      "current_pips": 35.199999999999676,
+      "current_pips": 36.999999999999254,
       "date": "2026-09-11",
       "direction": 1,
-      "last_price": 0.99456,
-      "last_time_utc": "2026-09-11T16:00:00+00:00",
+      "last_price": 0.99474,
+      "last_time_utc": "2026-09-11T17:00:00+00:00",
       "pair": "AUDCAD",
       "start_price": 0.99104,
       "start_time_paris": "2026-09-11T07:00:00+02:00",
       "start_time_utc": "2026-09-11T05:00:00+00:00"
     },
     "EURAUD": {
-      "current_pips": 30.000000000001137,
+      "current_pips": 40.200000000001346,
       "date": "2026-09-11",
       "direction": -1,
-      "last_price": 1.6176,
-      "last_time_utc": "2026-09-11T16:00:00+00:00",
+      "last_price": 1.61658,
+      "last_time_utc": "2026-09-11T17:00:00+00:00",
       "pair": "EURAUD",
       "start_price": 1.6206,
       "start_time_paris": "2026-09-11T07:00:00+02:00",
       "start_time_utc": "2026-09-11T05:00:00+00:00"
-    },
-    "EURUSD": {
-      "current_pips": 0.1999999999990898,
-      "date": "2026-09-11",
-      "direction": 1,
-      "last_price": 1.16034,
-      "last_time_utc": "2026-09-11T16:00:00+00:00",
-      "pair": "EURUSD",
-      "start_price": 1.16032,
-      "start_time_paris": "2026-09-11T15:00:00+02:00",
-      "start_time_utc": "2026-09-11T13:00:00+00:00"
     }
   },
   "reports_sent": {
@@ -2653,6 +2655,6 @@
       "2026-W36"
     ]
   },
-  "updated_at_paris": "2026-09-11T18:17:31.326828+02:00",
+  "updated_at_paris": "2026-09-11T19:18:11.262703+02:00",
   "version": 3
 }
