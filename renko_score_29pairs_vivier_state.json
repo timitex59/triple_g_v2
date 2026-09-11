@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-09-11 07:16",
+  "updated_at_paris": "2026-09-11 08:17",
   "pairs": {
     "AUDCAD": {
       "direction": 1,
       "entered_at_paris": "2026-09-11 02:08",
-      "last_seen_at_paris": "2026-09-11 07:16",
+      "last_seen_at_paris": "2026-09-11 08:17",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -17,12 +17,12 @@
         "D": 0
       },
       "base_pct": 83.33333333333334,
-      "weighted_pct": 50.00000000000001,
-      "daily_chg": 0.15960885728139906,
+      "weighted_pct": 66.66666666666667,
+      "daily_chg": 0.2889122353321454,
       "daily_sar_dir": -1,
       "daily_sar_value": 0.9981190000000001,
-      "fib_position": "Fibo <0.236",
-      "fib_pct_of_range": 23.208879919274068,
+      "fib_position": "Fibo <0.382",
+      "fib_pct_of_range": 36.12512613521692,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.236",
       "entry_fib_pct_of_range": 14.328960645811954,
@@ -34,12 +34,16 @@
       "fib_objective_value": 0.99911,
       "fib_objective_origin_month_utc": "2026-09",
       "fib_objective_started_time_utc": "2026-09-11T00:00:00+00:00",
-      "sar_flame": false
+      "sar_flame": true,
+      "sar_last_processed_time_utc": "2026-09-11T06:00:00+00:00",
+      "sar_record_value": 0.99,
+      "sar_record_time_utc": "2026-09-11T06:00:00+00:00",
+      "sar_flame_kind": "FIRST"
     },
     "EURAUD": {
       "direction": -1,
       "entered_at_paris": "2026-09-11 02:08",
-      "last_seen_at_paris": "2026-09-11 07:16",
+      "last_seen_at_paris": "2026-09-11 08:17",
       "entry_px": {
         "M": -1,
         "W": -1,
@@ -51,12 +55,12 @@
         "D": 0
       },
       "base_pct": -83.33333333333334,
-      "weighted_pct": -41.66666666666667,
-      "daily_chg": -0.11835778572310096,
+      "weighted_pct": -66.66666666666667,
+      "daily_chg": -0.21144125261990163,
       "daily_sar_dir": 1,
       "daily_sar_value": 1.6083,
       "fib_position": "Fibo >0.618",
-      "fib_pct_of_range": 70.91866588648259,
+      "fib_pct_of_range": 62.37565827969491,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo >0.786",
       "entry_fib_pct_of_range": 81.1585722644822,
@@ -76,7 +80,7 @@
     "EURUSD": {
       "direction": 1,
       "entered_at_paris": "2026-09-10 15:18",
-      "last_seen_at_paris": "2026-09-11 07:16",
+      "last_seen_at_paris": "2026-09-11 08:17",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -89,16 +93,16 @@
       },
       "base_pct": 83.33333333333334,
       "weighted_pct": 0.0,
-      "daily_chg": -0.003445305770890612,
+      "daily_chg": 0.027562446167086644,
       "daily_sar_dir": -1,
       "daily_sar_value": 1.16544,
-      "fib_position": "Fibo <0.500",
-      "fib_pct_of_range": 49.14675767918162,
+      "fib_position": "Fibo <0.618",
+      "fib_pct_of_range": 53.242320819112365,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 47.25378787878829,
       "entry_fib_source": "PREVIOUS",
-      "sar_dir": -1,
+      "sar_dir": 1,
       "fib_objective_active": true,
       "fib_objective_value": 1.17116,
       "fib_objective_origin_month_utc": "2026-08",
@@ -108,13 +112,13 @@
       "fib_objective_reattached_from_post_alignment": true,
       "fib_objective_post_alignment_time_utc": "2026-09-09T06:00:00+00:00",
       "sar_flame": false,
-      "sar_last_processed_time_utc": "2026-09-10T15:00:00+00:00",
+      "sar_last_processed_time_utc": "2026-09-11T06:00:00+00:00",
       "sar_record_value": 1.15923,
       "sar_record_time_utc": "2026-09-10T15:00:00+00:00"
     }
   },
   "pending_objectives": {},
   "objective_events": [],
-  "telegram_last_body_hash": "3ff230191133434d2e45af3173d9c5b71b891d29131fd91fdb88ebdc4629afac",
-  "telegram_last_sent_at_paris": "2026-09-11 02:07"
+  "telegram_last_body_hash": "fb8153ed1f045f234b1d07466f0825368db8f7f48d42bd77c7186fc51774fd3f",
+  "telegram_last_sent_at_paris": "2026-09-11 08:15"
 }
