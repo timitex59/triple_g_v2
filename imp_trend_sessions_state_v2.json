@@ -3105,8 +3105,8 @@
     "Londres": {
       "realized_pips": -2.900000000000489,
       "current_session_realized_pips": -59.40000000000056,
-      "last_session_pips": -39.59999999999964,
-      "active_session_id": "2026-09-14",
+      "last_session_pips": -59.40000000000056,
+      "active_session_id": null,
       "positions": {},
       "events": [
         {
@@ -4710,7 +4710,7 @@
       ],
       "unrealized_pips": 0.0,
       "total_pips": -2.900000000000489,
-      "is_active": true,
+      "is_active": false,
       "daily_pips": -59.40000000000056,
       "daily_pips_history": [
         {
@@ -4751,6 +4751,10 @@
         },
         {
           "time_utc": "2026-09-14T14:20:08.199208+00:00",
+          "daily_pips": -59.40000000000056
+        },
+        {
+          "time_utc": "2026-09-14T15:20:01.985340+00:00",
           "daily_pips": -59.40000000000056
         }
       ],
@@ -6757,11 +6761,15 @@
         {
           "time_utc": "2026-09-14T14:20:08.199208+00:00",
           "daily_pips": -9.00000000000123
+        },
+        {
+          "time_utc": "2026-09-14T15:20:01.985340+00:00",
+          "daily_pips": -9.00000000000123
         }
       ],
       "comparison_baseline": 5.399999999995986,
       "comparison_pips": -113.39999999998635
     }
   },
-  "updated_at": "2026-09-14T14:20:08.199208+00:00"
+  "updated_at": "2026-09-14T15:20:01.985340+00:00"
 }
