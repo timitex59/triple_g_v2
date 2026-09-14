@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-14T21:18:49.426867+00:00",
+  "updated_at": "2026-09-14T23:54:21.807951+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -188.69999999999865,
@@ -1777,6 +1777,10 @@
         {
           "time_utc": "2026-09-14T21:18:49.426867+00:00",
           "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-09-14T23:54:21.807951+00:00",
+          "daily_pips": 0.0
         }
       ],
       "comparison_baseline": 30.000000000003364,
@@ -1784,13 +1788,13 @@
     },
     "Tokyo": {
       "realized_pips": -424.60000000000326,
-      "current_session_realized_pips": -57.50000000000255,
+      "current_session_realized_pips": 0.0,
       "last_session_pips": -57.50000000000255,
       "unrealized_pips": 0.0,
       "total_pips": -424.60000000000326,
-      "daily_pips": -57.50000000000255,
-      "is_active": false,
-      "active_session_id": null,
+      "daily_pips": 0.0,
+      "is_active": true,
+      "active_session_id": "2026-09-15",
       "positions": {},
       "events": [
         {
@@ -3462,20 +3466,8 @@
       ],
       "daily_pips_history": [
         {
-          "time_utc": "2026-09-14T04:53:13.816188+00:00",
+          "time_utc": "2026-09-14T23:54:21.807951+00:00",
           "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-14T05:18:48.666287+00:00",
-          "daily_pips": -34.00000000000291
-        },
-        {
-          "time_utc": "2026-09-14T06:18:47.943349+00:00",
-          "daily_pips": -55.60000000000565
-        },
-        {
-          "time_utc": "2026-09-14T07:18:47.346846+00:00",
-          "daily_pips": -57.50000000000255
         }
       ],
       "comparison_baseline": 12.200000000002504,
