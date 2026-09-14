@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-14T07:18:47.346846+00:00",
+  "updated_at": "2026-09-14T08:19:04.993504+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -188.69999999999865,
@@ -3478,12 +3478,12 @@
       "comparison_pips": -436.80000000000575
     },
     "Londres": {
-      "realized_pips": -69.99999999999073,
-      "current_session_realized_pips": 0.0,
+      "realized_pips": -82.69999999998956,
+      "current_session_realized_pips": -12.699999999998823,
       "last_session_pips": -35.0999999999968,
-      "unrealized_pips": -1.8999999999969042,
-      "total_pips": -71.89999999998764,
-      "daily_pips": -1.8999999999969042,
+      "unrealized_pips": 10.100000000000664,
+      "total_pips": -72.5999999999889,
+      "daily_pips": -2.5999999999981593,
       "is_active": true,
       "active_session_id": "2026-09-14",
       "positions": {
@@ -3505,11 +3505,6 @@
         "EURAUD": {
           "direction": "BEAR",
           "entry_price": 1.61796,
-          "entry_time_utc": "2026-09-14T06:18:47.943349+00:00"
-        },
-        "GBPAUD": {
-          "direction": "BEAR",
-          "entry_price": 1.88921,
           "entry_time_utc": "2026-09-14T06:18:47.943349+00:00"
         }
       },
@@ -5265,6 +5260,16 @@
           "pair": "GBPAUD",
           "direction": "BEAR",
           "entry_price": 1.88921
+        },
+        {
+          "time_utc": "2026-09-14T08:19:04.993504+00:00",
+          "event": "EXIT",
+          "pair": "GBPAUD",
+          "direction": "BEAR",
+          "entry_price": 1.88921,
+          "exit_price": 1.89048,
+          "pips": -12.699999999998823,
+          "reason": "INVALIDATED"
         }
       ],
       "daily_pips_history": [
@@ -5275,10 +5280,14 @@
         {
           "time_utc": "2026-09-14T07:18:47.346846+00:00",
           "daily_pips": -1.8999999999969042
+        },
+        {
+          "time_utc": "2026-09-14T08:19:04.993504+00:00",
+          "daily_pips": -2.5999999999981593
         }
       ],
       "comparison_baseline": 14.300000000000686,
-      "comparison_pips": -86.19999999998834
+      "comparison_pips": -86.89999999998957
     },
     "New York": {
       "realized_pips": 12.800000000009927,
