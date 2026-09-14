@@ -3,9 +3,9 @@
   "sessions": {
     "Sydney": {
       "realized_pips": -298.1000000000008,
-      "current_session_realized_pips": -29.30000000000432,
+      "current_session_realized_pips": 0.0,
       "last_session_pips": -29.30000000000432,
-      "active_session_id": null,
+      "active_session_id": "2026-09-14",
       "positions": {},
       "events": [
         {
@@ -1592,16 +1592,12 @@
       ],
       "unrealized_pips": 0.0,
       "total_pips": -298.1000000000008,
-      "is_active": false,
-      "daily_pips": -29.30000000000432,
+      "is_active": true,
+      "daily_pips": 0.0,
       "daily_pips_history": [
         {
-          "time_utc": "2026-09-14T04:54:24.689483+00:00",
+          "time_utc": "2026-09-14T20:19:57.738964+00:00",
           "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-14T05:19:59.691650+00:00",
-          "daily_pips": -29.30000000000432
         }
       ],
       "comparison_baseline": 8.600000000001764,
@@ -4764,8 +4760,8 @@
     "New York": {
       "realized_pips": -107.99999999999037,
       "current_session_realized_pips": -9.00000000000123,
-      "last_session_pips": -36.099999999997806,
-      "active_session_id": "2026-09-14",
+      "last_session_pips": -9.00000000000123,
+      "active_session_id": null,
       "positions": {},
       "events": [
         {
@@ -6743,7 +6739,7 @@
       ],
       "unrealized_pips": 0.0,
       "total_pips": -107.99999999999037,
-      "is_active": true,
+      "is_active": false,
       "daily_pips": -9.00000000000123,
       "daily_pips_history": [
         {
@@ -6785,11 +6781,15 @@
         {
           "time_utc": "2026-09-14T19:20:06.486683+00:00",
           "daily_pips": -9.00000000000123
+        },
+        {
+          "time_utc": "2026-09-14T20:19:57.738964+00:00",
+          "daily_pips": -9.00000000000123
         }
       ],
       "comparison_baseline": 5.399999999995986,
       "comparison_pips": -113.39999999998635
     }
   },
-  "updated_at": "2026-09-14T19:20:06.486683+00:00"
+  "updated_at": "2026-09-14T20:19:57.738964+00:00"
 }
