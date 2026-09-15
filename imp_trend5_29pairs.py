@@ -119,8 +119,14 @@ def scan_pair(pair, args):
     sar, bull, bear = daily_levels(d1, args.sar_start, args.sar_increment, args.sar_maximum)
     renko = {tf: base.fetch_renko(pair, tf, args.renko_bricks, args.atr_length, 50)[-1]
              for tf in ('M', 'W', 'D')}
-    h1 = base.fetch_ohlc(pair, '60', 3)
+    h1 = base.fetch_ohlc(pair, '60', args.h1_candles)
+    if len(h1) < 2:
+        raise ValueError('Historique H1 insuffisant')
     price = float(h1['close'].iloc[-1])
+    # H1 SAR side (price vs SAR) drives the watchlist reveal/delist gate, not just the price.
+    h1_sar_last = pine_sar(h1, args.sar_start, args.sar_increment, args.sar_maximum)[-1]
+    h1_side = ('above' if price > h1_sar_last else 'below' if price < h1_sar_last else None) \
+        if math.isfinite(h1_sar_last) else None
     # Pine's default H1 request uses the developing close despite its input label.
     reference = float(d1['close'].iloc[-2]) if args.price_mode == 'previous-daily' else price
     biases = {tf: base.effective_bias(base.px_state(point, reference), point)
@@ -128,6 +134,7 @@ def scan_pair(pair, args):
     return dict(pair=pair, price=price, daily_sar=sar, daily_bull=bull, daily_bear=bear,
                 reference_price=reference, biases=biases,
                 h1_bar_time=h1['time'].iloc[-1].isoformat(),
+                h1_sar=h1_sar_last, h1_side=h1_side,
                 fetched_at=datetime.now(timezone.utc).isoformat(),
                 **score_snapshot(price, sar, bull, bear, biases))
 
@@ -267,6 +274,70 @@ def print_opportunities(opportunity_list):
               f"{o['quote']} ({o['quote_score']:+d}), ecart {ecart:+d}]")
 
 
+def load_watchlist(path):
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding='utf-8'))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def update_watchlist(watchlist, candidates, h1_sides, now_iso):
+    """Accumulate RETRACE/OPPORTUNITY candidates and gate their reveal on the H1 SAR.
+
+    A pair enters the watchlist the first time it appears in RETRACE/OPPORTUNITY,
+    but only becomes 'revealed' (shown on Telegram) once price sits on the H1 SAR
+    side matching its tracked direction (BULL=above, BEAR=below) -- either right
+    away if already aligned, or on a later run once the H1 SAR flips that way.
+    A revealed pair is delisted (removed) as soon as price flips to the other
+    side of the H1 SAR. An unrevealed pair is dropped once it stops appearing
+    in RETRACE/OPPORTUNITY, since there is no more signal to wait to confirm.
+    """
+    for pair, cand in candidates.items():
+        if pair not in watchlist:
+            watchlist[pair] = dict(pair=pair, direction=cand['direction'], source=cand['source'],
+                                    first_seen_utc=now_iso, revealed=False, revealed_at_utc=None,
+                                    h1_side=h1_sides.get(pair))
+        elif not watchlist[pair]['revealed']:
+            watchlist[pair]['direction'] = cand['direction']
+            watchlist[pair]['source'] = cand['source']
+
+    for pair in list(watchlist):
+        entry = watchlist[pair]
+        side = h1_sides.get(pair)
+        if side is None:
+            continue
+        aligned = (side == 'above' and entry['direction'] == 'BULL') or \
+                  (side == 'below' and entry['direction'] == 'BEAR')
+        if entry['revealed']:
+            if not aligned:
+                del watchlist[pair]
+                continue
+        elif aligned:
+            entry['revealed'] = True
+            entry['revealed_at_utc'] = now_iso
+        entry['h1_side'] = side
+
+    for pair in list(watchlist):
+        if not watchlist[pair]['revealed'] and pair not in candidates:
+            del watchlist[pair]
+
+    return watchlist
+
+
+def print_watchlist(watchlist):
+    if not watchlist:
+        print('  Liste vide.')
+        return
+    for pair, entry in sorted(watchlist.items()):
+        if entry['revealed']:
+            state = f"REVELE le {entry['revealed_at_utc']}"
+        else:
+            state = f"EN ATTENTE (cote H1/SAR actuelle : {entry['h1_side'] or 'inconnue'})"
+        print(f"  {pair:<7} {entry['direction']} [{entry['source']}] -> {state}")
+
+
 def format_forces_lines(summary):
     lines = []
     for item in summary['strong_currencies']:
@@ -276,25 +347,19 @@ def format_forces_lines(summary):
     return lines or ['aucune']
 
 
-def format_retrace_lines(summary):
-    lines = [f"{'🟢' if row['direction'] == 'BULL' else '🔴'} {row['pair']}"
-             for row in summary['retrace_confirmed']]
+def format_pair_lines(rows):
+    lines = [f"{'🟢' if row['direction'] == 'BULL' else '🔴'} {row['pair']}" for row in rows]
     return lines or ['aucune']
 
 
-def format_opportunity_pair_lines(opportunity_list):
-    lines = [f"{'🟢' if o['direction'] == 'BULL' else '🔴'} {o['pair']}" for o in opportunity_list]
-    return lines or ['aucune']
-
-
-def build_telegram_message(summary, opportunity_list):
+def build_telegram_message(summary, revealed_retrace, revealed_opportunity):
     now_paris = datetime.now(base.PARIS).strftime('%Y-%m-%d %H:%M')
     lines = ['📐 TREND', '', '📈 FORCES']
     lines += format_forces_lines(summary)
     lines += ['', 'RETRACE :']
-    lines += format_retrace_lines(summary)
+    lines += format_pair_lines(revealed_retrace)
     lines += ['', 'OPPORTUNITY :']
-    lines += format_opportunity_pair_lines(opportunity_list)
+    lines += format_pair_lines(revealed_opportunity)
     lines += ['', f'⏰ {now_paris} Paris']
     return '\n'.join(lines)
 
@@ -322,6 +387,8 @@ def main():
     parser.add_argument('--stagger', type=float, default=0.3,
                          help='Delai (s) entre deux soumissions au pool, pour eviter une rafale de connexions et des 429')
     parser.add_argument('--d1-candles', type=int, default=2500)
+    parser.add_argument('--h1-candles', type=int, default=300,
+                         help='Bougies H1 recuperees pour calculer le SAR horaire (watchlist)')
     parser.add_argument('--renko-bricks', type=int, default=2500)
     parser.add_argument('--atr-length', type=int, default=14)
     parser.add_argument('--sar-start', type=float, default=0.1)
@@ -333,11 +400,13 @@ def main():
     parser.add_argument('--strong-threshold', type=float, default=2.0,
                          help='|score| D1 minimum pour figurer dans le resume des devises fortes/faibles')
     parser.add_argument('--json', type=Path, default=Path('imp_trend5_29pairs.json'))
+    parser.add_argument('--watchlist-json', type=Path, default=Path('imp_trend5_watchlist_state.json'),
+                         help='Etat persistant de la watchlist RETRACE/OPPORTUNITY (reveal au cross SAR H1)')
     parser.add_argument('--telegram', action='store_true',
                          help='Envoyer le resume RESUME+OPPORTUNITY sur Telegram a la fin du scan')
     args = parser.parse_args()
-    if min(args.workers, args.atr_length, args.sar_start, args.sar_increment, args.sar_maximum) <= 0 or args.d1_candles < 3 or args.renko_bricks < 50 or args.stagger < 0:
-        parser.error('Parametres positifs requis, au moins 3 bougies D1, 50 briques Renko et stagger >= 0')
+    if min(args.workers, args.atr_length, args.sar_start, args.sar_increment, args.sar_maximum) <= 0 or args.d1_candles < 3 or args.h1_candles < 2 or args.renko_bricks < 50 or args.stagger < 0:
+        parser.error('Parametres positifs requis, au moins 3 bougies D1, 2 bougies H1, 50 briques Renko et stagger >= 0')
     results, errors = [], []
     pairs = list(dict.fromkeys(args.pairs))
     print(f'Scan de {len(pairs)} instruments OANDA...', flush=True)
@@ -392,19 +461,39 @@ def main():
     print('\nOPPORTUNITY')
     print_opportunities(opportunity_list)
 
+    now_iso = datetime.now(timezone.utc).isoformat()
+    h1_sides = {r['pair']: r.get('h1_side') for r in results}
+    candidates = {}
+    for row in summary['retrace_confirmed']:
+        candidates[row['pair']] = dict(direction=row['direction'], source='RETRACE')
+    for o in opportunity_list:
+        candidates[o['pair']] = dict(direction=o['direction'], source='OPPORTUNITY')
+    watchlist = load_watchlist(args.watchlist_json)
+    watchlist = update_watchlist(watchlist, candidates, h1_sides, now_iso)
+    args.watchlist_json.parent.mkdir(parents=True, exist_ok=True)
+    args.watchlist_json.write_text(json.dumps(watchlist, indent=2, allow_nan=False, sort_keys=True),
+                                    encoding='utf-8')
+    print('\nWATCHLIST (accumulation RETRACE/OPPORTUNITY, revele au cross SAR H1) :')
+    print_watchlist(watchlist)
+    revealed_retrace = sorted((dict(pair=p, direction=e['direction']) for p, e in watchlist.items()
+                                if e['revealed'] and e['source'] == 'RETRACE'), key=lambda r: r['pair'])
+    revealed_opportunity = sorted((dict(pair=p, direction=e['direction']) for p, e in watchlist.items()
+                                    if e['revealed'] and e['source'] == 'OPPORTUNITY'), key=lambda r: r['pair'])
+
     telegram_sent = False
     if args.telegram:
         print('\nTelegram :')
-        telegram_sent = send_telegram_message(build_telegram_message(summary, opportunity_list))
+        telegram_sent = send_telegram_message(
+            build_telegram_message(summary, revealed_retrace, revealed_opportunity))
         if telegram_sent:
             print('  Message envoye.')
 
     args.json.parent.mkdir(parents=True, exist_ok=True)
     args.json.write_text(json.dumps(dict(time_utc=datetime.now(timezone.utc).isoformat(),
-        requested_pairs=pairs, settings=vars(args) | {'json': str(args.json)},
+        requested_pairs=pairs, settings=vars(args) | {'json': str(args.json), 'watchlist_json': str(args.watchlist_json)},
         results=results, errors=errors, currency_strength_by_section=strength_by_section,
         d1_currency_strength=d1_strength, retrace_validation=retrace_validation, summary=summary,
-        opportunities=opportunity_list, telegram_sent=telegram_sent),
+        opportunities=opportunity_list, watchlist=watchlist, telegram_sent=telegram_sent),
         indent=2, allow_nan=False), encoding='utf-8')
     print(f'\n{len(results)}/{len(pairs)} analyses. Rapport : {args.json.resolve()}')
     return 1 if errors else 0
