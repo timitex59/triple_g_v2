@@ -139,17 +139,22 @@ def calculate(pair: str, args: argparse.Namespace) -> dict[str, Any]:
     h1 = h1_raw.iloc[:-1].copy().reset_index(drop=True)
     daily = daily_raw.iloc[:-1].copy().reset_index(drop=True)
 
-    h1_signals, h1_sar = calculate_cross_signals(h1, args.sar_start, args.sar_increment, args.sar_maximum)
+    h1_signals, _ = calculate_cross_signals(h1, args.sar_start, args.sar_increment, args.sar_maximum)
     daily_signals, _ = calculate_cross_signals(daily, args.sar_start, args.sar_increment, args.sar_maximum)
 
     h1_close = float(h1["close"].iloc[-1])
     daily_close = float(daily["close"].iloc[-1])
-    h1_sar_last = h1_sar[-1]
     # Cote H1 (au-dessus/en-dessous du SAR) : sert de porte de reveal/delist a
     # la watchlist SAR BREAK (cf. update_sar_break_watchlist), independamment
-    # du vote last_h1/active_h1 deja utilise dans le calcul du trend.
-    h1_side = ("above" if h1_close > h1_sar_last else "below" if h1_close < h1_sar_last else None) \
-        if not math.isnan(h1_sar_last) else None
+    # du vote last_h1/active_h1 deja utilise dans le calcul du trend. Calcule
+    # sur `h1_raw` (bougie en cours incluse), pas `h1` (confirmee) : la porte
+    # doit reagir des que le prix live franchit le SAR, sans attendre la
+    # cloture -- au prix d'un repaint possible si le prix revient en arriere
+    # avant la cloture (voir discussion GBPAUD 2026-09-15).
+    h1_sar_live = tv.parabolic_sar(h1_raw, args.sar_start, args.sar_increment, args.sar_maximum)[-1]
+    h1_close_live = float(h1_raw["close"].iloc[-1])
+    h1_side = ("above" if h1_close_live > h1_sar_live else "below" if h1_close_live < h1_sar_live else None) \
+        if not math.isnan(h1_sar_live) else None
     momentum_d = _momentum(daily_signals, daily_close)
     momentum_h1 = _momentum(h1_signals, h1_close)
     last_d, active_d = _last_valid(daily_signals, daily_close)
