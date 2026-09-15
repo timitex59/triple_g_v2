@@ -2726,36 +2726,50 @@
       ]
     }
   },
-  "open_confirmed_segments": {},
-  "open_segments": {
-    "AUDCAD": {
-      "current_pips": 16.800000000000146,
+  "open_confirmed_segments": {
+    "AUDCHF": {
+      "current_pips": 0.0,
       "date": "2026-09-15",
       "direction": 1,
-      "last_price": 0.99242,
-      "last_time_utc": "2026-09-15T19:00:00+00:00",
+      "hourly_last_price": 0.58389,
+      "hourly_last_time_utc": "2026-09-15T20:00:00+00:00",
+      "last_price": 0.58389,
+      "last_time_utc": "2026-09-15T20:00:00+00:00",
+      "pair": "AUDCHF",
+      "start_price": 0.58389,
+      "start_time_paris": "2026-09-15T22:00:00+02:00",
+      "start_time_utc": "2026-09-15T20:00:00+00:00"
+    }
+  },
+  "open_segments": {
+    "AUDCAD": {
+      "current_pips": 17.000000000000348,
+      "date": "2026-09-15",
+      "direction": 1,
+      "last_price": 0.99244,
+      "last_time_utc": "2026-09-15T20:00:00+00:00",
       "pair": "AUDCAD",
       "start_price": 0.99074,
       "start_time_paris": "2026-09-15T10:00:00+02:00",
       "start_time_utc": "2026-09-15T08:00:00+00:00"
     },
     "AUDCHF": {
-      "current_pips": 11.399999999999189,
+      "current_pips": 12.699999999999934,
       "date": "2026-09-15",
       "direction": 1,
-      "last_price": 0.58376,
-      "last_time_utc": "2026-09-15T19:00:00+00:00",
+      "last_price": 0.58389,
+      "last_time_utc": "2026-09-15T20:00:00+00:00",
       "pair": "AUDCHF",
       "start_price": 0.58262,
       "start_time_paris": "2026-09-15T07:00:00+02:00",
       "start_time_utc": "2026-09-15T05:00:00+00:00"
     },
     "EURAUD": {
-      "current_pips": 16.199999999999548,
+      "current_pips": 17.199999999999438,
       "date": "2026-09-15",
       "direction": -1,
-      "last_price": 1.61854,
-      "last_time_utc": "2026-09-15T19:00:00+00:00",
+      "last_price": 1.61844,
+      "last_time_utc": "2026-09-15T20:00:00+00:00",
       "pair": "EURAUD",
       "start_price": 1.62016,
       "start_time_paris": "2026-09-15T07:00:00+02:00",
@@ -2807,6 +2821,6 @@
       "2026-W37"
     ]
   },
-  "updated_at_paris": "2026-09-15T21:15:49.154097+02:00",
+  "updated_at_paris": "2026-09-15T22:15:53.054044+02:00",
   "version": 3
 }
