@@ -84,8 +84,13 @@ def calculate_cross_signals(
     sar_start: float = 0.1,
     sar_increment: float = 0.1,
     sar_maximum: float = 0.2,
-) -> list[ImpSignal]:
-    """Un signal par cross prix/SAR, sans confirmation Renko ni cassure de structure."""
+) -> tuple[list[ImpSignal], list[float]]:
+    """Un signal par cross prix/SAR, sans confirmation Renko ni cassure de structure.
+
+    Renvoie aussi la série SAR complète : `calculate` en réutilise la dernière
+    valeur pour situer le close H1 courant (au-dessus/en-dessous), sans
+    recalculer la récurrence une 2e fois.
+    """
     sar = tv.parabolic_sar(candles, sar_start, sar_increment, sar_maximum)
     previous_close = previous_sar = None
     signals: list[ImpSignal] = []
@@ -121,7 +126,7 @@ def calculate_cross_signals(
             )
 
         previous_close, previous_sar = current_close, current_sar
-    return signals
+    return signals, sar
 
 
 def calculate(pair: str, args: argparse.Namespace) -> dict[str, Any]:
@@ -134,11 +139,17 @@ def calculate(pair: str, args: argparse.Namespace) -> dict[str, Any]:
     h1 = h1_raw.iloc[:-1].copy().reset_index(drop=True)
     daily = daily_raw.iloc[:-1].copy().reset_index(drop=True)
 
-    h1_signals = calculate_cross_signals(h1, args.sar_start, args.sar_increment, args.sar_maximum)
-    daily_signals = calculate_cross_signals(daily, args.sar_start, args.sar_increment, args.sar_maximum)
+    h1_signals, h1_sar = calculate_cross_signals(h1, args.sar_start, args.sar_increment, args.sar_maximum)
+    daily_signals, _ = calculate_cross_signals(daily, args.sar_start, args.sar_increment, args.sar_maximum)
 
     h1_close = float(h1["close"].iloc[-1])
     daily_close = float(daily["close"].iloc[-1])
+    h1_sar_last = h1_sar[-1]
+    # Cote H1 (au-dessus/en-dessous du SAR) : sert de porte de reveal/delist a
+    # la watchlist SAR BREAK (cf. update_sar_break_watchlist), independamment
+    # du vote last_h1/active_h1 deja utilise dans le calcul du trend.
+    h1_side = ("above" if h1_close > h1_sar_last else "below" if h1_close < h1_sar_last else None) \
+        if not math.isnan(h1_sar_last) else None
     momentum_d = _momentum(daily_signals, daily_close)
     momentum_h1 = _momentum(h1_signals, h1_close)
     last_d, active_d = _last_valid(daily_signals, daily_close)
@@ -184,6 +195,7 @@ def calculate(pair: str, args: argparse.Namespace) -> dict[str, Any]:
         "trend_percent": percent,
         "h1_line_state": bl.state_name(h1_line.state),
         "line_break_confirmed": bool(line_break_confirmed),
+        "h1_side": h1_side,
     }
 
 
@@ -559,20 +571,97 @@ def _print_filtered(results: list[dict[str, Any]], min_percent: int) -> None:
     print("+---------+---------+--------+---------+")
 
 
+# --- Watchlist SAR BREAK (accumulation + reveal/delist sur cross SAR H1) --
+# Meme principe que la watchlist RETRACE/OPPORTUNITY de imp_trend5_29pairs.py :
+# une paire filtree (cf. `filter_active`) entre dans une liste persistante des
+# qu'elle apparait, mais n'est envoyee sur Telegram qu'une fois que le close H1
+# passe du cote du SAR H1 qui correspond a son sens (BULL=au-dessus,
+# BEAR=en-dessous) -- tout de suite si c'est deja le cas, sinon au run ou le
+# SAR H1 bascule. Elle est delistee des que le close H1 repasse de l'autre
+# cote du SAR H1, et abandonnee (si jamais revelee) des qu'elle sort de
+# `filtered` -- plus rien a confirmer.
+SAR_BREAK_WATCHLIST_FILE = Path("imp_count_v2_sar_break_watchlist_state.json")
+
+
+def load_sar_break_watchlist(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_sar_break_watchlist(path: Path, watchlist: dict) -> None:
+    path.write_text(json.dumps(watchlist, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def update_sar_break_watchlist(
+    watchlist: dict, candidates: dict[str, dict[str, Any]], h1_sides: dict[str, str | None], now_iso: str,
+) -> dict:
+    """`candidates` : pair -> {"direction": "BULL"/"BEAR", "percent": int}, cf. `filtered`."""
+    for pair, cand in candidates.items():
+        if pair not in watchlist:
+            watchlist[pair] = {
+                "pair": pair, "direction": cand["direction"], "percent": cand["percent"],
+                "first_seen_utc": now_iso, "revealed": False, "revealed_at_utc": None,
+                "h1_side": h1_sides.get(pair),
+            }
+        elif not watchlist[pair]["revealed"]:
+            watchlist[pair]["direction"] = cand["direction"]
+            watchlist[pair]["percent"] = cand["percent"]
+        else:
+            watchlist[pair]["percent"] = cand["percent"]  # garde le % affiche a jour tant que revele
+
+    for pair in list(watchlist):
+        entry = watchlist[pair]
+        side = h1_sides.get(pair)
+        if side is None:
+            continue
+        aligned = (side == "above" and entry["direction"] == "BULL") or \
+                  (side == "below" and entry["direction"] == "BEAR")
+        if entry["revealed"]:
+            if not aligned:
+                del watchlist[pair]
+                continue
+        elif aligned:
+            entry["revealed"] = True
+            entry["revealed_at_utc"] = now_iso
+        entry["h1_side"] = side
+
+    for pair in list(watchlist):
+        if not watchlist[pair]["revealed"] and pair not in candidates:
+            del watchlist[pair]
+
+    return watchlist
+
+
+def print_sar_break_watchlist(watchlist: dict) -> None:
+    print("\nWATCHLIST SAR BREAK (accumulation, revele au cross SAR H1) :")
+    if not watchlist:
+        print("(vide)")
+        return
+    for pair, entry in sorted(watchlist.items()):
+        state = f"REVELE le {entry['revealed_at_utc']}" if entry["revealed"] \
+            else f"EN ATTENTE (cote H1/SAR actuelle : {entry['h1_side'] or 'inconnue'})"
+        print(f"  {pair:<7} {entry['direction']} ({entry['percent']}%) -> {state}")
+
+
 def build_telegram_message(
-    filtered: list[dict[str, Any]], trend_lines: list[str] | None = None,
+    revealed: list[dict[str, Any]], trend_lines: list[str] | None = None,
 ) -> str | None:
     """Message Telegram au même format que VIVIER (renko_score_29pairs_v16.py) :
     icônes 🟢/🔴 collées au nom de paire, triées du plus BULL au plus BEAR
-    (score signé +trend_percent si BULL / -trend_percent si BEAR,
-    décroissant -- un 🔴100% est le signal le plus BEAR, il termine donc la
-    liste, après un 🔴50% qui l'est moins), horodatage Paris en pied de
-    message. Retourne None si rien à annoncer : ni paire confirmée, ni
-    TENDANCE accumulée (cf. `trend_lines`) -- comme VIVIER.
+    (score signé +percent si BULL / -percent si BEAR, décroissant -- un
+    🔴100% est le signal le plus BEAR, il termine donc la liste, après un
+    🔴50% qui l'est moins), horodatage Paris en pied de message. Retourne
+    None si rien à annoncer : ni paire révélée par la watchlist SAR BREAK
+    (cf. `update_sar_break_watchlist`), ni TENDANCE accumulée (cf.
+    `trend_lines`) -- comme VIVIER.
 
     `trend_lines` (cf. `currency_trend_lines`) ajoute la section `📈 TENDANCE`
     juste avant l'horodatage, sur le même principe que `paire_check.py` :
-    disponible même les jours où `filtered` est vide, tant qu'un historique
+    disponible même les jours où `revealed` est vide, tant qu'un historique
     existe déjà pour au moins une paire suivie.
 
     La section FORCE DEVISES (cf. `_currency_exposure_lines`) n'est plus
@@ -580,18 +669,18 @@ def build_telegram_message(
     TENDANCE. Elle reste calculée et affichée en console (cf. `main`,
     `_print_currency_exposure`).
     """
-    if not filtered and not trend_lines:
+    if not revealed and not trend_lines:
         return None
 
-    def _signed_pct(result: dict[str, Any]) -> int:
-        return result["trend_percent"] if result["trend"] == "BULL" else -result["trend_percent"]
+    def _signed_pct(row: dict[str, Any]) -> int:
+        return row["percent"] if row["direction"] == "BULL" else -row["percent"]
 
-    ordered = sorted(filtered, key=lambda r: (-_signed_pct(r), r["pair"]))
+    ordered = sorted(revealed, key=lambda r: (-_signed_pct(r), r["pair"]))
 
     lines = ["📊 SAR BREAK", ""]
-    for result in ordered:
-        icon = "🟢" if result["trend"] == "BULL" else "🔴"
-        lines.append(f"{icon}{result['pair']} ({result['trend_percent']}%)")
+    for row in ordered:
+        icon = "🟢" if row["direction"] == "BULL" else "🔴"
+        lines.append(f"{icon}{row['pair']} ({row['percent']}%)")
 
     if trend_lines:
         lines.append("")
@@ -630,6 +719,10 @@ def parse_args() -> argparse.Namespace:
         "--trend-state-file", default=str(CURRENCY_TREND_STATE_FILE),
         help="Fichier d'état JSON du compteur monté/baissé de TENDANCE, remis à zéro chaque jour Paris.",
     )
+    parser.add_argument(
+        "--watchlist-file", default=str(SAR_BREAK_WATCHLIST_FILE),
+        help="Fichier d'état JSON de la watchlist SAR BREAK (reveal/delist sur cross SAR H1).",
+    )
     return parser.parse_args()
 
 
@@ -661,6 +754,18 @@ def main() -> int:
 
     filtered = filter_active(results, args.min_percent)
 
+    now_iso = datetime.now(tv.PARIS).isoformat()
+    h1_sides = {r["pair"]: r.get("h1_side") for r in results}
+    candidates = {r["pair"]: {"direction": r["trend"], "percent": r["trend_percent"]} for r in filtered}
+    watchlist_path = Path(args.watchlist_file)
+    watchlist = load_sar_break_watchlist(watchlist_path)
+    watchlist = update_sar_break_watchlist(watchlist, candidates, h1_sides, now_iso)
+    save_sar_break_watchlist(watchlist_path, watchlist)
+    revealed = [
+        {"pair": pair, "direction": entry["direction"], "percent": entry["percent"]}
+        for pair, entry in watchlist.items() if entry["revealed"]
+    ]
+
     # TENDANCE se base sur `results` complets (hors NEUTRE), pas `filtered` :
     # elle reste alimentée même les jours sans paire retenue pour SAR BREAK
     # (cf. commentaire au-dessus de `signed_currency_net`).
@@ -674,20 +779,21 @@ def main() -> int:
     trend_lines = currency_trend_lines(args.trend_pairs, new_trend_state)
 
     if args.telegram:
-        message = build_telegram_message(filtered, trend_lines)
+        message = build_telegram_message(revealed, trend_lines)
         if message is None:
-            print("Telegram: rien à envoyer (aucune paire confirmée ni tendance accumulée).")
+            print("Telegram: rien à envoyer (aucune paire révélée ni tendance accumulée).")
         else:
             bl.send_telegram_message(message)
 
     if args.as_json:
         print(json.dumps({"results": sorted(results, key=lambda item: item["pair"]),
-                          "errors": errors, "filtered": filtered},
+                          "errors": errors, "filtered": filtered, "watchlist": watchlist},
                           ensure_ascii=False, indent=2))
     else:
         _print_summary(results, errors)
         _print_filtered(filtered, args.min_percent)
         _print_currency_exposure(filtered)
+        print_sar_break_watchlist(watchlist)
         if trend_lines:
             print()
             for line in trend_lines:
