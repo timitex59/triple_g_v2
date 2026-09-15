@@ -204,9 +204,9 @@
       "20-21": {
         "best_pips": 2.80000000000058,
         "flat": 0,
-        "negative": 3,
-        "observations": 8,
-        "pips": -6.299999999999084,
+        "negative": 4,
+        "observations": 9,
+        "pips": -8.500000000000174,
         "positive": 5,
         "samples": [
           0.8000000000008001,
@@ -216,7 +216,8 @@
           -6.399999999999739,
           1.9999999999997797,
           -2.100000000000435,
-          2.80000000000058
+          2.80000000000058,
+          -2.20000000000109
         ],
         "worst_pips": -6.399999999999739
       },
@@ -2691,6 +2692,19 @@
           "start_price": 0.58378,
           "start_time_paris": "2026-09-15T16:00:00+02:00",
           "start_time_utc": "2026-09-15T14:00:00+00:00"
+        },
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-09-15",
+          "direction": 1,
+          "end_price": 0.58376,
+          "end_time_paris": "2026-09-15T21:00:00+02:00",
+          "end_time_utc": "2026-09-15T19:00:00+00:00",
+          "pair": "AUDCHF",
+          "pips": -1.000000000001,
+          "start_price": 0.58386,
+          "start_time_paris": "2026-09-15T19:00:00+02:00",
+          "start_time_utc": "2026-09-15T17:00:00+00:00"
         }
       ],
       "date": "2026-09-15",
@@ -2712,50 +2726,36 @@
       ]
     }
   },
-  "open_confirmed_segments": {
-    "AUDCHF": {
-      "current_pips": 1.2000000000000899,
-      "date": "2026-09-15",
-      "direction": 1,
-      "hourly_last_price": 0.58398,
-      "hourly_last_time_utc": "2026-09-15T18:00:00+00:00",
-      "last_price": 0.58398,
-      "last_time_utc": "2026-09-15T18:00:00+00:00",
-      "pair": "AUDCHF",
-      "start_price": 0.58386,
-      "start_time_paris": "2026-09-15T19:00:00+02:00",
-      "start_time_utc": "2026-09-15T17:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
   "open_segments": {
     "AUDCAD": {
-      "current_pips": 10.800000000000809,
+      "current_pips": 16.800000000000146,
       "date": "2026-09-15",
       "direction": 1,
-      "last_price": 0.99182,
-      "last_time_utc": "2026-09-15T18:00:00+00:00",
+      "last_price": 0.99242,
+      "last_time_utc": "2026-09-15T19:00:00+00:00",
       "pair": "AUDCAD",
       "start_price": 0.99074,
       "start_time_paris": "2026-09-15T10:00:00+02:00",
       "start_time_utc": "2026-09-15T08:00:00+00:00"
     },
     "AUDCHF": {
-      "current_pips": 13.600000000000279,
+      "current_pips": 11.399999999999189,
       "date": "2026-09-15",
       "direction": 1,
-      "last_price": 0.58398,
-      "last_time_utc": "2026-09-15T18:00:00+00:00",
+      "last_price": 0.58376,
+      "last_time_utc": "2026-09-15T19:00:00+00:00",
       "pair": "AUDCHF",
       "start_price": 0.58262,
       "start_time_paris": "2026-09-15T07:00:00+02:00",
       "start_time_utc": "2026-09-15T05:00:00+00:00"
     },
     "EURAUD": {
-      "current_pips": 18.400000000000638,
+      "current_pips": 16.199999999999548,
       "date": "2026-09-15",
       "direction": -1,
-      "last_price": 1.61832,
-      "last_time_utc": "2026-09-15T18:00:00+00:00",
+      "last_price": 1.61854,
+      "last_time_utc": "2026-09-15T19:00:00+00:00",
       "pair": "EURAUD",
       "start_price": 1.62016,
       "start_time_paris": "2026-09-15T07:00:00+02:00",
@@ -2807,6 +2807,6 @@
       "2026-W37"
     ]
   },
-  "updated_at_paris": "2026-09-15T20:17:49.412474+02:00",
+  "updated_at_paris": "2026-09-15T21:00:04.415529+02:00",
   "version": 3
 }
