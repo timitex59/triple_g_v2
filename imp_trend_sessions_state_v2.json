@@ -1626,8 +1626,8 @@
     "Tokyo": {
       "realized_pips": -386.99999999998795,
       "current_session_realized_pips": 0.0,
-      "last_session_pips": -55.400000000001,
-      "active_session_id": "2026-09-15",
+      "last_session_pips": 0.0,
+      "active_session_id": null,
       "positions": {},
       "events": [
         {
@@ -3095,7 +3095,7 @@
       ],
       "unrealized_pips": 0.0,
       "total_pips": -386.99999999998795,
-      "is_active": true,
+      "is_active": false,
       "daily_pips": 0.0,
       "daily_pips_history": [
         {
@@ -3112,6 +3112,10 @@
         },
         {
           "time_utc": "2026-09-15T06:20:01.141642+00:00",
+          "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-09-15T07:20:03.968393+00:00",
           "daily_pips": 0.0
         }
       ],
@@ -4731,6 +4735,10 @@
       "daily_pips_history": [
         {
           "time_utc": "2026-09-15T06:20:01.141642+00:00",
+          "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-09-15T07:20:03.968393+00:00",
           "daily_pips": 0.0
         }
       ],
@@ -6771,5 +6779,5 @@
       "comparison_pips": -113.39999999998635
     }
   },
-  "updated_at": "2026-09-15T06:20:01.141642+00:00"
+  "updated_at": "2026-09-15T07:20:03.968393+00:00"
 }
