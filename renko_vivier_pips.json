@@ -2793,6 +2793,19 @@
           "start_price": 0.58418,
           "start_time_paris": "2026-09-16T13:00:00+02:00",
           "start_time_utc": "2026-09-16T11:00:00+00:00"
+        },
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-09-16",
+          "direction": 1,
+          "end_price": 0.58414,
+          "end_time_paris": "2026-09-16T18:00:00+02:00",
+          "end_time_utc": "2026-09-16T16:00:00+00:00",
+          "pair": "AUDCHF",
+          "pips": 0.0,
+          "start_price": 0.58414,
+          "start_time_paris": "2026-09-16T18:00:00+02:00",
+          "start_time_utc": "2026-09-16T16:00:00+00:00"
         }
       ],
       "date": "2026-09-16",
@@ -2800,21 +2813,7 @@
       "segments": []
     }
   },
-  "open_confirmed_segments": {
-    "AUDCHF": {
-      "current_pips": 0.0,
-      "date": "2026-09-16",
-      "direction": 1,
-      "hourly_last_price": 0.58414,
-      "hourly_last_time_utc": "2026-09-16T16:00:00+00:00",
-      "last_price": 0.58414,
-      "last_time_utc": "2026-09-16T16:00:00+00:00",
-      "pair": "AUDCHF",
-      "start_price": 0.58414,
-      "start_time_paris": "2026-09-16T18:00:00+02:00",
-      "start_time_utc": "2026-09-16T16:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
   "open_segments": {
     "AUDCAD": {
       "current_pips": 7.800000000000029,
@@ -2896,6 +2895,6 @@
       "2026-W37"
     ]
   },
-  "updated_at_paris": "2026-09-16T18:17:17.804737+02:00",
+  "updated_at_paris": "2026-09-16T18:51:22.013202+02:00",
   "version": 3
 }
