@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-16T19:18:56.086812+00:00",
+  "updated_at": "2026-09-16T20:08:51.103106+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -188.69999999999865,
@@ -9,8 +9,8 @@
       "unrealized_pips": 0.0,
       "total_pips": -188.69999999999865,
       "daily_pips": 0.0,
-      "is_active": false,
-      "active_session_id": null,
+      "is_active": true,
+      "active_session_id": "2026-09-16",
       "positions": {},
       "events": [
         {
@@ -1767,31 +1767,7 @@
       ],
       "daily_pips_history": [
         {
-          "time_utc": "2026-09-15T20:18:55.281491+00:00",
-          "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-15T21:19:14.609227+00:00",
-          "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-15T22:15:07.206406+00:00",
-          "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-15T22:29:26.227555+00:00",
-          "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-15T22:50:39.238946+00:00",
-          "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-16T00:20:34.460634+00:00",
-          "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-16T05:18:47.780304+00:00",
+          "time_utc": "2026-09-16T20:08:51.103106+00:00",
           "daily_pips": 0.0
         }
       ],
@@ -5468,12 +5444,12 @@
     "New York": {
       "realized_pips": 19.70000000000628,
       "current_session_realized_pips": 16.699999999997274,
-      "last_session_pips": 0.0,
+      "last_session_pips": 16.699999999997274,
       "unrealized_pips": 0.0,
       "total_pips": 19.70000000000628,
       "daily_pips": 16.699999999997274,
-      "is_active": true,
-      "active_session_id": "2026-09-16",
+      "is_active": false,
+      "active_session_id": null,
       "positions": {},
       "events": [
         {
@@ -7883,6 +7859,10 @@
         },
         {
           "time_utc": "2026-09-16T19:18:56.086812+00:00",
+          "daily_pips": 16.699999999997274
+        },
+        {
+          "time_utc": "2026-09-16T20:08:51.103106+00:00",
           "daily_pips": 16.699999999997274
         }
       ],
