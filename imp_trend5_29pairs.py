@@ -233,6 +233,17 @@ def print_summary(summary):
         print('    aucune')
 
 
+def pair_touches_currency(pair, currencies):
+    """True si `pair` implique une des devises de `currencies` (base ou quote),
+    ou si `currencies` est vide (pas de restriction). Sert a concentrer la
+    watchlist RETRACE/OPPORTUNITY sur un sous-ensemble de devises (ex. JPY)
+    sans changer le calcul de force par devise, qui reste base sur les 29
+    paires (cf. `--focus-currencies` dans `main`)."""
+    if not currencies:
+        return True
+    return pair[:3] in currencies or pair[3:] in currencies
+
+
 def find_canonical_pair(currency_a, currency_b, all_pairs):
     """The traded symbol (e.g. NZDJPY, not JPYNZD) for two currency codes, or None."""
     wanted = {currency_a, currency_b}
@@ -402,6 +413,10 @@ def main():
     parser.add_argument('--json', type=Path, default=Path('imp_trend5_29pairs.json'))
     parser.add_argument('--watchlist-json', type=Path, default=Path('imp_trend5_watchlist_state.json'),
                          help='Etat persistant de la watchlist RETRACE/OPPORTUNITY (reveal au cross SAR H1)')
+    parser.add_argument('--focus-currencies', nargs='*', default=['JPY'],
+                         help="Devises sur lesquelles restreindre la watchlist RETRACE/OPPORTUNITY (defaut : JPY). "
+                              "Le calcul de force par devise reste base sur les 29 paires ; "
+                              "--focus-currencies sans argument desactive la restriction (garde tout).")
     parser.add_argument('--telegram', action='store_true',
                          help='Envoyer le resume RESUME+OPPORTUNITY sur Telegram a la fin du scan')
     args = parser.parse_args()
@@ -468,6 +483,8 @@ def main():
         candidates[row['pair']] = dict(direction=row['direction'], source='RETRACE')
     for o in opportunity_list:
         candidates[o['pair']] = dict(direction=o['direction'], source='OPPORTUNITY')
+    candidates = {pair: cand for pair, cand in candidates.items()
+                  if pair_touches_currency(pair, args.focus_currencies)}
     watchlist = load_watchlist(args.watchlist_json)
     watchlist = update_watchlist(watchlist, candidates, h1_sides, now_iso)
     args.watchlist_json.parent.mkdir(parents=True, exist_ok=True)

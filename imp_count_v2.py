@@ -588,6 +588,16 @@ def _print_filtered(results: list[dict[str, Any]], min_percent: int) -> None:
 SAR_BREAK_WATCHLIST_FILE = Path("imp_count_v2_sar_break_watchlist_state.json")
 
 
+def pair_touches_currency(pair: str, currencies: list[str]) -> bool:
+    """True si `pair` implique une des devises de `currencies` (base ou quote),
+    ou si `currencies` est vide (pas de restriction) -- cf. `--focus-currencies`
+    dans `main`. Le filtrage/vote SAR BREAK lui-meme reste base sur les 29
+    paires ; seule la watchlist (donc l'affichage Telegram) est restreinte."""
+    if not currencies:
+        return True
+    return pair[:3] in currencies or pair[3:] in currencies
+
+
 def load_sar_break_watchlist(path: Path) -> dict:
     if not path.exists():
         return {}
@@ -728,6 +738,11 @@ def parse_args() -> argparse.Namespace:
         "--watchlist-file", default=str(SAR_BREAK_WATCHLIST_FILE),
         help="Fichier d'état JSON de la watchlist SAR BREAK (reveal/delist sur cross SAR H1).",
     )
+    parser.add_argument(
+        "--focus-currencies", nargs="*", default=["JPY"],
+        help="Devises sur lesquelles restreindre la watchlist SAR BREAK (défaut : JPY). Le scan et le vote "
+             "restent basés sur les 29 paires ; --focus-currencies sans argument désactive la restriction.",
+    )
     return parser.parse_args()
 
 
@@ -762,6 +777,8 @@ def main() -> int:
     now_iso = datetime.now(tv.PARIS).isoformat()
     h1_sides = {r["pair"]: r.get("h1_side") for r in results}
     candidates = {r["pair"]: {"direction": r["trend"], "percent": r["trend_percent"]} for r in filtered}
+    candidates = {pair: cand for pair, cand in candidates.items()
+                  if pair_touches_currency(pair, args.focus_currencies)}
     watchlist_path = Path(args.watchlist_file)
     watchlist = load_sar_break_watchlist(watchlist_path)
     watchlist = update_sar_break_watchlist(watchlist, candidates, h1_sides, now_iso)

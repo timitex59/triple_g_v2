@@ -169,6 +169,12 @@ def parse_args():
     parser.add_argument("--vivier-pips", default=VIVIER_PIPS_PATH, help="Persistent daily/weekly/monthly VIVIER pip tracker.")
     parser.add_argument("--price-trend-state", default=VIVIER_PRICE_TREND_PATH,
                         help="Persistent live-price arrows for Telegram pair lines.")
+    parser.add_argument(
+        "--focus-currencies", nargs="*", default=["JPY"],
+        help="Currencies to restrict the per-pair sections to (SIGNAL VIVIER, SUIVI SIGNAL, VIVIER BULL/BEAR, "
+             "PAIRES FORT/FAIBLE); default JPY. The aggregate pip-performance sections stay portfolio-wide "
+             "across all 29 pairs. Pass --focus-currencies with no value to disable the restriction.",
+    )
     return parser.parse_args()
 
 
@@ -3402,9 +3408,19 @@ def fibo_theoretical_pairs(rows: list[dict] | None,
     return sorted(ideas, key=lambda item: (-float(item["edge"]), item["pair"]))
 
 
+def pair_touches_currency(pair: str, currencies: list[str] | None) -> bool:
+    """True if `pair` involves one of `currencies` (base or quote), or if
+    `currencies` is empty/None (no restriction) -- cf. `--focus-currencies`."""
+    if not currencies:
+        return True
+    return pair[:3] in currencies or pair[3:] in currencies
+
+
 def fibo_theoretical_pairs_lines(rows: list[dict] | None,
-                                 vivier_entries: dict[str, dict] | None = None) -> list[str]:
+                                 vivier_entries: dict[str, dict] | None = None,
+                                 focus_currencies: list[str] | None = None) -> list[str]:
     ideas = fibo_theoretical_pairs(rows, vivier_entries=vivier_entries)
+    ideas = [idea for idea in ideas if pair_touches_currency(idea["pair"], focus_currencies)]
     if not ideas:
         return []
     vivier_currencies = set(vivier_currency_roles(vivier_entries))
@@ -3697,17 +3713,30 @@ def build_telegram_message(rows: list[dict], all_rows: list[dict] | None = None,
                            vivier_signals: list[dict] | None = None,
                            pip_report: dict | None = None,
                            pip_state: dict | None = None,
-                           price_trends: dict | None = None) -> str | None:
+                           price_trends: dict | None = None,
+                           focus_currencies: list[str] | None = None) -> str | None:
     vivier_signals = vivier_signals or []
     vivier_state = vivier_state or {}
-    bull_vivier, bear_vivier = vivier_groups(vivier_state)
-    post_signal_entries = post_signal_tracking_entries(vivier_state, all_rows)
+    bull_vivier_all, bear_vivier_all = vivier_groups(vivier_state)
+    post_signal_entries_all = post_signal_tracking_entries(vivier_state, all_rows)
     strength_rows = all_rows if all_rows is not None else rows
-    active_vivier_entries = dict(bull_vivier + bear_vivier)
+    # Le tag 🌱 de PAIRES FORT/FAIBLE reste base sur le book VIVIER complet
+    # (les 29 paires) -- seules les sections d'affichage ci-dessous sont
+    # restreintes a `focus_currencies` (cf. --focus-currencies).
+    active_vivier_entries = dict(bull_vivier_all + bear_vivier_all)
     theoretical_pairs = fibo_theoretical_pairs_lines(
         strength_rows,
         vivier_entries=active_vivier_entries,
+        focus_currencies=focus_currencies,
     )
+    bull_vivier = [(pair, entry) for pair, entry in bull_vivier_all
+                   if pair_touches_currency(pair, focus_currencies)]
+    bear_vivier = [(pair, entry) for pair, entry in bear_vivier_all
+                   if pair_touches_currency(pair, focus_currencies)]
+    post_signal_entries = [item for item in post_signal_entries_all
+                            if pair_touches_currency(item["pair"], focus_currencies)]
+    vivier_signals = [signal for signal in vivier_signals
+                       if pair_touches_currency(signal["pair"], focus_currencies)]
     intraday_pip_lines = vivier_pip_intraday_lines(pip_report)
     period_pip_lines = vivier_pip_period_lines(pip_report)
     general_pip_lines = vivier_pip_general_lines(pip_report)
@@ -3913,6 +3942,7 @@ def main() -> int:
         pip_report=pip_report,
         pip_state=pip_state,
         price_trends=price_trends,
+        focus_currencies=args.focus_currencies,
     )
     if message is None:
         print("\nVIVIER vide ou aucune prise de position : aucun message Telegram envoyé.")

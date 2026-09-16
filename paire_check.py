@@ -131,7 +131,9 @@ VOTE_BALL = {"BULL": "🟢", "BEAR": "🔴", "NEUTRAL": "⚪"}
 # Modifier cette liste (ou passer --pairs) pour suivre d'autres paires.
 DEFAULT_PAIRS = ["EURUSD"]
 # Devises avec leur propre section "🏆 BEST PAIRE {devise}" (ou --focus-currency).
-DEFAULT_FOCUS_CURRENCIES: list[str] = []
+# Non vide : la section BEST PAIRE generale (8 devises) est masquee, cf.
+# `build_message` -- ne garder que les devises focus evite de se disperser.
+DEFAULT_FOCUS_CURRENCIES: list[str] = ["JPY"]
 STATE_FILE = Path("paire_check_price_trend_state.json")
 # Compteur monte/baisse (bille INDEX) par paire suivie -- fichier propre a ce
 # script, distinct de STATE_FILE (etat 06h/RUN, gere par update_price_trends
@@ -589,8 +591,10 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
     coeur du message).
 
     `focus_currencies` (ex. `["JPY"]`) ajoute une section `🏆 BEST PAIRE
-    {devise}` par devise, apres la section BEST PAIRE generale -- cf.
-    `best_pair_names(..., only_currency=devise)`.
+    {devise}` par devise -- cf. `best_pair_names(..., only_currency=devise)`.
+    Non vide, elle remplace aussi la section BEST PAIRE generale (8 devises)
+    plutot que de s'y ajouter : concentrer le message sur les devises focus
+    plutot que de le disperser sur les 8.
 
     `trend_lines` (cf. `index_trend_lines`) ajoute la section `📈 TENDANCE`
     en fin de message, avant l'horodatage -- disponible meme quand les
@@ -608,12 +612,14 @@ def build_message(pairs: list[str], rows_by_pair: dict[str, dict],
     if index_lines:
         lines.extend(index_lines)
         lines.append("")
-    best_lines = best_pair_lines(
-        best_pair_names(index_rows, imp_by_currency or {}), rows_by_pair, price_trends, index_by_currency,
-    )
-    if best_lines:
-        lines.extend(best_lines)
-        lines.append("")
+    best_lines = []
+    if not focus_currencies:
+        best_lines = best_pair_lines(
+            best_pair_names(index_rows, imp_by_currency or {}), rows_by_pair, price_trends, index_by_currency,
+        )
+        if best_lines:
+            lines.extend(best_lines)
+            lines.append("")
     has_focus_content = False
     for currency in (focus_currencies or []):
         focus_lines = best_pair_lines(

@@ -436,7 +436,7 @@ class PaireCheckTests(unittest.TestCase):
 
         self.assertNotIn("🏆 BEST PAIRE", message)
 
-    def test_build_message_adds_a_focus_currency_section_after_the_general_one(self):
+    def test_build_message_replaces_the_general_section_with_focus_currencies(self):
         rows_by_pair = {
             "EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"},
             "EURJPY": {"pair": "EURJPY", "asset_type": "PAIR"},
@@ -450,9 +450,9 @@ class PaireCheckTests(unittest.TestCase):
             "USD": index_row("DXY", "USD", -1, -1, -1, daily_chg=-1.57),
             "JPY": index_row("JYX", "JPY", -1, -1, -1, daily_chg=-1.66),
         }
-        # EUR doublement BULL, USD et JPY doublement BEAR -> general = EURUSD
-        # + EURJPY, focus JPY = EURJPY seulement (pas EURUSD, USD n'est pas
-        # la devise ciblee).
+        # EUR doublement BULL, USD et JPY doublement BEAR -> avec focus=["JPY"],
+        # seule la section BEST PAIRE JPY est emise (EURJPY), la section
+        # generale (qui aurait aussi inclus EURUSD) est masquee.
         imp_by_currency = {
             "EUR": make_currency_row(),
             "USD": make_currency_row(
@@ -468,16 +468,11 @@ class PaireCheckTests(unittest.TestCase):
             ["EURUSD"], rows_by_pair, price_trends, index_by_currency, now, imp_by_currency, ["JPY"],
         )
 
-        self.assertIn("🏆 BEST PAIRE", message)
+        self.assertNotIn("🏆 BEST PAIRE\n", message)  # section generale masquee des qu'un focus est actif
         self.assertIn("🏆 BEST PAIRE JPY", message)
         self.assertNotIn("PAIRES", message)  # 2026-09-04: section retiree
-        self.assertLess(message.index("🏆 BEST PAIRE\n"), message.index("🏆 BEST PAIRE JPY"))
-        general_section = message[message.index("🏆 BEST PAIRE\n"):message.index("🏆 BEST PAIRE JPY")]
-        focus_section = message[message.index("🏆 BEST PAIRE JPY"):]
-        self.assertIn("EURUSD", general_section)
-        self.assertIn("EURJPY", general_section)  # les deux dans la section generale
-        self.assertIn("EURJPY", focus_section)
-        self.assertNotIn("EURUSD", focus_section)  # focus JPY: pas de paire hors JPY
+        self.assertIn("EURJPY", message)
+        self.assertNotIn("EURUSD", message)  # EURUSD (hors JPY) n'apparait plus du tout
 
     def test_build_message_without_focus_currencies_has_no_focus_section(self):
         rows_by_pair = {"EURUSD": {"pair": "EURUSD", "asset_type": "PAIR"}}
