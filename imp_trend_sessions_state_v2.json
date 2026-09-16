@@ -3141,8 +3141,8 @@
     "Londres": {
       "realized_pips": -7.699999999998628,
       "current_session_realized_pips": -4.799999999998139,
-      "last_session_pips": 0.0,
-      "active_session_id": "2026-09-16",
+      "last_session_pips": -4.799999999998139,
+      "active_session_id": null,
       "positions": {},
       "events": [
         {
@@ -4831,7 +4831,7 @@
       ],
       "unrealized_pips": 0.0,
       "total_pips": -7.699999999998628,
-      "is_active": true,
+      "is_active": false,
       "daily_pips": -4.799999999998139,
       "daily_pips_history": [
         {
@@ -4877,6 +4877,10 @@
         {
           "time_utc": "2026-09-16T14:20:06.447423+00:00",
           "daily_pips": -4.799999999998139
+        },
+        {
+          "time_utc": "2026-09-16T15:20:00.877074+00:00",
+          "daily_pips": -4.799999999998139
         }
       ],
       "comparison_baseline": -13.500000000001933,
@@ -4887,7 +4891,33 @@
       "current_session_realized_pips": -4.799999999998139,
       "last_session_pips": 0.0,
       "active_session_id": "2026-09-16",
-      "positions": {},
+      "positions": {
+        "AUDCAD": {
+          "direction": "BULL",
+          "entry_price": 0.99402,
+          "entry_time_utc": "2026-09-16T15:20:00.877074+00:00"
+        },
+        "AUDCHF": {
+          "direction": "BULL",
+          "entry_price": 0.58396,
+          "entry_time_utc": "2026-09-16T15:20:00.877074+00:00"
+        },
+        "AUDNZD": {
+          "direction": "BULL",
+          "entry_price": 1.23788,
+          "entry_time_utc": "2026-09-16T15:20:00.877074+00:00"
+        },
+        "GBPAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.88625,
+          "entry_time_utc": "2026-09-16T15:20:00.877074+00:00"
+        },
+        "EURAUD": {
+          "direction": "BEAR",
+          "entry_price": 1.61775,
+          "entry_time_utc": "2026-09-16T15:20:00.877074+00:00"
+        }
+      },
       "events": [
         {
           "time_utc": "2026-08-26T11:19:39.893466+00:00",
@@ -6945,6 +6975,41 @@
           "exit_price": 1.61792,
           "pips": -1.40000000000029,
           "reason": "INVALIDATED"
+        },
+        {
+          "time_utc": "2026-09-16T15:20:00.877074+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCAD",
+          "direction": "BULL",
+          "entry_price": 0.99402
+        },
+        {
+          "time_utc": "2026-09-16T15:20:00.877074+00:00",
+          "event": "ENTRY",
+          "pair": "AUDCHF",
+          "direction": "BULL",
+          "entry_price": 0.58396
+        },
+        {
+          "time_utc": "2026-09-16T15:20:00.877074+00:00",
+          "event": "ENTRY",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.23788
+        },
+        {
+          "time_utc": "2026-09-16T15:20:00.877074+00:00",
+          "event": "ENTRY",
+          "pair": "GBPAUD",
+          "direction": "BEAR",
+          "entry_price": 1.88625
+        },
+        {
+          "time_utc": "2026-09-16T15:20:00.877074+00:00",
+          "event": "ENTRY",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.61775
         }
       ],
       "unrealized_pips": 0.0,
@@ -6971,11 +7036,15 @@
         {
           "time_utc": "2026-09-16T14:20:06.447423+00:00",
           "daily_pips": -4.799999999998139
+        },
+        {
+          "time_utc": "2026-09-16T15:20:00.877074+00:00",
+          "daily_pips": -4.799999999998139
         }
       ],
       "comparison_baseline": 5.399999999995986,
       "comparison_pips": -118.19999999998448
     }
   },
-  "updated_at": "2026-09-16T14:20:06.447423+00:00"
+  "updated_at": "2026-09-16T15:20:00.877074+00:00"
 }
