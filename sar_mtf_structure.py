@@ -202,18 +202,29 @@ def format_compact_line(result: dict) -> str:
     return f"{result['label']}\t{DIRECTION_ICON[result['d1_direction']]}{valid_icon}{DIRECTION_ICON[result['h1_direction']]}"
 
 
+STATUS_ORDER = {"CONVERGENT": 0, "DIVERGENT": 1, "D1_REJECTED": 2, "NEUTRAL": 3}
+
+
 def build_telegram_message(pair_results: list[dict], currency_results: list[dict]) -> str | None:
-    """Only CONVERGENT/DIVERGENT entries are shown -- D1_REJECTED/NEUTRAL carry
-    no tradeable read (cf. module docstring). None if nothing qualifies on
-    either side, same convention as the rest of the pipeline (VIVIER, SAR
-    BREAK, TREND): silence rather than an empty shell."""
+    """PAIRES only shows CONVERGENT/DIVERGENT entries (a tradeable read).
+    DEVISES shows every non-neutral D1 (CONVERGENT/DIVERGENT/D1_REJECTED) --
+    the D1_REJECTED currencies are still worth seeing here even without a
+    tradeable H1 match, since they show which currency legs are driving the
+    rejections across the pairs. NEUTRAL (D1 at 50/50) stays hidden on both
+    sides -- no read at all. None if both sections end up empty, same
+    convention as the rest of the pipeline (VIVIER, SAR BREAK, TREND):
+    silence rather than an empty shell."""
     lines = ["\U0001f9ed MTF SAR STRUCTURE", ""]
     has_content = False
-    for section_title, results in (("PAIRES", pair_results), ("DEVISES", currency_results)):
-        signal = [r for r in results if r["status"] in ("CONVERGENT", "DIVERGENT")]
+    sections = (
+        ("PAIRES", pair_results, {"CONVERGENT", "DIVERGENT"}),
+        ("DEVISES", currency_results, {"CONVERGENT", "DIVERGENT", "D1_REJECTED"}),
+    )
+    for section_title, results, wanted_statuses in sections:
+        signal = [r for r in results if r["status"] in wanted_statuses]
         if not signal:
             continue
-        signal.sort(key=lambda r: (r["status"] != "CONVERGENT", -(r["d1_percent"] or 0)))
+        signal.sort(key=lambda r: (STATUS_ORDER[r["status"]], -(r["d1_percent"] or 0)))
         lines.append(section_title)
         lines.extend(format_compact_line(r) for r in signal)
         lines.append("")
