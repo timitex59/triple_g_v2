@@ -2778,10 +2778,50 @@
           "start_time_utc": "2026-09-15T05:00:00+00:00"
         }
       ]
+    },
+    "2026-09-16": {
+      "confirmed_segments": [],
+      "date": "2026-09-16",
+      "finalized": false,
+      "segments": []
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {},
+  "open_segments": {
+    "AUDCAD": {
+      "current_pips": 0.0,
+      "date": "2026-09-16",
+      "direction": 1,
+      "last_price": 0.99301,
+      "last_time_utc": "2026-09-16T05:00:00+00:00",
+      "pair": "AUDCAD",
+      "start_price": 0.99301,
+      "start_time_paris": "2026-09-16T07:00:00+02:00",
+      "start_time_utc": "2026-09-16T05:00:00+00:00"
+    },
+    "AUDCHF": {
+      "current_pips": 0.0,
+      "date": "2026-09-16",
+      "direction": 1,
+      "last_price": 0.58364,
+      "last_time_utc": "2026-09-16T05:00:00+00:00",
+      "pair": "AUDCHF",
+      "start_price": 0.58364,
+      "start_time_paris": "2026-09-16T07:00:00+02:00",
+      "start_time_utc": "2026-09-16T05:00:00+00:00"
+    },
+    "EURAUD": {
+      "current_pips": -0.0,
+      "date": "2026-09-16",
+      "direction": -1,
+      "last_price": 1.6193,
+      "last_time_utc": "2026-09-16T05:00:00+00:00",
+      "pair": "EURAUD",
+      "start_price": 1.6193,
+      "start_time_paris": "2026-09-16T07:00:00+02:00",
+      "start_time_utc": "2026-09-16T05:00:00+00:00"
+    }
+  },
   "reports_sent": {
     "general_daily": [
       "2026-08-10",
@@ -2828,6 +2868,6 @@
       "2026-W37"
     ]
   },
-  "updated_at_paris": "2026-09-16T02:17:31.025003+02:00",
+  "updated_at_paris": "2026-09-16T07:15:44.739149+02:00",
   "version": 3
 }

@@ -17,22 +17,22 @@
     "revealed_at_utc": null,
     "source": "RETRACE"
   },
-  "EURAUD": {
+  "CHFJPY": {
     "direction": "BEAR",
-    "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
+    "first_seen_utc": "2026-09-16T05:21:40.923373+00:00",
     "h1_side": "above",
-    "pair": "EURAUD",
+    "pair": "CHFJPY",
     "revealed": false,
     "revealed_at_utc": null,
-    "source": "RETRACE"
+    "source": "OPPORTUNITY"
   },
   "EURGBP": {
     "direction": "BEAR",
     "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
-    "h1_side": "above",
+    "h1_side": "below",
     "pair": "EURGBP",
-    "revealed": false,
-    "revealed_at_utc": null,
+    "revealed": true,
+    "revealed_at_utc": "2026-09-16T05:21:40.923373+00:00",
     "source": "RETRACE"
   },
   "GBPCAD": {
@@ -47,10 +47,10 @@
   "GBPCHF": {
     "direction": "BULL",
     "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
-    "h1_side": "below",
+    "h1_side": "above",
     "pair": "GBPCHF",
-    "revealed": false,
-    "revealed_at_utc": null,
+    "revealed": true,
+    "revealed_at_utc": "2026-09-16T05:21:40.923373+00:00",
     "source": "OPPORTUNITY"
   },
   "GBPNZD": {
@@ -70,32 +70,5 @@
     "revealed": true,
     "revealed_at_utc": "2026-09-15T22:18:00.443393+00:00",
     "source": "RETRACE"
-  },
-  "NZDJPY": {
-    "direction": "BEAR",
-    "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
-    "h1_side": "below",
-    "pair": "NZDJPY",
-    "revealed": true,
-    "revealed_at_utc": "2026-09-16T00:23:27.560579+00:00",
-    "source": "OPPORTUNITY"
-  },
-  "NZDUSD": {
-    "direction": "BEAR",
-    "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
-    "h1_side": "below",
-    "pair": "NZDUSD",
-    "revealed": true,
-    "revealed_at_utc": "2026-09-16T00:23:27.560579+00:00",
-    "source": "OPPORTUNITY"
-  },
-  "USDCHF": {
-    "direction": "BULL",
-    "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
-    "h1_side": "above",
-    "pair": "USDCHF",
-    "revealed": true,
-    "revealed_at_utc": "2026-09-16T00:23:27.560579+00:00",
-    "source": "OPPORTUNITY"
   }
 }
