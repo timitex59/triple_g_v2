@@ -8,14 +8,14 @@
     "revealed_at_utc": null,
     "source": "RETRACE"
   },
-  "CHFJPY": {
-    "direction": "BEAR",
-    "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
+  "CADCHF": {
+    "direction": "BULL",
+    "first_seen_utc": "2026-09-16T00:23:27.560579+00:00",
     "h1_side": "below",
-    "pair": "CHFJPY",
-    "revealed": true,
-    "revealed_at_utc": "2026-09-15T22:53:34.362838+00:00",
-    "source": "OPPORTUNITY"
+    "pair": "CADCHF",
+    "revealed": false,
+    "revealed_at_utc": null,
+    "source": "RETRACE"
   },
   "EURAUD": {
     "direction": "BEAR",
@@ -35,6 +35,15 @@
     "revealed_at_utc": null,
     "source": "RETRACE"
   },
+  "GBPCAD": {
+    "direction": "BULL",
+    "first_seen_utc": "2026-09-16T00:23:27.560579+00:00",
+    "h1_side": "above",
+    "pair": "GBPCAD",
+    "revealed": true,
+    "revealed_at_utc": "2026-09-16T00:23:27.560579+00:00",
+    "source": "RETRACE"
+  },
   "GBPCHF": {
     "direction": "BULL",
     "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
@@ -47,10 +56,10 @@
   "GBPNZD": {
     "direction": "BULL",
     "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
-    "h1_side": "below",
+    "h1_side": "above",
     "pair": "GBPNZD",
-    "revealed": false,
-    "revealed_at_utc": null,
+    "revealed": true,
+    "revealed_at_utc": "2026-09-16T00:23:27.560579+00:00",
     "source": "OPPORTUNITY"
   },
   "NZDCHF": {
@@ -65,28 +74,28 @@
   "NZDJPY": {
     "direction": "BEAR",
     "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
-    "h1_side": "above",
+    "h1_side": "below",
     "pair": "NZDJPY",
-    "revealed": false,
-    "revealed_at_utc": null,
+    "revealed": true,
+    "revealed_at_utc": "2026-09-16T00:23:27.560579+00:00",
     "source": "OPPORTUNITY"
   },
   "NZDUSD": {
     "direction": "BEAR",
     "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
-    "h1_side": "above",
+    "h1_side": "below",
     "pair": "NZDUSD",
-    "revealed": false,
-    "revealed_at_utc": null,
+    "revealed": true,
+    "revealed_at_utc": "2026-09-16T00:23:27.560579+00:00",
     "source": "OPPORTUNITY"
   },
   "USDCHF": {
     "direction": "BULL",
     "first_seen_utc": "2026-09-15T22:18:00.443393+00:00",
-    "h1_side": "below",
+    "h1_side": "above",
     "pair": "USDCHF",
-    "revealed": false,
-    "revealed_at_utc": null,
+    "revealed": true,
+    "revealed_at_utc": "2026-09-16T00:23:27.560579+00:00",
     "source": "OPPORTUNITY"
   }
 }
