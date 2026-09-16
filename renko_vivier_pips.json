@@ -242,12 +242,12 @@
         "worst_pips": -11.099999999999444
       },
       "22-23": {
-        "best_pips": 2.80000000000058,
+        "best_pips": 9.799999999999898,
         "flat": 0,
         "negative": 4,
-        "observations": 9,
-        "pips": -5.900000000002015,
-        "positive": 5,
+        "observations": 10,
+        "pips": 3.899999999997883,
+        "positive": 6,
         "samples": [
           1.60000000000049,
           1.7999999999995797,
@@ -257,7 +257,8 @@
           2.80000000000058,
           -3.1000000000003247,
           0.8999999999992347,
-          0.49999999999994493
+          0.49999999999994493,
+          9.799999999999898
         ],
         "worst_pips": -4.60000000000127
       }
@@ -2821,10 +2822,24 @@
           "start_price": 0.58386,
           "start_time_paris": "2026-09-16T20:00:00+02:00",
           "start_time_utc": "2026-09-16T18:00:00+00:00"
+        },
+        {
+          "close_reason": "CONFIRMED_EXIT",
+          "date": "2026-09-16",
+          "direction": 1,
+          "end_price": 111.736,
+          "end_time_paris": "2026-09-16T23:00:00+02:00",
+          "end_time_utc": "2026-09-16T21:00:00+00:00",
+          "pair": "CADJPY",
+          "pips": 9.799999999999898,
+          "start_price": 111.638,
+          "start_time_paris": "2026-09-16T22:00:00+02:00",
+          "start_time_utc": "2026-09-16T20:00:00+00:00"
         }
       ],
       "date": "2026-09-16",
-      "finalized": false,
+      "finalized": true,
+      "finalized_at_paris": "2026-09-16T23:15:51.730944+02:00",
       "segments": [
         {
           "close_reason": "VIVIER_EXIT",
@@ -2838,60 +2853,51 @@
           "start_price": 0.58364,
           "start_time_paris": "2026-09-16T07:00:00+02:00",
           "start_time_utc": "2026-09-16T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-09-16",
+          "direction": 1,
+          "end_price": 0.99129,
+          "end_time_paris": "2026-09-16T23:00:00+02:00",
+          "end_time_utc": "2026-09-16T21:00:00+00:00",
+          "pair": "AUDCAD",
+          "pips": -17.199999999999438,
+          "start_price": 0.99301,
+          "start_time_paris": "2026-09-16T07:00:00+02:00",
+          "start_time_utc": "2026-09-16T05:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-09-16",
+          "direction": 1,
+          "end_price": 111.736,
+          "end_time_paris": "2026-09-16T23:00:00+02:00",
+          "end_time_utc": "2026-09-16T21:00:00+00:00",
+          "pair": "CADJPY",
+          "pips": 9.799999999999898,
+          "start_price": 111.638,
+          "start_time_paris": "2026-09-16T22:00:00+02:00",
+          "start_time_utc": "2026-09-16T20:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-09-16",
+          "direction": -1,
+          "end_price": 1.61766,
+          "end_time_paris": "2026-09-16T23:00:00+02:00",
+          "end_time_utc": "2026-09-16T21:00:00+00:00",
+          "pair": "EURAUD",
+          "pips": 16.399999999998638,
+          "start_price": 1.6193,
+          "start_time_paris": "2026-09-16T07:00:00+02:00",
+          "start_time_utc": "2026-09-16T05:00:00+00:00"
         }
       ]
     }
   },
-  "open_confirmed_segments": {
-    "CADJPY": {
-      "current_pips": 0.0,
-      "date": "2026-09-16",
-      "direction": 1,
-      "hourly_last_price": 111.638,
-      "hourly_last_time_utc": "2026-09-16T20:00:00+00:00",
-      "last_price": 111.638,
-      "last_time_utc": "2026-09-16T20:00:00+00:00",
-      "pair": "CADJPY",
-      "start_price": 111.638,
-      "start_time_paris": "2026-09-16T22:00:00+02:00",
-      "start_time_utc": "2026-09-16T20:00:00+00:00"
-    }
-  },
-  "open_segments": {
-    "AUDCAD": {
-      "current_pips": -11.499999999999844,
-      "date": "2026-09-16",
-      "direction": 1,
-      "last_price": 0.99186,
-      "last_time_utc": "2026-09-16T20:00:00+00:00",
-      "pair": "AUDCAD",
-      "start_price": 0.99301,
-      "start_time_paris": "2026-09-16T07:00:00+02:00",
-      "start_time_utc": "2026-09-16T05:00:00+00:00"
-    },
-    "CADJPY": {
-      "current_pips": 0.0,
-      "date": "2026-09-16",
-      "direction": 1,
-      "last_price": 111.638,
-      "last_time_utc": "2026-09-16T20:00:00+00:00",
-      "pair": "CADJPY",
-      "start_price": 111.638,
-      "start_time_paris": "2026-09-16T22:00:00+02:00",
-      "start_time_utc": "2026-09-16T20:00:00+00:00"
-    },
-    "EURAUD": {
-      "current_pips": 13.399999999998968,
-      "date": "2026-09-16",
-      "direction": -1,
-      "last_price": 1.61796,
-      "last_time_utc": "2026-09-16T20:00:00+00:00",
-      "pair": "EURAUD",
-      "start_price": 1.6193,
-      "start_time_paris": "2026-09-16T07:00:00+02:00",
-      "start_time_utc": "2026-09-16T05:00:00+00:00"
-    }
-  },
+  "open_confirmed_segments": {},
+  "open_segments": {},
   "reports_sent": {
     "general_daily": [
       "2026-08-10",
@@ -2920,7 +2926,8 @@
       "2026-09-10",
       "2026-09-11",
       "2026-09-14",
-      "2026-09-15"
+      "2026-09-15",
+      "2026-09-16"
     ],
     "monthly": [
       "2026-07",
@@ -2938,6 +2945,6 @@
       "2026-W37"
     ]
   },
-  "updated_at_paris": "2026-09-16T22:15:47.535747+02:00",
+  "updated_at_paris": "2026-09-16T23:15:51.730944+02:00",
   "version": 3
 }
