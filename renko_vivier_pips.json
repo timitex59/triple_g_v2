@@ -2902,14 +2902,28 @@
       "segments": []
     }
   },
-  "open_confirmed_segments": {},
-  "open_segments": {
+  "open_confirmed_segments": {
     "AUDCAD": {
       "current_pips": 0.0,
       "date": "2026-09-17",
       "direction": 1,
-      "last_price": 0.99432,
-      "last_time_utc": "2026-09-17T05:00:00+00:00",
+      "hourly_last_price": 0.99422,
+      "hourly_last_time_utc": "2026-09-17T06:00:00+00:00",
+      "last_price": 0.99422,
+      "last_time_utc": "2026-09-17T06:00:00+00:00",
+      "pair": "AUDCAD",
+      "start_price": 0.99422,
+      "start_time_paris": "2026-09-17T08:00:00+02:00",
+      "start_time_utc": "2026-09-17T06:00:00+00:00"
+    }
+  },
+  "open_segments": {
+    "AUDCAD": {
+      "current_pips": -0.9999999999998899,
+      "date": "2026-09-17",
+      "direction": 1,
+      "last_price": 0.99422,
+      "last_time_utc": "2026-09-17T06:00:00+00:00",
       "pair": "AUDCAD",
       "start_price": 0.99432,
       "start_time_paris": "2026-09-17T07:00:00+02:00",
@@ -2963,6 +2977,6 @@
       "2026-W37"
     ]
   },
-  "updated_at_paris": "2026-09-17T07:15:42.170605+02:00",
+  "updated_at_paris": "2026-09-17T08:15:46.767758+02:00",
   "version": 3
 }

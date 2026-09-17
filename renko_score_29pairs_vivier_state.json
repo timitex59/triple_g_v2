@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-09-17 07:17",
+  "updated_at_paris": "2026-09-17 08:17",
   "pairs": {
     "AUDCAD": {
       "direction": 1,
       "entered_at_paris": "2026-09-15 10:16",
-      "last_seen_at_paris": "2026-09-17 07:17",
+      "last_seen_at_paris": "2026-09-17 08:17",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -17,12 +17,12 @@
         "D": 0
       },
       "base_pct": 83.33333333333334,
-      "weighted_pct": 75.00000000000001,
-      "daily_chg": 0.32180290328763794,
-      "daily_sar_dir": -1,
-      "daily_sar_value": 0.9950517559000001,
+      "weighted_pct": 79.16666666666667,
+      "daily_chg": 0.4025058257422196,
+      "daily_sar_dir": 1,
+      "daily_sar_value": 0.9892,
       "fib_position": "Fibo <0.618",
-      "fib_pct_of_range": 53.27951564076707,
+      "fib_pct_of_range": 61.35216952573192,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.236",
       "entry_fib_pct_of_range": 10.49445005045441,
@@ -62,24 +62,7 @@
       "source_entered_at_paris": "2026-09-11 02:08"
     }
   },
-  "objective_events": [
-    {
-      "event_type": "POST_ALIGNMENT_OBJECTIVE_REACHED",
-      "pair": "AUDCHF",
-      "direction": 1,
-      "time_utc": "2026-09-17T05:00:00+00:00",
-      "objective_value": 0.58594,
-      "origin_month_utc": "2026-09"
-    },
-    {
-      "event_type": "POST_ALIGNMENT_OBJECTIVE_CREATED",
-      "pair": "EURAUD",
-      "direction": -1,
-      "time_utc": "2026-09-17T05:00:00+00:00",
-      "objective_value": 1.60813,
-      "origin_month_utc": "2026-09"
-    }
-  ],
-  "telegram_last_body_hash": "ab3037c669dfda0321976357f2c0813cc28ee048fecf850e4699d292536c9521",
-  "telegram_last_sent_at_paris": "2026-09-16 23:15"
+  "objective_events": [],
+  "telegram_last_body_hash": "6bc2e985e8bd1589a5b78f22daedc210547c56bf07e3fffce72a4d3c6d61e624",
+  "telegram_last_sent_at_paris": "2026-09-17 08:15"
 }
