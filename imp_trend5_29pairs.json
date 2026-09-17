@@ -1,5 +1,5 @@
 {
-  "time_utc": "2026-09-16T22:59:25.639582+00:00",
+  "time_utc": "2026-09-17T01:26:51.737312+00:00",
   "requested_pairs": [
     "AUDCAD",
     "AUDCHF",
@@ -85,20 +85,20 @@
   "results": [
     {
       "pair": "AUDCHF",
-      "price": 0.58537,
+      "price": 0.58585,
       "daily_sar": 0.58169,
       "daily_bull": 0.58146,
       "daily_bear": 0.58594,
-      "reference_price": 0.58537,
+      "reference_price": 0.58585,
       "biases": {
         "M": 1,
         "W": 1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 0.5838527,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 0.5843641583,
       "h1_side": "above",
-      "fetched_at": "2026-09-16T22:58:16.778352+00:00",
+      "fetched_at": "2026-09-17T01:25:44.132202+00:00",
       "direction": "BULL",
       "percent": 100.0,
       "green": 7,
@@ -121,20 +121,20 @@
     },
     {
       "pair": "AUDNZD",
-      "price": 1.23806,
+      "price": 1.24085,
       "daily_sar": 1.2323724,
       "daily_bull": 1.19482,
       "daily_bear": 1.21024,
-      "reference_price": 1.23806,
+      "reference_price": 1.24085,
       "biases": {
         "M": 1,
         "W": 1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 1.24122,
-      "h1_side": "below",
-      "fetched_at": "2026-09-16T22:58:21.871287+00:00",
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 1.2375779999999998,
+      "h1_side": "above",
+      "fetched_at": "2026-09-17T01:25:49.207642+00:00",
       "direction": "BULL",
       "percent": 100.0,
       "green": 8,
@@ -157,20 +157,20 @@
     },
     {
       "pair": "CHFJPY",
-      "price": 189.221,
+      "price": 189.118,
       "daily_sar": 189.966,
       "daily_bull": 192.645,
       "daily_bear": 199.082,
-      "reference_price": 189.221,
+      "reference_price": 189.118,
       "biases": {
         "M": -1,
         "W": -1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 189.388,
-      "h1_side": "below",
-      "fetched_at": "2026-09-16T22:58:32.409051+00:00",
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 188.956,
+      "h1_side": "above",
+      "fetched_at": "2026-09-17T01:25:59.193715+00:00",
       "direction": "BEAR",
       "percent": 100.0,
       "green": 0,
@@ -193,20 +193,20 @@
     },
     {
       "pair": "EURNZD",
-      "price": 2.00336,
+      "price": 2.00452,
       "daily_sar": 1.9959639999999998,
       "daily_bull": 1.95175,
       "daily_bear": 1.97567,
-      "reference_price": 2.00336,
+      "reference_price": 2.00452,
       "biases": {
         "M": 1,
         "W": 1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 2.01008,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 2.00785238,
       "h1_side": "below",
-      "fetched_at": "2026-09-16T22:58:47.573465+00:00",
+      "fetched_at": "2026-09-17T01:26:13.822672+00:00",
       "direction": "BULL",
       "percent": 100.0,
       "green": 8,
@@ -228,21 +228,57 @@
       "position": "AU-DESSUS"
     },
     {
+      "pair": "GBPAUD",
+      "price": 1.88512,
+      "daily_sar": 1.89512,
+      "daily_bull": 1.87323,
+      "daily_bear": 1.89512,
+      "reference_price": 1.88512,
+      "biases": {
+        "M": -1,
+        "W": -1,
+        "D": -1
+      },
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 1.8891884,
+      "h1_side": "below",
+      "fetched_at": "2026-09-17T01:26:18.794589+00:00",
+      "direction": "BEAR",
+      "percent": 100.0,
+      "green": 0,
+      "red": 7,
+      "between": true,
+      "groups": [
+        "RETRACE >60% ENTRE NIVEAUX D1"
+      ],
+      "votes": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        0
+      ],
+      "position": "ENTRE"
+    },
+    {
       "pair": "GBPCHF",
-      "price": 1.10514,
+      "price": 1.10434,
       "daily_sar": 1.10012,
       "daily_bull": 1.08962,
       "daily_bear": 1.10082,
-      "reference_price": 1.10514,
+      "reference_price": 1.10434,
       "biases": {
         "M": 1,
         "W": 1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 1.1021216,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 1.1038580992,
       "h1_side": "above",
-      "fetched_at": "2026-09-16T22:58:57.714159+00:00",
+      "fetched_at": "2026-09-17T01:26:24.335347+00:00",
       "direction": "BULL",
       "percent": 100.0,
       "green": 8,
@@ -265,20 +301,20 @@
     },
     {
       "pair": "GBPNZD",
-      "price": 2.33769,
+      "price": 2.3391,
       "daily_sar": 2.3272392,
       "daily_bull": 2.29324,
       "daily_bear": 2.32482,
-      "reference_price": 2.33769,
+      "reference_price": 2.3391,
       "biases": {
         "M": 1,
         "W": 1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 2.34498,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 2.34252745,
       "h1_side": "below",
-      "fetched_at": "2026-09-16T22:59:02.712089+00:00",
+      "fetched_at": "2026-09-17T01:26:29.361315+00:00",
       "direction": "BULL",
       "percent": 100.0,
       "green": 8,
@@ -301,20 +337,20 @@
     },
     {
       "pair": "NZDCAD",
-      "price": 0.80057,
+      "price": 0.8,
       "daily_sar": 0.8052239999999999,
       "daily_bull": 0.81244,
       "daily_bear": 0.8277,
-      "reference_price": 0.80057,
+      "reference_price": 0.8,
       "biases": {
         "M": -1,
         "W": -1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 0.8025597999999999,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 0.8013349341999999,
       "h1_side": "below",
-      "fetched_at": "2026-09-16T22:59:07.818202+00:00",
+      "fetched_at": "2026-09-17T01:26:34.379994+00:00",
       "direction": "BEAR",
       "percent": 100.0,
       "green": 0,
@@ -337,20 +373,20 @@
     },
     {
       "pair": "NZDJPY",
-      "price": 89.438,
+      "price": 89.258,
       "daily_sar": 90.005119046656,
       "daily_bull": 93.316,
       "daily_bear": 95.22,
-      "reference_price": 89.438,
+      "reference_price": 89.258,
       "biases": {
         "M": -1,
         "W": -1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 89.06,
-      "h1_side": "above",
-      "fetched_at": "2026-09-16T22:59:12.892616+00:00",
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 89.4667,
+      "h1_side": "below",
+      "fetched_at": "2026-09-17T01:26:39.432460+00:00",
       "direction": "BEAR",
       "percent": 100.0,
       "green": 0,
@@ -373,20 +409,20 @@
     },
     {
       "pair": "NZDUSD",
-      "price": 0.57239,
+      "price": 0.57178,
       "daily_sar": 0.5803450688,
       "daily_bull": 0.58022,
       "daily_bear": 0.58888,
-      "reference_price": 0.57239,
+      "reference_price": 0.57178,
       "biases": {
         "M": -1,
         "W": -1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 0.5755888,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 0.5741663752,
       "h1_side": "below",
-      "fetched_at": "2026-09-16T22:59:16.339208+00:00",
+      "fetched_at": "2026-09-17T01:26:42.931901+00:00",
       "direction": "BEAR",
       "percent": 100.0,
       "green": 0,
@@ -409,20 +445,20 @@
     },
     {
       "pair": "USDCHF",
-      "price": 0.82593,
+      "price": 0.82555,
       "daily_sar": 0.8152444416,
       "daily_bull": 0.80523,
       "daily_bear": 0.81568,
-      "reference_price": 0.82593,
+      "reference_price": 0.82555,
       "biases": {
         "M": 1,
         "W": 1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 0.8206912,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 0.8234770944,
       "h1_side": "above",
-      "fetched_at": "2026-09-16T22:59:21.841795+00:00",
+      "fetched_at": "2026-09-17T01:26:47.920749+00:00",
       "direction": "BULL",
       "percent": 100.0,
       "green": 8,
@@ -445,20 +481,20 @@
     },
     {
       "pair": "AUDJPY",
-      "price": 110.723,
+      "price": 110.75,
       "daily_sar": 109.67,
       "daily_bull": 109.67,
       "daily_bear": 114.962,
-      "reference_price": 110.723,
+      "reference_price": 110.75,
       "biases": {
         "M": 1,
         "W": 1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 110.5168,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 110.512,
       "h1_side": "above",
-      "fetched_at": "2026-09-16T22:58:21.368242+00:00",
+      "fetched_at": "2026-09-17T01:25:48.630081+00:00",
       "direction": "BULL",
       "percent": 85.71428571428571,
       "green": 6,
@@ -481,20 +517,20 @@
     },
     {
       "pair": "EURGBP",
-      "price": 0.85698,
+      "price": 0.85694,
       "daily_sar": 0.85816,
       "daily_bull": 0.85462,
       "daily_bear": 0.86082,
-      "reference_price": 0.85698,
+      "reference_price": 0.85694,
       "biases": {
         "M": -1,
         "W": -1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 0.8575176,
-      "h1_side": "below",
-      "fetched_at": "2026-09-16T22:58:42.364715+00:00",
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 0.856234,
+      "h1_side": "above",
+      "fetched_at": "2026-09-17T01:26:08.805142+00:00",
       "direction": "BEAR",
       "percent": 85.71428571428571,
       "green": 1,
@@ -517,20 +553,20 @@
     },
     {
       "pair": "EURUSD",
-      "price": 1.14671,
+      "price": 1.14634,
       "daily_sar": 1.15715056,
       "daily_bull": 1.15665,
       "daily_bear": 1.16544,
-      "reference_price": 1.14671,
+      "reference_price": 1.14634,
       "biases": {
         "M": 1,
         "W": -1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 1.1515464,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 1.1486543167999999,
       "h1_side": "below",
-      "fetched_at": "2026-09-16T22:58:51.054857+00:00",
+      "fetched_at": "2026-09-17T01:26:18.347517+00:00",
       "direction": "BEAR",
       "percent": 75.0,
       "green": 2,
@@ -553,20 +589,20 @@
     },
     {
       "pair": "GBPUSD",
-      "price": 1.338,
+      "price": 1.33771,
       "daily_sar": 1.3505,
       "daily_bull": 1.34746,
       "daily_bear": 1.3568,
-      "reference_price": 1.338,
+      "reference_price": 1.33771,
       "biases": {
         "M": 1,
         "W": -1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 1.3444652,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 1.3419179296,
       "h1_side": "below",
-      "fetched_at": "2026-09-16T22:59:06.231789+00:00",
+      "fetched_at": "2026-09-17T01:26:32.816911+00:00",
       "direction": "BEAR",
       "percent": 75.0,
       "green": 2,
@@ -589,20 +625,20 @@
     },
     {
       "pair": "USDCAD",
-      "price": 1.39881,
+      "price": 1.39916,
       "daily_sar": 1.387119664,
       "daily_bull": 1.37598,
       "daily_bear": 1.39401,
-      "reference_price": 1.39881,
+      "reference_price": 1.39916,
       "biases": {
         "M": -1,
         "W": 1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 1.3943098,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 1.3961442704,
       "h1_side": "above",
-      "fetched_at": "2026-09-16T22:59:17.890396+00:00",
+      "fetched_at": "2026-09-17T01:26:44.446029+00:00",
       "direction": "BULL",
       "percent": 75.0,
       "green": 6,
@@ -624,57 +660,21 @@
       "position": "AU-DESSUS"
     },
     {
-      "pair": "XAUUSD",
-      "price": 4269.7,
-      "daily_sar": 4367.415,
-      "daily_bull": 4282.625,
-      "daily_bear": 4490.895,
-      "reference_price": 4269.7,
-      "biases": {
-        "M": 1,
-        "W": -1,
-        "D": -1
-      },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 4340.965,
-      "h1_side": "below",
-      "fetched_at": "2026-09-16T22:59:25.161630+00:00",
-      "direction": "BEAR",
-      "percent": 75.0,
-      "green": 2,
-      "red": 6,
-      "between": false,
-      "groups": [
-        "BEAR >60% EN DESSOUS D1"
-      ],
-      "votes": [
-        1,
-        -1,
-        -1,
-        -1,
-        -1,
-        -1,
-        1,
-        -1
-      ],
-      "position": "EN DESSOUS"
-    },
-    {
       "pair": "AUDCAD",
-      "price": 0.99123,
+      "price": 0.99274,
       "daily_sar": 0.9950517559000001,
       "daily_bull": 0.99014,
       "daily_bear": 0.99911,
-      "reference_price": 0.99123,
+      "reference_price": 0.99274,
       "biases": {
         "M": 1,
         "W": 1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 0.9930751999999999,
-      "h1_side": "below",
-      "fetched_at": "2026-09-16T22:58:16.272238+00:00",
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 0.99032,
+      "h1_side": "above",
+      "fetched_at": "2026-09-17T01:25:43.632153+00:00",
       "direction": "BULL",
       "percent": 71.42857142857143,
       "green": 5,
@@ -697,20 +697,20 @@
     },
     {
       "pair": "CADCHF",
-      "price": 0.59054,
+      "price": 0.59014,
       "daily_sar": 0.58682,
       "daily_bull": 0.58682,
       "daily_bear": 0.59081,
-      "reference_price": 0.59054,
+      "reference_price": 0.59014,
       "biases": {
         "M": -1,
         "W": 1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 0.5882564,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 0.5895025568,
       "h1_side": "above",
-      "fetched_at": "2026-09-16T22:58:27.410019+00:00",
+      "fetched_at": "2026-09-17T01:25:54.130793+00:00",
       "direction": "BULL",
       "percent": 71.42857142857143,
       "green": 5,
@@ -722,42 +722,6 @@
       "votes": [
         -1,
         1,
-        1,
-        1,
-        -1,
-        1,
-        1,
-        0
-      ],
-      "position": "ENTRE"
-    },
-    {
-      "pair": "CADJPY",
-      "price": 111.72,
-      "daily_sar": 110.6803,
-      "daily_bull": 110.554,
-      "daily_bear": 115.428,
-      "reference_price": 111.72,
-      "biases": {
-        "M": 1,
-        "W": -1,
-        "D": 1
-      },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 111.38052,
-      "h1_side": "above",
-      "fetched_at": "2026-09-16T22:58:30.885032+00:00",
-      "direction": "BULL",
-      "percent": 71.42857142857143,
-      "green": 5,
-      "red": 2,
-      "between": true,
-      "groups": [
-        "RETRACE >60% ENTRE NIVEAUX D1"
-      ],
-      "votes": [
-        1,
-        -1,
         1,
         1,
         -1,
@@ -769,20 +733,20 @@
     },
     {
       "pair": "EURAUD",
-      "price": 1.61802,
+      "price": 1.6154,
       "daily_sar": 1.6132796719999998,
       "daily_bull": 1.60813,
       "daily_bear": 1.64452,
-      "reference_price": 1.61802,
+      "reference_price": 1.6154,
       "biases": {
         "M": -1,
         "W": -1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 1.619909,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 1.6185609520000002,
       "h1_side": "below",
-      "fetched_at": "2026-09-16T22:58:35.909310+00:00",
+      "fetched_at": "2026-09-17T01:26:03.632007+00:00",
       "direction": "BEAR",
       "percent": 71.42857142857143,
       "green": 2,
@@ -805,20 +769,20 @@
     },
     {
       "pair": "EURCHF",
-      "price": 0.94708,
+      "price": 0.94636,
       "daily_sar": 0.94226,
       "daily_bull": 0.94226,
       "daily_bear": 0.94745,
-      "reference_price": 0.94708,
+      "reference_price": 0.94636,
       "biases": {
         "M": -1,
         "W": 1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 0.9450032,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 0.9460080000000001,
       "h1_side": "above",
-      "fetched_at": "2026-09-16T22:58:40.817637+00:00",
+      "fetched_at": "2026-09-17T01:26:08.395901+00:00",
       "direction": "BULL",
       "percent": 71.42857142857143,
       "green": 5,
@@ -840,57 +804,21 @@
       "position": "ENTRE"
     },
     {
-      "pair": "GBPAUD",
-      "price": 1.88802,
-      "daily_sar": 1.88472,
-      "daily_bull": 1.87323,
-      "daily_bear": 1.91912,
-      "reference_price": 1.88802,
-      "biases": {
-        "M": -1,
-        "W": -1,
-        "D": -1
-      },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 1.8868548,
-      "h1_side": "above",
-      "fetched_at": "2026-09-16T22:58:52.584594+00:00",
-      "direction": "BEAR",
-      "percent": 71.42857142857143,
-      "green": 2,
-      "red": 5,
-      "between": true,
-      "groups": [
-        "RETRACE >60% ENTRE NIVEAUX D1"
-      ],
-      "votes": [
-        -1,
-        -1,
-        -1,
-        1,
-        -1,
-        1,
-        -1,
-        0
-      ],
-      "position": "ENTRE"
-    },
-    {
       "pair": "NZDCHF",
-      "price": 0.47277,
+      "price": 0.47208,
       "daily_sar": 0.474262,
       "daily_bull": 0.47096,
       "daily_bear": 0.47536,
-      "reference_price": 0.47277,
+      "reference_price": 0.47208,
       "biases": {
         "M": -1,
         "W": 1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 0.47101,
-      "h1_side": "above",
-      "fetched_at": "2026-09-16T22:59:11.340005+00:00",
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 0.47298,
+      "h1_side": "below",
+      "fetched_at": "2026-09-17T01:26:37.932821+00:00",
       "direction": "BEAR",
       "percent": 71.42857142857143,
       "green": 2,
@@ -913,20 +841,20 @@
     },
     {
       "pair": "USDJPY",
-      "price": 156.242,
+      "price": 156.072,
       "daily_sar": 153.78136,
       "daily_bull": 152.888,
       "daily_bear": 160.394,
-      "reference_price": 156.242,
+      "reference_price": 156.072,
       "biases": {
         "M": 1,
         "W": -1,
         "D": 1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 155.40472,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 155.876,
       "h1_side": "above",
-      "fetched_at": "2026-09-16T22:59:22.371835+00:00",
+      "fetched_at": "2026-09-17T01:26:49.439971+00:00",
       "direction": "BULL",
       "percent": 71.42857142857143,
       "green": 5,
@@ -948,21 +876,91 @@
       "position": "ENTRE"
     },
     {
+      "pair": "XAUUSD",
+      "price": 4311.47,
+      "daily_sar": 4367.415,
+      "daily_bull": 4282.625,
+      "daily_bear": 4490.895,
+      "reference_price": 4311.47,
+      "biases": {
+        "M": 1,
+        "W": -1,
+        "D": -1
+      },
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 4235.165,
+      "h1_side": "above",
+      "fetched_at": "2026-09-17T01:26:51.420958+00:00",
+      "direction": "BEAR",
+      "percent": 71.42857142857143,
+      "green": 2,
+      "red": 5,
+      "between": true,
+      "groups": [
+        "RETRACE >60% ENTRE NIVEAUX D1"
+      ],
+      "votes": [
+        1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        1,
+        0
+      ],
+      "position": "ENTRE"
+    },
+    {
+      "pair": "CADJPY",
+      "price": 111.582,
+      "daily_sar": 110.6803,
+      "daily_bull": 110.554,
+      "daily_bear": 115.428,
+      "reference_price": 111.582,
+      "biases": {
+        "M": 1,
+        "W": -1,
+        "D": -1
+      },
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 111.7825,
+      "h1_side": "below",
+      "fetched_at": "2026-09-17T01:25:58.633359+00:00",
+      "direction": "BULL",
+      "percent": 57.142857142857146,
+      "green": 4,
+      "red": 3,
+      "between": true,
+      "groups": [],
+      "votes": [
+        1,
+        -1,
+        -1,
+        1,
+        -1,
+        1,
+        1,
+        0
+      ],
+      "position": "ENTRE"
+    },
+    {
       "pair": "EURCAD",
-      "price": 1.60376,
+      "price": 1.60364,
       "daily_sar": 1.61016,
       "daily_bull": 1.60008,
       "daily_bear": 1.61186,
-      "reference_price": 1.60376,
+      "reference_price": 1.60364,
       "biases": {
         "M": 1,
         "W": 1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 1.60674,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 1.604788,
       "h1_side": "below",
-      "fetched_at": "2026-09-16T22:58:37.457289+00:00",
+      "fetched_at": "2026-09-17T01:26:04.146797+00:00",
       "direction": "BULL",
       "percent": 57.142857142857146,
       "green": 4,
@@ -983,20 +981,20 @@
     },
     {
       "pair": "EURJPY",
-      "price": 179.174,
+      "price": 178.934,
       "daily_sar": 178.00029999999998,
       "daily_bull": 177.85,
       "daily_bear": 186.022,
-      "reference_price": 179.174,
+      "reference_price": 178.934,
       "biases": {
         "M": 1,
         "W": -1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 178.9172,
-      "h1_side": "above",
-      "fetched_at": "2026-09-16T22:58:45.827414+00:00",
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 179.217,
+      "h1_side": "below",
+      "fetched_at": "2026-09-17T01:26:13.380533+00:00",
       "direction": "BULL",
       "percent": 57.142857142857146,
       "green": 4,
@@ -1017,20 +1015,20 @@
     },
     {
       "pair": "GBPCAD",
-      "price": 1.87144,
+      "price": 1.87132,
       "daily_sar": 1.87938,
       "daily_bull": 1.86077,
       "daily_bear": 1.87938,
-      "reference_price": 1.87144,
+      "reference_price": 1.87132,
       "biases": {
         "M": 1,
         "W": 1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 1.8740864,
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 1.8725411967999999,
       "h1_side": "below",
-      "fetched_at": "2026-09-16T22:58:56.056850+00:00",
+      "fetched_at": "2026-09-17T01:26:23.323619+00:00",
       "direction": "BULL",
       "percent": 57.142857142857146,
       "green": 4,
@@ -1051,20 +1049,20 @@
     },
     {
       "pair": "GBPJPY",
-      "price": 209.046,
+      "price": 208.782,
       "daily_sar": 207.3379,
       "daily_bull": 207.1,
       "daily_bear": 217.478,
-      "reference_price": 209.046,
+      "reference_price": 208.782,
       "biases": {
         "M": 1,
         "W": -1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 208.67468,
-      "h1_side": "above",
-      "fetched_at": "2026-09-16T22:59:01.237754+00:00",
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 209.1995,
+      "h1_side": "below",
+      "fetched_at": "2026-09-17T01:26:27.842889+00:00",
       "direction": "BULL",
       "percent": 57.142857142857146,
       "green": 4,
@@ -1085,20 +1083,20 @@
     },
     {
       "pair": "AUDUSD",
-      "price": 0.70869,
+      "price": 0.70964,
       "daily_sar": 0.71603864,
       "daily_bull": 0.71216,
       "daily_bear": 0.7238,
-      "reference_price": 0.70869,
+      "reference_price": 0.70964,
       "biases": {
         "M": 1,
         "W": 1,
         "D": -1
       },
-      "h1_bar_time": "2026-09-16T22:00:00+00:00",
-      "h1_sar": 0.7116636,
-      "h1_side": "below",
-      "fetched_at": "2026-09-16T22:58:26.425193+00:00",
+      "h1_bar_time": "2026-09-17T01:00:00+00:00",
+      "h1_sar": 0.70751,
+      "h1_side": "above",
+      "fetched_at": "2026-09-17T01:25:53.698982+00:00",
       "direction": "BULL",
       "percent": 50.0,
       "green": 4,
@@ -1181,10 +1179,10 @@
     "BEAR >60% EN DESSOUS D1": [
       {
         "currency": "USD",
-        "positive": 4,
+        "positive": 3,
         "negative": 0,
-        "score": 4,
-        "pairs": 4,
+        "score": 3,
+        "pairs": 3,
         "status": "FORTE"
       },
       {
@@ -1228,14 +1226,6 @@
         "status": "FAIBLE"
       },
       {
-        "currency": "XAU",
-        "positive": 0,
-        "negative": 1,
-        "score": -1,
-        "pairs": 1,
-        "status": "FAIBLE"
-      },
-      {
         "currency": "NZD",
         "positive": 0,
         "negative": 3,
@@ -1254,20 +1244,20 @@
         "status": "FORTE"
       },
       {
-        "currency": "CAD",
+        "currency": "USD",
         "positive": 2,
-        "negative": 1,
-        "score": 1,
-        "pairs": 3,
+        "negative": 0,
+        "score": 2,
+        "pairs": 2,
         "status": "FORTE"
       },
       {
-        "currency": "USD",
+        "currency": "CAD",
         "positive": 1,
-        "negative": 0,
-        "score": 1,
-        "pairs": 1,
-        "status": "FORTE"
+        "negative": 1,
+        "score": 0,
+        "pairs": 2,
+        "status": "NEUTRE"
       },
       {
         "currency": "GBP",
@@ -1294,6 +1284,14 @@
         "status": "FAIBLE"
       },
       {
+        "currency": "XAU",
+        "positive": 0,
+        "negative": 1,
+        "score": -1,
+        "pairs": 1,
+        "status": "FAIBLE"
+      },
+      {
         "currency": "CHF",
         "positive": 1,
         "negative": 3,
@@ -1304,9 +1302,9 @@
       {
         "currency": "JPY",
         "positive": 0,
-        "negative": 3,
-        "score": -3,
-        "pairs": 3,
+        "negative": 2,
+        "score": -2,
+        "pairs": 2,
         "status": "FAIBLE"
       }
     ]
@@ -1314,10 +1312,10 @@
   "d1_currency_strength": [
     {
       "currency": "USD",
-      "positive": 6,
+      "positive": 5,
       "negative": 0,
-      "score": 6,
-      "pairs": 6,
+      "score": 5,
+      "pairs": 5,
       "status": "FORTE"
     },
     {
@@ -1361,14 +1359,6 @@
       "status": "NEUTRE"
     },
     {
-      "currency": "XAU",
-      "positive": 0,
-      "negative": 1,
-      "score": -1,
-      "pairs": 1,
-      "status": "FAIBLE"
-    },
-    {
       "currency": "CHF",
       "positive": 0,
       "negative": 3,
@@ -1405,7 +1395,7 @@
       "direction": "BULL",
       "percent": 71.42857142857143,
       "verdict": "VALIDE",
-      "reason": "USD (+6) vs JPY (+2)"
+      "reason": "USD (+5) vs JPY (+2)"
     },
     {
       "pair": "AUDJPY",
@@ -1417,7 +1407,7 @@
     {
       "pair": "GBPAUD",
       "direction": "BEAR",
-      "percent": 71.42857142857143,
+      "percent": 100.0,
       "verdict": "NON CONFIRME",
       "reason": "GBP et AUD a egalite (+1)"
     },
@@ -1430,13 +1420,6 @@
     },
     {
       "pair": "CADCHF",
-      "direction": "BULL",
-      "percent": 71.42857142857143,
-      "verdict": "N/A",
-      "reason": "devise neutre : CAD"
-    },
-    {
-      "pair": "CADJPY",
       "direction": "BULL",
       "percent": 71.42857142857143,
       "verdict": "N/A",
@@ -1462,6 +1445,13 @@
       "percent": 85.71428571428571,
       "verdict": "N/A",
       "reason": "devise neutre : EUR"
+    },
+    {
+      "pair": "XAUUSD",
+      "direction": "BEAR",
+      "percent": 71.42857142857143,
+      "verdict": "N/A",
+      "reason": "XAU absente du D1 BULL/BEAR"
     }
   ],
   "summary": {
@@ -1477,10 +1467,10 @@
       },
       {
         "currency": "USD",
-        "positive": 6,
+        "positive": 5,
         "negative": 0,
-        "score": 6,
-        "pairs": 6,
+        "score": 5,
+        "pairs": 5,
         "status": "FORTE"
       },
       {
@@ -1520,7 +1510,7 @@
         "direction": "BULL",
         "percent": 71.42857142857143,
         "verdict": "VALIDE",
-        "reason": "USD (+6) vs JPY (+2)"
+        "reason": "USD (+5) vs JPY (+2)"
       }
     ]
   },
@@ -1531,15 +1521,7 @@
       "base": "NZD",
       "base_score": -6,
       "quote": "USD",
-      "quote_score": 6
-    },
-    {
-      "pair": "USDCHF",
-      "direction": "BULL",
-      "base": "USD",
-      "base_score": 6,
-      "quote": "CHF",
-      "quote_score": -3
+      "quote_score": 5
     },
     {
       "pair": "NZDJPY",
@@ -1548,6 +1530,14 @@
       "base_score": -6,
       "quote": "JPY",
       "quote_score": 2
+    },
+    {
+      "pair": "USDCHF",
+      "direction": "BULL",
+      "base": "USD",
+      "base_score": 5,
+      "quote": "CHF",
+      "quote_score": -3
     },
     {
       "pair": "CHFJPY",
@@ -1559,22 +1549,13 @@
     }
   ],
   "watchlist": {
-    "CHFJPY": {
-      "direction": "BEAR",
-      "first_seen_utc": "2026-09-16T13:21:55.598481+00:00",
-      "h1_side": "below",
-      "pair": "CHFJPY",
-      "revealed": true,
-      "revealed_at_utc": "2026-09-16T15:21:42.985539+00:00",
-      "source": "OPPORTUNITY"
-    },
     "NZDJPY": {
       "direction": "BEAR",
       "first_seen_utc": "2026-09-16T21:20:55.954934+00:00",
-      "h1_side": "above",
+      "h1_side": "below",
       "pair": "NZDJPY",
-      "revealed": false,
-      "revealed_at_utc": null,
+      "revealed": true,
+      "revealed_at_utc": "2026-09-17T01:26:51.421837+00:00",
       "source": "OPPORTUNITY"
     },
     "NZDUSD": {
