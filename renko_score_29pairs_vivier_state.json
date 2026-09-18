@@ -1,7 +1,42 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-09-18 20:19",
-  "pairs": {},
+  "updated_at_paris": "2026-09-18 20:29",
+  "pairs": {
+    "CADJPY": {
+      "direction": 1,
+      "entered_at_paris": "2026-09-18 20:29",
+      "last_seen_at_paris": "2026-09-18 20:29",
+      "entry_px": {
+        "M": 1,
+        "W": -1,
+        "D": 1
+      },
+      "last_px": {
+        "M": 1,
+        "W": -1,
+        "D": 1
+      },
+      "base_pct": 33.33333333333333,
+      "weighted_pct": 31.66666666666666,
+      "daily_chg": 0.4421524663677085,
+      "daily_sar_dir": 1,
+      "daily_sar_value": 110.79397,
+      "fib_position": "Fibo <0.382",
+      "fib_pct_of_range": 29.524004924086878,
+      "fib_source": "CURRENT",
+      "entry_fib_position": "Fibo <0.382",
+      "entry_fib_pct_of_range": 29.524004924086878,
+      "entry_fib_source": "CURRENT",
+      "sar_dir": -1,
+      "fib_context_month_utc": "2026-09",
+      "fib_objective_active": true,
+      "fib_objective_carried": false,
+      "fib_objective_value": 115.428,
+      "fib_objective_origin_month_utc": "2026-09",
+      "fib_objective_started_time_utc": "2026-09-18T18:00:00+00:00",
+      "sar_flame": false
+    }
+  },
   "pending_objectives": {
     "AUDCAD": {
       "direction": 1,
@@ -45,6 +80,6 @@
     }
   },
   "objective_events": [],
-  "telegram_last_body_hash": "a12056c47f0a52fe92c96f075a0d7fea984d54a9c877db66058cd00c15026bfc",
-  "telegram_last_sent_at_paris": "2026-09-18 19:18"
+  "telegram_last_body_hash": "715364a4ffad16fcf1e3708934009255178543ae7e019b849390e9d089d1450b",
+  "telegram_last_sent_at_paris": "2026-09-18 20:27"
 }
