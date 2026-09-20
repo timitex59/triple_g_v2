@@ -1,5 +1,5 @@
 {
-  "time_utc": "2026-09-20T02:13:40.664005+00:00",
+  "time_utc": "2026-09-20T12:55:07.299946+00:00",
   "settings": {
     "pairs": [
       "AUDCAD",
@@ -93,45 +93,6 @@
       "status": "CONVERGENT"
     },
     {
-      "label": "EURCAD",
-      "code": "EURCAD",
-      "d1_direction": "DESCENDANT",
-      "d1_percent": 75.0,
-      "d1_side": "BELOW",
-      "d1_valid": true,
-      "d1_price": 1.60612,
-      "d1_sar": 1.61016,
-      "h1_direction": "NEUTRE",
-      "h1_percent": 50.0,
-      "status": "NEUTRAL"
-    },
-    {
-      "label": "AUDNZD",
-      "code": "AUDNZD",
-      "d1_direction": "DESCENDANT",
-      "d1_percent": 75.0,
-      "d1_side": "ABOVE",
-      "d1_valid": false,
-      "d1_price": 1.24505,
-      "d1_sar": 1.2343659200000001,
-      "h1_direction": "MONTANT",
-      "h1_percent": 100.0,
-      "status": "D1_REJECTED"
-    },
-    {
-      "label": "AUDJPY",
-      "code": "AUDJPY",
-      "d1_direction": "NEUTRE",
-      "d1_percent": 50.0,
-      "d1_side": "ABOVE",
-      "d1_valid": true,
-      "d1_price": 111.788,
-      "d1_sar": 109.8054,
-      "h1_direction": "MONTANT",
-      "h1_percent": 100.0,
-      "status": "NEUTRAL"
-    },
-    {
       "label": "AUDUSD",
       "code": "AUDUSD",
       "d1_direction": "MONTANT",
@@ -142,19 +103,6 @@
       "d1_sar": 0.7143329119999999,
       "h1_direction": "NEUTRE",
       "h1_percent": 50.0,
-      "status": "D1_REJECTED"
-    },
-    {
-      "label": "CHFJPY",
-      "code": "CHFJPY",
-      "d1_direction": "DESCENDANT",
-      "d1_percent": 100.0,
-      "d1_side": "ABOVE",
-      "d1_valid": false,
-      "d1_price": 190.866,
-      "d1_sar": 187.849,
-      "h1_direction": "MONTANT",
-      "h1_percent": 100.0,
       "status": "D1_REJECTED"
     },
     {
@@ -171,6 +119,32 @@
       "status": "D1_REJECTED"
     },
     {
+      "label": "AUDNZD",
+      "code": "AUDNZD",
+      "d1_direction": "DESCENDANT",
+      "d1_percent": 75.0,
+      "d1_side": "ABOVE",
+      "d1_valid": false,
+      "d1_price": 1.24505,
+      "d1_sar": 1.2343659200000001,
+      "h1_direction": "MONTANT",
+      "h1_percent": 100.0,
+      "status": "D1_REJECTED"
+    },
+    {
+      "label": "EURCAD",
+      "code": "EURCAD",
+      "d1_direction": "DESCENDANT",
+      "d1_percent": 75.0,
+      "d1_side": "BELOW",
+      "d1_valid": true,
+      "d1_price": 1.60612,
+      "d1_sar": 1.61016,
+      "h1_direction": "NEUTRE",
+      "h1_percent": 50.0,
+      "status": "NEUTRAL"
+    },
+    {
       "label": "EURAUD",
       "code": "EURAUD",
       "d1_direction": "DESCENDANT",
@@ -182,6 +156,32 @@
       "h1_direction": "DESCENDANT",
       "h1_percent": 75.0,
       "status": "CONVERGENT"
+    },
+    {
+      "label": "AUDJPY",
+      "code": "AUDJPY",
+      "d1_direction": "NEUTRE",
+      "d1_percent": 50.0,
+      "d1_side": "ABOVE",
+      "d1_valid": true,
+      "d1_price": 111.788,
+      "d1_sar": 109.8054,
+      "h1_direction": "MONTANT",
+      "h1_percent": 100.0,
+      "status": "NEUTRAL"
+    },
+    {
+      "label": "CHFJPY",
+      "code": "CHFJPY",
+      "d1_direction": "DESCENDANT",
+      "d1_percent": 100.0,
+      "d1_side": "ABOVE",
+      "d1_valid": false,
+      "d1_price": 190.866,
+      "d1_sar": 187.849,
+      "h1_direction": "MONTANT",
+      "h1_percent": 100.0,
+      "status": "D1_REJECTED"
     },
     {
       "label": "EURCHF",
@@ -421,19 +421,6 @@
   "pair_errors": [],
   "currencies": [
     {
-      "label": "USD",
-      "code": "DXY",
-      "d1_direction": "DESCENDANT",
-      "d1_percent": 75.0,
-      "d1_side": "ABOVE",
-      "d1_valid": false,
-      "d1_price": 100.215,
-      "d1_sar": 99.52686304,
-      "h1_direction": "NEUTRE",
-      "h1_percent": 50.0,
-      "status": "D1_REJECTED"
-    },
-    {
       "label": "EUR",
       "code": "EXY",
       "d1_direction": "MONTANT",
@@ -444,6 +431,19 @@
       "d1_sar": 115.472,
       "h1_direction": "DESCENDANT",
       "h1_percent": 75.0,
+      "status": "D1_REJECTED"
+    },
+    {
+      "label": "USD",
+      "code": "DXY",
+      "d1_direction": "DESCENDANT",
+      "d1_percent": 75.0,
+      "d1_side": "ABOVE",
+      "d1_valid": false,
+      "d1_price": 100.215,
+      "d1_sar": 99.52686304,
+      "h1_direction": "NEUTRE",
+      "h1_percent": 50.0,
       "status": "D1_REJECTED"
     },
     {
