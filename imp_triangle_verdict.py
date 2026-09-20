@@ -27,9 +27,10 @@ une reference : NEUTRE.
 Selection finale (liste Telegram EARLY IMP) : une paire alignee sur toutes les UT
 n'est retenue que si |CHG% daily| > `--chg-threshold` (defaut 0.1). Une paire deja
 retenue au run precedent qui repasse sous le seuil reste avec un warning ; le warning
-disparait quand elle repasse au-dessus, et la paire sort quand elle n'est plus
-alignee. Cet etat est persiste dans `--state-file` (mis a jour uniquement avec
-`--telegram`, donc un apercu local ne le modifie pas).
+disparait quand elle repasse au-dessus. Une paire retenue qui n'est plus alignee reste
+pour le reste du jour de trading avec un double warning (la boule de couleur est
+remplacee par un warning), puis sort. Cet etat est persiste dans `--state-file` (mis
+a jour uniquement avec `--telegram`, donc un apercu local ne le modifie pas).
 
 Exemples :
     python imp_triangle_verdict.py                    # 29 paires, tableau croise D/W/M
@@ -43,11 +44,12 @@ import json
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import imp_trend_29pairs as base
 from imp_early_imp_triangles import (
+    NEW_YORK,
     TIMEFRAME_NAME,
     TIMEFRAMES,
     compute_signals,
@@ -155,39 +157,62 @@ def analyze_pair(pair: str, args) -> dict:
                             for tf in args.timeframes})
 
 
-def update_selection(results: list[dict], previous: dict[str, dict], threshold: float) -> tuple[list[dict], dict[str, dict]]:
+def trading_day(now: datetime) -> str:
+    """Identifiant du jour de trading forex : bascule a 17h New York (= la bougie D1)."""
+    return (now.astimezone(NEW_YORK) + timedelta(hours=7)).strftime("%Y-%m-%d")
+
+
+def update_selection(
+    results: list[dict], previous: dict[str, dict], threshold: float, today: str,
+) -> tuple[list[dict], dict[str, dict]]:
     """Selection finale de la liste EARLY IMP, avec persistance d'un run a l'autre.
 
-    Une paire ALIGNEE entre dans la liste si |CHG% daily| > `threshold`. Une paire
-    deja retenue au run precedent (meme sens) qui repasse sous le seuil reste, avec
-    `warning`; le warning disparait quand elle repasse au-dessus. Une paire qui
-    n'est plus alignee sort de la liste, et une paire dont le sens s'inverse doit
-    repasser le seuil comme une nouvelle. Une paire absente de `results` (fetch en
-    erreur ce run-la) garde son etat precedent : une erreur reseau ne doit pas la
-    faire sortir.
+    - Une paire ALIGNEE entre dans la liste si |CHG% daily| > `threshold`.
+    - Une paire deja retenue au run precedent (meme sens) qui repasse sous le seuil
+      reste avec `warning` (1 warning) ; il disparait quand elle repasse au-dessus.
+    - Une paire deja retenue qui n'est plus alignee reste pour le reste du jour de
+      trading `today` avec `lost` (double warning : la boule de couleur est remplacee
+      par un warning) ; elle sort ensuite. Si elle se realigne dans le meme sens elle
+      reprend le traitement normal ; dans le sens oppose elle doit repasser le seuil
+      comme une nouvelle.
+    - Une paire absente de `results` (fetch en erreur ce run-la) garde son etat
+      precedent, jour d'expiration compris : une erreur reseau ne doit pas la faire
+      sortir.
 
-    Renvoie (selection, nouvel_etat) : `selection` = [{pair, verdict, warning, chg}],
-    `nouvel_etat` = {pair: {verdict, warning}}.
+    Renvoie (selection, nouvel_etat) : `selection` = [{pair, verdict, warning, lost,
+    chg}] (`verdict` = sens d'origine), `nouvel_etat` = {pair: {verdict, warning[,
+    lost_day]}}.
     """
     selection: list[dict] = []
     state: dict[str, dict] = {}
     seen = {r["pair"] for r in results}
     for result in results:
+        pair, chg = result["pair"], result["chg"]
+        prev = previous.get(pair)
         verdict = aligned_verdict(result)
         if verdict is None:
+            if prev is None:
+                continue
+            lost_day = prev.get("lost_day") or today
+            if lost_day != today:
+                continue
+            selection.append(dict(pair=pair, verdict=prev["verdict"], warning=True, lost=True, chg=chg))
+            state[pair] = dict(verdict=prev["verdict"], warning=True, lost_day=lost_day)
             continue
-        chg = result["chg"]
         passes = chg is not None and abs(chg) > threshold
-        was_selected = previous.get(result["pair"], {}).get("verdict") == verdict
+        was_selected = prev is not None and prev["verdict"] == verdict
         if not passes and not was_selected:
             continue
-        warning = not passes
-        selection.append(dict(pair=result["pair"], verdict=verdict, warning=warning, chg=chg))
-        state[result["pair"]] = dict(verdict=verdict, warning=warning)
+        selection.append(dict(pair=pair, verdict=verdict, warning=not passes, lost=False, chg=chg))
+        state[pair] = dict(verdict=verdict, warning=not passes)
     for pair, entry in previous.items():
-        if pair not in seen:
-            selection.append(dict(pair=pair, verdict=entry["verdict"], warning=entry.get("warning", False), chg=None))
-            state[pair] = dict(entry)
+        if pair in seen:
+            continue
+        if entry.get("lost_day") not in (None, today):
+            continue
+        selection.append(dict(pair=pair, verdict=entry["verdict"], warning=entry.get("warning", False),
+                              lost=entry.get("lost_day") is not None, chg=None))
+        state[pair] = dict(entry)
     selection.sort(key=lambda s: (s["verdict"] != "BULL", s["pair"]))
     return selection, state
 
@@ -259,12 +284,16 @@ def build_telegram_message(selection: list[dict], now: datetime | None = None) -
     paire retenue (cf. `update_selection`), horodatage Paris en pied.
 
     BULL (vert) d'abord puis BEAR (rouge), par ordre alphabetique dans chaque groupe ;
-    une paire retenue mais repassee sous le seuil de CHG% porte un warning. None si
-    la selection est vide -- silence plutot qu'un message vide, comme VIVIER / SAR
-    BREAK / MTF SAR STRUCTURE.
+    une paire retenue mais repassee sous le seuil de CHG% porte un warning collé a la
+    boule ; une paire qui n'est plus alignee porte un double warning (la boule est
+    remplacee par un warning). None si la selection est vide -- silence plutot qu'un
+    message vide, comme VIVIER / SAR BREAK / MTF SAR STRUCTURE.
     """
     ordered = sorted(selection, key=lambda s: (s["verdict"] != "BULL", s["pair"]))
-    lines = [f"{s['pair']}\t{VERDICT_ICON[s['verdict']]}{WARNING_ICON if s['warning'] else ''}" for s in ordered]
+    lines = [
+        f"{s['pair']}\t{WARNING_ICON if s['lost'] else VERDICT_ICON[s['verdict']]}{WARNING_ICON if s['warning'] else ''}"
+        for s in ordered
+    ]
     if not lines:
         return None
     header = ["\U0001f53a EARLY IMP", ""]
@@ -340,9 +369,11 @@ def main() -> int:
         print_table(ordered, args.timeframes)
 
     previous = load_state(args.state_file).get("pairs", {})
-    selection, new_state = update_selection(ordered, previous, args.chg_threshold)
+    selection, new_state = update_selection(
+        ordered, previous, args.chg_threshold, trading_day(datetime.now(base.PARIS)))
     print(f"\nSelection (alignee {'+'.join(args.timeframes)} et |CHG%D| > {args.chg_threshold:g}%) : "
-          + (", ".join(f"{s['pair']}{' ' + WARNING_ICON if s['warning'] else ''}" for s in selection) or "aucune"))
+          + (", ".join(f"{s['pair']}{' ' + WARNING_ICON * (2 if s['lost'] else 1) if s['warning'] else ''}"
+                       for s in selection) or "aucune"))
 
     message = build_telegram_message(selection)
     if message is None:

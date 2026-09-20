@@ -16,6 +16,7 @@ from imp_triangle_verdict import (
     load_state,
     save_state,
     timeframe_verdict,
+    trading_day,
     update_selection,
 )
 
@@ -140,8 +141,12 @@ class AlignedVerdictTests(unittest.TestCase):
         self.assertIsNone(aligned_verdict(self.result(D="NEUTRE", W="NEUTRE")))
 
 
-def selected(pair, verdict, warning=False):
-    return dict(pair=pair, verdict=verdict, warning=warning, chg=None)
+TODAY = "2026-09-20"
+YESTERDAY = "2026-09-19"
+
+
+def selected(pair, verdict, warning=False, lost=False):
+    return dict(pair=pair, verdict=verdict, warning=warning, lost=lost, chg=None)
 
 
 class TelegramMessageTests(unittest.TestCase):
@@ -164,8 +169,27 @@ class TelegramMessageTests(unittest.TestCase):
         message = build_telegram_message([selected("AUDCAD", "BULL", warning=True)], now=self.NOW)
         self.assertIn("AUDCAD\t\U0001f7e2⚠️\n", message)
 
+    def test_lost_pair_shows_a_double_warning_in_place_of_the_colored_ball(self):
+        selection = [selected("AUDCAD", "BULL"), selected("GBPNZD", "BULL", warning=True, lost=True),
+                     selected("EURAUD", "BEAR", warning=True)]
+        message = build_telegram_message(selection, now=self.NOW)
+        self.assertIn("GBPNZD\t⚠️⚠️\n", message)
+        self.assertNotIn("GBPNZD\t\U0001f7e2", message)
+        # la paire perdue garde sa place dans son groupe d'origine (BULL avant BEAR)
+        self.assertLess(message.index("GBPNZD"), message.index("EURAUD"))
+        self.assertIn("EURAUD\t\U0001f534⚠️\n", message)
+
     def test_silent_when_selection_is_empty(self):
         self.assertIsNone(build_telegram_message([], now=self.NOW))
+
+
+class TradingDayTests(unittest.TestCase):
+    def test_rolls_over_at_17h_new_york(self):
+        paris = ZoneInfo("Europe/Paris")
+        before = dt.datetime(2026, 9, 16, 22, 59, tzinfo=paris)  # 16h59 NY
+        after = dt.datetime(2026, 9, 16, 23, 1, tzinfo=paris)    # 17h01 NY
+        self.assertEqual(trading_day(before), "2026-09-16")
+        self.assertEqual(trading_day(after), "2026-09-17")
 
 
 class UpdateSelectionTests(unittest.TestCase):
@@ -180,59 +204,101 @@ class UpdateSelectionTests(unittest.TestCase):
         return {s["pair"]: s["warning"] for s in selection}
 
     def test_aligned_pair_above_the_threshold_is_selected_without_warning(self):
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.25)], {}, 0.1)
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.25)], {}, 0.1, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": False})
         self.assertEqual(state, {"AUDCAD": dict(verdict="BULL", warning=False)})
 
     def test_threshold_is_strict_and_uses_the_absolute_value(self):
         results = [self.result("AUDCAD", "BULL", 0.1), self.result("EURAUD", "BEAR", -0.3)]
-        selection, _ = update_selection(results, {}, 0.1)
+        selection, _ = update_selection(results, {}, 0.1, TODAY)
         self.assertEqual(self.names(selection), {"EURAUD": False})  # 0.1 pile : non ; -0.3 : oui (valeur absolue)
 
     def test_new_pair_below_the_threshold_is_not_selected(self):
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.05)], {}, 0.1)
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.05)], {}, 0.1, TODAY)
         self.assertEqual(selection, [])
         self.assertEqual(state, {})
 
     def test_previously_selected_pair_falling_below_the_threshold_stays_with_a_warning(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.04)], previous, 0.1)
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.04)], previous, 0.1, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": True})
         self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True))
 
     def test_warning_stays_while_it_remains_below_and_clears_when_back_above(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=True)}
-        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.02)], previous, 0.1)
+        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.02)], previous, 0.1, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": True})
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1)
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": False})
         self.assertEqual(state["AUDCAD"]["warning"], False)
 
-    def test_pair_that_is_no_longer_aligned_leaves_the_list(self):
-        previous = {"AUDCAD": dict(verdict="BULL", warning=True)}
-        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, 0.1)
+    def test_pair_that_loses_alignment_stays_with_a_double_warning_for_the_day(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, 0.1, TODAY)
+        self.assertEqual(len(selection), 1)
+        self.assertEqual((selection[0]["pair"], selection[0]["verdict"]), ("AUDCAD", "BULL"))  # sens d'origine
+        self.assertTrue(selection[0]["lost"])
+        self.assertTrue(selection[0]["warning"])  # double warning meme si le CHG% est au-dessus du seuil
+        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True, lost_day=TODAY))
+
+    def test_lost_pair_is_kept_on_later_runs_of_the_same_day(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, lost_day=TODAY)}
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.0)], previous, 0.1, TODAY)
+        self.assertEqual([(s["pair"], s["lost"]) for s in selection], [("AUDCAD", True)])
+        self.assertEqual(state["AUDCAD"]["lost_day"], TODAY)  # le jour de perte ne glisse pas
+
+    def test_lost_pair_leaves_the_list_once_the_trading_day_is_over(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, lost_day=YESTERDAY)}
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, 0.1, TODAY)
         self.assertEqual(selection, [])
         self.assertEqual(state, {})
 
+    def test_unaligned_pair_that_was_never_selected_stays_out(self):
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], {}, 0.1, TODAY)
+        self.assertEqual((selection, state), ([], {}))
+
+    def test_lost_pair_that_realigns_in_the_same_direction_resumes_normal_handling(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, lost_day=TODAY)}
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1, TODAY)
+        self.assertEqual([(s["lost"], s["warning"]) for s in selection], [(False, False)])
+        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=False))  # plus de lost_day
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.02)], previous, 0.1, TODAY)
+        self.assertEqual([(s["lost"], s["warning"]) for s in selection], [(False, True)])  # 1 seul warning
+
+    def test_lost_pair_that_realigns_the_other_way_must_requalify(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, lost_day=TODAY)}
+        selection, _ = update_selection([self.result("AUDCAD", "BEAR", 0.03)], previous, 0.1, TODAY)
+        self.assertEqual(selection, [])
+        selection, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, 0.1, TODAY)
+        self.assertEqual(state["AUDCAD"], dict(verdict="BEAR", warning=False))
+
     def test_direction_flip_must_requalify_like_a_new_pair(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
-        below, _ = update_selection([self.result("AUDCAD", "BEAR", 0.05)], previous, 0.1)
+        below, _ = update_selection([self.result("AUDCAD", "BEAR", 0.05)], previous, 0.1, TODAY)
         self.assertEqual(below, [])
-        above, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, 0.1)
+        above, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, 0.1, TODAY)
         self.assertEqual(state["AUDCAD"], dict(verdict="BEAR", warning=False))
         self.assertEqual(self.names(above), {"AUDCAD": False})
 
     def test_pair_missing_from_results_keeps_its_previous_state(self):
         # fetch en erreur ce run-la : ne doit pas faire sortir la paire
         previous = {"GBPNZD": dict(verdict="BULL", warning=True)}
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1)
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": False, "GBPNZD": True})
         self.assertEqual(state["GBPNZD"], dict(verdict="BULL", warning=True))
+
+    def test_missing_pair_with_an_expired_loss_day_is_dropped_but_a_current_one_is_kept(self):
+        previous = {"OLD": dict(verdict="BULL", warning=True, lost_day=YESTERDAY),
+                    "CUR": dict(verdict="BEAR", warning=True, lost_day=TODAY)}
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1, TODAY)
+        self.assertEqual(sorted(s["pair"] for s in selection), ["AUDCAD", "CUR"])
+        self.assertEqual([s["lost"] for s in selection if s["pair"] == "CUR"], [True])
+        self.assertNotIn("OLD", state)
 
     def test_selection_is_ordered_bull_first_then_alphabetical(self):
         results = [self.result("NZDUSD", "BEAR", 0.5), self.result("GBPNZD", "BULL", 0.5),
                    self.result("AUDCAD", "BULL", 0.5)]
-        selection, _ = update_selection(results, {}, 0.1)
+        selection, _ = update_selection(results, {}, 0.1, TODAY)
         self.assertEqual([s["pair"] for s in selection], ["AUDCAD", "GBPNZD", "NZDUSD"])
 
 
