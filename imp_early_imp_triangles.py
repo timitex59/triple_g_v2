@@ -154,6 +154,7 @@ def compute_signals(pair: str, timeframe: str, args) -> dict:
     candles = {"D": args.d1_candles, "W": args.w1_candles, "M": args.m1_candles}[timeframe]
     raw = base.fetch_ohlc(pair, timeframe, candles)
     live_price = float(raw["close"].iloc[-1])
+    prev_close = float(raw["close"].iloc[-2]) if len(raw) >= 2 else None
     df = drop_unconfirmed(raw, timeframe=timeframe)
     if len(df) < 3:
         raise ValueError(f"Historique {timeframe} insuffisant")
@@ -163,7 +164,7 @@ def compute_signals(pair: str, timeframe: str, args) -> dict:
     bull, bear = find_crosses(closes, sar)
     signals, armed = early_imp_signals(opens, closes, bull, bear)
     return dict(times=df["time"].tolist(), opens=opens, closes=closes, sar=sar,
-                signals=signals, armed=armed, live_price=live_price)
+                signals=signals, armed=armed, live_price=live_price, prev_close=prev_close)
 
 
 def analyze_timeframe(pair: str, timeframe: str, args) -> dict:

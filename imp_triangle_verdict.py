@@ -24,6 +24,13 @@ Si les deux conditions sont vraies en meme temps, la couleur du triangle le plus
 recent departage (vert = BULL, rouge = BEAR). Si aucune n'est vraie, ou s'il manque
 une reference : NEUTRE.
 
+Selection finale (liste Telegram EARLY IMP) : une paire alignee sur toutes les UT
+n'est retenue que si |CHG% daily| > `--chg-threshold` (defaut 0.1). Une paire deja
+retenue au run precedent qui repasse sous le seuil reste avec un warning ; le warning
+disparait quand elle repasse au-dessus, et la paire sort quand elle n'est plus
+alignee. Cet etat est persiste dans `--state-file` (mis a jour uniquement avec
+`--telegram`, donc un apercu local ne le modifie pas).
+
 Exemples :
     python imp_triangle_verdict.py                    # 29 paires, tableau croise D/W/M
     python imp_triangle_verdict.py CHFJPY             # une paire : detail des niveaux de reference
@@ -32,10 +39,12 @@ Exemples :
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
+from pathlib import Path
 
 import imp_trend_29pairs as base
 from imp_early_imp_triangles import (
@@ -124,13 +133,78 @@ def timeframe_verdict(computed: dict, timeframe: str, price: float, far_count: i
     )
 
 
+def daily_chg_pct(live_price: float, prev_close: float | None) -> float | None:
+    """CHG% daily : (prix live - close de la veille) / close de la veille, comme
+    `daily_chg` dans paire_check.py. None si la veille est inconnue ou nulle."""
+    if prev_close is None or prev_close == 0:
+        return None
+    return (live_price - prev_close) / prev_close * 100.0
+
+
 def analyze_pair(pair: str, args) -> dict:
     computed = {tf: compute_signals(pair, tf, args) for tf in args.timeframes}
     # Un seul prix par paire pour toutes les UT : celui du 1er fetch.
     price = computed[args.timeframes[0]]["live_price"]
-    return dict(pair=pair, price=price,
+    if "D" in computed:
+        chg = daily_chg_pct(computed["D"]["live_price"], computed["D"]["prev_close"])
+    else:
+        daily = base.fetch_ohlc(pair, "D", 5)
+        chg = daily_chg_pct(float(daily["close"].iloc[-1]), float(daily["close"].iloc[-2]))
+    return dict(pair=pair, price=price, chg=chg,
                 timeframes={tf: timeframe_verdict(computed[tf], tf, price, args.far_count)
                             for tf in args.timeframes})
+
+
+def update_selection(results: list[dict], previous: dict[str, dict], threshold: float) -> tuple[list[dict], dict[str, dict]]:
+    """Selection finale de la liste EARLY IMP, avec persistance d'un run a l'autre.
+
+    Une paire ALIGNEE entre dans la liste si |CHG% daily| > `threshold`. Une paire
+    deja retenue au run precedent (meme sens) qui repasse sous le seuil reste, avec
+    `warning`; le warning disparait quand elle repasse au-dessus. Une paire qui
+    n'est plus alignee sort de la liste, et une paire dont le sens s'inverse doit
+    repasser le seuil comme une nouvelle. Une paire absente de `results` (fetch en
+    erreur ce run-la) garde son etat precedent : une erreur reseau ne doit pas la
+    faire sortir.
+
+    Renvoie (selection, nouvel_etat) : `selection` = [{pair, verdict, warning, chg}],
+    `nouvel_etat` = {pair: {verdict, warning}}.
+    """
+    selection: list[dict] = []
+    state: dict[str, dict] = {}
+    seen = {r["pair"] for r in results}
+    for result in results:
+        verdict = aligned_verdict(result)
+        if verdict is None:
+            continue
+        chg = result["chg"]
+        passes = chg is not None and abs(chg) > threshold
+        was_selected = previous.get(result["pair"], {}).get("verdict") == verdict
+        if not passes and not was_selected:
+            continue
+        warning = not passes
+        selection.append(dict(pair=result["pair"], verdict=verdict, warning=warning, chg=chg))
+        state[result["pair"]] = dict(verdict=verdict, warning=warning)
+    for pair, entry in previous.items():
+        if pair not in seen:
+            selection.append(dict(pair=pair, verdict=entry["verdict"], warning=entry.get("warning", False), chg=None))
+            state[pair] = dict(entry)
+    selection.sort(key=lambda s: (s["verdict"] != "BULL", s["pair"]))
+    return selection, state
+
+
+def load_state(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_state(path: Path, pairs: dict[str, dict], now: datetime | None = None) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    stamp = (now or datetime.now(base.PARIS)).isoformat()
+    path.write_text(json.dumps(dict(updated_paris=stamp, pairs=pairs), indent=2, sort_keys=True), encoding="utf-8")
 
 
 def aligned_verdict(result: dict) -> str | None:
@@ -166,29 +240,31 @@ def print_details(result: dict) -> None:
 
 def print_table(results: list[dict], timeframes: list[str]) -> None:
     header = "  ".join(f"{tf:^2}" for tf in timeframes)
-    print(f"\n{'PAIRE':<8} {header}   prix")
+    print(f"\n{'PAIRE':<8} {header}   {'CHG%D':>7}   prix")
     for result in results:
         icons = "  ".join(VERDICT_ICON[result["timeframes"][tf]["verdict"]] for tf in timeframes)
-        print(f"{result['pair']:<8} {icons}   {result['price']:.{decimals(result['pair'])}f}")
+        chg = f"{result['chg']:+.2f}%" if result["chg"] is not None else "n/a"
+        print(f"{result['pair']:<8} {icons}   {chg:>7}   {result['price']:.{decimals(result['pair'])}f}")
     for verdict, title in (("BULL", "Alignees BULL"), ("BEAR", "Alignees BEAR")):
         pairs = [r["pair"] for r in results if aligned_verdict(r) == verdict]
         if len(timeframes) > 1:
             print(f"\n{VERDICT_ICON[verdict]} {title} ({'+'.join(timeframes)}) : {', '.join(pairs) or 'aucune'}")
 
 
-def build_telegram_message(results: list[dict], now: datetime | None = None) -> str | None:
-    """Message au format des autres alertes : titre, une ligne `PAIRE<tab>icone` par
-    paire, horodatage Paris en pied.
+WARNING_ICON = "⚠️"
 
-    Seules les paires ALIGNEES sur toutes les UT analysees sont annoncees, BULL
-    (vert) d'abord puis BEAR (rouge), par ordre alphabetique dans chaque groupe ;
-    None si aucune -- silence plutot qu'un message vide, comme VIVIER / SAR BREAK /
-    MTF SAR STRUCTURE.
+
+def build_telegram_message(selection: list[dict], now: datetime | None = None) -> str | None:
+    """Message au format des autres alertes : titre, une ligne `PAIRE<tab>icone` par
+    paire retenue (cf. `update_selection`), horodatage Paris en pied.
+
+    BULL (vert) d'abord puis BEAR (rouge), par ordre alphabetique dans chaque groupe ;
+    une paire retenue mais repassee sous le seuil de CHG% porte un warning. None si
+    la selection est vide -- silence plutot qu'un message vide, comme VIVIER / SAR
+    BREAK / MTF SAR STRUCTURE.
     """
-    lines = []
-    for verdict in ("BULL", "BEAR"):
-        aligned = sorted((r for r in results if aligned_verdict(r) == verdict), key=lambda r: r["pair"])
-        lines.extend(f"{r['pair']}\t{VERDICT_ICON[verdict]}" for r in aligned)
+    ordered = sorted(selection, key=lambda s: (s["verdict"] != "BULL", s["pair"]))
+    lines = [f"{s['pair']}\t{VERDICT_ICON[s['verdict']]}{WARNING_ICON if s['warning'] else ''}" for s in ordered]
     if not lines:
         return None
     header = ["\U0001f53a EARLY IMP", ""]
@@ -207,7 +283,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--details", action="store_true",
                         help="Affiche les niveaux de reference (auto pour 1 a 3 paires).")
     parser.add_argument("--telegram", action="store_true",
-                        help="Envoie les paires alignees sur Telegram (sans ce flag : apercu du message seulement).")
+                        help="Envoie la selection sur Telegram et met a jour le fichier d'etat "
+                             "(sans ce flag : apercu du message seulement, etat non modifie).")
+    parser.add_argument("--chg-threshold", type=float, default=0.1,
+                        help="|CHG%% daily| minimum (en %%) pour entrer dans la liste (defaut 0.1).")
+    parser.add_argument("--state-file", type=Path, default=Path("imp_triangle_verdict_state.json"),
+                        help="Etat de la selection d'un run a l'autre (paires retenues, warning).")
     parser.add_argument("--d1-candles", type=int, default=2500)
     parser.add_argument("--w1-candles", type=int, default=1500)
     parser.add_argument("--m1-candles", type=int, default=500)
@@ -222,9 +303,10 @@ def parse_args() -> argparse.Namespace:
     if unknown:
         parser.error(f"Paire(s) inconnue(s) : {', '.join(unknown)}")
     args.timeframes = list(dict.fromkeys(args.timeframes))
-    if args.far_count < 1 or min(args.d1_candles, args.w1_candles, args.m1_candles) < 5 or args.workers < 1 \
-            or args.stagger < 0 or min(args.sar_start, args.sar_increment, args.sar_maximum) <= 0:
-        parser.error("Parametres invalides (far-count >= 1, candles >= 5, workers >= 1, stagger >= 0, SAR > 0)")
+    if args.far_count < 1 or args.chg_threshold < 0 or min(args.d1_candles, args.w1_candles, args.m1_candles) < 5 \
+            or args.workers < 1 or args.stagger < 0 or min(args.sar_start, args.sar_increment, args.sar_maximum) <= 0:
+        parser.error("Parametres invalides (far-count >= 1, chg-threshold >= 0, candles >= 5, workers >= 1, "
+                     "stagger >= 0, SAR > 0)")
     return args
 
 
@@ -257,9 +339,14 @@ def main() -> int:
     if len(ordered) > 1:
         print_table(ordered, args.timeframes)
 
-    message = build_telegram_message(ordered)
+    previous = load_state(args.state_file).get("pairs", {})
+    selection, new_state = update_selection(ordered, previous, args.chg_threshold)
+    print(f"\nSelection (alignee {'+'.join(args.timeframes)} et |CHG%D| > {args.chg_threshold:g}%) : "
+          + (", ".join(f"{s['pair']}{' ' + WARNING_ICON if s['warning'] else ''}" for s in selection) or "aucune"))
+
+    message = build_telegram_message(selection)
     if message is None:
-        print("\nTelegram : rien a annoncer (aucune paire alignee sur toutes les UT).")
+        print("\nTelegram : rien a annoncer (aucune paire retenue).")
     elif args.telegram:
         print("\nTelegram :")
         print(message)
@@ -268,6 +355,8 @@ def main() -> int:
     else:
         print("\nApercu Telegram (non envoye, ajouter --telegram) :")
         print(message)
+    if args.telegram:
+        save_state(args.state_file, new_state)
     if errors:
         print("\nErreurs :")
         for pair, error in errors:

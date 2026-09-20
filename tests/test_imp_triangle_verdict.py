@@ -3,6 +3,8 @@ import unittest
 import pandas as pd
 
 import datetime as dt
+import tempfile
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from imp_triangle_verdict import (
@@ -10,7 +12,11 @@ from imp_triangle_verdict import (
     build_telegram_message,
     classify,
     count_since,
+    daily_chg_pct,
+    load_state,
+    save_state,
     timeframe_verdict,
+    update_selection,
 )
 
 
@@ -134,37 +140,121 @@ class AlignedVerdictTests(unittest.TestCase):
         self.assertIsNone(aligned_verdict(self.result(D="NEUTRE", W="NEUTRE")))
 
 
+def selected(pair, verdict, warning=False):
+    return dict(pair=pair, verdict=verdict, warning=warning, chg=None)
+
+
 class TelegramMessageTests(unittest.TestCase):
     NOW = dt.datetime(2026, 9, 20, 3, 45, tzinfo=ZoneInfo("Europe/Paris"))
 
-    def result(self, pair, **verdicts):
-        return dict(pair=pair, timeframes={tf: dict(verdict=v) for tf, v in verdicts.items()})
-
-    def test_one_icon_per_aligned_pair_bull_first_then_bear_alphabetical(self):
-        results = [
-            self.result("NZDUSD", D="BEAR", W="BEAR", M="BEAR"),
-            self.result("GBPNZD", D="BULL", W="BULL", M="BULL"),
-            self.result("EURAUD", D="BEAR", W="BEAR", M="BEAR"),
-            self.result("AUDCAD", D="BULL", W="BULL", M="BULL"),
-            self.result("CHFJPY", D="BEAR", W="NEUTRE", M="BULL"),  # non alignee : absente
+    def test_one_icon_per_pair_bull_first_then_bear_alphabetical(self):
+        selection = [
+            selected("NZDUSD", "BEAR"), selected("GBPNZD", "BULL"),
+            selected("EURAUD", "BEAR"), selected("AUDCAD", "BULL"),
         ]
         self.assertEqual(
-            build_telegram_message(results, now=self.NOW),
+            build_telegram_message(selection, now=self.NOW),
             "\U0001f53a EARLY IMP\n\n"
             "AUDCAD\t\U0001f7e2\nGBPNZD\t\U0001f7e2\n"
             "EURAUD\t\U0001f534\nNZDUSD\t\U0001f534\n\n"
             "⏰ 2026-09-20 03:45 Paris",
         )
 
-    def test_silent_when_no_pair_is_aligned(self):
-        results = [self.result("CHFJPY", D="BEAR", W="NEUTRE", M="BULL")]
-        self.assertIsNone(build_telegram_message(results, now=self.NOW))
+    def test_warning_is_glued_to_the_icon(self):
+        message = build_telegram_message([selected("AUDCAD", "BULL", warning=True)], now=self.NOW)
+        self.assertIn("AUDCAD\t\U0001f7e2⚠️\n", message)
 
-    def test_works_with_a_subset_of_timeframes(self):
-        results = [self.result("EURAUD", D="BEAR", W="BEAR")]
-        message = build_telegram_message(results, now=self.NOW)
-        self.assertIn("EURAUD\t\U0001f534\n", message)
-        self.assertNotIn("\U0001f7e2", message)
+    def test_silent_when_selection_is_empty(self):
+        self.assertIsNone(build_telegram_message([], now=self.NOW))
+
+
+class UpdateSelectionTests(unittest.TestCase):
+    def result(self, pair, verdict, chg):
+        tfs = {tf: dict(verdict=verdict) for tf in ("D", "W", "M")}
+        return dict(pair=pair, chg=chg, timeframes=tfs)
+
+    def not_aligned(self, pair, chg):
+        return dict(pair=pair, chg=chg, timeframes=dict(D=dict(verdict="BULL"), W=dict(verdict="BEAR")))
+
+    def names(self, selection):
+        return {s["pair"]: s["warning"] for s in selection}
+
+    def test_aligned_pair_above_the_threshold_is_selected_without_warning(self):
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.25)], {}, 0.1)
+        self.assertEqual(self.names(selection), {"AUDCAD": False})
+        self.assertEqual(state, {"AUDCAD": dict(verdict="BULL", warning=False)})
+
+    def test_threshold_is_strict_and_uses_the_absolute_value(self):
+        results = [self.result("AUDCAD", "BULL", 0.1), self.result("EURAUD", "BEAR", -0.3)]
+        selection, _ = update_selection(results, {}, 0.1)
+        self.assertEqual(self.names(selection), {"EURAUD": False})  # 0.1 pile : non ; -0.3 : oui (valeur absolue)
+
+    def test_new_pair_below_the_threshold_is_not_selected(self):
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.05)], {}, 0.1)
+        self.assertEqual(selection, [])
+        self.assertEqual(state, {})
+
+    def test_previously_selected_pair_falling_below_the_threshold_stays_with_a_warning(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.04)], previous, 0.1)
+        self.assertEqual(self.names(selection), {"AUDCAD": True})
+        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True))
+
+    def test_warning_stays_while_it_remains_below_and_clears_when_back_above(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True)}
+        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.02)], previous, 0.1)
+        self.assertEqual(self.names(selection), {"AUDCAD": True})
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1)
+        self.assertEqual(self.names(selection), {"AUDCAD": False})
+        self.assertEqual(state["AUDCAD"]["warning"], False)
+
+    def test_pair_that_is_no_longer_aligned_leaves_the_list(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True)}
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, 0.1)
+        self.assertEqual(selection, [])
+        self.assertEqual(state, {})
+
+    def test_direction_flip_must_requalify_like_a_new_pair(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
+        below, _ = update_selection([self.result("AUDCAD", "BEAR", 0.05)], previous, 0.1)
+        self.assertEqual(below, [])
+        above, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, 0.1)
+        self.assertEqual(state["AUDCAD"], dict(verdict="BEAR", warning=False))
+        self.assertEqual(self.names(above), {"AUDCAD": False})
+
+    def test_pair_missing_from_results_keeps_its_previous_state(self):
+        # fetch en erreur ce run-la : ne doit pas faire sortir la paire
+        previous = {"GBPNZD": dict(verdict="BULL", warning=True)}
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1)
+        self.assertEqual(self.names(selection), {"AUDCAD": False, "GBPNZD": True})
+        self.assertEqual(state["GBPNZD"], dict(verdict="BULL", warning=True))
+
+    def test_selection_is_ordered_bull_first_then_alphabetical(self):
+        results = [self.result("NZDUSD", "BEAR", 0.5), self.result("GBPNZD", "BULL", 0.5),
+                   self.result("AUDCAD", "BULL", 0.5)]
+        selection, _ = update_selection(results, {}, 0.1)
+        self.assertEqual([s["pair"] for s in selection], ["AUDCAD", "GBPNZD", "NZDUSD"])
+
+
+class DailyChgTests(unittest.TestCase):
+    def test_change_versus_previous_daily_close(self):
+        self.assertAlmostEqual(daily_chg_pct(101.0, 100.0), 1.0)
+        self.assertAlmostEqual(daily_chg_pct(99.0, 100.0), -1.0)
+
+    def test_unknown_or_zero_previous_close_gives_none(self):
+        self.assertIsNone(daily_chg_pct(100.0, None))
+        self.assertIsNone(daily_chg_pct(100.0, 0.0))
+
+
+class StatePersistenceTests(unittest.TestCase):
+    def test_roundtrip_and_missing_or_corrupt_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "state.json"
+            self.assertEqual(load_state(path), {})
+            save_state(path, {"AUDCAD": dict(verdict="BULL", warning=True)})
+            self.assertEqual(load_state(path)["pairs"], {"AUDCAD": dict(verdict="BULL", warning=True)})
+            path.write_text("{corrompu", encoding="utf-8")
+            self.assertEqual(load_state(path), {})
 
 
 if __name__ == "__main__":
