@@ -79,6 +79,7 @@ jobs:
           ENABLE_TELEGRAM_PAIRE_CHECK: "true"
           ENABLE_TELEGRAM_FIBO_50: "false"
           ENABLE_TELEGRAM_SAR_MTF_STRUCTURE: "true"
+          ENABLE_TELEGRAM_EARLY_IMP: "true"
           ENABLE_TELEGRAM_DCA: "true"
           ENABLE_TELEGRAM_RENKO_FOREX_V4: "false"
           ENABLE_TELEGRAM_TRACKER: "false"
@@ -160,6 +161,7 @@ jobs:
           run_with_telegram "$ENABLE_TELEGRAM_PAIRE_CHECK" paire_check.py --telegram
           run_with_telegram "$ENABLE_TELEGRAM_FIBO_50" renko_fibo_50_strategy.py --telegram
           run_with_telegram "$ENABLE_TELEGRAM_SAR_MTF_STRUCTURE" sar_mtf_structure.py --telegram
+          run_with_telegram "$ENABLE_TELEGRAM_EARLY_IMP" imp_triangle_verdict.py --telegram
 
           if [ "$HOUR_MIN_PARIS" -ge 2000 ]; then
             run_with_telegram "$ENABLE_TELEGRAM_DCA" dca_euronext.py
