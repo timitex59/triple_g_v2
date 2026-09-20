@@ -1,5 +1,5 @@
 {
-  "time_utc": "2026-09-19T00:23:22.544716+00:00",
+  "time_utc": "2026-09-20T02:13:40.664005+00:00",
   "settings": {
     "pairs": [
       "AUDCAD",
@@ -54,45 +54,6 @@
   },
   "pairs": [
     {
-      "label": "CADJPY",
-      "code": "CADJPY",
-      "d1_direction": "DESCENDANT",
-      "d1_percent": 75.0,
-      "d1_side": "ABOVE",
-      "d1_valid": false,
-      "d1_price": 112.21,
-      "d1_sar": 110.79397,
-      "h1_direction": "MONTANT",
-      "h1_percent": 75.0,
-      "status": "D1_REJECTED"
-    },
-    {
-      "label": "EURCAD",
-      "code": "EURCAD",
-      "d1_direction": "DESCENDANT",
-      "d1_percent": 75.0,
-      "d1_side": "BELOW",
-      "d1_valid": true,
-      "d1_price": 1.60612,
-      "d1_sar": 1.61016,
-      "h1_direction": "NEUTRE",
-      "h1_percent": 50.0,
-      "status": "NEUTRAL"
-    },
-    {
-      "label": "AUDCHF",
-      "code": "AUDCHF",
-      "d1_direction": "MONTANT",
-      "d1_percent": 100.0,
-      "d1_side": "ABOVE",
-      "d1_valid": true,
-      "d1_price": 0.58578,
-      "d1_sar": 0.58286,
-      "h1_direction": "MONTANT",
-      "h1_percent": 100.0,
-      "status": "CONVERGENT"
-    },
-    {
       "label": "AUDCAD",
       "code": "AUDCAD",
       "d1_direction": "MONTANT",
@@ -104,19 +65,6 @@
       "h1_direction": "MONTANT",
       "h1_percent": 75.0,
       "status": "CONVERGENT"
-    },
-    {
-      "label": "AUDUSD",
-      "code": "AUDUSD",
-      "d1_direction": "MONTANT",
-      "d1_percent": 100.0,
-      "d1_side": "BELOW",
-      "d1_valid": false,
-      "d1_price": 0.71252,
-      "d1_sar": 0.7143329119999999,
-      "h1_direction": "NEUTRE",
-      "h1_percent": 50.0,
-      "status": "D1_REJECTED"
     },
     {
       "label": "CADCHF",
@@ -132,6 +80,32 @@
       "status": "DIVERGENT"
     },
     {
+      "label": "AUDCHF",
+      "code": "AUDCHF",
+      "d1_direction": "MONTANT",
+      "d1_percent": 100.0,
+      "d1_side": "ABOVE",
+      "d1_valid": true,
+      "d1_price": 0.58578,
+      "d1_sar": 0.58286,
+      "h1_direction": "MONTANT",
+      "h1_percent": 100.0,
+      "status": "CONVERGENT"
+    },
+    {
+      "label": "EURCAD",
+      "code": "EURCAD",
+      "d1_direction": "DESCENDANT",
+      "d1_percent": 75.0,
+      "d1_side": "BELOW",
+      "d1_valid": true,
+      "d1_price": 1.60612,
+      "d1_sar": 1.61016,
+      "h1_direction": "NEUTRE",
+      "h1_percent": 50.0,
+      "status": "NEUTRAL"
+    },
+    {
       "label": "AUDNZD",
       "code": "AUDNZD",
       "d1_direction": "DESCENDANT",
@@ -140,32 +114,6 @@
       "d1_valid": false,
       "d1_price": 1.24505,
       "d1_sar": 1.2343659200000001,
-      "h1_direction": "MONTANT",
-      "h1_percent": 100.0,
-      "status": "D1_REJECTED"
-    },
-    {
-      "label": "EURAUD",
-      "code": "EURAUD",
-      "d1_direction": "DESCENDANT",
-      "d1_percent": 75.0,
-      "d1_side": "BELOW",
-      "d1_valid": true,
-      "d1_price": 1.61204,
-      "d1_sar": 1.621676,
-      "h1_direction": "DESCENDANT",
-      "h1_percent": 75.0,
-      "status": "CONVERGENT"
-    },
-    {
-      "label": "CHFJPY",
-      "code": "CHFJPY",
-      "d1_direction": "DESCENDANT",
-      "d1_percent": 100.0,
-      "d1_side": "ABOVE",
-      "d1_valid": false,
-      "d1_price": 190.866,
-      "d1_sar": 187.849,
       "h1_direction": "MONTANT",
       "h1_percent": 100.0,
       "status": "D1_REJECTED"
@@ -182,6 +130,58 @@
       "h1_direction": "MONTANT",
       "h1_percent": 100.0,
       "status": "NEUTRAL"
+    },
+    {
+      "label": "AUDUSD",
+      "code": "AUDUSD",
+      "d1_direction": "MONTANT",
+      "d1_percent": 100.0,
+      "d1_side": "BELOW",
+      "d1_valid": false,
+      "d1_price": 0.71252,
+      "d1_sar": 0.7143329119999999,
+      "h1_direction": "NEUTRE",
+      "h1_percent": 50.0,
+      "status": "D1_REJECTED"
+    },
+    {
+      "label": "CHFJPY",
+      "code": "CHFJPY",
+      "d1_direction": "DESCENDANT",
+      "d1_percent": 100.0,
+      "d1_side": "ABOVE",
+      "d1_valid": false,
+      "d1_price": 190.866,
+      "d1_sar": 187.849,
+      "h1_direction": "MONTANT",
+      "h1_percent": 100.0,
+      "status": "D1_REJECTED"
+    },
+    {
+      "label": "CADJPY",
+      "code": "CADJPY",
+      "d1_direction": "DESCENDANT",
+      "d1_percent": 75.0,
+      "d1_side": "ABOVE",
+      "d1_valid": false,
+      "d1_price": 112.21,
+      "d1_sar": 110.79397,
+      "h1_direction": "MONTANT",
+      "h1_percent": 75.0,
+      "status": "D1_REJECTED"
+    },
+    {
+      "label": "EURAUD",
+      "code": "EURAUD",
+      "d1_direction": "DESCENDANT",
+      "d1_percent": 75.0,
+      "d1_side": "BELOW",
+      "d1_valid": true,
+      "d1_price": 1.61204,
+      "d1_sar": 1.621676,
+      "h1_direction": "DESCENDANT",
+      "h1_percent": 75.0,
+      "status": "CONVERGENT"
     },
     {
       "label": "EURCHF",
