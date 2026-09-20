@@ -140,31 +140,31 @@ class TelegramMessageTests(unittest.TestCase):
     def result(self, pair, **verdicts):
         return dict(pair=pair, timeframes={tf: dict(verdict=v) for tf, v in verdicts.items()})
 
-    def test_lists_only_aligned_pairs_grouped_by_side_with_one_icon_per_timeframe(self):
+    def test_one_icon_per_aligned_pair_bull_first_then_bear_alphabetical(self):
         results = [
             self.result("NZDUSD", D="BEAR", W="BEAR", M="BEAR"),
             self.result("GBPNZD", D="BULL", W="BULL", M="BULL"),
+            self.result("EURAUD", D="BEAR", W="BEAR", M="BEAR"),
             self.result("AUDCAD", D="BULL", W="BULL", M="BULL"),
             self.result("CHFJPY", D="BEAR", W="NEUTRE", M="BULL"),  # non alignee : absente
         ]
-        message = build_telegram_message(results, ["D", "W", "M"], now=self.NOW)
         self.assertEqual(
-            message,
+            build_telegram_message(results, now=self.NOW),
             "\U0001f53a EARLY IMP\n\n"
-            "\U0001f7e2 BULL (D+W+M)\nAUDCAD\t\U0001f7e2\U0001f7e2\U0001f7e2\nGBPNZD\t\U0001f7e2\U0001f7e2\U0001f7e2\n\n"
-            "\U0001f534 BEAR (D+W+M)\nNZDUSD\t\U0001f534\U0001f534\U0001f534\n\n"
+            "AUDCAD\t\U0001f7e2\nGBPNZD\t\U0001f7e2\n"
+            "EURAUD\t\U0001f534\nNZDUSD\t\U0001f534\n\n"
             "⏰ 2026-09-20 03:45 Paris",
         )
 
     def test_silent_when_no_pair_is_aligned(self):
         results = [self.result("CHFJPY", D="BEAR", W="NEUTRE", M="BULL")]
-        self.assertIsNone(build_telegram_message(results, ["D", "W", "M"], now=self.NOW))
+        self.assertIsNone(build_telegram_message(results, now=self.NOW))
 
-    def test_omits_an_empty_side_and_follows_the_selected_timeframes(self):
+    def test_works_with_a_subset_of_timeframes(self):
         results = [self.result("EURAUD", D="BEAR", W="BEAR")]
-        message = build_telegram_message(results, ["D", "W"], now=self.NOW)
-        self.assertNotIn("BULL", message)
-        self.assertIn("BEAR (D+W)\nEURAUD\t\U0001f534\U0001f534\n", message)
+        message = build_telegram_message(results, now=self.NOW)
+        self.assertIn("EURAUD\t\U0001f534\n", message)
+        self.assertNotIn("\U0001f7e2", message)
 
 
 if __name__ == "__main__":

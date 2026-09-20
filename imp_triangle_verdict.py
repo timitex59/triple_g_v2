@@ -176,30 +176,24 @@ def print_table(results: list[dict], timeframes: list[str]) -> None:
             print(f"\n{VERDICT_ICON[verdict]} {title} ({'+'.join(timeframes)}) : {', '.join(pairs) or 'aucune'}")
 
 
-def build_telegram_message(results: list[dict], timeframes: list[str], now: datetime | None = None) -> str | None:
-    """Message au format des autres alertes : titre, sections, `PAIRE<tab>icones`
-    (une icone par UT, dans l'ordre de `timeframes`), horodatage Paris en pied.
+def build_telegram_message(results: list[dict], now: datetime | None = None) -> str | None:
+    """Message au format des autres alertes : titre, une ligne `PAIRE<tab>icone` par
+    paire, horodatage Paris en pied.
 
-    Seules les paires ALIGNEES sur toutes les UT analysees sont annoncees (BULL puis
-    BEAR, ordre alphabetique) ; None si aucune -- silence plutot qu'un message vide,
-    comme VIVIER / SAR BREAK / MTF SAR STRUCTURE.
+    Seules les paires ALIGNEES sur toutes les UT analysees sont annoncees, BULL
+    (vert) d'abord puis BEAR (rouge), par ordre alphabetique dans chaque groupe ;
+    None si aucune -- silence plutot qu'un message vide, comme VIVIER / SAR BREAK /
+    MTF SAR STRUCTURE.
     """
-    lines = ["\U0001f53a EARLY IMP", ""]
-    has_content = False
-    for verdict, title in (("BULL", "BULL"), ("BEAR", "BEAR")):
+    lines = []
+    for verdict in ("BULL", "BEAR"):
         aligned = sorted((r for r in results if aligned_verdict(r) == verdict), key=lambda r: r["pair"])
-        if not aligned:
-            continue
-        lines.append(f"{VERDICT_ICON[verdict]} {title} ({'+'.join(timeframes)})")
-        for result in aligned:
-            icons = "".join(VERDICT_ICON[result["timeframes"][tf]["verdict"]] for tf in timeframes)
-            lines.append(f"{result['pair']}\t{icons}")
-        lines.append("")
-        has_content = True
-    if not has_content:
+        lines.extend(f"{r['pair']}\t{VERDICT_ICON[verdict]}" for r in aligned)
+    if not lines:
         return None
-    lines.append(f"⏰ {(now or datetime.now(base.PARIS)).strftime('%Y-%m-%d %H:%M')} Paris")
-    return "\n".join(lines)
+    header = ["\U0001f53a EARLY IMP", ""]
+    footer = ["", f"⏰ {(now or datetime.now(base.PARIS)).strftime('%Y-%m-%d %H:%M')} Paris"]
+    return "\n".join(header + lines + footer)
 
 
 def parse_args() -> argparse.Namespace:
@@ -263,7 +257,7 @@ def main() -> int:
     if len(ordered) > 1:
         print_table(ordered, args.timeframes)
 
-    message = build_telegram_message(ordered, args.timeframes)
+    message = build_telegram_message(ordered)
     if message is None:
         print("\nTelegram : rien a annoncer (aucune paire alignee sur toutes les UT).")
     elif args.telegram:
