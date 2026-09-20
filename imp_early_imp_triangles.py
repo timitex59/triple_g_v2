@@ -145,17 +145,31 @@ def early_imp_signals(
     return signals, armed
 
 
-def analyze_timeframe(pair: str, timeframe: str, args) -> dict:
+def compute_signals(pair: str, timeframe: str, args) -> dict:
+    """Bougies confirmees d'une UT + tous ses triangles (non tronques).
+
+    `live_price` = dernier close brut du fetch, bougie en cours incluse : c'est
+    le prix actuel, alors que signaux/SAR ne portent que sur les bougies cloturees.
+    """
     candles = {"D": args.d1_candles, "W": args.w1_candles, "M": args.m1_candles}[timeframe]
-    df = drop_unconfirmed(base.fetch_ohlc(pair, timeframe, candles), timeframe=timeframe)
+    raw = base.fetch_ohlc(pair, timeframe, candles)
+    live_price = float(raw["close"].iloc[-1])
+    df = drop_unconfirmed(raw, timeframe=timeframe)
     if len(df) < 3:
         raise ValueError(f"Historique {timeframe} insuffisant")
     sar = pine_sar(df, args.sar_start, args.sar_increment, args.sar_maximum)
     opens = df["open"].astype(float).tolist()
     closes = df["close"].astype(float).tolist()
-    times = df["time"].tolist()
     bull, bear = find_crosses(closes, sar)
     signals, armed = early_imp_signals(opens, closes, bull, bear)
+    return dict(times=df["time"].tolist(), opens=opens, closes=closes, sar=sar,
+                signals=signals, armed=armed, live_price=live_price)
+
+
+def analyze_timeframe(pair: str, timeframe: str, args) -> dict:
+    computed = compute_signals(pair, timeframe, args)
+    times, opens, closes, sar = computed["times"], computed["opens"], computed["closes"], computed["sar"]
+    signals, armed = computed["signals"], computed["armed"]
 
     rows = []
     for signal in signals:
@@ -166,7 +180,7 @@ def analyze_timeframe(pair: str, timeframe: str, args) -> dict:
             open=opens[i], close=closes[i], cross_sar=sar[ci],
         ))
     if args.recent:
-        rows = [r for r in rows if r["index"] >= len(df) - args.recent]
+        rows = [r for r in rows if r["index"] >= len(times) - args.recent]
     rows = rows[-args.last:]
     armed_info = None
     if armed is not None:
