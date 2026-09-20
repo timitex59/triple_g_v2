@@ -45,6 +45,7 @@ from imp_early_imp_triangles import (
     decimals,
     period_label,
 )
+from imp_trend5_29pairs import send_telegram_message
 
 VERDICT_ICON = {"BULL": "\U0001f7e2", "BEAR": "\U0001f534", "NEUTRE": "⚪"}
 BASIS_TEXT = {
@@ -175,6 +176,32 @@ def print_table(results: list[dict], timeframes: list[str]) -> None:
             print(f"\n{VERDICT_ICON[verdict]} {title} ({'+'.join(timeframes)}) : {', '.join(pairs) or 'aucune'}")
 
 
+def build_telegram_message(results: list[dict], timeframes: list[str], now: datetime | None = None) -> str | None:
+    """Message au format des autres alertes : titre, sections, `PAIRE<tab>icones`
+    (une icone par UT, dans l'ordre de `timeframes`), horodatage Paris en pied.
+
+    Seules les paires ALIGNEES sur toutes les UT analysees sont annoncees (BULL puis
+    BEAR, ordre alphabetique) ; None si aucune -- silence plutot qu'un message vide,
+    comme VIVIER / SAR BREAK / MTF SAR STRUCTURE.
+    """
+    lines = ["\U0001f53a EARLY IMP", ""]
+    has_content = False
+    for verdict, title in (("BULL", "BULL"), ("BEAR", "BEAR")):
+        aligned = sorted((r for r in results if aligned_verdict(r) == verdict), key=lambda r: r["pair"])
+        if not aligned:
+            continue
+        lines.append(f"{VERDICT_ICON[verdict]} {title} ({'+'.join(timeframes)})")
+        for result in aligned:
+            icons = "".join(VERDICT_ICON[result["timeframes"][tf]["verdict"]] for tf in timeframes)
+            lines.append(f"{result['pair']}\t{icons}")
+        lines.append("")
+        has_content = True
+    if not has_content:
+        return None
+    lines.append(f"⏰ {(now or datetime.now(base.PARIS)).strftime('%Y-%m-%d %H:%M')} Paris")
+    return "\n".join(lines)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("pairs", nargs="*", type=str.upper, help="Paires (defaut : les 29).")
@@ -185,6 +212,8 @@ def parse_args() -> argparse.Namespace:
                              "a partir duquel celui-ci est juge trop loin (defaut 2 = plusieurs).")
     parser.add_argument("--details", action="store_true",
                         help="Affiche les niveaux de reference (auto pour 1 a 3 paires).")
+    parser.add_argument("--telegram", action="store_true",
+                        help="Envoie les paires alignees sur Telegram (sans ce flag : apercu du message seulement).")
     parser.add_argument("--d1-candles", type=int, default=2500)
     parser.add_argument("--w1-candles", type=int, default=1500)
     parser.add_argument("--m1-candles", type=int, default=500)
@@ -233,6 +262,18 @@ def main() -> int:
             print_details(result)
     if len(ordered) > 1:
         print_table(ordered, args.timeframes)
+
+    message = build_telegram_message(ordered, args.timeframes)
+    if message is None:
+        print("\nTelegram : rien a annoncer (aucune paire alignee sur toutes les UT).")
+    elif args.telegram:
+        print("\nTelegram :")
+        print(message)
+        if send_telegram_message(message):
+            print("  Message envoye.")
+    else:
+        print("\nApercu Telegram (non envoye, ajouter --telegram) :")
+        print(message)
     if errors:
         print("\nErreurs :")
         for pair, error in errors:

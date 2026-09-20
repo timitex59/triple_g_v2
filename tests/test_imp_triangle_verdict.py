@@ -2,7 +2,16 @@ import unittest
 
 import pandas as pd
 
-from imp_triangle_verdict import aligned_verdict, classify, count_since, timeframe_verdict
+import datetime as dt
+from zoneinfo import ZoneInfo
+
+from imp_triangle_verdict import (
+    aligned_verdict,
+    build_telegram_message,
+    classify,
+    count_since,
+    timeframe_verdict,
+)
 
 
 class ClassifyTests(unittest.TestCase):
@@ -123,6 +132,39 @@ class AlignedVerdictTests(unittest.TestCase):
         self.assertIsNone(aligned_verdict(self.result(D="BULL", W="BEAR", M="BULL")))
         self.assertIsNone(aligned_verdict(self.result(D="BULL", W="NEUTRE", M="BULL")))
         self.assertIsNone(aligned_verdict(self.result(D="NEUTRE", W="NEUTRE")))
+
+
+class TelegramMessageTests(unittest.TestCase):
+    NOW = dt.datetime(2026, 9, 20, 3, 45, tzinfo=ZoneInfo("Europe/Paris"))
+
+    def result(self, pair, **verdicts):
+        return dict(pair=pair, timeframes={tf: dict(verdict=v) for tf, v in verdicts.items()})
+
+    def test_lists_only_aligned_pairs_grouped_by_side_with_one_icon_per_timeframe(self):
+        results = [
+            self.result("NZDUSD", D="BEAR", W="BEAR", M="BEAR"),
+            self.result("GBPNZD", D="BULL", W="BULL", M="BULL"),
+            self.result("AUDCAD", D="BULL", W="BULL", M="BULL"),
+            self.result("CHFJPY", D="BEAR", W="NEUTRE", M="BULL"),  # non alignee : absente
+        ]
+        message = build_telegram_message(results, ["D", "W", "M"], now=self.NOW)
+        self.assertEqual(
+            message,
+            "\U0001f53a EARLY IMP\n\n"
+            "\U0001f7e2 BULL (D+W+M)\nAUDCAD\t\U0001f7e2\U0001f7e2\U0001f7e2\nGBPNZD\t\U0001f7e2\U0001f7e2\U0001f7e2\n\n"
+            "\U0001f534 BEAR (D+W+M)\nNZDUSD\t\U0001f534\U0001f534\U0001f534\n\n"
+            "⏰ 2026-09-20 03:45 Paris",
+        )
+
+    def test_silent_when_no_pair_is_aligned(self):
+        results = [self.result("CHFJPY", D="BEAR", W="NEUTRE", M="BULL")]
+        self.assertIsNone(build_telegram_message(results, ["D", "W", "M"], now=self.NOW))
+
+    def test_omits_an_empty_side_and_follows_the_selected_timeframes(self):
+        results = [self.result("EURAUD", D="BEAR", W="BEAR")]
+        message = build_telegram_message(results, ["D", "W"], now=self.NOW)
+        self.assertNotIn("BULL", message)
+        self.assertIn("BEAR (D+W)\nEURAUD\t\U0001f534\U0001f534\n", message)
 
 
 if __name__ == "__main__":
