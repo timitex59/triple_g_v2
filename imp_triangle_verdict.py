@@ -1,24 +1,33 @@
 #!/usr/bin/env python3
 """Verdict BULL / BEAR / NEUTRE par UT a partir des triangles Early IMP.
 
-Regle (par UT : Daily, Weekly, Monthly) :
+Regle de base (par UT : Daily, Weekly, Monthly) :
 - BULL : le prix actuel est AU-DESSUS de l'open de la bougie du dernier triangle
   ROUGE cloture (le triangle du camp oppose : son niveau a ete repris) ;
 - BEAR : le prix actuel est EN DESSOUS de l'open de la bougie du dernier triangle
   VERT cloture.
 
+Reference deplacee quand le triangle oppose est "trop loin" : si au moins
+`--far-count` triangles de la couleur du verdict se sont formes depuis le dernier
+triangle oppose (defaut 2 = "plusieurs"), on compare au CLOSE du dernier triangle
+de la couleur du verdict au lieu de l'open du dernier triangle oppose :
+- BULL : au moins N verts depuis le dernier rouge -> prix > close du dernier vert ;
+- BEAR : au moins N rouges depuis le dernier vert -> prix < close du dernier rouge.
+Ca evite de comparer a un niveau vieux de plusieurs signaux (un rouge de 2024
+alors que 3 verts se sont formes depuis).
+
 La bougie de reference est celle ou le triangle s'affiche (celle qui declenche),
 pas la bougie de cross du SAR. Seuls les triangles de bougies cloturees comptent
 (cf. imp_early_imp_triangles.py, pas de repaint) ; le prix actuel est le prix live.
 
-Si les deux conditions sont vraies en meme temps (prix entre les deux opens), la
-couleur du triangle le plus recent departage (vert = BULL, rouge = BEAR). Si
-aucune n'est vraie, ou s'il manque un triangle de reference : NEUTRE.
+Si les deux conditions sont vraies en meme temps, la couleur du triangle le plus
+recent departage (vert = BULL, rouge = BEAR). Si aucune n'est vraie, ou s'il manque
+une reference : NEUTRE.
 
 Exemples :
     python imp_triangle_verdict.py                    # 29 paires, tableau croise D/W/M
     python imp_triangle_verdict.py CHFJPY             # une paire : detail des niveaux de reference
-    python imp_triangle_verdict.py EURUSD --timeframes D W --details
+    python imp_triangle_verdict.py EURUSD --timeframes D W --far-count 3
 """
 from __future__ import annotations
 
@@ -38,17 +47,24 @@ from imp_early_imp_triangles import (
 )
 
 VERDICT_ICON = {"BULL": "\U0001f7e2", "BEAR": "\U0001f534", "NEUTRE": "⚪"}
+BASIS_TEXT = {
+    "OPEN_RED": "open du dernier rouge",
+    "CLOSE_GREEN": "close du dernier vert",
+    "OPEN_GREEN": "open du dernier vert",
+    "CLOSE_RED": "close du dernier rouge",
+}
 
 
-def classify(price: float, green_open: float | None, red_open: float | None, latest_kind: str | None) -> str:
+def classify(price: float, bull_above: float | None, bear_below: float | None, latest_kind: str | None) -> str:
     """Verdict d'une UT (cf. docstring du module).
 
-    `green_open` / `red_open` : open de la bougie du dernier triangle vert / rouge
-    cloture (None s'il n'y en a pas). `latest_kind` : couleur du triangle le plus
-    recent des deux ("BULL" = vert, "BEAR" = rouge), pour departager.
+    `bull_above` : niveau que le prix doit depasser par le haut pour etre BULL ;
+    `bear_below` : niveau sous lequel il doit passer pour etre BEAR (None = pas de
+    reference). `latest_kind` : couleur du triangle le plus recent ("BULL" = vert,
+    "BEAR" = rouge), pour departager quand les deux conditions sont vraies.
     """
-    cond_bull = red_open is not None and price > red_open
-    cond_bear = green_open is not None and price < green_open
+    cond_bull = bull_above is not None and price > bull_above
+    cond_bear = bear_below is not None and price < bear_below
     if cond_bull and cond_bear:
         return latest_kind if latest_kind in ("BULL", "BEAR") else "NEUTRE"
     if cond_bull:
@@ -58,23 +74,51 @@ def classify(price: float, green_open: float | None, red_open: float | None, lat
     return "NEUTRE"
 
 
-def timeframe_verdict(computed: dict, timeframe: str, price: float) -> dict:
-    last = {"BULL": None, "BEAR": None}
-    for signal in computed["signals"]:
-        last[signal["kind"]] = signal
-    times, opens = computed["times"], computed["opens"]
+def count_since(signals: list[dict], opposite: str, same: str) -> int:
+    """Nombre de triangles `same` formes depuis le dernier triangle `opposite`
+    (tous les `same` s'il n'y a jamais eu d'`opposite`)."""
+    last_opposite = max((i for i, s in enumerate(signals) if s["kind"] == opposite), default=-1)
+    return sum(1 for s in signals[last_opposite + 1:] if s["kind"] == same)
 
-    def reference(kind: str) -> dict | None:
-        signal = last[kind]
+
+def timeframe_verdict(computed: dict, timeframe: str, price: float, far_count: int = 2) -> dict:
+    signals = computed["signals"]
+    times, opens, closes = computed["times"], computed["opens"], computed["closes"]
+    last = {"BULL": None, "BEAR": None}
+    for signal in signals:
+        last[signal["kind"]] = signal
+    green, red = last["BULL"], last["BEAR"]
+
+    def candle(signal: dict | None) -> dict | None:
         if signal is None:
             return None
-        return dict(date=period_label(times[signal["index"]], timeframe), open=opens[signal["index"]])
+        i = signal["index"]
+        return dict(date=period_label(times[i], timeframe), open=opens[i], close=closes[i])
 
-    green, red = reference("BULL"), reference("BEAR")
-    latest = computed["signals"][-1]["kind"] if computed["signals"] else None
+    green_candle, red_candle = candle(green), candle(red)
+    greens_since_red = count_since(signals, "BEAR", "BULL")
+    reds_since_green = count_since(signals, "BULL", "BEAR")
+
+    if green_candle is not None and greens_since_red >= far_count:
+        bull_ref = dict(basis="CLOSE_GREEN", level=green_candle["close"], date=green_candle["date"])
+    elif red_candle is not None:
+        bull_ref = dict(basis="OPEN_RED", level=red_candle["open"], date=red_candle["date"])
+    else:
+        bull_ref = None
+    if red_candle is not None and reds_since_green >= far_count:
+        bear_ref = dict(basis="CLOSE_RED", level=red_candle["close"], date=red_candle["date"])
+    elif green_candle is not None:
+        bear_ref = dict(basis="OPEN_GREEN", level=green_candle["open"], date=green_candle["date"])
+    else:
+        bear_ref = None
+
+    latest = signals[-1]["kind"] if signals else None
     return dict(
-        verdict=classify(price, green["open"] if green else None, red["open"] if red else None, latest),
-        green=green, red=red, latest_kind=latest,
+        verdict=classify(price, bull_ref["level"] if bull_ref else None,
+                         bear_ref["level"] if bear_ref else None, latest),
+        green=green_candle, red=red_candle, latest_kind=latest,
+        bull_ref=bull_ref, bear_ref=bear_ref,
+        greens_since_red=greens_since_red, reds_since_green=reds_since_green,
         last_candle=period_label(times[-1], timeframe),
     )
 
@@ -84,7 +128,8 @@ def analyze_pair(pair: str, args) -> dict:
     # Un seul prix par paire pour toutes les UT : celui du 1er fetch.
     price = computed[args.timeframes[0]]["live_price"]
     return dict(pair=pair, price=price,
-                timeframes={tf: timeframe_verdict(computed[tf], tf, price) for tf in args.timeframes})
+                timeframes={tf: timeframe_verdict(computed[tf], tf, price, args.far_count)
+                            for tf in args.timeframes})
 
 
 def aligned_verdict(result: dict) -> str | None:
@@ -98,17 +143,24 @@ def aligned_verdict(result: dict) -> str | None:
 
 def print_details(result: dict) -> None:
     pair, d = result["pair"], decimals(result["pair"])
-    print(f"\n{pair}  prix actuel {result['price']:.{d}f}")
+    price = result["price"]
+    print(f"\n{pair}  prix actuel {price:.{d}f}")
     for tf, reading in result["timeframes"].items():
         print(f"  {TIMEFRAME_NAME[tf]:<7} {VERDICT_ICON[reading['verdict']]} {reading['verdict']}"
               f"   (derniere bougie cloturee : {reading['last_candle']})")
-        for label, key, condition in (("dernier vert ", "green", "BEAR si prix <"), ("dernier rouge", "red", "BULL si prix >")):
-            ref = reading[key]
+        for label, ref_key, comparator, since_key, since_name, opposite in (
+            ("BULL si prix >", "bull_ref", ">", "greens_since_red", "verts", "rouge"),
+            ("BEAR si prix <", "bear_ref", "<", "reds_since_green", "rouges", "vert"),
+        ):
+            ref = reading[ref_key]
             if ref is None:
-                print(f"    {label} : aucun")
+                print(f"    {label} : aucune reference")
                 continue
-            gap = (result["price"] - ref["open"]) / ref["open"] * 100
-            print(f"    {label} : {ref['date']}  open {ref['open']:.{d}f}   [{condition} open]   prix {gap:+.2f}% vs open")
+            gap = (price - ref["level"]) / ref["level"] * 100
+            note = ""
+            if ref["basis"] in ("CLOSE_GREEN", "CLOSE_RED"):
+                note = f"  [{reading[since_key]} {since_name} depuis le dernier {opposite}]"
+            print(f"    {label} {ref['level']:.{d}f}   {BASIS_TEXT[ref['basis']]} ({ref['date']}){note}   prix {gap:+.2f}%")
 
 
 def print_table(results: list[dict], timeframes: list[str]) -> None:
@@ -128,6 +180,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("pairs", nargs="*", type=str.upper, help="Paires (defaut : les 29).")
     parser.add_argument("--timeframes", nargs="+", type=str.upper, choices=TIMEFRAMES, default=list(TIMEFRAMES),
                         help="UT a analyser (defaut : D W M).")
+    parser.add_argument("--far-count", type=int, default=2,
+                        help="Nombre de triangles de la couleur du verdict formes depuis le dernier triangle oppose "
+                             "a partir duquel celui-ci est juge trop loin (defaut 2 = plusieurs).")
     parser.add_argument("--details", action="store_true",
                         help="Affiche les niveaux de reference (auto pour 1 a 3 paires).")
     parser.add_argument("--d1-candles", type=int, default=2500)
@@ -144,9 +199,9 @@ def parse_args() -> argparse.Namespace:
     if unknown:
         parser.error(f"Paire(s) inconnue(s) : {', '.join(unknown)}")
     args.timeframes = list(dict.fromkeys(args.timeframes))
-    if min(args.d1_candles, args.w1_candles, args.m1_candles) < 5 or args.workers < 1 or args.stagger < 0 \
-            or min(args.sar_start, args.sar_increment, args.sar_maximum) <= 0:
-        parser.error("Parametres invalides (candles >= 5, workers >= 1, stagger >= 0, SAR > 0)")
+    if args.far_count < 1 or min(args.d1_candles, args.w1_candles, args.m1_candles) < 5 or args.workers < 1 \
+            or args.stagger < 0 or min(args.sar_start, args.sar_increment, args.sar_maximum) <= 0:
+        parser.error("Parametres invalides (far-count >= 1, candles >= 5, workers >= 1, stagger >= 0, SAR > 0)")
     return args
 
 
@@ -172,7 +227,7 @@ def main() -> int:
 
     ordered = [results[p] for p in pairs if p in results]
     print(f"Verdict Early IMP au {datetime.now(base.PARIS):%Y-%m-%d %H:%M} Paris "
-          f"(prix live, triangles de bougies cloturees)")
+          f"(prix live, triangles de bougies cloturees, far-count {args.far_count})")
     if args.details or len(ordered) <= 3:
         for result in ordered:
             print_details(result)
