@@ -1,6 +1,6 @@
 {
-  "updated": "2026-09-18",
-  "prev_update": "2026-09-17",
+  "updated": "2026-09-21",
+  "prev_update": "2026-09-18",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -146,23 +146,23 @@
       "dropped_on": "2026-07-31"
     },
     "OKTA": {
-      "streak": 5,
-      "days": 32,
+      "streak": 6,
+      "days": 33,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-09-18",
+      "last_seen": "2026-09-21",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 56.17,
+      "last_rel": 62.76,
       "active": true
     },
     "QLYS": {
-      "streak": 5,
-      "days": 39,
+      "streak": 6,
+      "days": 40,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-09-18",
-      "last_rank": 5,
+      "last_seen": "2026-09-21",
+      "last_rank": 4,
       "peak_rank": 1,
-      "last_rel": 57.09,
+      "last_rel": 64.5,
       "active": true
     },
     "CXT": {
@@ -177,15 +177,14 @@
       "dropped_on": "2026-09-08"
     },
     "TWLO": {
-      "streak": 2,
-      "days": 3,
+      "streak": 1,
+      "days": 4,
       "first_seen": "2026-07-07",
-      "last_seen": "2026-08-10",
+      "last_seen": "2026-09-21",
       "last_rank": 3,
       "peak_rank": 3,
-      "last_rel": 16.93,
-      "active": false,
-      "dropped_on": "2026-08-11"
+      "last_rel": 40.18,
+      "active": true
     },
     "SYNA": {
       "streak": 1,
@@ -210,13 +209,13 @@
       "dropped_on": "2026-09-14"
     },
     "MANH": {
-      "streak": 3,
-      "days": 24,
+      "streak": 4,
+      "days": 25,
       "first_seen": "2026-07-31",
-      "last_seen": "2026-09-18",
-      "last_rank": 4,
+      "last_seen": "2026-09-21",
+      "last_rank": 5,
       "peak_rank": 1,
-      "last_rel": 57.9,
+      "last_rel": 61.46,
       "active": true
     },
     "NTNX": {
@@ -227,7 +226,8 @@
       "last_rank": 2,
       "peak_rank": 1,
       "last_rel": 48.97,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-09-21"
     },
     "BDC": {
       "streak": 6,
@@ -263,15 +263,14 @@
       "dropped_on": "2026-08-10"
     },
     "P": {
-      "streak": 3,
-      "days": 11,
+      "streak": 1,
+      "days": 12,
       "first_seen": "2026-08-10",
-      "last_seen": "2026-09-10",
-      "last_rank": 5,
+      "last_seen": "2026-09-21",
+      "last_rank": 2,
       "peak_rank": 2,
-      "last_rel": 38.75,
-      "active": false,
-      "dropped_on": "2026-09-11"
+      "last_rel": 45.47,
+      "active": true
     },
     "PATH": {
       "streak": 5,
@@ -325,96 +324,85 @@
       "last_rank": 3,
       "peak_rank": 3,
       "last_rel": 59.76,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-09-21"
     }
   },
   "last_events": {
     "persistent": [
       [
-        "DOCU",
-        11
-      ],
-      [
         "OKTA",
-        5
+        6
       ],
       [
         "QLYS",
-        5
+        6
       ],
       [
         "MANH",
-        3
+        4
       ],
       [
-        "NTNX",
+        "P",
+        1
+      ],
+      [
+        "TWLO",
         1
       ]
     ],
     "new": [
-      "NTNX"
+      "P",
+      "TWLO"
     ],
     "weakening": [
       {
-        "ticker": "OKTA",
-        "rank": 1,
-        "prev_rank": 2,
-        "rel": 56.17,
-        "prev_rel": 66.78
-      },
-      {
-        "ticker": "DOCU",
-        "rank": 3,
-        "prev_rank": 3,
-        "rel": 59.76,
-        "prev_rel": 63.48
-      },
-      {
-        "ticker": "QLYS",
+        "ticker": "MANH",
         "rank": 5,
         "prev_rank": 4,
-        "rel": 57.09,
-        "prev_rel": 58.3
+        "rel": 61.46,
+        "prev_rel": 57.9
       }
     ],
     "dropped": [
-      "DBX"
+      "DOCU",
+      "NTNX"
     ],
     "durable": [
       [
-        "DOCU",
-        11,
-        59.76,
-        657.4
-      ],
-      [
         "QLYS",
-        5,
-        57.09,
-        285.5
+        6,
+        64.5,
+        387.0
       ],
       [
         "OKTA",
-        5,
-        56.17,
-        280.9
+        6,
+        62.76,
+        376.6
       ],
       [
         "MANH",
-        3,
-        57.9,
-        173.7
+        4,
+        61.46,
+        245.8
       ],
       [
-        "NTNX",
+        "P",
         1,
-        48.97,
-        49.0
+        45.47,
+        45.5
+      ],
+      [
+        "TWLO",
+        1,
+        40.18,
+        40.2
       ]
     ],
     "switch": null
   },
   "leader_raw": "Logiciels",
-  "leader_raw_days": 36,
+  "leader_raw_days": 37,
   "leader_confirmed": "Logiciels"
 }
