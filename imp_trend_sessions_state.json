@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "updated_at": "2026-09-21T19:18:56.307234+00:00",
+  "updated_at": "2026-09-21T20:18:49.730928+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": 15.700000000005673,
-      "current_session_realized_pips": 79.60000000000088,
+      "current_session_realized_pips": 0.0,
       "last_session_pips": 79.60000000000088,
       "unrealized_pips": 0.0,
       "total_pips": 15.700000000005673,
-      "daily_pips": 79.60000000000088,
-      "is_active": false,
-      "active_session_id": null,
+      "daily_pips": 0.0,
+      "is_active": true,
+      "active_session_id": "2026-09-21",
       "positions": {},
       "events": [
         {
@@ -2158,16 +2158,8 @@
       ],
       "daily_pips_history": [
         {
-          "time_utc": "2026-09-20T21:45:47.493071+00:00",
+          "time_utc": "2026-09-21T20:18:49.730928+00:00",
           "daily_pips": 0.0
-        },
-        {
-          "time_utc": "2026-09-21T04:53:26.886523+00:00",
-          "daily_pips": 96.49999999999963
-        },
-        {
-          "time_utc": "2026-09-21T05:19:29.017430+00:00",
-          "daily_pips": 79.60000000000088
         }
       ],
       "comparison_baseline": 30.000000000003364,
@@ -6605,12 +6597,12 @@
     "New York": {
       "realized_pips": -95.39999999999378,
       "current_session_realized_pips": -21.90000000000163,
-      "last_session_pips": -13.200000000001788,
+      "last_session_pips": -21.90000000000163,
       "unrealized_pips": 0.0,
       "total_pips": -95.39999999999378,
       "daily_pips": -21.90000000000163,
-      "is_active": true,
-      "active_session_id": "2026-09-21",
+      "is_active": false,
+      "active_session_id": null,
       "positions": {},
       "events": [
         {
@@ -9526,6 +9518,10 @@
         },
         {
           "time_utc": "2026-09-21T19:18:56.307234+00:00",
+          "daily_pips": -21.90000000000163
+        },
+        {
+          "time_utc": "2026-09-21T20:18:49.730928+00:00",
           "daily_pips": -21.90000000000163
         }
       ],
