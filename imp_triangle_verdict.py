@@ -27,11 +27,11 @@ une reference : NEUTRE.
 Selection finale (liste Telegram EARLY IMP) : une paire alignee sur toutes les UT
 (la tendance de fond) n'entre dans la liste que sur un CROSS prix/SAR H1, a la cloture
 d'une bougie H1, dans le sens de cette tendance (BULL : cross haussier ; BEAR : cross
-baissier), survenu depuis le run precedent, et si |CHG% daily| > `--chg-threshold`
-(defaut 0.1). Strict : une paire deja alignee et deja du bon cote du SAR H1 attend le
-prochain cross.
+baissier), survenu depuis le run precedent. Strict : une paire deja alignee et deja du bon
+cote du SAR H1 attend le prochain cross. Le CHG% daily ne bloque pas l'entree : sous
+`--chg-threshold` (defaut 0.1) la paire entre avec un warning.
 Une fois retenue, la paire n'est pas retiree quand le SAR H1 repasse du mauvais cote ni
-quand son CHG% repasse sous le seuil : elle porte un warning tant que l'une ou l'autre
+quand son CHG% est sous le seuil : elle porte un warning tant que l'une ou l'autre
 condition est mauvaise, et il disparait quand les deux sont bonnes. Une paire retenue
 qui n'est plus alignee reste pour le reste du jour de trading avec un double warning (la
 boule de couleur est remplacee par un warning), puis sort. Cet etat, avec un repere H1
@@ -218,12 +218,12 @@ def update_selection(
     """Selection finale de la liste EARLY IMP, avec persistance d'un run a l'autre.
 
     - Une paire ALIGNEE n'entre dans la liste que sur un CROSS prix/SAR H1 (bougie H1
-      cloturee) dans le sens du verdict survenu depuis le run precedent (`h1["event"]`),
-      et si |CHG% daily| > `threshold`. Strict : une paire deja alignee et deja du bon
-      cote du SAR H1 attend le prochain cross.
-    - Une paire deja retenue (meme sens) n'est jamais retiree pour cause de H1 : elle
-      porte `warning` (1 warning) tant que |CHG%| <= `threshold` OU que le prix H1 est
-      du mauvais cote du SAR (`h1["side"]`) ; le warning disparait des que les deux
+      cloturee) dans le sens du verdict survenu depuis le run precedent (`h1["event"]`).
+      Strict : une paire deja alignee et deja du bon cote du SAR H1 attend le prochain
+      cross. Le CHG% ne bloque pas l'entree : sous `threshold` elle entre avec `warning`.
+    - Une paire retenue (meme sens) n'est jamais retiree pour cause de H1 ou de CHG% :
+      elle porte `warning` (1 warning) tant que |CHG%| <= `threshold` OU que le prix H1
+      est du mauvais cote du SAR (`h1["side"]`) ; le warning disparait des que les deux
       conditions sont de nouveau bonnes.
     - Une paire deja retenue qui n'est plus alignee reste pour le reste du jour de
       trading `today` avec `lost` (double warning : la boule de couleur est remplacee
@@ -260,8 +260,8 @@ def update_selection(
         if was_selected:
             h1_against = h1["side"] is not None and h1["side"] != REQUIRED_H1_SIDE[verdict]
             warning = not passes or h1_against
-        elif passes and h1["event"] == verdict:
-            warning = False
+        elif h1["event"] == verdict:
+            warning = not passes
         else:
             continue
         selection.append(dict(pair=pair, verdict=verdict, warning=warning, lost=False, chg=chg))
@@ -385,7 +385,7 @@ def parse_args() -> argparse.Namespace:
                         help="Envoie la selection sur Telegram et met a jour le fichier d'etat "
                              "(sans ce flag : apercu du message seulement, etat non modifie).")
     parser.add_argument("--chg-threshold", type=float, default=0.1,
-                        help="|CHG%% daily| minimum (en %%) pour entrer dans la liste (defaut 0.1).")
+                        help="|CHG%% daily| (en %%) sous lequel une paire retenue porte un warning (defaut 0.1).")
     parser.add_argument("--state-file", type=Path, default=Path("imp_triangle_verdict_state.json"),
                         help="Etat de la selection d'un run a l'autre (paires retenues, warning).")
     parser.add_argument("--h1-candles", type=int, default=1000,
@@ -447,7 +447,8 @@ def main() -> int:
 
     selection, new_state = update_selection(
         ordered, previous, args.chg_threshold, trading_day(datetime.now(base.PARIS)))
-    print(f"\nSelection (alignee {'+'.join(args.timeframes)} et |CHG%D| > {args.chg_threshold:g}%) : "
+    print(f"\nSelection (alignee {'+'.join(args.timeframes)}, entree sur cross H1 ; "
+          f"warning si |CHG%D| <= {args.chg_threshold:g}% ou H1 a contre-sens) : "
           + (", ".join(f"{s['pair']}{' ' + WARNING_ICON * (2 if s['lost'] else 1) if s['warning'] else ''}"
                        for s in selection) or "aucune"))
 

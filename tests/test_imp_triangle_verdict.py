@@ -220,12 +220,18 @@ class UpdateSelectionTests(unittest.TestCase):
     def test_threshold_is_strict_and_uses_the_absolute_value(self):
         results = [self.result("AUDCAD", "BULL", 0.1), self.result("EURAUD", "BEAR", -0.3)]
         selection, _ = update_selection(results, {}, 0.1, TODAY)
-        self.assertEqual(self.names(selection), {"EURAUD": False})  # 0.1 pile : non ; -0.3 : oui (valeur absolue)
+        # 0.1 pile : pas au-dessus du seuil -> warning ; -0.3 : au-dessus en valeur absolue -> pas de warning
+        self.assertEqual(self.names(selection), {"AUDCAD": True, "EURAUD": False})
 
-    def test_new_pair_below_the_threshold_is_not_selected(self):
+    def test_chg_below_the_threshold_does_not_block_the_entry_but_adds_a_warning(self):
         selection, state = update_selection([self.result("AUDCAD", "BULL", 0.05)], {}, 0.1, TODAY)
-        self.assertEqual(selection, [])
-        self.assertEqual(state, {})
+        self.assertEqual(self.names(selection), {"AUDCAD": True})
+        self.assertFalse(selection[0]["lost"])  # 1 seul warning, la boule reste
+        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True))
+
+    def test_unknown_chg_does_not_block_the_entry_either(self):
+        selection, _ = update_selection([self.result("AUDCAD", "BULL", None)], {}, 0.1, TODAY)
+        self.assertEqual(self.names(selection), {"AUDCAD": True})
 
     def test_previously_selected_pair_falling_below_the_threshold_stays_with_a_warning(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
@@ -276,18 +282,20 @@ class UpdateSelectionTests(unittest.TestCase):
 
     def test_lost_pair_that_realigns_the_other_way_must_requalify(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=True, lost_day=TODAY)}
-        selection, _ = update_selection([self.result("AUDCAD", "BEAR", 0.03)], previous, 0.1, TODAY)
+        # sens oppose sans cross H1 dans ce sens : pas d'entree
+        selection, _ = update_selection([self.result("AUDCAD", "BEAR", -0.4, event=None)], previous, 0.1, TODAY)
         self.assertEqual(selection, [])
         selection, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, 0.1, TODAY)
         self.assertEqual(state["AUDCAD"], dict(verdict="BEAR", warning=False))
 
     def test_direction_flip_must_requalify_like_a_new_pair(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
-        below, _ = update_selection([self.result("AUDCAD", "BEAR", 0.05)], previous, 0.1, TODAY)
-        self.assertEqual(below, [])
-        above, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, 0.1, TODAY)
+        # nouveau sens sans cross H1 dans ce sens : l'ancien BULL ne compte pas, pas d'entree
+        no_cross, _ = update_selection([self.result("AUDCAD", "BEAR", -0.4, event=None)], previous, 0.1, TODAY)
+        self.assertEqual(no_cross, [])
+        entered, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, 0.1, TODAY)
         self.assertEqual(state["AUDCAD"], dict(verdict="BEAR", warning=False))
-        self.assertEqual(self.names(above), {"AUDCAD": False})
+        self.assertEqual(self.names(entered), {"AUDCAD": False})
 
     def test_pair_missing_from_results_keeps_its_previous_state(self):
         # fetch en erreur ce run-la : ne doit pas faire sortir la paire
@@ -321,10 +329,6 @@ class UpdateSelectionTests(unittest.TestCase):
         self.assertEqual(selection, [])
         selection, _ = update_selection([self.result("EURAUD", "BEAR", -0.5, event="cross")], {}, 0.1, TODAY)
         self.assertEqual([s["pair"] for s in selection], ["EURAUD"])
-
-    def test_entry_needs_both_the_h1_cross_and_the_chg_threshold_at_the_same_run(self):
-        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.05, event="cross")], {}, 0.1, TODAY)
-        self.assertEqual(selection, [])
 
     def test_pair_without_h1_data_cannot_enter(self):
         legacy = self.result("AUDCAD", "BULL", 0.5)
