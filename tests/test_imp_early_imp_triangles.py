@@ -124,6 +124,9 @@ class PeriodBoundariesTests(unittest.TestCase):
         # janvier 2027 (ouvre le 31/12/2026 22:00 UTC) finit un dimanche : vendredi 29/01 17h NY (hiver)
         self.assertEqual(period_end(utc("2026-12-31 22:00"), "M"), utc("2027-01-29 22:00"))
 
+    def test_hourly_bar_closes_one_hour_after_its_open(self):
+        self.assertEqual(period_end(utc("2026-09-18 20:00"), "H"), utc("2026-09-18 21:00"))
+
     def test_labels_follow_the_closing_day(self):
         self.assertEqual(period_label(utc("2026-09-17 21:00"), "D"), "2026-09-18")
         self.assertEqual(period_label(utc("2026-09-13 21:00"), "W"), "2026-09-14")  # lundi de la semaine

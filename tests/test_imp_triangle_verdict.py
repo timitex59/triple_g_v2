@@ -13,6 +13,7 @@ from imp_triangle_verdict import (
     classify,
     count_since,
     daily_chg_pct,
+    h1_cross_state,
     load_state,
     save_state,
     timeframe_verdict,
@@ -193,9 +194,17 @@ class TradingDayTests(unittest.TestCase):
 
 
 class UpdateSelectionTests(unittest.TestCase):
-    def result(self, pair, verdict, chg):
+    def result(self, pair, verdict, chg, event="cross", side="right"):
+        """`event` : "cross" = cross H1 dans le sens du verdict, "against" = cross inverse,
+        None = pas de cross. `side` : "right"/"wrong" = cote du prix vs SAR H1 (bon/mauvais
+        pour ce verdict), None = indefini."""
+        opposite = "BEAR" if verdict == "BULL" else "BULL"
+        good_side = "above" if verdict == "BULL" else "below"
+        bad_side = "below" if verdict == "BULL" else "above"
+        h1 = dict(event={"cross": verdict, "against": opposite, None: None}[event],
+                  side={"right": good_side, "wrong": bad_side, None: None}[side])
         tfs = {tf: dict(verdict=verdict) for tf in ("D", "W", "M")}
-        return dict(pair=pair, chg=chg, timeframes=tfs)
+        return dict(pair=pair, chg=chg, h1=h1, timeframes=tfs)
 
     def not_aligned(self, pair, chg):
         return dict(pair=pair, chg=chg, timeframes=dict(D=dict(verdict="BULL"), W=dict(verdict="BEAR")))
@@ -301,6 +310,62 @@ class UpdateSelectionTests(unittest.TestCase):
         selection, _ = update_selection(results, {}, 0.1, TODAY)
         self.assertEqual([s["pair"] for s in selection], ["AUDCAD", "GBPNZD", "NZDUSD"])
 
+    # --- declencheur H1 : entree stricte sur le cross, jamais de retrait mais un warning ---
+
+    def test_entry_requires_an_h1_cross_in_the_verdict_direction(self):
+        # deja du bon cote du SAR H1 mais aucun cross depuis le dernier run : on attend le prochain cross
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.5, event=None, side="right")], {}, 0.1, TODAY)
+        self.assertEqual((selection, state), ([], {}))
+        # cross dans le SENS OPPOSE : pas d'entree non plus
+        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.5, event="against", side="wrong")], {}, 0.1, TODAY)
+        self.assertEqual(selection, [])
+        selection, _ = update_selection([self.result("EURAUD", "BEAR", -0.5, event="cross")], {}, 0.1, TODAY)
+        self.assertEqual([s["pair"] for s in selection], ["EURAUD"])
+
+    def test_entry_needs_both_the_h1_cross_and_the_chg_threshold_at_the_same_run(self):
+        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.05, event="cross")], {}, 0.1, TODAY)
+        self.assertEqual(selection, [])
+
+    def test_pair_without_h1_data_cannot_enter(self):
+        legacy = self.result("AUDCAD", "BULL", 0.5)
+        del legacy["h1"]
+        selection, _ = update_selection([legacy], {}, 0.1, TODAY)
+        self.assertEqual(selection, [])
+
+    def test_listed_pair_is_kept_with_a_warning_when_the_h1_sar_turns_against_it(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
+        selection, state = update_selection(
+            [self.result("AUDCAD", "BULL", 0.5, event="against", side="wrong")], previous, 0.1, TODAY)
+        self.assertEqual(self.names(selection), {"AUDCAD": True})   # jamais retiree, warning
+        self.assertFalse(selection[0]["lost"])                       # 1 seul warning, la boule reste
+        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True))
+
+    def test_h1_warning_applies_to_bear_pairs_when_price_is_above_the_sar(self):
+        previous = {"EURAUD": dict(verdict="BEAR", warning=False)}
+        selection, _ = update_selection([self.result("EURAUD", "BEAR", -0.5, event=None, side="wrong")], previous, 0.1, TODAY)
+        self.assertEqual(self.names(selection), {"EURAUD": True})
+
+    def test_h1_warning_clears_once_price_is_back_on_the_right_side(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True)}
+        selection, state = update_selection(
+            [self.result("AUDCAD", "BULL", 0.5, event="cross", side="right")], previous, 0.1, TODAY)
+        self.assertEqual(self.names(selection), {"AUDCAD": False})
+        self.assertEqual(state["AUDCAD"]["warning"], False)
+
+    def test_h1_and_chg_warnings_share_the_single_warning_icon(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
+        # CHG% sous le seuil MAIS H1 du bon cote -> warning ; CHG% ok mais H1 du mauvais cote -> warning
+        below = update_selection([self.result("AUDCAD", "BULL", 0.02, event=None, side="right")], previous, 0.1, TODAY)[0]
+        against = update_selection([self.result("AUDCAD", "BULL", 0.5, event=None, side="wrong")], previous, 0.1, TODAY)[0]
+        both = update_selection([self.result("AUDCAD", "BULL", 0.02, event=None, side="wrong")], previous, 0.1, TODAY)[0]
+        self.assertEqual([self.names(x) for x in (below, against, both)], [{"AUDCAD": True}] * 3)
+
+    def test_listed_pair_from_the_previous_rules_is_grandfathered(self):
+        # entree d'avant le declencheur H1 : pas d'info H1 dans l'etat, on la garde sans cross
+        previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
+        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.5, event=None, side="right")], previous, 0.1, TODAY)
+        self.assertEqual(self.names(selection), {"AUDCAD": False})
+
 
 class DailyChgTests(unittest.TestCase):
     def test_change_versus_previous_daily_close(self):
@@ -312,6 +377,38 @@ class DailyChgTests(unittest.TestCase):
         self.assertIsNone(daily_chg_pct(100.0, 0.0))
 
 
+class H1CrossStateTests(unittest.TestCase):
+    TIMES = list(pd.date_range("2026-09-18 10:00", periods=4, freq="h", tz="UTC"))
+
+    def test_cross_after_the_mark_is_reported_with_its_direction(self):
+        # close passe de 9 a 11 au-dessus d'un SAR a 10 sur la bougie d'index 2
+        state = h1_cross_state(self.TIMES, [9, 9, 11, 11], [10, 10, 10, 10], mark=self.TIMES[1])
+        self.assertEqual((state["event"], state["side"]), ("BULL", "above"))
+        self.assertEqual(state["last_bar"], self.TIMES[3].isoformat())
+
+    def test_cross_at_or_before_the_mark_was_already_seen(self):
+        state = h1_cross_state(self.TIMES, [9, 9, 11, 11], [10, 10, 10, 10], mark=self.TIMES[2])
+        self.assertIsNone(state["event"])
+        self.assertEqual(state["side"], "above")
+
+    def test_no_mark_means_no_event_the_first_time_a_pair_is_seen(self):
+        state = h1_cross_state(self.TIMES, [9, 9, 11, 11], [10, 10, 10, 10], mark=None)
+        self.assertIsNone(state["event"])
+
+    def test_only_the_last_cross_of_the_window_counts(self):
+        # haussier en 1 puis baissier en 2 : la paire finit du mauvais cote
+        state = h1_cross_state(self.TIMES, [9, 11, 9, 9], [10, 10, 10, 10], mark=self.TIMES[0])
+        self.assertEqual((state["event"], state["side"]), ("BEAR", "below"))
+
+    def test_bear_cross(self):
+        state = h1_cross_state(self.TIMES, [11, 11, 9, 9], [10, 10, 10, 10], mark=self.TIMES[0])
+        self.assertEqual((state["event"], state["side"]), ("BEAR", "below"))
+
+    def test_side_is_none_when_close_equals_sar(self):
+        state = h1_cross_state(self.TIMES[:2], [10, 10], [10, 10], mark=None)
+        self.assertIsNone(state["side"])
+
+
 class StatePersistenceTests(unittest.TestCase):
     def test_roundtrip_and_missing_or_corrupt_file(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -321,6 +418,15 @@ class StatePersistenceTests(unittest.TestCase):
             self.assertEqual(load_state(path)["pairs"], {"AUDCAD": dict(verdict="BULL", warning=True)})
             path.write_text("{corrompu", encoding="utf-8")
             self.assertEqual(load_state(path), {})
+
+    def test_h1_marks_are_persisted_per_pair(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "state.json"
+            marks = {"AUDCAD": "2026-09-18T21:00:00+00:00", "EURAUD": "2026-09-18T20:00:00+00:00"}
+            save_state(path, {}, marks)
+            self.assertEqual(load_state(path)["h1_marks"], marks)
+            save_state(path, {})  # sans repere : le champ existe quand meme, vide
+            self.assertEqual(load_state(path)["h1_marks"], {})
 
 
 if __name__ == "__main__":

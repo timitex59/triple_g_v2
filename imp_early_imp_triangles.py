@@ -66,9 +66,11 @@ def period_label(timestamp: pd.Timestamp, timeframe: str = "D") -> str:
 def period_end(open_time: pd.Timestamp, timeframe: str = "D") -> pd.Timestamp:
     """Instant de cloture d'une bougie forex ouverte a `open_time`.
 
-    D : 24h. W : 5 jours (dimanche 17h New York -> vendredi 17h New York).
+    H : 1h. D : 24h. W : 5 jours (dimanche 17h New York -> vendredi 17h New York).
     M : 17h New York du dernier jour ouvre du mois de la bougie.
     """
+    if timeframe == "H":
+        return open_time + pd.Timedelta(hours=1)
     if timeframe == "D":
         return open_time + pd.Timedelta(days=1)
     if timeframe == "W":
