@@ -34,10 +34,14 @@ Symboles: INDEX:BTCUSD, EURONEXT:ALCPB, NASDAQ:MSTR.
 PSAR: recurrence Pine (ta.sar) validee bar-a-bar vs TradingView (cf. pine_sar
 dans imp_trend5_29pairs.py).
 
+Un seul message Telegram est envoye: la photo (graphique) avec, en legende,
+la performance indexee puis le classement des quotients -- pas de message
+separe.
+
 Usage:
-  python relative_perf_btc_alcpb_mstr.py                    # graphique + quotients, envoi Telegram
+  python relative_perf_btc_alcpb_mstr.py                    # graphique + quotients, un seul envoi Telegram
   python relative_perf_btc_alcpb_mstr.py --no-send           # calcule + sauvegarde le PNG local, sans envoi
-  python relative_perf_btc_alcpb_mstr.py --no-ratios         # ignore le message quotients (SAR/RSI)
+  python relative_perf_btc_alcpb_mstr.py --no-ratios         # ignore les quotients (SAR/RSI) dans la legende
   python relative_perf_btc_alcpb_mstr.py --rebase-date 2025-01-01
 
 Le script ne donne pas de conseil financier.
@@ -145,14 +149,13 @@ def build_chart(series: dict[str, pd.Series], rebase_date: str) -> bytes:
     return buf.getvalue()
 
 
-def build_caption(series: dict[str, pd.Series], rebase_date: str) -> str:
+def build_performance_lines(series: dict[str, pd.Series], rebase_date: str) -> list[str]:
     lines = [f"\U0001f4ca BTC / ALCPB / MSTR -- base 100 le {rebase_date}"]
     ranked = sorted(series.items(), key=lambda kv: kv[1].iloc[-1], reverse=True)
     for label, s in ranked:
         icon = ICONS.get(label, "⚪")
-        lines.append(f"{icon} {label}\t{s.iloc[-1] - 100:+.1f}%")
-    lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M')} Paris")
-    return "\n".join(lines)
+        lines.append(f"{icon} {label} {s.iloc[-1] - 100:+.1f}%")
+    return lines
 
 
 def pine_sar(df: pd.DataFrame, start: float = 0.1, increment: float = 0.1, maximum: float = 0.2) -> list[float]:
@@ -284,18 +287,33 @@ def rank_ratios(all_stats: dict[tuple[str, str], dict[str, dict]]) -> list[tuple
     return scored
 
 
-def build_ratio_caption(all_stats: dict[tuple[str, str], dict[str, dict]]) -> str:
-    lines = ["\U0001f4c8 Quotients relatifs -- SAR & RSI(14)"]
+def build_ratio_lines(all_stats: dict[tuple[str, str], dict[str, dict]]) -> list[str]:
+    """Une ligne par quotient : medaille, score composite, une balle M/W/D (⚠️ si RSI en zone extreme)."""
+    lines = ["\U0001f4c8 Quotients -- SAR & RSI(14)"]
     for rank, ((num, den), tf_stats, score) in enumerate(rank_ratios(all_stats)):
         medal = MEDALS[rank] if rank < len(MEDALS) else f"{rank + 1}."
-        lines.append(f"{medal} {num}/{den}\t{score:+.0f}")
-        for tf_code, _, tf_label in TIMEFRAMES:
+        balls = []
+        for tf_code, _, _ in TIMEFRAMES:
             stats = tf_stats.get(tf_code)
             if stats is None:
                 continue
             ball = "\U0001f7e2" if stats["bull"] else "\U0001f534"
-            warn = " ⚠️" if stats["rsi"] >= RSI_OVERBOUGHT or stats["rsi"] <= RSI_OVERSOLD else ""
-            lines.append(f"{ball} {tf_label}\tRSI {stats['rsi']:.0f}{warn}")
+            warn = "⚠️" if stats["rsi"] >= RSI_OVERBOUGHT or stats["rsi"] <= RSI_OVERSOLD else ""
+            balls.append(f"{ball}{tf_code}{warn}")
+        lines.append(f"{medal} {num}/{den} {score:+.0f}  {' '.join(balls)}")
+    return lines
+
+
+def build_combined_caption(
+    series: dict[str, pd.Series],
+    rebase_date: str,
+    all_stats: dict[tuple[str, str], dict[str, dict]],
+) -> str:
+    lines: list[str] = []
+    if series:
+        lines.extend(build_performance_lines(series, rebase_date))
+    if all_stats:
+        lines.extend(build_ratio_lines(all_stats))
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M')} Paris")
     return "\n".join(lines)
 
@@ -345,6 +363,7 @@ def main() -> None:
         return
 
     series = compute_indexed_series(raw, args.rebase_date)
+    photo_bytes = None
     if series:
         photo_bytes = build_chart(series, args.rebase_date)
         with open(CHART_PATH, "wb") as handle:
@@ -352,11 +371,10 @@ def main() -> None:
         print(f"Graphique sauvegarde: {CHART_PATH}")
         for label, s in series.items():
             print(f"{label}: {s.iloc[-1] - 100:+.2f}% depuis {args.rebase_date}")
-        if not args.no_send:
-            send_telegram_photo(photo_bytes, build_caption(series, args.rebase_date))
     else:
         print("Aucune serie indexee disponible, graphique ignore.")
 
+    all_stats: dict[tuple[str, str], dict[str, dict]] = {}
     if not args.no_ratios:
         all_stats = compute_all_ratio_stats(raw)
         for rank, ((num, den), tf_stats, score) in enumerate(rank_ratios(all_stats), start=1):
@@ -367,8 +385,13 @@ def main() -> None:
                     continue
                 state = "bull" if stats["bull"] else "bear"
                 print(f"  {tf_label}: close={stats['close']:.4g} sar={stats['sar']:.4g} ({state}) rsi={stats['rsi']:.1f}")
-        if all_stats and not args.no_send:
-            send_telegram_message(build_ratio_caption(all_stats))
+
+    if not args.no_send and (series or all_stats):
+        caption = build_combined_caption(series, args.rebase_date, all_stats)
+        if photo_bytes is not None:
+            send_telegram_photo(photo_bytes, caption)
+        else:
+            send_telegram_message(caption)
 
 
 if __name__ == "__main__":
