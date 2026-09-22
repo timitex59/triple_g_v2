@@ -29,6 +29,13 @@ run precedent). Chaque envoi suivant affiche (valeur - T0) / |T0| * 100,
 arrondi -- ex: T0=+5 puis valeur=+6 donne +20%. --reset-t0 refixe T0 sur les
 valeurs du jour.
 
+Envoi Telegram: le message n'est envoye que si son contenu (hors timestamp)
+differe du dernier envoi reussi (state["last_sent_body"]) -- pas de spam si
+les chiffres n'ont pas bouge entre deux runs planifies. --force-send envoie
+quand meme. Cote CI (triple_g_workflow.yml), le script tourne toutes les
+heures entre 16h30 et 22h30 heure de Paris (gate horaire dans le workflow,
+comme dca_euronext.py) ; la dedup fait le tri sur le contenu.
+
 Donnees: fetch_tv_ohlc (TradingView), journalier.
 Symboles: INDEX:BTCUSD, EURONEXT:ALCPB, NASDAQ:MSTR.
 PSAR: recurrence Pine (ta.sar) validee bar-a-bar vs TradingView (cf. pine_sar
@@ -359,18 +366,19 @@ def build_individual_lines(
     return lines
 
 
-def build_combined_caption(
+def build_message_body(
     series: dict[str, pd.Series],
     performance_evolutions: dict[str, float | None],
     individual_scores: dict[str, float],
     individual_evolutions: dict[str, float | None],
 ) -> str:
+    """Corps du message (sans le timestamp) -- sert aussi de cle de dedup: on ne renvoie sur
+    Telegram que si ce texte a change depuis le dernier envoi (cf. state["last_sent_body"])."""
     blocks: list[list[str]] = []
     if series:
         blocks.append(build_performance_lines(series, performance_evolutions))
     if individual_scores:
         blocks.append(build_individual_lines(individual_scores, individual_evolutions))
-    blocks.append([f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M')} Paris"])
     return "\n\n".join("\n".join(block) for block in blocks)
 
 
@@ -395,6 +403,7 @@ def main() -> None:
     parser.add_argument("--no-send", action="store_true", help="ne rien envoyer sur Telegram, juste afficher en console")
     parser.add_argument("--no-ratios", action="store_true", help="ignorer le score individuel (SAR/RSI des quotients)")
     parser.add_argument("--reset-t0", action="store_true", help="refixer T0 (evolution %%) sur les valeurs du jour")
+    parser.add_argument("--force-send", action="store_true", help="envoyer meme si rien n'a change depuis le dernier envoi")
     args = parser.parse_args()
 
     raw = fetch_daily_data()
@@ -426,14 +435,18 @@ def main() -> None:
             evo_txt = format_pct(individual_evolutions.get(label), decimals=1)
             print(f"Score individuel {label}: {score:+.1f} vs T0 {evo_txt}")
 
-    save_state(STATE_PATH, state)
+    if series or individual_scores:
+        body = build_message_body(series, performance_evolutions, individual_scores, individual_evolutions)
+        changed = body != state.get("last_sent_body")
+        if not args.no_send:
+            if changed or args.force_send:
+                caption = body + "\n\n" + f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M')} Paris"
+                if send_telegram_message(caption):
+                    state["last_sent_body"] = body
+            else:
+                print("Pas de changement depuis le dernier envoi, Telegram ignore.")
 
-    if not args.no_send and (series or individual_scores):
-        caption = build_combined_caption(
-            series, performance_evolutions,
-            individual_scores, individual_evolutions,
-        )
-        send_telegram_message(caption)
+    save_state(STATE_PATH, state)
 
 
 if __name__ == "__main__":
