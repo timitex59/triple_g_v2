@@ -29,6 +29,12 @@ par TF_WEIGHTS (M=3, W=2, D=1 -- le structurel pese plus que le bruit court
 terme) pour donner un score composite par quotient. Les 3 quotients sont
 tries du meilleur au plus faible (medailles) dans le message Telegram.
 
+Evolution vs T0: la premiere fois qu'un quotient est vu, son score composite
+est fige comme T0 dans STATE_PATH (etat persistant, pas une comparaison
+glissante par rapport au run precedent). Chaque envoi suivant affiche
+(score - T0) / |T0| * 100, arrondi -- ex: T0=+5 puis score=+6 donne +20%.
+--reset-t0 refixe T0 sur le score du jour pour tous les quotients.
+
 Donnees: fetch_tv_ohlc (TradingView), journalier.
 Symboles: INDEX:BTCUSD, EURONEXT:ALCPB, NASDAQ:MSTR.
 PSAR: recurrence Pine (ta.sar) validee bar-a-bar vs TradingView (cf. pine_sar
@@ -51,6 +57,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import math
 import os
 from datetime import datetime
@@ -80,6 +87,7 @@ ICONS = {"BTC": "\U0001f7e0", "ALCPB": "\U0001f535", "MSTR": "\U0001f7e3"}
 DEFAULT_REBASE_DATE = "2026-09-01"  # fenetre recente -- ajustable via --rebase-date
 CANDLES = 1200
 CHART_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "relative_perf_btc_alcpb_mstr.png")
+STATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "relative_perf_btc_alcpb_mstr_state.json")
 
 # Quotients suivis: (numerateur, denominateur)
 RATIO_PAIRS = [("ALCPB", "BTC"), ("MSTR", "BTC"), ("ALCPB", "MSTR")]
@@ -287,33 +295,76 @@ def rank_ratios(all_stats: dict[tuple[str, str], dict[str, dict]]) -> list[tuple
     return scored
 
 
-def build_ratio_lines(all_stats: dict[tuple[str, str], dict[str, dict]]) -> list[str]:
-    """Une ligne par quotient : medaille, score composite, une balle M/W/D (⚠️ si RSI en zone extreme)."""
+def load_state(path: str) -> dict:
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def save_state(path: str, state: dict) -> None:
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(state, handle, ensure_ascii=False, indent=2)
+
+
+def apply_t0_evolution(
+    ranked: list[tuple[tuple[str, str], dict, float]],
+    state: dict,
+    reset: bool = False,
+) -> dict[tuple[str, str], float | None]:
+    """Fige T0 (score du premier passage, ou du jour si reset) dans `state` (mute en place),
+    renvoie (score - T0) / |T0| * 100 pour chaque quotient -- None si T0 == 0 (division impossible)."""
+    today = datetime.now(PARIS_TZ).strftime("%Y-%m-%d")
+    evolutions: dict[tuple[str, str], float | None] = {}
+    for (num, den), _tf_stats, score in ranked:
+        key = f"{num}/{den}"
+        entry = state.get(key)
+        if entry is None or reset:
+            entry = {"t0_score": score, "t0_date": today}
+            state[key] = entry
+        t0_score = entry["t0_score"]
+        if score == t0_score:
+            evolutions[(num, den)] = 0.0
+        elif t0_score == 0.0:
+            evolutions[(num, den)] = None
+        else:
+            evolutions[(num, den)] = (score - t0_score) / abs(t0_score) * 100.0
+    return evolutions
+
+
+def format_pct(value: float | None, decimals: int = 0) -> str:
+    """Formate un %, sans "-0%" (round() peut produire un zero negatif)."""
+    if value is None:
+        return "N/A"
+    rounded = round(value, decimals) + 0.0  # +0.0 normalise -0.0 -> 0.0
+    return f"{rounded:+.{decimals}f}%"
+
+
+def build_ratio_lines(
+    ranked: list[tuple[tuple[str, str], dict, float]],
+    evolutions: dict[tuple[str, str], float | None],
+) -> list[str]:
+    """Une ligne par quotient : medaille, score composite, evolution % vs T0 entre parentheses."""
     lines = ["\U0001f4c8 Quotients -- SAR & RSI(14)"]
-    for rank, ((num, den), tf_stats, score) in enumerate(rank_ratios(all_stats)):
+    for rank, ((num, den), _tf_stats, score) in enumerate(ranked):
         medal = MEDALS[rank] if rank < len(MEDALS) else f"{rank + 1}."
-        balls = []
-        for tf_code, _, _ in TIMEFRAMES:
-            stats = tf_stats.get(tf_code)
-            if stats is None:
-                continue
-            ball = "\U0001f7e2" if stats["bull"] else "\U0001f534"
-            warn = "⚠️" if stats["rsi"] >= RSI_OVERBOUGHT or stats["rsi"] <= RSI_OVERSOLD else ""
-            balls.append(f"{ball}{tf_code}{warn}")
-        lines.append(f"{medal} {num}/{den} {score:+.0f}  {' '.join(balls)}")
+        evo_txt = format_pct(evolutions.get((num, den)))
+        lines.append(f"{medal} {num}/{den} {score:+.0f}  ({evo_txt})")
     return lines
 
 
 def build_combined_caption(
     series: dict[str, pd.Series],
     rebase_date: str,
-    all_stats: dict[tuple[str, str], dict[str, dict]],
+    ranked: list[tuple[tuple[str, str], dict, float]],
+    evolutions: dict[tuple[str, str], float | None],
 ) -> str:
     lines: list[str] = []
     if series:
         lines.extend(build_performance_lines(series, rebase_date))
-    if all_stats:
-        lines.extend(build_ratio_lines(all_stats))
+    if ranked:
+        lines.extend(build_ratio_lines(ranked, evolutions))
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M')} Paris")
     return "\n".join(lines)
 
@@ -355,6 +406,7 @@ def main() -> None:
     parser.add_argument("--rebase-date", default=DEFAULT_REBASE_DATE, help="date de base (YYYY-MM-DD), indice 100")
     parser.add_argument("--no-send", action="store_true", help="ne rien envoyer sur Telegram, juste sauvegarder le PNG")
     parser.add_argument("--no-ratios", action="store_true", help="ignorer l'analyse des quotients (SAR/RSI)")
+    parser.add_argument("--reset-t0", action="store_true", help="refixer T0 (evolution %%) sur le score du jour")
     args = parser.parse_args()
 
     raw = fetch_daily_data()
@@ -374,20 +426,26 @@ def main() -> None:
     else:
         print("Aucune serie indexee disponible, graphique ignore.")
 
-    all_stats: dict[tuple[str, str], dict[str, dict]] = {}
+    ranked: list[tuple[tuple[str, str], dict, float]] = []
+    evolutions: dict[tuple[str, str], float | None] = {}
     if not args.no_ratios:
         all_stats = compute_all_ratio_stats(raw)
-        for rank, ((num, den), tf_stats, score) in enumerate(rank_ratios(all_stats), start=1):
-            print(f"#{rank} {num}/{den}: score={score:+.1f}")
+        ranked = rank_ratios(all_stats)
+        state = load_state(STATE_PATH)
+        evolutions = apply_t0_evolution(ranked, state, reset=args.reset_t0)
+        save_state(STATE_PATH, state)
+        for rank, ((num, den), tf_stats, score) in enumerate(ranked, start=1):
+            evo_txt = format_pct(evolutions.get((num, den)), decimals=1)
+            print(f"#{rank} {num}/{den}: score={score:+.1f} vs T0 {evo_txt}")
             for tf_code, _, tf_label in TIMEFRAMES:
                 stats = tf_stats.get(tf_code)
                 if stats is None:
                     continue
-                state = "bull" if stats["bull"] else "bear"
-                print(f"  {tf_label}: close={stats['close']:.4g} sar={stats['sar']:.4g} ({state}) rsi={stats['rsi']:.1f}")
+                bias = "bull" if stats["bull"] else "bear"
+                print(f"  {tf_label}: close={stats['close']:.4g} sar={stats['sar']:.4g} ({bias}) rsi={stats['rsi']:.1f}")
 
-    if not args.no_send and (series or all_stats):
-        caption = build_combined_caption(series, args.rebase_date, all_stats)
+    if not args.no_send and (series or ranked):
+        caption = build_combined_caption(series, args.rebase_date, ranked, evolutions)
         if photo_bytes is not None:
             send_telegram_photo(photo_bytes, caption)
         else:
