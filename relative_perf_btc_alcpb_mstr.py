@@ -23,6 +23,12 @@ sur les seules dates ou les deux actifs ont cote), puis reechantillonnees en
 Hebdo (W-FRI) / Mensuel (ME). C'est une approximation standard pour un
 "ratio chart", pas un vrai OHLC trade.
 
+Classement: chaque (quotient, timeframe) recoit un score dans [-100, +100]
+(+-50 pour le cote du SAR, +-50 pour l'ecart du RSI a 50), moyenne ponderee
+par TF_WEIGHTS (M=3, W=2, D=1 -- le structurel pese plus que le bruit court
+terme) pour donner un score composite par quotient. Les 3 quotients sont
+tries du meilleur au plus faible (medailles) dans le message Telegram.
+
 Donnees: fetch_tv_ohlc (TradingView), journalier.
 Symboles: INDEX:BTCUSD, EURONEXT:ALCPB, NASDAQ:MSTR.
 PSAR: recurrence Pine (ta.sar) validee bar-a-bar vs TradingView (cf. pine_sar
@@ -79,6 +85,11 @@ SAR_START, SAR_INC, SAR_MAX = 0.1, 0.1, 0.2
 # Timeframes affiches, du plus haut au plus bas
 TIMEFRAMES = [("M", "ME", "Mensuel"), ("W", "W-FRI", "Hebdo"), ("D", None, "Journalier")]
 MIN_BARS_FOR_STATS = 30
+
+# Poids par timeframe pour le score composite (classement) : le structurel (M)
+# pese plus que le swing (W), qui pese plus que le bruit court terme (D).
+TF_WEIGHTS = {"M": 3.0, "W": 2.0, "D": 1.0}
+MEDALS = ["\U0001f947", "\U0001f948", "\U0001f949"]  # 🥇🥈🥉
 
 
 def fetch_daily_data() -> dict[str, pd.DataFrame]:
@@ -240,13 +251,39 @@ def compute_all_ratio_stats(raw: dict[str, pd.DataFrame]) -> dict[tuple[str, str
     return all_stats
 
 
+def timeframe_score(stats: dict) -> float:
+    """Score d'un (ratio, timeframe) dans [-100, +100] : +-50 pour le cote du SAR, +-50 pour l'ecart du RSI a 50."""
+    sar_component = 50.0 if stats["bull"] else -50.0
+    rsi_component = stats["rsi"] - 50.0
+    return sar_component + rsi_component
+
+
+def ratio_composite_score(tf_stats: dict[str, dict]) -> float | None:
+    """Moyenne des timeframe_score ponderee par TF_WEIGHTS -- reste dans [-100, +100]."""
+    weighted_sum = weight_total = 0.0
+    for tf_code, weight in TF_WEIGHTS.items():
+        stats = tf_stats.get(tf_code)
+        if stats is None:
+            continue
+        weighted_sum += weight * timeframe_score(stats)
+        weight_total += weight
+    if weight_total == 0.0:
+        return None
+    return weighted_sum / weight_total
+
+
+def rank_ratios(all_stats: dict[tuple[str, str], dict[str, dict]]) -> list[tuple[tuple[str, str], dict, float]]:
+    scored = [(pair, tf_stats, ratio_composite_score(tf_stats)) for pair, tf_stats in all_stats.items()]
+    scored = [item for item in scored if item[2] is not None]
+    scored.sort(key=lambda item: item[2], reverse=True)
+    return scored
+
+
 def build_ratio_caption(all_stats: dict[tuple[str, str], dict[str, dict]]) -> str:
     lines = ["\U0001f4c8 Quotients relatifs -- SAR & RSI(14)"]
-    for num, den in RATIO_PAIRS:
-        tf_stats = all_stats.get((num, den))
-        if not tf_stats:
-            continue
-        lines.append(f"{num}/{den}")
+    for rank, ((num, den), tf_stats, score) in enumerate(rank_ratios(all_stats)):
+        medal = MEDALS[rank] if rank < len(MEDALS) else f"{rank + 1}."
+        lines.append(f"{medal} {num}/{den}\t{score:+.0f}")
         for tf_code, _, tf_label in TIMEFRAMES:
             stats = tf_stats.get(tf_code)
             if stats is None:
@@ -317,13 +354,14 @@ def main() -> None:
 
     if not args.no_ratios:
         all_stats = compute_all_ratio_stats(raw)
-        for (num, den), tf_stats in all_stats.items():
+        for rank, ((num, den), tf_stats, score) in enumerate(rank_ratios(all_stats), start=1):
+            print(f"#{rank} {num}/{den}: score={score:+.1f}")
             for tf_code, _, tf_label in TIMEFRAMES:
                 stats = tf_stats.get(tf_code)
                 if stats is None:
                     continue
                 state = "bull" if stats["bull"] else "bear"
-                print(f"{num}/{den} {tf_label}: close={stats['close']:.4g} sar={stats['sar']:.4g} ({state}) rsi={stats['rsi']:.1f}")
+                print(f"  {tf_label}: close={stats['close']:.4g} sar={stats['sar']:.4g} ({state}) rsi={stats['rsi']:.1f}")
         if all_stats and not args.no_send:
             send_telegram_message(build_ratio_caption(all_stats))
 
