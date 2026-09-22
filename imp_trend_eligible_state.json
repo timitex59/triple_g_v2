@@ -3,19 +3,19 @@
   "active": {
     "AUDCAD": {
       "direction": "BULL",
-      "confirmations": 11,
+      "confirmations": 12,
       "entered_at": "2026-09-15T08:18:46.508818+00:00",
-      "last_seen_at": "2026-09-22T16:20:24.301266+00:00",
+      "last_seen_at": "2026-09-22T18:56:42.525918+00:00",
       "snapshot": {
         "pair": "AUDCAD",
         "direction": "BULL",
-        "confirmations": 11,
+        "confirmations": 12,
         "renko_confirmations": 3,
         "avg_vote_confirmations": 4,
         "directional_avg_confirmations": 2,
         "tradable": false,
         "rank_tier": 4,
-        "rank_reason": "11/12 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
+        "rank_reason": "12/12 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
         "RENKO_M": "BULL",
         "RENKO_W": "BULL",
         "RENKO_D": "BULL",
@@ -31,14 +31,14 @@
         "H1_BULL_AVG": "BULL",
         "H1_BEAR_AVG": "BULL",
         "H1_DIRECTIONAL_AVG_PIPS": 4.589999999999984,
-        "CURRENCY_INDEX": "NEUTRAL"
+        "CURRENCY_INDEX": "BULL"
       }
     },
     "AUDCHF": {
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-22T16:20:24.301266+00:00",
+      "last_seen_at": "2026-09-22T18:56:42.525918+00:00",
       "snapshot": {
         "pair": "AUDCHF",
         "direction": "BULL",
@@ -71,7 +71,7 @@
       "direction": "BULL",
       "confirmations": 9,
       "entered_at": "2026-09-18T17:21:14.875262+00:00",
-      "last_seen_at": "2026-09-22T16:20:24.301266+00:00",
+      "last_seen_at": "2026-09-22T18:56:42.525918+00:00",
       "snapshot": {
         "pair": "AUDJPY",
         "direction": "BULL",
@@ -104,7 +104,7 @@
       "direction": "BEAR",
       "confirmations": 10,
       "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-22T16:20:24.301266+00:00",
+      "last_seen_at": "2026-09-22T18:56:42.525918+00:00",
       "snapshot": {
         "pair": "EURAUD",
         "direction": "BEAR",
@@ -130,6 +130,39 @@
         "H1_BULL_AVG": "NEUTRAL",
         "H1_BEAR_AVG": "BEAR",
         "H1_DIRECTIONAL_AVG_PIPS": -10.366666666666701,
+        "CURRENCY_INDEX": "NEUTRAL"
+      }
+    },
+    "GBPAUD": {
+      "direction": "BEAR",
+      "confirmations": 11,
+      "entered_at": "2026-09-22T18:56:42.525918+00:00",
+      "last_seen_at": "2026-09-22T18:56:42.525918+00:00",
+      "snapshot": {
+        "pair": "GBPAUD",
+        "direction": "BEAR",
+        "confirmations": 11,
+        "renko_confirmations": 3,
+        "avg_vote_confirmations": 4,
+        "directional_avg_confirmations": 2,
+        "tradable": false,
+        "rank_tier": 4,
+        "rank_reason": "11/12 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
+        "RENKO_M": "BEAR",
+        "RENKO_W": "BEAR",
+        "RENKO_D": "BEAR",
+        "D1_IMP21": "BEAR",
+        "D1_ALL_AVG": "BEAR",
+        "D1_ALL_AVG_PIPS": -80.53333333333333,
+        "D1_BULL_AVG": "BEAR",
+        "D1_BEAR_AVG": "BEAR",
+        "D1_DIRECTIONAL_AVG_PIPS": -2.6933333333333547,
+        "H1_IMP21": "BEAR",
+        "H1_ALL_AVG": "BEAR",
+        "H1_ALL_AVG_PIPS": -23.00476190476183,
+        "H1_BULL_AVG": "BEAR",
+        "H1_BEAR_AVG": "BEAR",
+        "H1_DIRECTIONAL_AVG_PIPS": -5.637500000000018,
         "CURRENCY_INDEX": "NEUTRAL"
       }
     }
@@ -918,7 +951,15 @@
       "direction": "BEAR",
       "reason": "CURRENCY_INDEX_DIVERGENT",
       "entered_at": "2026-09-17T12:19:02.397393+00:00"
+    },
+    {
+      "time_utc": "2026-09-22T18:56:42.525918+00:00",
+      "event": "ELIGIBLE",
+      "pair": "GBPAUD",
+      "direction": "BEAR",
+      "previous_direction": null,
+      "confirmations": 11
     }
   ],
-  "updated_at": "2026-09-22T16:20:24.301266+00:00"
+  "updated_at": "2026-09-22T18:56:42.525918+00:00"
 }

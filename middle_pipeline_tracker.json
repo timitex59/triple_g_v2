@@ -1,6 +1,6 @@
 {
-  "updated": "2026-09-21",
-  "prev_update": "2026-09-18",
+  "updated": "2026-09-22",
+  "prev_update": "2026-09-21",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -146,23 +146,23 @@
       "dropped_on": "2026-07-31"
     },
     "OKTA": {
-      "streak": 6,
-      "days": 33,
+      "streak": 7,
+      "days": 34,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-09-21",
+      "last_seen": "2026-09-22",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 62.76,
+      "last_rel": 64.96,
       "active": true
     },
     "QLYS": {
-      "streak": 6,
-      "days": 40,
+      "streak": 7,
+      "days": 41,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-09-21",
-      "last_rank": 4,
+      "last_seen": "2026-09-22",
+      "last_rank": 2,
       "peak_rank": 1,
-      "last_rel": 64.5,
+      "last_rel": 63.85,
       "active": true
     },
     "CXT": {
@@ -177,13 +177,13 @@
       "dropped_on": "2026-09-08"
     },
     "TWLO": {
-      "streak": 1,
-      "days": 4,
+      "streak": 2,
+      "days": 5,
       "first_seen": "2026-07-07",
-      "last_seen": "2026-09-21",
+      "last_seen": "2026-09-22",
       "last_rank": 3,
       "peak_rank": 3,
-      "last_rel": 40.18,
+      "last_rel": 52.29,
       "active": true
     },
     "SYNA": {
@@ -209,13 +209,13 @@
       "dropped_on": "2026-09-14"
     },
     "MANH": {
-      "streak": 4,
-      "days": 25,
+      "streak": 5,
+      "days": 26,
       "first_seen": "2026-07-31",
-      "last_seen": "2026-09-21",
+      "last_seen": "2026-09-22",
       "last_rank": 5,
       "peak_rank": 1,
-      "last_rel": 61.46,
+      "last_rel": 55.89,
       "active": true
     },
     "NTNX": {
@@ -263,13 +263,13 @@
       "dropped_on": "2026-08-10"
     },
     "P": {
-      "streak": 1,
-      "days": 12,
+      "streak": 2,
+      "days": 13,
       "first_seen": "2026-08-10",
-      "last_seen": "2026-09-21",
-      "last_rank": 2,
+      "last_seen": "2026-09-22",
+      "last_rank": 4,
       "peak_rank": 2,
-      "last_rel": 45.47,
+      "last_rel": 50.87,
       "active": true
     },
     "PATH": {
@@ -332,77 +332,78 @@
     "persistent": [
       [
         "OKTA",
-        6
+        7
       ],
       [
         "QLYS",
-        6
+        7
       ],
       [
         "MANH",
-        4
-      ],
-      [
-        "P",
-        1
+        5
       ],
       [
         "TWLO",
-        1
+        2
+      ],
+      [
+        "P",
+        2
       ]
     ],
-    "new": [
-      "P",
-      "TWLO"
-    ],
+    "new": [],
     "weakening": [
+      {
+        "ticker": "P",
+        "rank": 4,
+        "prev_rank": 2,
+        "rel": 50.87,
+        "prev_rel": 45.47
+      },
       {
         "ticker": "MANH",
         "rank": 5,
-        "prev_rank": 4,
-        "rel": 61.46,
-        "prev_rel": 57.9
+        "prev_rank": 5,
+        "rel": 55.89,
+        "prev_rel": 61.46
       }
     ],
-    "dropped": [
-      "DOCU",
-      "NTNX"
-    ],
+    "dropped": [],
     "durable": [
       [
-        "QLYS",
-        6,
-        64.5,
-        387.0
+        "OKTA",
+        7,
+        64.96,
+        454.7
       ],
       [
-        "OKTA",
-        6,
-        62.76,
-        376.6
+        "QLYS",
+        7,
+        63.85,
+        446.9
       ],
       [
         "MANH",
-        4,
-        61.46,
-        245.8
-      ],
-      [
-        "P",
-        1,
-        45.47,
-        45.5
+        5,
+        55.89,
+        279.4
       ],
       [
         "TWLO",
-        1,
-        40.18,
-        40.2
+        2,
+        52.29,
+        104.6
+      ],
+      [
+        "P",
+        2,
+        50.87,
+        101.7
       ]
     ],
     "switch": null
   },
   "leader_raw": "Logiciels",
-  "leader_raw_days": 37,
+  "leader_raw_days": 38,
   "leader_confirmed": "Logiciels"
 }
