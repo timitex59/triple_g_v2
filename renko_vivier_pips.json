@@ -3032,35 +3032,40 @@
     "2026-09-22": {
       "confirmed_segments": [],
       "date": "2026-09-22",
-      "finalized": false,
-      "segments": []
+      "finalized": true,
+      "finalized_at_paris": "2026-09-22T23:15:46.093250+02:00",
+      "segments": [
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-09-22",
+          "direction": 1,
+          "end_price": 0.58382,
+          "end_time_paris": "2026-09-22T23:00:00+02:00",
+          "end_time_utc": "2026-09-22T21:00:00+00:00",
+          "pair": "AUDCHF",
+          "pips": 1.60000000000049,
+          "start_price": 0.58366,
+          "start_time_paris": "2026-09-22T11:00:00+02:00",
+          "start_time_utc": "2026-09-22T09:00:00+00:00"
+        },
+        {
+          "close_reason": "DAY_END",
+          "date": "2026-09-22",
+          "direction": 1,
+          "end_price": 111.916,
+          "end_time_paris": "2026-09-22T23:00:00+02:00",
+          "end_time_utc": "2026-09-22T21:00:00+00:00",
+          "pair": "CADJPY",
+          "pips": -4.600000000000648,
+          "start_price": 111.962,
+          "start_time_paris": "2026-09-22T11:00:00+02:00",
+          "start_time_utc": "2026-09-22T09:00:00+00:00"
+        }
+      ]
     }
   },
   "open_confirmed_segments": {},
-  "open_segments": {
-    "AUDCHF": {
-      "current_pips": 2.00000000000089,
-      "date": "2026-09-22",
-      "direction": 1,
-      "last_price": 0.58386,
-      "last_time_utc": "2026-09-22T20:00:00+00:00",
-      "pair": "AUDCHF",
-      "start_price": 0.58366,
-      "start_time_paris": "2026-09-22T11:00:00+02:00",
-      "start_time_utc": "2026-09-22T09:00:00+00:00"
-    },
-    "CADJPY": {
-      "current_pips": -3.7999999999996703,
-      "date": "2026-09-22",
-      "direction": 1,
-      "last_price": 111.924,
-      "last_time_utc": "2026-09-22T20:00:00+00:00",
-      "pair": "CADJPY",
-      "start_price": 111.962,
-      "start_time_paris": "2026-09-22T11:00:00+02:00",
-      "start_time_utc": "2026-09-22T09:00:00+00:00"
-    }
-  },
+  "open_segments": {},
   "reports_sent": {
     "general_daily": [
       "2026-08-10",
@@ -3094,7 +3099,8 @@
       "2026-09-17",
       "2026-09-18",
       "2026-09-20",
-      "2026-09-21"
+      "2026-09-21",
+      "2026-09-22"
     ],
     "monthly": [
       "2026-07",
@@ -3113,6 +3119,6 @@
       "2026-W38"
     ]
   },
-  "updated_at_paris": "2026-09-22T22:15:49.882540+02:00",
+  "updated_at_paris": "2026-09-22T23:15:46.093250+02:00",
   "version": 3
 }
