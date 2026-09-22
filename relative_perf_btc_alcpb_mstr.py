@@ -30,11 +30,20 @@ terme) pour donner un score composite par quotient. Les 3 quotients sont
 tries du meilleur au plus faible (medailles) dans le message Telegram.
 
 Evolution vs T0: la premiere fois qu'une valeur est vue (score composite d'un
-quotient, ou %% de performance indexee d'un actif), elle est figee comme T0
-dans STATE_PATH (etat persistant, pas une comparaison glissante par rapport
-au run precedent). Chaque envoi suivant affiche (valeur - T0) / |T0| * 100,
-arrondi -- ex: T0=+5 puis valeur=+6 donne +20%. --reset-t0 refixe T0 sur les
-valeurs du jour, pour les quotients comme pour la performance.
+quotient, %% de performance indexee d'un actif, ou score individuel -- voir
+plus bas), elle est figee comme T0 dans STATE_PATH (etat persistant, pas une
+comparaison glissante par rapport au run precedent). Chaque envoi suivant
+affiche (valeur - T0) / |T0| * 100, arrondi -- ex: T0=+5 puis valeur=+6 donne
++20%. --reset-t0 refixe T0 sur les valeurs du jour, pour les 3 sections.
+
+Score individuel: pour attribuer un score a BTC/ALCPB/MSTR pris separement
+(pas juste a un quotient), on calcule aussi les 3 quotients inverses
+(REVERSE_RATIO_PAIRS -- memes bougies retournees, cf. build_ratio_daily, donc
+sans fetch supplementaire) pour avoir un score reel dans les 2 sens de
+chaque paire. Le score individuel d'un actif est la moyenne de son score
+compose face a ses 2 adversaires, lui toujours en numerateur des 2 cotes --
+PAS -1 * le score de l'autre sens, car PSAR et RSI sont non lineaires
+(score(B/A) != -score(A/B) en general).
 
 Donnees: fetch_tv_ohlc (TradingView), journalier.
 Symboles: INDEX:BTCUSD, EURONEXT:ALCPB, NASDAQ:MSTR.
@@ -84,14 +93,18 @@ ASSETS = [
     ("MSTR", "NASDAQ:MSTR", "#9467bd"),
 ]
 ICONS = {"BTC": "\U0001f7e0", "ALCPB": "\U0001f535", "MSTR": "\U0001f7e3"}
+ASSET_LABELS = [label for label, _, _ in ASSETS]
 
 DEFAULT_REBASE_DATE = "2026-09-01"  # fenetre recente -- ajustable via --rebase-date
 CANDLES = 1200
 CHART_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "relative_perf_btc_alcpb_mstr.png")
 STATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "relative_perf_btc_alcpb_mstr_state.json")
 
-# Quotients suivis: (numerateur, denominateur)
+# Quotients affiches dans le classement (numerateur, denominateur)
 RATIO_PAIRS = [("ALCPB", "BTC"), ("MSTR", "BTC"), ("ALCPB", "MSTR")]
+# Quotients inverses -- calcules en plus (memes bougies, cf. build_ratio_daily) pour donner a
+# chaque actif un vrai score comme numerateur face a ses 2 adversaires (cf. score individuel).
+REVERSE_RATIO_PAIRS = [(den, num) for num, den in RATIO_PAIRS]
 RSI_LENGTH = 14
 RSI_OVERBOUGHT = 70.0
 RSI_OVERSOLD = 30.0
@@ -255,9 +268,12 @@ def compute_ratio_stats(ratio_df: pd.DataFrame) -> dict | None:
     return {"close": float(close), "sar": float(sar), "bull": close > sar, "rsi": float(rsi_val)}
 
 
-def compute_all_ratio_stats(raw: dict[str, pd.DataFrame]) -> dict[tuple[str, str], dict[str, dict]]:
+def compute_all_ratio_stats(
+    raw: dict[str, pd.DataFrame],
+    pairs: list[tuple[str, str]] | None = None,
+) -> dict[tuple[str, str], dict[str, dict]]:
     all_stats: dict[tuple[str, str], dict[str, dict]] = {}
-    for num, den in RATIO_PAIRS:
+    for num, den in pairs if pairs is not None else RATIO_PAIRS:
         if num not in raw or den not in raw:
             continue
         daily = build_ratio_daily(raw[num], raw[den])
@@ -293,6 +309,33 @@ def ratio_composite_score(tf_stats: dict[str, dict]) -> float | None:
     if weight_total == 0.0:
         return None
     return weighted_sum / weight_total
+
+
+def compute_individual_scores(
+    all_stats: dict[tuple[str, str], dict[str, dict]],
+    reverse_stats: dict[tuple[str, str], dict[str, dict]],
+) -> dict[str, float]:
+    """Score individuel de chaque actif = moyenne de son score compose face a ses 2 adversaires,
+    lui en numerateur des 2 cotes (pas une inversion de signe supposee -- cf. discussion du
+    2026-09-22: PSAR/RSI sont non lineaires, donc score(B/A) != -score(A/B) en general). On
+    reutilise les 3 quotients affiches (RATIO_PAIRS) + leurs 3 inverses reels (REVERSE_RATIO_PAIRS,
+    memes bougies retournees -- cf. build_ratio_daily) pour couvrir les 6 aretes dirigees."""
+    pair_scores: dict[tuple[str, str], float] = {}
+    for pair, tf_stats in {**all_stats, **reverse_stats}.items():
+        score = ratio_composite_score(tf_stats)
+        if score is not None:
+            pair_scores[pair] = score
+
+    individual: dict[str, float] = {}
+    for label in ASSET_LABELS:
+        contributions = [
+            pair_scores[(label, other)]
+            for other in ASSET_LABELS
+            if other != label and (label, other) in pair_scores
+        ]
+        if contributions:
+            individual[label] = sum(contributions) / len(contributions)
+    return individual
 
 
 def rank_ratios(all_stats: dict[tuple[str, str], dict[str, dict]]) -> list[tuple[tuple[str, str], dict, float]]:
@@ -358,6 +401,16 @@ def apply_performance_t0_evolution(
     return apply_t0_evolution_map(current, section, reset)
 
 
+def apply_individual_t0_evolution(
+    individual_scores: dict[str, float],
+    state: dict,
+    reset: bool = False,
+) -> dict[str, float | None]:
+    """Evolution vs T0 du score individuel de chaque actif -- stocke sous state["individual"]."""
+    section = state.setdefault("individual", {})
+    return apply_t0_evolution_map(individual_scores, section, reset)
+
+
 def format_pct(value: float | None, decimals: int = 0) -> str:
     """Formate un %, sans "-0%" (round() peut produire un zero negatif)."""
     if value is None:
@@ -379,18 +432,37 @@ def build_ratio_lines(
     return lines
 
 
+def build_individual_lines(
+    individual_scores: dict[str, float],
+    individual_evolutions: dict[str, float | None],
+) -> list[str]:
+    """Une ligne par actif : score individuel (moyenne face aux 2 autres), evolution % vs T0."""
+    lines = ["\U0001f3c6 Score individuel"]
+    ranked = sorted(individual_scores.items(), key=lambda kv: kv[1], reverse=True)
+    for rank, (label, score) in enumerate(ranked):
+        medal = MEDALS[rank] if rank < len(MEDALS) else f"{rank + 1}."
+        icon = ICONS.get(label, "⚪")
+        evo_txt = format_pct(individual_evolutions.get(label))
+        lines.append(f"{medal} {icon} {label} {score:+.0f}  ({evo_txt})")
+    return lines
+
+
 def build_combined_caption(
     series: dict[str, pd.Series],
     rebase_date: str,
     performance_evolutions: dict[str, float | None],
     ranked: list[tuple[tuple[str, str], dict, float]],
     ratio_evolutions: dict[tuple[str, str], float | None],
+    individual_scores: dict[str, float],
+    individual_evolutions: dict[str, float | None],
 ) -> str:
     lines: list[str] = []
     if series:
         lines.extend(build_performance_lines(series, rebase_date, performance_evolutions))
     if ranked:
         lines.extend(build_ratio_lines(ranked, ratio_evolutions))
+    if individual_scores:
+        lines.extend(build_individual_lines(individual_scores, individual_evolutions))
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M')} Paris")
     return "\n".join(lines)
 
@@ -460,6 +532,8 @@ def main() -> None:
 
     ranked: list[tuple[tuple[str, str], dict, float]] = []
     ratio_evolutions: dict[tuple[str, str], float | None] = {}
+    individual_scores: dict[str, float] = {}
+    individual_evolutions: dict[str, float | None] = {}
     if not args.no_ratios:
         all_stats = compute_all_ratio_stats(raw)
         ranked = rank_ratios(all_stats)
@@ -474,10 +548,21 @@ def main() -> None:
                 bias = "bull" if stats["bull"] else "bear"
                 print(f"  {tf_label}: close={stats['close']:.4g} sar={stats['sar']:.4g} ({bias}) rsi={stats['rsi']:.1f}")
 
+        reverse_stats = compute_all_ratio_stats(raw, REVERSE_RATIO_PAIRS)
+        individual_scores = compute_individual_scores(all_stats, reverse_stats)
+        individual_evolutions = apply_individual_t0_evolution(individual_scores, state, reset=args.reset_t0)
+        for label, score in sorted(individual_scores.items(), key=lambda kv: kv[1], reverse=True):
+            evo_txt = format_pct(individual_evolutions.get(label), decimals=1)
+            print(f"Score individuel {label}: {score:+.1f} vs T0 {evo_txt}")
+
     save_state(STATE_PATH, state)
 
     if not args.no_send and (series or ranked):
-        caption = build_combined_caption(series, args.rebase_date, performance_evolutions, ranked, ratio_evolutions)
+        caption = build_combined_caption(
+            series, args.rebase_date, performance_evolutions,
+            ranked, ratio_evolutions,
+            individual_scores, individual_evolutions,
+        )
         if photo_bytes is not None:
             send_telegram_photo(photo_bytes, caption)
         else:
