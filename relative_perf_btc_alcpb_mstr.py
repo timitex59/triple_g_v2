@@ -6,58 +6,38 @@ relative_perf_btc_alcpb_mstr.py
 Suivi de performance relative (base 100) entre BTC, ALCPB (Capital B,
 Euronext Paris) et MSTR (Strategy Inc, Nasdaq) -- les deux entreprises
 "Bitcoin Treasury" comparees a la performance du sous-jacent qu'elles
-accumulent.
+accumulent. Message Telegram texte uniquement (pas de graphique).
 
-Base par defaut: 2024-11-05, date de lancement de la strategie "Bitcoin
-Treasury Company" par The Blockchain Group (devenue Capital B / ALCPB).
+Base par defaut: 2026-09-01 -- ajustable via --rebase-date.
 
-En plus du graphique de performance indexee, le script calcule les quotients
-relatifs entre les trois actifs (ALCPB/BTC, MSTR/BTC, ALCPB/MSTR) et applique
-a chaque quotient un PSAR et un RSI(14), en Mensuel / Hebdo / Journalier --
-ce qui indique si une action est en train de sur- ou sous-performer BTC (ou
-l'autre action), et si ce mouvement relatif est en zone de surachat/survente.
+Score individuel: pour chaque paire d'actifs (ALCPB/BTC, MSTR/BTC,
+ALCPB/MSTR + leurs 3 inverses -- memes bougies retournees, cf.
+build_ratio_daily, sans fetch supplementaire) on calcule un PSAR et un
+RSI(14) sur les bougies "quotient" (approximees a partir des OHLC
+journaliers, cf. build_ratio_daily), en Mensuel/Hebdo/Journalier, combines en
+un score compose dans [-100, +100] (+-50 pour le cote du SAR, +-50 pour
+l'ecart du RSI a 50, moyenne ponderee par TF_WEIGHTS M=3/W=2/D=1). Le score
+individuel d'un actif est la moyenne de son score compose face a ses 2
+adversaires, lui toujours en numerateur des 2 cotes -- PAS -1 * le score de
+l'autre sens, car PSAR et RSI sont non lineaires (score(B/A) != -score(A/B)
+en general, donc les 2 sens de chaque paire sont vraiment calcules).
 
-Les bougies "quotient" sont approximees a partir des OHLC journaliers de
-chaque actif (close = closeA/closeB, high = highA/lowB, low = lowA/highB,
-sur les seules dates ou les deux actifs ont cote), puis reechantillonnees en
-Hebdo (W-FRI) / Mensuel (ME). C'est une approximation standard pour un
-"ratio chart", pas un vrai OHLC trade.
-
-Classement: chaque (quotient, timeframe) recoit un score dans [-100, +100]
-(+-50 pour le cote du SAR, +-50 pour l'ecart du RSI a 50), moyenne ponderee
-par TF_WEIGHTS (M=3, W=2, D=1 -- le structurel pese plus que le bruit court
-terme) pour donner un score composite par quotient. Les 3 quotients sont
-tries du meilleur au plus faible (medailles) dans le message Telegram.
-
-Evolution vs T0: la premiere fois qu'une valeur est vue (score composite d'un
-quotient, %% de performance indexee d'un actif, ou score individuel -- voir
-plus bas), elle est figee comme T0 dans STATE_PATH (etat persistant, pas une
-comparaison glissante par rapport au run precedent). Chaque envoi suivant
-affiche (valeur - T0) / |T0| * 100, arrondi -- ex: T0=+5 puis valeur=+6 donne
-+20%. --reset-t0 refixe T0 sur les valeurs du jour, pour les 3 sections.
-
-Score individuel: pour attribuer un score a BTC/ALCPB/MSTR pris separement
-(pas juste a un quotient), on calcule aussi les 3 quotients inverses
-(REVERSE_RATIO_PAIRS -- memes bougies retournees, cf. build_ratio_daily, donc
-sans fetch supplementaire) pour avoir un score reel dans les 2 sens de
-chaque paire. Le score individuel d'un actif est la moyenne de son score
-compose face a ses 2 adversaires, lui toujours en numerateur des 2 cotes --
-PAS -1 * le score de l'autre sens, car PSAR et RSI sont non lineaires
-(score(B/A) != -score(A/B) en general).
+Evolution vs T0: la premiere fois qu'une valeur est vue (%% de performance
+indexee d'un actif, ou son score individuel), elle est figee comme T0 dans
+STATE_PATH (etat persistant, pas une comparaison glissante par rapport au
+run precedent). Chaque envoi suivant affiche (valeur - T0) / |T0| * 100,
+arrondi -- ex: T0=+5 puis valeur=+6 donne +20%. --reset-t0 refixe T0 sur les
+valeurs du jour.
 
 Donnees: fetch_tv_ohlc (TradingView), journalier.
 Symboles: INDEX:BTCUSD, EURONEXT:ALCPB, NASDAQ:MSTR.
 PSAR: recurrence Pine (ta.sar) validee bar-a-bar vs TradingView (cf. pine_sar
 dans imp_trend5_29pairs.py).
 
-Un seul message Telegram est envoye: la photo (graphique) avec, en legende,
-la performance indexee puis le classement des quotients -- pas de message
-separe.
-
 Usage:
-  python relative_perf_btc_alcpb_mstr.py                    # graphique + quotients, un seul envoi Telegram
-  python relative_perf_btc_alcpb_mstr.py --no-send           # calcule + sauvegarde le PNG local, sans envoi
-  python relative_perf_btc_alcpb_mstr.py --no-ratios         # ignore les quotients (SAR/RSI) dans la legende
+  python relative_perf_btc_alcpb_mstr.py                    # performance + score individuel, envoi Telegram
+  python relative_perf_btc_alcpb_mstr.py --no-send           # calcule seulement, sans envoi
+  python relative_perf_btc_alcpb_mstr.py --no-ratios         # ignore le score individuel (SAR/RSI)
   python relative_perf_btc_alcpb_mstr.py --rebase-date 2025-01-01
 
 Le script ne donne pas de conseil financier.
@@ -66,19 +46,12 @@ Le script ne donne pas de conseil financier.
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import math
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.dates as mdates
-import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import pandas as pd
 import requests
 
@@ -86,18 +59,17 @@ from ichimoku_v4 import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, fetch_tv_ohlc, rsi
 
 PARIS_TZ = ZoneInfo("Europe/Paris")
 
-# label -> (symbole TradingView, couleur du trace)
+# label -> symbole TradingView
 ASSETS = [
-    ("BTC", "INDEX:BTCUSD", "#f7931a"),
-    ("ALCPB", "EURONEXT:ALCPB", "#1f77b4"),
-    ("MSTR", "NASDAQ:MSTR", "#9467bd"),
+    ("BTC", "INDEX:BTCUSD"),
+    ("ALCPB", "EURONEXT:ALCPB"),
+    ("MSTR", "NASDAQ:MSTR"),
 ]
 ICONS = {"BTC": "\U0001f7e0", "ALCPB": "\U0001f535", "MSTR": "\U0001f7e3"}
-ASSET_LABELS = [label for label, _, _ in ASSETS]
+ASSET_LABELS = [label for label, _ in ASSETS]
 
 DEFAULT_REBASE_DATE = "2026-09-01"  # fenetre recente -- ajustable via --rebase-date
 CANDLES = 1200
-CHART_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "relative_perf_btc_alcpb_mstr.png")
 STATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "relative_perf_btc_alcpb_mstr_state.json")
 
 # Quotients affiches dans le classement (numerateur, denominateur)
@@ -121,7 +93,7 @@ MEDALS = ["\U0001f947", "\U0001f948", "\U0001f949"]  # 🥇🥈🥉
 
 def fetch_daily_data() -> dict[str, pd.DataFrame]:
     raw: dict[str, pd.DataFrame] = {}
-    for label, symbol, _ in ASSETS:
+    for label, symbol in ASSETS:
         df = fetch_tv_ohlc(symbol, "D", CANDLES)
         if df is None or df.empty:
             print(f"{label} ({symbol}): pas de donnees, ignore")
@@ -142,33 +114,6 @@ def compute_indexed_series(raw: dict[str, pd.DataFrame], rebase_date: str) -> di
         base = closes.iloc[0]
         series[label] = (closes / base) * 100.0
     return series
-
-
-def build_chart(series: dict[str, pd.Series], rebase_date: str) -> bytes:
-    fig, ax = plt.subplots(figsize=(10, 6), dpi=150)
-    for label, _, color in ASSETS:
-        if label not in series:
-            continue
-        s = series[label]
-        ax.plot(s.index, s.values, label=f"{label} ({s.iloc[-1] - 100:+.1f}%)", color=color, linewidth=1.8)
-
-    ax.axhline(100, color="grey", linewidth=0.8, linestyle="--")
-    ax.set_yscale("log")
-    ax.yaxis.set_major_formatter(mticker.ScalarFormatter())
-    ax.yaxis.set_minor_formatter(mticker.ScalarFormatter())
-    ax.yaxis.set_minor_locator(mticker.LogLocator(subs=tuple(range(2, 10)) + tuple(x / 10 for x in range(11, 20))))
-    ax.set_title(f"Performance relative BTC / ALCPB / MSTR -- base 100 le {rebase_date} (echelle log)")
-    ax.set_ylabel("Indice (base 100, log)")
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %y"))
-    ax.legend(loc="upper left")
-    ax.grid(True, which="both", alpha=0.3)
-    fig.tight_layout()
-
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png")
-    plt.close(fig)
-    buf.seek(0)
-    return buf.getvalue()
 
 
 def build_performance_lines(
@@ -338,13 +283,6 @@ def compute_individual_scores(
     return individual
 
 
-def rank_ratios(all_stats: dict[tuple[str, str], dict[str, dict]]) -> list[tuple[tuple[str, str], dict, float]]:
-    scored = [(pair, tf_stats, ratio_composite_score(tf_stats)) for pair, tf_stats in all_stats.items()]
-    scored = [item for item in scored if item[2] is not None]
-    scored.sort(key=lambda item: item[2], reverse=True)
-    return scored
-
-
 def load_state(path: str) -> dict:
     try:
         with open(path, "r", encoding="utf-8") as handle:
@@ -378,18 +316,6 @@ def apply_t0_evolution_map(current: dict[str, float], section: dict, reset: bool
     return evolutions
 
 
-def apply_ratio_t0_evolution(
-    ranked: list[tuple[tuple[str, str], dict, float]],
-    state: dict,
-    reset: bool = False,
-) -> dict[tuple[str, str], float | None]:
-    """Evolution vs T0 des scores composites des quotients -- stocke au niveau racine de `state`
-    (cle "NUM/DEN"), inchange depuis la premiere version pour ne pas perdre les T0 deja figes."""
-    current = {f"{num}/{den}": score for (num, den), _tf_stats, score in ranked}
-    raw = apply_t0_evolution_map(current, state, reset)
-    return {(num, den): raw[f"{num}/{den}"] for (num, den), _tf_stats, _score in ranked}
-
-
 def apply_performance_t0_evolution(
     series: dict[str, pd.Series],
     state: dict,
@@ -419,19 +345,6 @@ def format_pct(value: float | None, decimals: int = 0) -> str:
     return f"{rounded:+.{decimals}f}%"
 
 
-def build_ratio_lines(
-    ranked: list[tuple[tuple[str, str], dict, float]],
-    evolutions: dict[tuple[str, str], float | None],
-) -> list[str]:
-    """Une ligne par quotient : medaille, score composite, evolution % vs T0 entre parentheses."""
-    lines = ["\U0001f4c8 Quotients -- SAR & RSI(14)"]
-    for rank, ((num, den), _tf_stats, score) in enumerate(ranked):
-        medal = MEDALS[rank] if rank < len(MEDALS) else f"{rank + 1}."
-        evo_txt = format_pct(evolutions.get((num, den)))
-        lines.append(f"{medal} {num}/{den} {score:+.0f}  ({evo_txt})")
-    return lines
-
-
 def build_individual_lines(
     individual_scores: dict[str, float],
     individual_evolutions: dict[str, float | None],
@@ -451,37 +364,16 @@ def build_combined_caption(
     series: dict[str, pd.Series],
     rebase_date: str,
     performance_evolutions: dict[str, float | None],
-    ranked: list[tuple[tuple[str, str], dict, float]],
-    ratio_evolutions: dict[tuple[str, str], float | None],
     individual_scores: dict[str, float],
     individual_evolutions: dict[str, float | None],
 ) -> str:
     lines: list[str] = []
     if series:
         lines.extend(build_performance_lines(series, rebase_date, performance_evolutions))
-    if ranked:
-        lines.extend(build_ratio_lines(ranked, ratio_evolutions))
     if individual_scores:
         lines.extend(build_individual_lines(individual_scores, individual_evolutions))
     lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M')} Paris")
     return "\n".join(lines)
-
-
-def send_telegram_photo(photo_bytes: bytes, caption: str) -> bool:
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        print("Telegram: credentials missing, skip send.")
-        return False
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
-        files = {"photo": ("relative_perf.png", photo_bytes, "image/png")}
-        data = {"chat_id": TELEGRAM_CHAT_ID, "caption": caption}
-        response = requests.post(url, data=data, files=files, timeout=20)
-        ok = bool(response.json().get("ok", False))
-        print(f"Telegram: {'sent' if ok else 'failed'}")
-        return ok
-    except Exception as exc:
-        print(f"Telegram: send failed ({exc})")
-        return False
 
 
 def send_telegram_message(text: str) -> bool:
@@ -502,8 +394,8 @@ def send_telegram_message(text: str) -> bool:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--rebase-date", default=DEFAULT_REBASE_DATE, help="date de base (YYYY-MM-DD), indice 100")
-    parser.add_argument("--no-send", action="store_true", help="ne rien envoyer sur Telegram, juste sauvegarder le PNG")
-    parser.add_argument("--no-ratios", action="store_true", help="ignorer l'analyse des quotients (SAR/RSI)")
+    parser.add_argument("--no-send", action="store_true", help="ne rien envoyer sur Telegram, juste afficher en console")
+    parser.add_argument("--no-ratios", action="store_true", help="ignorer le score individuel (SAR/RSI des quotients)")
     parser.add_argument("--reset-t0", action="store_true", help="refixer T0 (evolution %%) sur les valeurs du jour")
     args = parser.parse_args()
 
@@ -515,39 +407,20 @@ def main() -> None:
     state = load_state(STATE_PATH)
 
     series = compute_indexed_series(raw, args.rebase_date)
-    photo_bytes = None
     performance_evolutions: dict[str, float | None] = {}
     if series:
         performance_evolutions = apply_performance_t0_evolution(series, state, reset=args.reset_t0)
-        photo_bytes = build_chart(series, args.rebase_date)
-        with open(CHART_PATH, "wb") as handle:
-            handle.write(photo_bytes)
-        print(f"Graphique sauvegarde: {CHART_PATH}")
         for label, s in series.items():
             pct = s.iloc[-1] - 100.0
             evo_txt = format_pct(performance_evolutions.get(label), decimals=1)
             print(f"{label}: {pct:+.2f}% depuis {args.rebase_date} (vs T0 {evo_txt})")
     else:
-        print("Aucune serie indexee disponible, graphique ignore.")
+        print("Aucune serie indexee disponible.")
 
-    ranked: list[tuple[tuple[str, str], dict, float]] = []
-    ratio_evolutions: dict[tuple[str, str], float | None] = {}
     individual_scores: dict[str, float] = {}
     individual_evolutions: dict[str, float | None] = {}
     if not args.no_ratios:
         all_stats = compute_all_ratio_stats(raw)
-        ranked = rank_ratios(all_stats)
-        ratio_evolutions = apply_ratio_t0_evolution(ranked, state, reset=args.reset_t0)
-        for rank, ((num, den), tf_stats, score) in enumerate(ranked, start=1):
-            evo_txt = format_pct(ratio_evolutions.get((num, den)), decimals=1)
-            print(f"#{rank} {num}/{den}: score={score:+.1f} vs T0 {evo_txt}")
-            for tf_code, _, tf_label in TIMEFRAMES:
-                stats = tf_stats.get(tf_code)
-                if stats is None:
-                    continue
-                bias = "bull" if stats["bull"] else "bear"
-                print(f"  {tf_label}: close={stats['close']:.4g} sar={stats['sar']:.4g} ({bias}) rsi={stats['rsi']:.1f}")
-
         reverse_stats = compute_all_ratio_stats(raw, REVERSE_RATIO_PAIRS)
         individual_scores = compute_individual_scores(all_stats, reverse_stats)
         individual_evolutions = apply_individual_t0_evolution(individual_scores, state, reset=args.reset_t0)
@@ -557,16 +430,12 @@ def main() -> None:
 
     save_state(STATE_PATH, state)
 
-    if not args.no_send and (series or ranked):
+    if not args.no_send and (series or individual_scores):
         caption = build_combined_caption(
             series, args.rebase_date, performance_evolutions,
-            ranked, ratio_evolutions,
             individual_scores, individual_evolutions,
         )
-        if photo_bytes is not None:
-            send_telegram_photo(photo_bytes, caption)
-        else:
-            send_telegram_message(caption)
+        send_telegram_message(caption)
 
 
 if __name__ == "__main__":
