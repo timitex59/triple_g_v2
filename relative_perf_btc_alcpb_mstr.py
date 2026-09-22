@@ -118,10 +118,9 @@ def compute_indexed_series(raw: dict[str, pd.DataFrame], rebase_date: str) -> di
 
 def build_performance_lines(
     series: dict[str, pd.Series],
-    rebase_date: str,
     evolutions: dict[str, float | None] | None = None,
 ) -> list[str]:
-    lines = [f"\U0001f4ca BTC / ALCPB / MSTR -- base 100 le {rebase_date}"]
+    lines = ["\U0001f4ca BTC / ALCPB / MSTR"]
     ranked = sorted(series.items(), key=lambda kv: kv[1].iloc[-1], reverse=True)
     for label, s in ranked:
         icon = ICONS.get(label, "⚪")
@@ -350,7 +349,7 @@ def build_individual_lines(
     individual_evolutions: dict[str, float | None],
 ) -> list[str]:
     """Une ligne par actif : score individuel (moyenne face aux 2 autres), evolution % vs T0."""
-    lines = ["\U0001f3c6 Score individuel"]
+    lines = ["\U0001f3c6 SAR/RSI"]
     ranked = sorted(individual_scores.items(), key=lambda kv: kv[1], reverse=True)
     for rank, (label, score) in enumerate(ranked):
         medal = MEDALS[rank] if rank < len(MEDALS) else f"{rank + 1}."
@@ -362,18 +361,17 @@ def build_individual_lines(
 
 def build_combined_caption(
     series: dict[str, pd.Series],
-    rebase_date: str,
     performance_evolutions: dict[str, float | None],
     individual_scores: dict[str, float],
     individual_evolutions: dict[str, float | None],
 ) -> str:
-    lines: list[str] = []
+    blocks: list[list[str]] = []
     if series:
-        lines.extend(build_performance_lines(series, rebase_date, performance_evolutions))
+        blocks.append(build_performance_lines(series, performance_evolutions))
     if individual_scores:
-        lines.extend(build_individual_lines(individual_scores, individual_evolutions))
-    lines.append(f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M')} Paris")
-    return "\n".join(lines)
+        blocks.append(build_individual_lines(individual_scores, individual_evolutions))
+    blocks.append([f"⏰ {datetime.now(PARIS_TZ).strftime('%Y-%m-%d %H:%M')} Paris"])
+    return "\n\n".join("\n".join(block) for block in blocks)
 
 
 def send_telegram_message(text: str) -> bool:
@@ -432,7 +430,7 @@ def main() -> None:
 
     if not args.no_send and (series or individual_scores):
         caption = build_combined_caption(
-            series, args.rebase_date, performance_evolutions,
+            series, performance_evolutions,
             individual_scores, individual_evolutions,
         )
         send_telegram_message(caption)
