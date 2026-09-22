@@ -57,6 +57,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 import pandas as pd
 import requests
 
@@ -72,7 +73,7 @@ ASSETS = [
 ]
 ICONS = {"BTC": "\U0001f7e0", "ALCPB": "\U0001f535", "MSTR": "\U0001f7e3"}
 
-DEFAULT_REBASE_DATE = "2024-11-05"  # lancement strategie Bitcoin Treasury (The Blockchain Group -> Capital B)
+DEFAULT_REBASE_DATE = "2026-09-01"  # fenetre recente -- ajustable via --rebase-date
 CANDLES = 1200
 CHART_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "relative_perf_btc_alcpb_mstr.png")
 
@@ -126,11 +127,15 @@ def build_chart(series: dict[str, pd.Series], rebase_date: str) -> bytes:
         ax.plot(s.index, s.values, label=f"{label} ({s.iloc[-1] - 100:+.1f}%)", color=color, linewidth=1.8)
 
     ax.axhline(100, color="grey", linewidth=0.8, linestyle="--")
-    ax.set_title(f"Performance relative BTC / ALCPB / MSTR -- base 100 le {rebase_date}")
-    ax.set_ylabel("Indice (base 100)")
+    ax.set_yscale("log")
+    ax.yaxis.set_major_formatter(mticker.ScalarFormatter())
+    ax.yaxis.set_minor_formatter(mticker.ScalarFormatter())
+    ax.yaxis.set_minor_locator(mticker.LogLocator(subs=tuple(range(2, 10)) + tuple(x / 10 for x in range(11, 20))))
+    ax.set_title(f"Performance relative BTC / ALCPB / MSTR -- base 100 le {rebase_date} (echelle log)")
+    ax.set_ylabel("Indice (base 100, log)")
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %y"))
     ax.legend(loc="upper left")
-    ax.grid(True, alpha=0.3)
+    ax.grid(True, which="both", alpha=0.3)
     fig.tight_layout()
 
     buf = io.BytesIO()
