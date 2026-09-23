@@ -5,6 +5,7 @@
 - BEAR : prix de l'indice EN DESSOUS du SAR daily.
 + CHG% daily : (prix live - close de la veille) / close de la veille.
 + SCORE : |dist x CHG%D|, positif si dist et CHG%D sont tous deux positifs, negatif sinon.
++ boule grise (⚪) quand dist et CHG%D sont de signes opposes.
 
 Bougie daily en cours incluse (prix live), comme le graphique TradingView :
 le SAR compare est celui de la derniere bougie. SAR = pine_sar (ta.sar),
@@ -50,6 +51,11 @@ def score(dist: float, chg: float) -> float:
     return magnitude if dist > 0 and chg > 0 else -magnitude
 
 
+def ball(row: dict) -> str:
+    """Boule grise quand dist et CHG%D sont de signes opposes, sinon celle du verdict SAR."""
+    return ICON["NEUTRE"] if row["dist"] * row["chg"] < 0 else ICON[row["verdict"]]
+
+
 def format_chg(chg: float) -> str:
     return "n/a" if math.isnan(chg) else f"{chg:+.2f}%"
 
@@ -59,7 +65,7 @@ def format_score(value: float) -> str:
 
 
 def build_telegram_message(rows: list[dict], now: datetime | None = None) -> str:
-    lines = [f"{ICON[r['verdict']]}{r['index']} ({format_score(r['score'])})" for r in rows]
+    lines = [f"{ball(r)}{r['index']} ({format_score(r['score'])})" for r in rows]
     footer = f"⏰ {(now or datetime.now(base.PARIS)).strftime('%Y-%m-%d %H:%M')} Paris"
     return "\n".join(["\U0001f9ed INDEX SAR D", ""] + lines + ["", footer])
 
@@ -86,7 +92,7 @@ def main() -> int:
     print(f"Indices devises vs SAR daily au {datetime.now(base.PARIS):%Y-%m-%d %H:%M} Paris\n")
     print(f"{'INDEX':<6} {'':2}  {'prix':>10}  {'SAR D':>10}  {'dist':>7}  {'CHG%D':>7}  {'SCORE':>6}")
     for r in rows:
-        print(f"{r['index']:<6} {ICON[r['verdict']]}  {r['price']:>10.3f}  {r['sar']:>10.3f}  {r['dist']:>+6.2f}%"
+        print(f"{r['index']:<6} {ball(r)}  {r['price']:>10.3f}  {r['sar']:>10.3f}  {r['dist']:>+6.2f}%"
               f"  {format_chg(r['chg']):>7}  {format_score(r['score']):>6}")
     for verdict in ("BULL", "BEAR"):
         names = [r["index"] for r in rows if r["verdict"] == verdict]

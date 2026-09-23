@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from index_sar_daily import build_telegram_message, score  # noqa: E402
+from index_sar_daily import ball, build_telegram_message, score  # noqa: E402
 
 
 class TelegramMessageTests(unittest.TestCase):
@@ -18,6 +18,14 @@ class TelegramMessageTests(unittest.TestCase):
                                   "\U0001f7e2USD (+0.60)\n"
                                   "\U0001f534EUR (-0.56)\n"
                                   "\U0001f534JPY (n/a)\n\n⏰ 2026-09-24 09:15 Paris")
+
+
+class BallTests(unittest.TestCase):
+    def test_grey_ball_when_dist_and_chg_have_opposite_signs(self):
+        self.assertEqual(ball(dict(verdict="BULL", dist=1.0, chg=-0.2)), "⚪")
+        self.assertEqual(ball(dict(verdict="BEAR", dist=-1.0, chg=0.2)), "⚪")
+        self.assertEqual(ball(dict(verdict="BULL", dist=1.0, chg=0.2)), "\U0001f7e2")
+        self.assertEqual(ball(dict(verdict="BEAR", dist=-1.0, chg=-0.2)), "\U0001f534")
 
 
 class ScoreTests(unittest.TestCase):
