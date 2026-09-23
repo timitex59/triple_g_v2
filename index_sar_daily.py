@@ -45,9 +45,9 @@ def format_chg(chg: float) -> str:
 
 
 def build_telegram_message(rows: list[dict], now: datetime | None = None) -> str:
-    lines = [f"{r['index']}\t{ICON[r['verdict']]}\t{format_chg(r['chg'])}" for r in rows]
+    lines = [f"{r['index']}\t{ICON[r['verdict']]}\t{format_chg(r['dist'])}\t{format_chg(r['chg'])}" for r in rows]
     footer = f"⏰ {(now or datetime.now(base.PARIS)).strftime('%Y-%m-%d %H:%M')} Paris"
-    return "\n".join(["\U0001f9ed INDEX SAR D", ""] + lines + ["", footer])
+    return "\n".join(["\U0001f9ed INDEX SAR D", "", "INDEX\t\tdist\tCHG%D"] + lines + ["", footer])
 
 
 def main() -> int:
