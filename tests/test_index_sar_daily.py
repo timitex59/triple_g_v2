@@ -14,10 +14,10 @@ class TelegramMessageTests(unittest.TestCase):
                 dict(index="EUR", verdict="BEAR", dist=-0.99, chg=-0.57, score=-0.5643),
                 dict(index="JPY", verdict="BEAR", dist=-1.4, chg=float("nan"), score=float("nan"))]
         message = build_telegram_message(rows, now=datetime(2026, 9, 24, 9, 15))
-        self.assertEqual(message, "\U0001f9ed INDEX SAR D\n\nINDEX\t\tdist\tCHG%D\tSCORE\n"
-                                  "USD\t\U0001f7e2\t+1.05%\t+0.57%\t+0.60\n"
-                                  "EUR\t\U0001f534\t-0.99%\t-0.57%\t-0.56\n"
-                                  "JPY\t\U0001f534\t-1.40%\tn/a\tn/a\n\n⏰ 2026-09-24 09:15 Paris")
+        self.assertEqual(message, "\U0001f9ed INDEX SAR D\n\n"
+                                  "\U0001f7e2USD (+0.60)\n"
+                                  "\U0001f534EUR (-0.56)\n"
+                                  "\U0001f534JPY (n/a)\n\n⏰ 2026-09-24 09:15 Paris")
 
 
 class ScoreTests(unittest.TestCase):
