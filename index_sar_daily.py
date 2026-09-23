@@ -81,6 +81,8 @@ def main() -> int:
             rows.append(dict(index=currency, **sar_position(df, args.sar_start, args.sar_increment, args.sar_maximum)))
         except Exception as exc:
             errors.append((f"{currency} ({index})", str(exc)))
+    # Du plus grand SCORE au plus faible ; SCORE inconnu en dernier.
+    rows.sort(key=lambda r: (math.isnan(r["score"]), -r["score"] if not math.isnan(r["score"]) else 0))
 
     print(f"Indices devises vs SAR daily au {datetime.now(base.PARIS):%Y-%m-%d %H:%M} Paris\n")
     print(f"{'INDEX':<6} {'':2}  {'prix':>10}  {'SAR D':>10}  {'dist':>7}  {'CHG%D':>7}  {'SCORE':>6}")
