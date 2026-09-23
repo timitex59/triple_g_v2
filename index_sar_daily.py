@@ -4,6 +4,7 @@
 - BULL : prix de l'indice AU-DESSUS du SAR daily ;
 - BEAR : prix de l'indice EN DESSOUS du SAR daily.
 + CHG% daily : (prix live - close de la veille) / close de la veille.
++ SCORE : |dist x CHG%D|, positif si dist et CHG%D sont tous deux positifs, negatif sinon.
 
 Bougie daily en cours incluse (prix live), comme le graphique TradingView :
 le SAR compare est celui de la derniere bougie. SAR = pine_sar (ta.sar),
@@ -38,18 +39,30 @@ def sar_position(df, start: float, increment: float, maximum: float) -> dict:
         verdict = "BULL" if price > sar else "BEAR"
     prev_close = float(df["close"].iloc[-2]) if len(df) > 1 else math.nan
     chg = (price - prev_close) / prev_close * 100 if prev_close else math.nan
-    return dict(price=price, sar=sar, verdict=verdict, chg=chg,
-                dist=(price - sar) / sar * 100 if sar and not math.isnan(sar) else math.nan)
+    dist = (price - sar) / sar * 100 if sar and not math.isnan(sar) else math.nan
+    return dict(price=price, sar=sar, verdict=verdict, chg=chg, dist=dist, score=score(dist, chg))
+
+
+def score(dist: float, chg: float) -> float:
+    """|dist x CHG%D|, positif seulement si les deux sont positifs ; negatif s'ils sont
+    de signe contraire ou tous les deux negatifs."""
+    magnitude = abs(dist * chg)
+    return magnitude if dist > 0 and chg > 0 else -magnitude
 
 
 def format_chg(chg: float) -> str:
     return "n/a" if math.isnan(chg) else f"{chg:+.2f}%"
 
 
+def format_score(value: float) -> str:
+    return "n/a" if math.isnan(value) else f"{value:+.2f}"
+
+
 def build_telegram_message(rows: list[dict], now: datetime | None = None) -> str:
-    lines = [f"{r['index']}\t{ICON[r['verdict']]}\t{format_chg(r['dist'])}\t{format_chg(r['chg'])}" for r in rows]
+    lines = [f"{r['index']}\t{ICON[r['verdict']]}\t{format_chg(r['dist'])}\t{format_chg(r['chg'])}"
+             f"\t{format_score(r['score'])}" for r in rows]
     footer = f"⏰ {(now or datetime.now(base.PARIS)).strftime('%Y-%m-%d %H:%M')} Paris"
-    return "\n".join(["\U0001f9ed INDEX SAR D", "", "INDEX\t\tdist\tCHG%D"] + lines + ["", footer])
+    return "\n".join(["\U0001f9ed INDEX SAR D", "", "INDEX\t\tdist\tCHG%D\tSCORE"] + lines + ["", footer])
 
 
 def main() -> int:
@@ -70,10 +83,10 @@ def main() -> int:
             errors.append((f"{currency} ({index})", str(exc)))
 
     print(f"Indices devises vs SAR daily au {datetime.now(base.PARIS):%Y-%m-%d %H:%M} Paris\n")
-    print(f"{'INDEX':<6} {'':2}  {'prix':>10}  {'SAR D':>10}  {'dist':>7}  {'CHG%D':>7}")
+    print(f"{'INDEX':<6} {'':2}  {'prix':>10}  {'SAR D':>10}  {'dist':>7}  {'CHG%D':>7}  {'SCORE':>6}")
     for r in rows:
         print(f"{r['index']:<6} {ICON[r['verdict']]}  {r['price']:>10.3f}  {r['sar']:>10.3f}  {r['dist']:>+6.2f}%"
-              f"  {format_chg(r['chg']):>7}")
+              f"  {format_chg(r['chg']):>7}  {format_score(r['score']):>6}")
     for verdict in ("BULL", "BEAR"):
         names = [r["index"] for r in rows if r["verdict"] == verdict]
         print(f"\n{ICON[verdict]} {verdict} : {', '.join(names) or 'aucun'}")
