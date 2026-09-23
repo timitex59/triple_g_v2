@@ -28,9 +28,11 @@ Selection finale (liste Telegram EARLY IMP) : une paire alignee sur toutes les U
 (la tendance de fond) n'entre dans la liste que sur un CROSS prix/SAR H1, a la cloture
 d'une bougie H1, dans le sens de cette tendance (BULL : cross haussier ; BEAR : cross
 baissier), survenu depuis le run precedent. Strict : une paire deja alignee et deja du bon
-cote du SAR H1 attend le prochain cross. Le CHG% daily ne bloque pas l'entree : sous
-`--chg-threshold` (defaut 0.1) la paire entre avec un warning.
-Une fois retenue, la paire n'est pas retiree quand le SAR H1 repasse du mauvais cote ni
+cote du SAR H1 attend le prochain cross. Premiere apparition sans warning uniquement : si
+au cross le CHG% daily est sous `--chg-threshold` (defaut 0.1), la paire est retenue en
+attente (non affichee) et n'apparait qu'au premier run ou elle n'a plus aucun warning
+(CHG% au-dessus du seuil et prix H1 du bon cote du SAR) ; elle est oubliee si elle perd
+l'alignement avant. Une fois affichee, la paire n'est pas retiree quand le SAR H1 repasse du mauvais cote ni
 quand son CHG% est sous le seuil : elle porte un warning tant que l'une ou l'autre
 condition est mauvaise, et il disparait quand les deux sont bonnes. Une paire retenue
 qui n'est plus alignee reste pour le reste du jour de trading avec un double warning (la
@@ -220,12 +222,16 @@ def update_selection(
     - Une paire ALIGNEE n'entre dans la liste que sur un CROSS prix/SAR H1 (bougie H1
       cloturee) dans le sens du verdict survenu depuis le run precedent (`h1["event"]`).
       Strict : une paire deja alignee et deja du bon cote du SAR H1 attend le prochain
-      cross. Le CHG% ne bloque pas l'entree : sous `threshold` elle entre avec `warning`.
-    - Une paire retenue (meme sens) n'est jamais retiree pour cause de H1 ou de CHG% :
+      cross.
+    - Premiere apparition sans warning : une paire qui entre avec un warning (CHG% sous
+      `threshold`) est retenue en attente (`pending`, non affichee) ; elle apparait au
+      premier run ou elle n'a plus de warning (CHG% ok ET prix H1 du bon cote du SAR),
+      et elle est oubliee si elle perd l'alignement (ou change de sens) avant.
+    - Une paire affichee (meme sens) n'est jamais retiree pour cause de H1 ou de CHG% :
       elle porte `warning` (1 warning) tant que |CHG%| <= `threshold` OU que le prix H1
       est du mauvais cote du SAR (`h1["side"]`) ; le warning disparait des que les deux
       conditions sont de nouveau bonnes.
-    - Une paire deja retenue qui n'est plus alignee reste pour le reste du jour de
+    - Une paire deja affichee qui n'est plus alignee reste pour le reste du jour de
       trading `today` avec `lost` (double warning : la boule de couleur est remplacee
       par un warning) ; elle sort ensuite. Si elle se realigne dans le meme sens elle
       reprend le traitement normal ; dans le sens oppose elle doit repasser le seuil
@@ -236,7 +242,7 @@ def update_selection(
 
     Renvoie (selection, nouvel_etat) : `selection` = [{pair, verdict, warning, lost,
     chg}] (`verdict` = sens d'origine), `nouvel_etat` = {pair: {verdict, warning[,
-    lost_day]}}.
+    lost_day][, pending]}}.
     """
     selection: list[dict] = []
     state: dict[str, dict] = {}
@@ -246,7 +252,7 @@ def update_selection(
         prev = previous.get(pair)
         verdict = aligned_verdict(result)
         if verdict is None:
-            if prev is None:
+            if prev is None or prev.get("pending"):
                 continue
             lost_day = prev.get("lost_day") or today
             if lost_day != today:
@@ -264,12 +270,19 @@ def update_selection(
             warning = not passes
         else:
             continue
+        if warning and (not was_selected or prev.get("pending")):
+            # jamais encore affichee : attend un run sans warning
+            state[pair] = dict(verdict=verdict, warning=True, pending=True)
+            continue
         selection.append(dict(pair=pair, verdict=verdict, warning=warning, lost=False, chg=chg))
         state[pair] = dict(verdict=verdict, warning=warning)
     for pair, entry in previous.items():
         if pair in seen:
             continue
         if entry.get("lost_day") not in (None, today):
+            continue
+        if entry.get("pending"):
+            state[pair] = dict(entry)
             continue
         selection.append(dict(pair=pair, verdict=entry["verdict"], warning=entry.get("warning", False),
                               lost=entry.get("lost_day") is not None, chg=None))
@@ -447,7 +460,7 @@ def main() -> int:
 
     selection, new_state = update_selection(
         ordered, previous, args.chg_threshold, trading_day(datetime.now(base.PARIS)))
-    print(f"\nSelection (alignee {'+'.join(args.timeframes)}, entree sur cross H1 ; "
+    print(f"\nSelection (alignee {'+'.join(args.timeframes)}, entree sur cross H1 sans warning ; "
           f"warning si |CHG%D| <= {args.chg_threshold:g}% ou H1 a contre-sens) : "
           + (", ".join(f"{s['pair']}{' ' + WARNING_ICON * (2 if s['lost'] else 1) if s['warning'] else ''}"
                        for s in selection) or "aucune"))

@@ -219,19 +219,58 @@ class UpdateSelectionTests(unittest.TestCase):
 
     def test_threshold_is_strict_and_uses_the_absolute_value(self):
         results = [self.result("AUDCAD", "BULL", 0.1), self.result("EURAUD", "BEAR", -0.3)]
-        selection, _ = update_selection(results, {}, 0.1, TODAY)
-        # 0.1 pile : pas au-dessus du seuil -> warning ; -0.3 : au-dessus en valeur absolue -> pas de warning
-        self.assertEqual(self.names(selection), {"AUDCAD": True, "EURAUD": False})
+        selection, state = update_selection(results, {}, 0.1, TODAY)
+        # 0.1 pile : pas au-dessus du seuil -> warning -> en attente ; -0.3 : au-dessus en valeur absolue -> affichee
+        self.assertEqual(self.names(selection), {"EURAUD": False})
+        self.assertTrue(state["AUDCAD"]["pending"])
 
-    def test_chg_below_the_threshold_does_not_block_the_entry_but_adds_a_warning(self):
+    def test_first_appearance_with_a_warning_is_held_back_as_pending(self):
         selection, state = update_selection([self.result("AUDCAD", "BULL", 0.05)], {}, 0.1, TODAY)
-        self.assertEqual(self.names(selection), {"AUDCAD": True})
-        self.assertFalse(selection[0]["lost"])  # 1 seul warning, la boule reste
-        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True))
+        self.assertEqual(selection, [])
+        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True, pending=True))
 
-    def test_unknown_chg_does_not_block_the_entry_either(self):
-        selection, _ = update_selection([self.result("AUDCAD", "BULL", None)], {}, 0.1, TODAY)
+    def test_unknown_chg_is_a_warning_so_the_pair_is_held_back_too(self):
+        selection, state = update_selection([self.result("AUDCAD", "BULL", None)], {}, 0.1, TODAY)
+        self.assertEqual(selection, [])
+        self.assertTrue(state["AUDCAD"]["pending"])
+
+    def test_pending_pair_stays_hidden_while_any_warning_remains(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
+        # CHG% encore sous le seuil
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.02, event=None)], previous, 0.1, TODAY)
+        self.assertEqual(selection, [])
+        self.assertTrue(state["AUDCAD"]["pending"])
+        # CHG% ok mais prix H1 du mauvais cote du SAR
+        selection, state = update_selection(
+            [self.result("AUDCAD", "BULL", 0.5, event="against", side="wrong")], previous, 0.1, TODAY)
+        self.assertEqual(selection, [])
+        self.assertTrue(state["AUDCAD"]["pending"])
+
+    def test_pending_pair_appears_once_it_has_no_warning_then_keeps_its_place(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3, event=None)], previous, 0.1, TODAY)
+        self.assertEqual(self.names(selection), {"AUDCAD": False})
+        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=False))
+        # deja affichee : se maintient avec le warning
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.02, event=None)], state, 0.1, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": True})
+        self.assertNotIn("pending", state["AUDCAD"])
+
+    def test_pending_pair_that_loses_alignment_is_forgotten_without_double_warning(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, 0.1, TODAY)
+        self.assertEqual((selection, state), ([], {}))
+
+    def test_pending_pair_that_flips_direction_must_requalify(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
+        selection, state = update_selection([self.result("AUDCAD", "BEAR", -0.5, event=None)], previous, 0.1, TODAY)
+        self.assertEqual((selection, state), ([], {}))
+
+    def test_pending_pair_missing_from_results_stays_pending_and_hidden(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
+        selection, state = update_selection([], previous, 0.1, TODAY)
+        self.assertEqual(selection, [])
+        self.assertEqual(state, previous)
 
     def test_previously_selected_pair_falling_below_the_threshold_stays_with_a_warning(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
