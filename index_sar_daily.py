@@ -23,7 +23,9 @@ from datetime import datetime
 import imp_trend_29pairs as base
 from imp_trend5_29pairs import pine_sar, send_telegram_message
 
-INDICES = ["DXY", "EXY", "BXY", "JXY", "SXY", "CXY", "AXY", "ZXY"]
+# Indice TVC -> devise affichee (plus lisible que le sigle de l'indice).
+INDICES = {"DXY": "USD", "EXY": "EUR", "BXY": "GBP", "JXY": "JPY",
+           "SXY": "CHF", "CXY": "CAD", "AXY": "AUD", "ZXY": "NZD"}
 ICON = {"BULL": "\U0001f7e2", "BEAR": "\U0001f534", "NEUTRE": "⚪"}
 
 
@@ -60,12 +62,12 @@ def main() -> int:
     args = parser.parse_args()
 
     rows, errors = [], []
-    for index in INDICES:
+    for index, currency in INDICES.items():
         try:
             df = base.fetch_ohlc(index, "D", args.d1_candles, tv_symbol=f"TVC:{index}")
-            rows.append(dict(index=index, **sar_position(df, args.sar_start, args.sar_increment, args.sar_maximum)))
+            rows.append(dict(index=currency, **sar_position(df, args.sar_start, args.sar_increment, args.sar_maximum)))
         except Exception as exc:
-            errors.append((index, str(exc)))
+            errors.append((f"{currency} ({index})", str(exc)))
 
     print(f"Indices devises vs SAR daily au {datetime.now(base.PARIS):%Y-%m-%d %H:%M} Paris\n")
     print(f"{'INDEX':<6} {'':2}  {'prix':>10}  {'SAR D':>10}  {'dist':>7}  {'CHG%D':>7}")
