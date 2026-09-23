@@ -29,12 +29,11 @@ Selection finale (liste Telegram EARLY IMP) : une paire alignee sur toutes les U
 d'une bougie H1, dans le sens de cette tendance (BULL : cross haussier ; BEAR : cross
 baissier), survenu depuis le run precedent. Strict : une paire deja alignee et deja du bon
 cote du SAR H1 attend le prochain cross. Premiere apparition sans warning uniquement : si
-au cross le CHG% daily est sous `--chg-threshold` (defaut 0.1), la paire est retenue en
-attente (non affichee) et n'apparait qu'au premier run ou elle n'a plus aucun warning
-(CHG% au-dessus du seuil et prix H1 du bon cote du SAR) ; elle est oubliee si elle perd
-l'alignement avant. Une fois affichee, la paire n'est pas retiree quand le SAR H1 repasse du mauvais cote ni
-quand son CHG% est sous le seuil : elle porte un warning tant que l'une ou l'autre
-condition est mauvaise, et il disparait quand les deux sont bonnes. Une paire retenue
+au run du cross le prix H1 est deja repasse du mauvais cote du SAR, la paire est retenue
+en attente (non affichee) et n'apparait qu'au premier run ou le prix H1 est du bon cote ;
+elle est oubliee si elle perd l'alignement avant. Une fois affichee, la paire n'est pas
+retiree quand le SAR H1 repasse du mauvais cote : elle porte un warning tant que le prix
+H1 est du mauvais cote, et il disparait quand il revient du bon cote. Une paire retenue
 qui n'est plus alignee reste pour le reste du jour de trading avec un double warning (la
 boule de couleur est remplacee par un warning), puis sort. Cet etat, avec un repere H1
 par paire, est persiste dans `--state-file` (mis a jour uniquement avec `--telegram`,
@@ -215,7 +214,7 @@ def trading_day(now: datetime) -> str:
 
 
 def update_selection(
-    results: list[dict], previous: dict[str, dict], threshold: float, today: str,
+    results: list[dict], previous: dict[str, dict], today: str,
 ) -> tuple[list[dict], dict[str, dict]]:
     """Selection finale de la liste EARLY IMP, avec persistance d'un run a l'autre.
 
@@ -223,18 +222,17 @@ def update_selection(
       cloturee) dans le sens du verdict survenu depuis le run precedent (`h1["event"]`).
       Strict : une paire deja alignee et deja du bon cote du SAR H1 attend le prochain
       cross.
-    - Premiere apparition sans warning : une paire qui entre avec un warning (CHG% sous
-      `threshold`) est retenue en attente (`pending`, non affichee) ; elle apparait au
-      premier run ou elle n'a plus de warning (CHG% ok ET prix H1 du bon cote du SAR),
-      et elle est oubliee si elle perd l'alignement (ou change de sens) avant.
-    - Une paire affichee (meme sens) n'est jamais retiree pour cause de H1 ou de CHG% :
-      elle porte `warning` (1 warning) tant que |CHG%| <= `threshold` OU que le prix H1
-      est du mauvais cote du SAR (`h1["side"]`) ; le warning disparait des que les deux
-      conditions sont de nouveau bonnes.
+    - Premiere apparition sans warning : une paire dont le prix H1 est deja repasse du
+      mauvais cote du SAR au run du cross est retenue en attente (`pending`, non
+      affichee) ; elle apparait au premier run ou le prix H1 est du bon cote, et elle
+      est oubliee si elle perd l'alignement (ou change de sens) avant.
+    - Une paire affichee (meme sens) n'est jamais retiree pour cause de H1 : elle porte
+      `warning` (1 warning) tant que le prix H1 est du mauvais cote du SAR
+      (`h1["side"]`) ; le warning disparait des qu'il revient du bon cote.
     - Une paire deja affichee qui n'est plus alignee reste pour le reste du jour de
       trading `today` avec `lost` (double warning : la boule de couleur est remplacee
       par un warning) ; elle sort ensuite. Si elle se realigne dans le meme sens elle
-      reprend le traitement normal ; dans le sens oppose elle doit repasser le seuil
+      reprend le traitement normal ; dans le sens oppose elle doit se requalifier
       comme une nouvelle.
     - Une paire absente de `results` (fetch en erreur ce run-la) garde son etat
       precedent, jour d'expiration compris : une erreur reseau ne doit pas la faire
@@ -260,16 +258,11 @@ def update_selection(
             selection.append(dict(pair=pair, verdict=prev["verdict"], warning=True, lost=True, chg=chg))
             state[pair] = dict(verdict=prev["verdict"], warning=True, lost_day=lost_day)
             continue
-        passes = chg is not None and abs(chg) > threshold
         was_selected = prev is not None and prev["verdict"] == verdict
         h1 = result.get("h1") or dict(event=None, side=None)
-        if was_selected:
-            h1_against = h1["side"] is not None and h1["side"] != REQUIRED_H1_SIDE[verdict]
-            warning = not passes or h1_against
-        elif h1["event"] == verdict:
-            warning = not passes
-        else:
+        if not was_selected and h1["event"] != verdict:
             continue
+        warning = h1["side"] is not None and h1["side"] != REQUIRED_H1_SIDE[verdict]
         if warning and (not was_selected or prev.get("pending")):
             # jamais encore affichee : attend un run sans warning
             state[pair] = dict(verdict=verdict, warning=True, pending=True)
@@ -367,8 +360,8 @@ def build_telegram_message(selection: list[dict], now: datetime | None = None) -
     paire retenue (cf. `update_selection`), horodatage Paris en pied.
 
     BULL (vert) d'abord puis BEAR (rouge), par ordre alphabetique dans chaque groupe ;
-    une paire retenue mais repassee sous le seuil de CHG% porte un warning collé a la
-    boule ; une paire qui n'est plus alignee porte un double warning (la boule est
+    une paire retenue dont le prix H1 est repasse du mauvais cote du SAR porte un
+    warning collé a la boule ; une paire qui n'est plus alignee porte un double warning (la boule est
     remplacee par un warning). None si la selection est vide -- silence plutot qu'un
     message vide, comme VIVIER / SAR BREAK / MTF SAR STRUCTURE.
     """
@@ -397,8 +390,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--telegram", action="store_true",
                         help="Envoie la selection sur Telegram et met a jour le fichier d'etat "
                              "(sans ce flag : apercu du message seulement, etat non modifie).")
-    parser.add_argument("--chg-threshold", type=float, default=0.1,
-                        help="|CHG%% daily| (en %%) sous lequel une paire retenue porte un warning (defaut 0.1).")
     parser.add_argument("--state-file", type=Path, default=Path("imp_triangle_verdict_state.json"),
                         help="Etat de la selection d'un run a l'autre (paires retenues, warning).")
     parser.add_argument("--h1-candles", type=int, default=1000,
@@ -417,10 +408,10 @@ def parse_args() -> argparse.Namespace:
     if unknown:
         parser.error(f"Paire(s) inconnue(s) : {', '.join(unknown)}")
     args.timeframes = list(dict.fromkeys(args.timeframes))
-    if args.far_count < 1 or args.chg_threshold < 0 \
+    if args.far_count < 1 \
             or min(args.h1_candles, args.d1_candles, args.w1_candles, args.m1_candles) < 5 \
             or args.workers < 1 or args.stagger < 0 or min(args.sar_start, args.sar_increment, args.sar_maximum) <= 0:
-        parser.error("Parametres invalides (far-count >= 1, chg-threshold >= 0, candles >= 5, workers >= 1, "
+        parser.error("Parametres invalides (far-count >= 1, candles >= 5, workers >= 1, "
                      "stagger >= 0, SAR > 0)")
     return args
 
@@ -459,9 +450,9 @@ def main() -> int:
         print_table(ordered, args.timeframes)
 
     selection, new_state = update_selection(
-        ordered, previous, args.chg_threshold, trading_day(datetime.now(base.PARIS)))
+        ordered, previous, trading_day(datetime.now(base.PARIS)))
     print(f"\nSelection (alignee {'+'.join(args.timeframes)}, entree sur cross H1 sans warning ; "
-          f"warning si |CHG%D| <= {args.chg_threshold:g}% ou H1 a contre-sens) : "
+          f"warning si H1 a contre-sens) : "
           + (", ".join(f"{s['pair']}{' ' + WARNING_ICON * (2 if s['lost'] else 1) if s['warning'] else ''}"
                        for s in selection) or "aucune"))
 

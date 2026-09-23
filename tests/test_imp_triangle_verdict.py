@@ -213,140 +213,119 @@ class UpdateSelectionTests(unittest.TestCase):
         return {s["pair"]: s["warning"] for s in selection}
 
     def test_aligned_pair_above_the_threshold_is_selected_without_warning(self):
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.25)], {}, 0.1, TODAY)
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.25)], {}, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": False})
         self.assertEqual(state, {"AUDCAD": dict(verdict="BULL", warning=False)})
 
-    def test_threshold_is_strict_and_uses_the_absolute_value(self):
-        results = [self.result("AUDCAD", "BULL", 0.1), self.result("EURAUD", "BEAR", -0.3)]
-        selection, state = update_selection(results, {}, 0.1, TODAY)
-        # 0.1 pile : pas au-dessus du seuil -> warning -> en attente ; -0.3 : au-dessus en valeur absolue -> affichee
-        self.assertEqual(self.names(selection), {"EURAUD": False})
-        self.assertTrue(state["AUDCAD"]["pending"])
+    def test_pending_pair_that_loses_alignment_is_forgotten_without_double_warning(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, TODAY)
+        self.assertEqual((selection, state), ([], {}))
 
-    def test_first_appearance_with_a_warning_is_held_back_as_pending(self):
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.05)], {}, 0.1, TODAY)
+    def test_pending_pair_that_flips_direction_must_requalify(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
+        selection, state = update_selection([self.result("AUDCAD", "BEAR", -0.5, event=None)], previous, TODAY)
+        self.assertEqual((selection, state), ([], {}))
+
+    def test_pending_pair_missing_from_results_stays_pending_and_hidden(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
+        selection, state = update_selection([], previous, TODAY)
+        self.assertEqual(selection, [])
+        self.assertEqual(state, previous)
+
+    def test_chg_no_longer_matters(self):
+        results = [self.result("AUDCAD", "BULL", 0.0), self.result("EURAUD", "BEAR", None)]
+        selection, state = update_selection(results, {}, TODAY)
+        self.assertEqual(self.names(selection), {"AUDCAD": False, "EURAUD": False})
+        previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
+        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.01, event=None)], previous, TODAY)
+        self.assertEqual(self.names(selection), {"AUDCAD": False})
+
+    def test_first_appearance_with_h1_already_back_on_the_wrong_side_is_pending(self):
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.5, side="wrong")], {}, TODAY)
         self.assertEqual(selection, [])
         self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True, pending=True))
 
-    def test_unknown_chg_is_a_warning_so_the_pair_is_held_back_too(self):
-        selection, state = update_selection([self.result("AUDCAD", "BULL", None)], {}, 0.1, TODAY)
-        self.assertEqual(selection, [])
-        self.assertTrue(state["AUDCAD"]["pending"])
-
-    def test_pending_pair_stays_hidden_while_any_warning_remains(self):
+    def test_pending_pair_stays_hidden_while_h1_is_on_the_wrong_side(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
-        # CHG% encore sous le seuil
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.02, event=None)], previous, 0.1, TODAY)
-        self.assertEqual(selection, [])
-        self.assertTrue(state["AUDCAD"]["pending"])
-        # CHG% ok mais prix H1 du mauvais cote du SAR
         selection, state = update_selection(
-            [self.result("AUDCAD", "BULL", 0.5, event="against", side="wrong")], previous, 0.1, TODAY)
+            [self.result("AUDCAD", "BULL", 0.5, event="against", side="wrong")], previous, TODAY)
         self.assertEqual(selection, [])
         self.assertTrue(state["AUDCAD"]["pending"])
 
     def test_pending_pair_appears_once_it_has_no_warning_then_keeps_its_place(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3, event=None)], previous, 0.1, TODAY)
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.0, event=None)], previous, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": False})
         self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=False))
         # deja affichee : se maintient avec le warning
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.02, event=None)], state, 0.1, TODAY)
+        selection, state = update_selection(
+            [self.result("AUDCAD", "BULL", 0.0, event=None, side="wrong")], state, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": True})
         self.assertNotIn("pending", state["AUDCAD"])
 
-    def test_pending_pair_that_loses_alignment_is_forgotten_without_double_warning(self):
-        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
-        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, 0.1, TODAY)
-        self.assertEqual((selection, state), ([], {}))
-
-    def test_pending_pair_that_flips_direction_must_requalify(self):
-        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
-        selection, state = update_selection([self.result("AUDCAD", "BEAR", -0.5, event=None)], previous, 0.1, TODAY)
-        self.assertEqual((selection, state), ([], {}))
-
-    def test_pending_pair_missing_from_results_stays_pending_and_hidden(self):
-        previous = {"AUDCAD": dict(verdict="BULL", warning=True, pending=True)}
-        selection, state = update_selection([], previous, 0.1, TODAY)
-        self.assertEqual(selection, [])
-        self.assertEqual(state, previous)
-
-    def test_previously_selected_pair_falling_below_the_threshold_stays_with_a_warning(self):
-        previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.04)], previous, 0.1, TODAY)
-        self.assertEqual(self.names(selection), {"AUDCAD": True})
-        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True))
-
-    def test_warning_stays_while_it_remains_below_and_clears_when_back_above(self):
-        previous = {"AUDCAD": dict(verdict="BULL", warning=True)}
-        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.02)], previous, 0.1, TODAY)
-        self.assertEqual(self.names(selection), {"AUDCAD": True})
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1, TODAY)
-        self.assertEqual(self.names(selection), {"AUDCAD": False})
-        self.assertEqual(state["AUDCAD"]["warning"], False)
+    def test_lost_pair_that_realigns_in_the_same_direction_resumes_normal_handling(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=True, lost_day=TODAY)}
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3, event=None)], previous, TODAY)
+        self.assertEqual([(s["lost"], s["warning"]) for s in selection], [(False, False)])
+        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=False))  # plus de lost_day
+        selection, state = update_selection(
+            [self.result("AUDCAD", "BULL", 0.3, event=None, side="wrong")], previous, TODAY)
+        self.assertEqual([(s["lost"], s["warning"]) for s in selection], [(False, True)])  # 1 seul warning
 
     def test_pair_that_loses_alignment_stays_with_a_double_warning_for_the_day(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
-        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, 0.1, TODAY)
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, TODAY)
         self.assertEqual(len(selection), 1)
         self.assertEqual((selection[0]["pair"], selection[0]["verdict"]), ("AUDCAD", "BULL"))  # sens d'origine
         self.assertTrue(selection[0]["lost"])
-        self.assertTrue(selection[0]["warning"])  # double warning meme si le CHG% est au-dessus du seuil
+        self.assertTrue(selection[0]["warning"])  # double warning meme si le H1 est du bon cote
         self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True, lost_day=TODAY))
 
     def test_lost_pair_is_kept_on_later_runs_of_the_same_day(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=True, lost_day=TODAY)}
-        selection, state = update_selection([self.not_aligned("AUDCAD", 0.0)], previous, 0.1, TODAY)
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.0)], previous, TODAY)
         self.assertEqual([(s["pair"], s["lost"]) for s in selection], [("AUDCAD", True)])
         self.assertEqual(state["AUDCAD"]["lost_day"], TODAY)  # le jour de perte ne glisse pas
 
     def test_lost_pair_leaves_the_list_once_the_trading_day_is_over(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=True, lost_day=YESTERDAY)}
-        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, 0.1, TODAY)
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], previous, TODAY)
         self.assertEqual(selection, [])
         self.assertEqual(state, {})
 
     def test_unaligned_pair_that_was_never_selected_stays_out(self):
-        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], {}, 0.1, TODAY)
+        selection, state = update_selection([self.not_aligned("AUDCAD", 0.5)], {}, TODAY)
         self.assertEqual((selection, state), ([], {}))
-
-    def test_lost_pair_that_realigns_in_the_same_direction_resumes_normal_handling(self):
-        previous = {"AUDCAD": dict(verdict="BULL", warning=True, lost_day=TODAY)}
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1, TODAY)
-        self.assertEqual([(s["lost"], s["warning"]) for s in selection], [(False, False)])
-        self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=False))  # plus de lost_day
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.02)], previous, 0.1, TODAY)
-        self.assertEqual([(s["lost"], s["warning"]) for s in selection], [(False, True)])  # 1 seul warning
 
     def test_lost_pair_that_realigns_the_other_way_must_requalify(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=True, lost_day=TODAY)}
         # sens oppose sans cross H1 dans ce sens : pas d'entree
-        selection, _ = update_selection([self.result("AUDCAD", "BEAR", -0.4, event=None)], previous, 0.1, TODAY)
+        selection, _ = update_selection([self.result("AUDCAD", "BEAR", -0.4, event=None)], previous, TODAY)
         self.assertEqual(selection, [])
-        selection, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, 0.1, TODAY)
+        selection, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, TODAY)
         self.assertEqual(state["AUDCAD"], dict(verdict="BEAR", warning=False))
 
     def test_direction_flip_must_requalify_like_a_new_pair(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
         # nouveau sens sans cross H1 dans ce sens : l'ancien BULL ne compte pas, pas d'entree
-        no_cross, _ = update_selection([self.result("AUDCAD", "BEAR", -0.4, event=None)], previous, 0.1, TODAY)
+        no_cross, _ = update_selection([self.result("AUDCAD", "BEAR", -0.4, event=None)], previous, TODAY)
         self.assertEqual(no_cross, [])
-        entered, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, 0.1, TODAY)
+        entered, state = update_selection([self.result("AUDCAD", "BEAR", -0.4)], previous, TODAY)
         self.assertEqual(state["AUDCAD"], dict(verdict="BEAR", warning=False))
         self.assertEqual(self.names(entered), {"AUDCAD": False})
 
     def test_pair_missing_from_results_keeps_its_previous_state(self):
         # fetch en erreur ce run-la : ne doit pas faire sortir la paire
         previous = {"GBPNZD": dict(verdict="BULL", warning=True)}
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1, TODAY)
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": False, "GBPNZD": True})
         self.assertEqual(state["GBPNZD"], dict(verdict="BULL", warning=True))
 
     def test_missing_pair_with_an_expired_loss_day_is_dropped_but_a_current_one_is_kept(self):
         previous = {"OLD": dict(verdict="BULL", warning=True, lost_day=YESTERDAY),
                     "CUR": dict(verdict="BEAR", warning=True, lost_day=TODAY)}
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, 0.1, TODAY)
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.3)], previous, TODAY)
         self.assertEqual(sorted(s["pair"] for s in selection), ["AUDCAD", "CUR"])
         self.assertEqual([s["lost"] for s in selection if s["pair"] == "CUR"], [True])
         self.assertNotIn("OLD", state)
@@ -354,59 +333,51 @@ class UpdateSelectionTests(unittest.TestCase):
     def test_selection_is_ordered_bull_first_then_alphabetical(self):
         results = [self.result("NZDUSD", "BEAR", 0.5), self.result("GBPNZD", "BULL", 0.5),
                    self.result("AUDCAD", "BULL", 0.5)]
-        selection, _ = update_selection(results, {}, 0.1, TODAY)
+        selection, _ = update_selection(results, {}, TODAY)
         self.assertEqual([s["pair"] for s in selection], ["AUDCAD", "GBPNZD", "NZDUSD"])
 
     # --- declencheur H1 : entree stricte sur le cross, jamais de retrait mais un warning ---
 
     def test_entry_requires_an_h1_cross_in_the_verdict_direction(self):
         # deja du bon cote du SAR H1 mais aucun cross depuis le dernier run : on attend le prochain cross
-        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.5, event=None, side="right")], {}, 0.1, TODAY)
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.5, event=None, side="right")], {}, TODAY)
         self.assertEqual((selection, state), ([], {}))
         # cross dans le SENS OPPOSE : pas d'entree non plus
-        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.5, event="against", side="wrong")], {}, 0.1, TODAY)
+        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.5, event="against", side="wrong")], {}, TODAY)
         self.assertEqual(selection, [])
-        selection, _ = update_selection([self.result("EURAUD", "BEAR", -0.5, event="cross")], {}, 0.1, TODAY)
+        selection, _ = update_selection([self.result("EURAUD", "BEAR", -0.5, event="cross")], {}, TODAY)
         self.assertEqual([s["pair"] for s in selection], ["EURAUD"])
 
     def test_pair_without_h1_data_cannot_enter(self):
         legacy = self.result("AUDCAD", "BULL", 0.5)
         del legacy["h1"]
-        selection, _ = update_selection([legacy], {}, 0.1, TODAY)
+        selection, _ = update_selection([legacy], {}, TODAY)
         self.assertEqual(selection, [])
 
     def test_listed_pair_is_kept_with_a_warning_when_the_h1_sar_turns_against_it(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
         selection, state = update_selection(
-            [self.result("AUDCAD", "BULL", 0.5, event="against", side="wrong")], previous, 0.1, TODAY)
+            [self.result("AUDCAD", "BULL", 0.5, event="against", side="wrong")], previous, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": True})   # jamais retiree, warning
         self.assertFalse(selection[0]["lost"])                       # 1 seul warning, la boule reste
         self.assertEqual(state["AUDCAD"], dict(verdict="BULL", warning=True))
 
     def test_h1_warning_applies_to_bear_pairs_when_price_is_above_the_sar(self):
         previous = {"EURAUD": dict(verdict="BEAR", warning=False)}
-        selection, _ = update_selection([self.result("EURAUD", "BEAR", -0.5, event=None, side="wrong")], previous, 0.1, TODAY)
+        selection, _ = update_selection([self.result("EURAUD", "BEAR", -0.5, event=None, side="wrong")], previous, TODAY)
         self.assertEqual(self.names(selection), {"EURAUD": True})
 
     def test_h1_warning_clears_once_price_is_back_on_the_right_side(self):
         previous = {"AUDCAD": dict(verdict="BULL", warning=True)}
         selection, state = update_selection(
-            [self.result("AUDCAD", "BULL", 0.5, event="cross", side="right")], previous, 0.1, TODAY)
+            [self.result("AUDCAD", "BULL", 0.5, event="cross", side="right")], previous, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": False})
         self.assertEqual(state["AUDCAD"]["warning"], False)
-
-    def test_h1_and_chg_warnings_share_the_single_warning_icon(self):
-        previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
-        # CHG% sous le seuil MAIS H1 du bon cote -> warning ; CHG% ok mais H1 du mauvais cote -> warning
-        below = update_selection([self.result("AUDCAD", "BULL", 0.02, event=None, side="right")], previous, 0.1, TODAY)[0]
-        against = update_selection([self.result("AUDCAD", "BULL", 0.5, event=None, side="wrong")], previous, 0.1, TODAY)[0]
-        both = update_selection([self.result("AUDCAD", "BULL", 0.02, event=None, side="wrong")], previous, 0.1, TODAY)[0]
-        self.assertEqual([self.names(x) for x in (below, against, both)], [{"AUDCAD": True}] * 3)
 
     def test_listed_pair_from_the_previous_rules_is_grandfathered(self):
         # entree d'avant le declencheur H1 : pas d'info H1 dans l'etat, on la garde sans cross
         previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
-        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.5, event=None, side="right")], previous, 0.1, TODAY)
+        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.5, event=None, side="right")], previous, TODAY)
         self.assertEqual(self.names(selection), {"AUDCAD": False})
 
 
