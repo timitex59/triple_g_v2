@@ -3,19 +3,19 @@
   "active": {
     "AUDCAD": {
       "direction": "BULL",
-      "confirmations": 12,
+      "confirmations": 11,
       "entered_at": "2026-09-15T08:18:46.508818+00:00",
-      "last_seen_at": "2026-09-23T11:32:41.644473+00:00",
+      "last_seen_at": "2026-09-23T12:18:57.737347+00:00",
       "snapshot": {
         "pair": "AUDCAD",
         "direction": "BULL",
-        "confirmations": 12,
+        "confirmations": 11,
         "renko_confirmations": 3,
         "avg_vote_confirmations": 4,
         "directional_avg_confirmations": 2,
         "tradable": false,
         "rank_tier": 4,
-        "rank_reason": "12/12 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
+        "rank_reason": "11/12 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
         "RENKO_M": "BULL",
         "RENKO_W": "BULL",
         "RENKO_D": "BULL",
@@ -31,47 +31,47 @@
         "H1_BULL_AVG": "BULL",
         "H1_BEAR_AVG": "BULL",
         "H1_DIRECTIONAL_AVG_PIPS": 4.589999999999984,
-        "CURRENCY_INDEX": "BULL"
+        "CURRENCY_INDEX": "NEUTRAL"
       }
     },
-    "AUDJPY": {
+    "AUDNZD": {
       "direction": "BULL",
-      "confirmations": 9,
-      "entered_at": "2026-09-18T17:21:14.875262+00:00",
-      "last_seen_at": "2026-09-23T11:32:41.644473+00:00",
+      "confirmations": 12,
+      "entered_at": "2026-09-23T12:18:57.737347+00:00",
+      "last_seen_at": "2026-09-23T12:18:57.737347+00:00",
       "snapshot": {
-        "pair": "AUDJPY",
+        "pair": "AUDNZD",
         "direction": "BULL",
-        "confirmations": 9,
+        "confirmations": 12,
         "renko_confirmations": 3,
-        "avg_vote_confirmations": 3,
-        "directional_avg_confirmations": 1,
+        "avg_vote_confirmations": 4,
+        "directional_avg_confirmations": 2,
         "tradable": false,
         "rank_tier": 4,
-        "rank_reason": "9/12 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
+        "rank_reason": "12/12 MAIS DEVISE JOUR/CONSENSUS CONTRADICTOIRE",
         "RENKO_M": "BULL",
         "RENKO_W": "BULL",
         "RENKO_D": "BULL",
         "D1_IMP21": "BULL",
         "D1_ALL_AVG": "BULL",
-        "D1_ALL_AVG_PIPS": 89.39999999999998,
+        "D1_ALL_AVG_PIPS": 58.47619047619049,
         "D1_BULL_AVG": "BULL",
         "D1_BEAR_AVG": "BULL",
-        "D1_DIRECTIONAL_AVG_PIPS": 75.76842105263158,
+        "D1_DIRECTIONAL_AVG_PIPS": 51.61250000000007,
         "H1_IMP21": "BULL",
-        "H1_ALL_AVG": "BEAR",
-        "H1_ALL_AVG_PIPS": -5.714285714285728,
-        "H1_BULL_AVG": "BEAR",
+        "H1_ALL_AVG": "BULL",
+        "H1_ALL_AVG_PIPS": 16.96666666666669,
+        "H1_BULL_AVG": "BULL",
         "H1_BEAR_AVG": "BULL",
-        "H1_DIRECTIONAL_AVG_PIPS": -11.559999999999965,
-        "CURRENCY_INDEX": "NEUTRAL"
+        "H1_DIRECTIONAL_AVG_PIPS": 13.99499999999998,
+        "CURRENCY_INDEX": "BULL"
       }
     },
     "EURAUD": {
       "direction": "BEAR",
       "confirmations": 10,
       "entered_at": "2026-08-21T21:49:08.313491+00:00",
-      "last_seen_at": "2026-09-23T11:32:41.644473+00:00",
+      "last_seen_at": "2026-09-23T12:18:57.737347+00:00",
       "snapshot": {
         "pair": "EURAUD",
         "direction": "BEAR",
@@ -104,7 +104,7 @@
       "direction": "BEAR",
       "confirmations": 11,
       "entered_at": "2026-09-22T18:56:42.525918+00:00",
-      "last_seen_at": "2026-09-23T11:32:41.644473+00:00",
+      "last_seen_at": "2026-09-23T12:18:57.737347+00:00",
       "snapshot": {
         "pair": "GBPAUD",
         "direction": "BEAR",
@@ -934,7 +934,23 @@
       "direction": "BULL",
       "reason": "RENKO_D_NOT_ALIGNED",
       "entered_at": "2026-08-21T21:49:08.313491+00:00"
+    },
+    {
+      "time_utc": "2026-09-23T12:18:57.737347+00:00",
+      "event": "ELIGIBLE",
+      "pair": "AUDNZD",
+      "direction": "BULL",
+      "previous_direction": null,
+      "confirmations": 12
+    },
+    {
+      "time_utc": "2026-09-23T12:18:57.737347+00:00",
+      "event": "INVALIDATED",
+      "pair": "AUDJPY",
+      "direction": "BULL",
+      "reason": "LESS_THAN_9_OF_12",
+      "entered_at": "2026-09-18T17:21:14.875262+00:00"
     }
   ],
-  "updated_at": "2026-09-23T11:32:41.644473+00:00"
+  "updated_at": "2026-09-23T12:18:57.737347+00:00"
 }
