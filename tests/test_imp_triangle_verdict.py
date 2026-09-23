@@ -194,7 +194,7 @@ class TradingDayTests(unittest.TestCase):
 
 
 class UpdateSelectionTests(unittest.TestCase):
-    def result(self, pair, verdict, chg, event="cross", side="right"):
+    def result(self, pair, verdict, chg, event="cross", side="right", structure=True):
         """`event` : "cross" = cross H1 dans le sens du verdict, "against" = cross inverse,
         None = pas de cross. `side` : "right"/"wrong" = cote du prix vs SAR H1 (bon/mauvais
         pour ce verdict), None = indefini."""
@@ -202,7 +202,7 @@ class UpdateSelectionTests(unittest.TestCase):
         good_side = "above" if verdict == "BULL" else "below"
         bad_side = "below" if verdict == "BULL" else "above"
         h1 = dict(event={"cross": verdict, "against": opposite, None: None}[event],
-                  side={"right": good_side, "wrong": bad_side, None: None}[side])
+                  side={"right": good_side, "wrong": bad_side, None: None}[side], structure=structure)
         tfs = {tf: dict(verdict=verdict) for tf in ("D", "W", "M")}
         return dict(pair=pair, chg=chg, h1=h1, timeframes=tfs)
 
@@ -348,6 +348,17 @@ class UpdateSelectionTests(unittest.TestCase):
         selection, _ = update_selection([self.result("EURAUD", "BEAR", -0.5, event="cross")], {}, TODAY)
         self.assertEqual([s["pair"] for s in selection], ["EURAUD"])
 
+    def test_cross_without_structure_does_not_enter(self):
+        selection, state = update_selection([self.result("AUDCAD", "BULL", 0.5, structure=False)], {}, TODAY)
+        self.assertEqual((selection, state), ([], {}))
+        selection, _ = update_selection([self.result("EURAUD", "BEAR", -0.5, structure=False)], {}, TODAY)
+        self.assertEqual(selection, [])
+
+    def test_structure_is_only_required_for_the_entry(self):
+        previous = {"AUDCAD": dict(verdict="BULL", warning=False)}
+        selection, _ = update_selection([self.result("AUDCAD", "BULL", 0.5, structure=False)], previous, TODAY)
+        self.assertEqual(self.names(selection), {"AUDCAD": False})
+
     def test_pair_without_h1_data_cannot_enter(self):
         legacy = self.result("AUDCAD", "BULL", 0.5)
         del legacy["h1"]
@@ -413,6 +424,32 @@ class H1CrossStateTests(unittest.TestCase):
         # haussier en 1 puis baissier en 2 : la paire finit du mauvais cote
         state = h1_cross_state(self.TIMES, [9, 11, 9, 9], [10, 10, 10, 10], mark=self.TIMES[0])
         self.assertEqual((state["event"], state["side"]), ("BEAR", "below"))
+
+    T8 = list(pd.date_range("2026-09-18 10:00", periods=8, freq="h", tz="UTC"))
+    # crossovers en 1 et 5, crossunder en 3 ; le niveau d'un cross = SAR sur sa bougie
+    CLOSES = [9, 11, 11, 9, 9, 11, 11, 11]
+
+    def test_bull_cross_above_the_previous_crossover_level_is_valid(self):
+        sar = [10, 10, 12, 12, 12, 10.5, 10.5, 10.5]   # 10.5 > 10 : plus bas ascendant
+        state = h1_cross_state(self.T8, self.CLOSES, sar, mark=self.T8[4])
+        self.assertEqual((state["event"], state["structure"]), ("BULL", True))
+
+    def test_bull_cross_at_or_below_the_previous_crossover_level_is_invalid(self):
+        for level in (10, 9.5):
+            sar = [10, 10, 12, 12, 12, level, level, level]
+            state = h1_cross_state(self.T8, self.CLOSES, sar, mark=self.T8[4])
+            self.assertEqual((state["event"], state["structure"]), ("BULL", False))
+
+    def test_bear_cross_below_the_previous_crossunder_level_is_valid_only_if_lower(self):
+        closes = [11, 9, 9, 11, 11, 9, 9, 9]           # crossunders en 1 et 5
+        lower = h1_cross_state(self.T8, closes, [10, 10, 8, 8, 8, 9.5, 9.5, 9.5], mark=self.T8[4])
+        higher = h1_cross_state(self.T8, closes, [10, 10, 8, 8, 8, 10.5, 10.5, 10.5], mark=self.T8[4])
+        self.assertEqual((lower["event"], lower["structure"]), ("BEAR", True))
+        self.assertEqual((higher["event"], higher["structure"]), ("BEAR", False))
+
+    def test_first_cross_without_a_previous_one_is_invalid(self):
+        state = h1_cross_state(self.TIMES, [9, 9, 11, 11], [10, 10, 10, 10], mark=self.TIMES[1])
+        self.assertEqual((state["event"], state["structure"]), ("BULL", False))
 
     def test_bear_cross(self):
         state = h1_cross_state(self.TIMES, [11, 11, 9, 9], [10, 10, 10, 10], mark=self.TIMES[0])

@@ -27,7 +27,8 @@ une reference : NEUTRE.
 Selection finale (liste Telegram EARLY IMP) : une paire alignee sur toutes les UT
 (la tendance de fond) n'entre dans la liste que sur un CROSS prix/SAR H1, a la cloture
 d'une bougie H1, dans le sens de cette tendance (BULL : cross haussier ; BEAR : cross
-baissier), survenu depuis le run precedent. Strict : une paire deja alignee et deja du bon
+baissier), survenu depuis le run precedent, et valide : le niveau SAR H1 de ce cross doit
+etre au-dessus (BULL) / en dessous (BEAR) de celui du cross precedent du meme sens. Strict : une paire deja alignee et deja du bon
 cote du SAR H1 attend le prochain cross. Premiere apparition sans warning uniquement : si
 au run du cross le prix H1 est deja repasse du mauvais cote du SAR, la paire est retenue
 en attente (non affichee) et n'apparait qu'au premier run ou le prix H1 est du bon cote ;
@@ -168,22 +169,34 @@ def h1_cross_state(times: list, closes: list[float], sar: list[float], mark: pd.
     ce run ne laisse pas la paire du bon cote. `side` : cote du dernier close vs SAR
     ("above"/"below", None si egal ou SAR indefini). `last_bar` : ouverture de la
     derniere bougie traitee, qui devient le repere du run suivant.
+
+    `structure` : le cross `event` est-il valide ? Niveau d'un cross = SAR sur sa
+    bougie. BULL : niveau du crossover > niveau du crossover precedent (plus bas
+    ascendant) ; BEAR : niveau du crossunder < niveau du crossunder precedent (plus haut
+    descendant). False sans cross precedent dans le meme sens ou a egalite.
     """
     bull, bear = find_crosses(closes, sar)
-    event = None
+    event, event_index = None, None
     if mark is not None:
         for i, t in enumerate(times):
             if t > mark:
                 if bull[i]:
-                    event = "BULL"
+                    event, event_index = "BULL", i
                 elif bear[i]:
-                    event = "BEAR"
+                    event, event_index = "BEAR", i
+    structure = False
+    if event is not None:
+        same = bull if event == "BULL" else bear
+        prior = next((j for j in range(event_index - 1, -1, -1) if same[j]), None)
+        if prior is not None:
+            level, prior_level = sar[event_index], sar[prior]
+            structure = level > prior_level if event == "BULL" else level < prior_level
     last_close, last_sar = closes[-1], sar[-1]
     if math.isnan(last_sar) or last_close == last_sar:
         side = None
     else:
         side = "above" if last_close > last_sar else "below"
-    return dict(event=event, side=side, last_bar=times[-1].isoformat())
+    return dict(event=event, structure=structure, side=side, last_bar=times[-1].isoformat())
 
 
 def h1_reading(pair: str, args, mark: pd.Timestamp | None) -> dict:
@@ -221,7 +234,9 @@ def update_selection(
     - Une paire ALIGNEE n'entre dans la liste que sur un CROSS prix/SAR H1 (bougie H1
       cloturee) dans le sens du verdict survenu depuis le run precedent (`h1["event"]`).
       Strict : une paire deja alignee et deja du bon cote du SAR H1 attend le prochain
-      cross.
+      cross. Ce cross doit en plus etre valide (`h1["structure"]`) : BULL, niveau SAR du
+      crossover au-dessus de celui du crossover precedent ; BEAR, niveau SAR du
+      crossunder en dessous de celui du crossunder precedent. Sinon, pas d'entree.
     - Premiere apparition sans warning : une paire dont le prix H1 est deja repasse du
       mauvais cote du SAR au run du cross est retenue en attente (`pending`, non
       affichee) ; elle apparait au premier run ou le prix H1 est du bon cote, et elle
@@ -260,7 +275,7 @@ def update_selection(
             continue
         was_selected = prev is not None and prev["verdict"] == verdict
         h1 = result.get("h1") or dict(event=None, side=None)
-        if not was_selected and h1["event"] != verdict:
+        if not was_selected and (h1["event"] != verdict or not h1.get("structure")):
             continue
         warning = h1["side"] is not None and h1["side"] != REQUIRED_H1_SIDE[verdict]
         if warning and (not was_selected or prev.get("pending")):
@@ -338,13 +353,13 @@ def print_details(result: dict) -> None:
 def print_table(results: list[dict], timeframes: list[str]) -> None:
     header = "  ".join(f"{tf:^2}" for tf in timeframes)
     print(f"\n{'PAIRE':<8} {header}   {'CHG%D':>7}   H1     prix")
-    print("(H1 : cote du prix vs SAR H1 ; * = cross H1 depuis le dernier run)")
+    print("(H1 : cote du prix vs SAR H1 ; * = cross H1 valide depuis le dernier run, x = cross H1 sans structure)")
     for result in results:
         icons = "  ".join(VERDICT_ICON[result["timeframes"][tf]["verdict"]] for tf in timeframes)
         chg = f"{result['chg']:+.2f}%" if result["chg"] is not None else "n/a"
         h1 = result["h1"]
         h1_icon = {"above": VERDICT_ICON["BULL"], "below": VERDICT_ICON["BEAR"]}.get(h1["side"], VERDICT_ICON["NEUTRE"])
-        h1_text = h1_icon + ("*" if h1["event"] else " ")
+        h1_text = h1_icon + (" " if not h1["event"] else "*" if h1.get("structure") else "x")
         print(f"{result['pair']:<8} {icons}   {chg:>7}   {h1_text}   {result['price']:.{decimals(result['pair'])}f}")
     for verdict, title in (("BULL", "Alignees BULL"), ("BEAR", "Alignees BEAR")):
         pairs = [r["pair"] for r in results if aligned_verdict(r) == verdict]
@@ -451,7 +466,7 @@ def main() -> int:
 
     selection, new_state = update_selection(
         ordered, previous, trading_day(datetime.now(base.PARIS)))
-    print(f"\nSelection (alignee {'+'.join(args.timeframes)}, entree sur cross H1 sans warning ; "
+    print(f"\nSelection (alignee {'+'.join(args.timeframes)}, entree sur cross H1 valide (structure SAR) sans warning ; "
           f"warning si H1 a contre-sens) : "
           + (", ".join(f"{s['pair']}{' ' + WARNING_ICON * (2 if s['lost'] else 1) if s['warning'] else ''}"
                        for s in selection) or "aucune"))
