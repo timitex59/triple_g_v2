@@ -12,12 +12,44 @@ from index_sar_daily import (  # noqa: E402
     ball,
     build_telegram_message,
     combinations,
+    day_start,
+    favorable_crosses,
+    first_run_of_day,
     first_standing_cross,
     score,
     update_eligible,
 )
 
 NOW = datetime(2026, 9, 24, 18, 20, tzinfo=base.PARIS)
+
+
+class FirstRunRecapTests(unittest.TestCase):
+    RUN = pd.Timestamp("2026-09-24 06:47", tz=base.PARIS).tz_convert("UTC")
+
+    def test_first_run_when_the_previous_run_is_before_1am_paris(self):
+        self.assertEqual(day_start(self.RUN), pd.Timestamp("2026-09-24 01:00", tz=base.PARIS))
+        self.assertTrue(first_run_of_day(pd.Timestamp("2026-09-23 23:20", tz=base.PARIS), self.RUN))
+        self.assertTrue(first_run_of_day(None, self.RUN))
+        self.assertFalse(first_run_of_day(pd.Timestamp("2026-09-24 01:20", tz=base.PARIS), self.RUN))
+
+    def test_before_1am_the_day_still_started_the_previous_day(self):
+        run = pd.Timestamp("2026-09-24 00:30", tz=base.PARIS)
+        self.assertEqual(day_start(run), pd.Timestamp("2026-09-23 01:00", tz=base.PARIS))
+
+    def test_favorable_crosses_closed_since_1am_only(self):
+        times = list(pd.date_range("2026-09-23 21:00", periods=6, freq="h", tz="UTC"))  # ouvertures 23:00..04:00 Paris
+        closes = [9, 11, 9, 11, 11, 9]          # crossovers en 1 et 3, crossunder en 2 et 5
+        start = pd.Timestamp("2026-09-24 01:00", tz=base.PARIS)
+        hours = favorable_crosses(times, closes, [10.0] * 6, "BULL", start)
+        # bougie 1 (00:00 Paris) cloturee a 01:00 : incluse ; bougie 3 cloturee a 03:00
+        self.assertEqual([f"{t.tz_convert(base.PARIS):%H:%M}" for t in hours], ["01:00", "03:00"])
+
+    def test_recap_section_in_the_message(self):
+        rows = [dict(index="USD", verdict="BULL", dist=1.0, chg=0.1, score=0.1)]
+        recap = [("USDCHF", "BULL", [pd.Timestamp("2026-09-24 00:00", tz="UTC"), pd.Timestamp("2026-09-24 08:00", tz="UTC")])]
+        message = build_telegram_message(rows, [], now=NOW, recap=recap)
+        self.assertEqual(message, "\U0001f9ed INDEX SAR D\n\n\U0001f7e2USD (+0.10)\n\n"
+                                  "CROSS DEPUIS 01:00\n\U0001f7e2USDCHF 02:00 10:00\n\n⏰ 2026-09-24 18:20 Paris")
 
 
 class TelegramMessageTests(unittest.TestCase):

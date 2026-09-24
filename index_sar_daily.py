@@ -29,6 +29,9 @@ rouge) donne une paire des 29 ; les devises a boule grise sont exclues.
 - Heure : entre parentheses (heure de cloture de la bougie du cross, Paris ; date
   en plus si ce n'est pas aujourd'hui) pour les paires deja eligibles avant ce
   run ; pas d'heure pour celles qui entrent a ce run.
+CROSS DEPUIS 01:00 : au premier run du jour (run precedent avant 01:00 Paris, ou pas
+d'etat), heures de cloture Paris de tous les crosses H1 dans le sens de chaque
+combinaison forte x faible, depuis 01:00 : le script ne tourne pas la nuit.
 Etat (`--state-file`) mis a jour uniquement avec `--telegram`.
 
 Exemples :
@@ -56,6 +59,7 @@ INDICES = {"DXY": "USD", "EXY": "EUR", "BXY": "GBP", "JXY": "JPY",
 ICON = {"BULL": "\U0001f7e2", "BEAR": "\U0001f534", "NEUTRE": "⚪"}
 WARNING_ICON = "⚠️"
 H1 = pd.Timedelta(hours=1)
+DAY_START_HOUR = 1   # recap du premier message du jour : crosses depuis 01:00 Paris
 
 
 def sar_position(df, start: float, increment: float, maximum: float) -> dict:
@@ -172,8 +176,30 @@ def format_cross_time(cross_open: pd.Timestamp, now: datetime) -> str:
     return f"{closed:%H:%M}" if closed.date() == now.date() else f"{closed:%d/%m %H:%M}"
 
 
+def day_start(now: pd.Timestamp) -> pd.Timestamp:
+    """Debut de la journee de recap : 01:00 Paris du jour (de la veille avant 01:00)."""
+    paris = now.tz_convert(base.PARIS)
+    start = paris.normalize() + pd.Timedelta(hours=DAY_START_HOUR)
+    return start if paris >= start else start - pd.Timedelta(days=1)
+
+
+def first_run_of_day(since: pd.Timestamp | None, now: pd.Timestamp) -> bool:
+    """Premier run depuis 01:00 Paris : le run precedent date d'avant (ou pas d'etat)."""
+    return since is None or since < day_start(now)
+
+
+def favorable_crosses(times: list, closes: list[float], sar: list[float], direction: str,
+                      start: pd.Timestamp) -> list[pd.Timestamp]:
+    """Heures de cloture des bougies H1 d'un cross dans le sens `direction`, cloturees a
+    partir de `start`."""
+    bull, bear = find_crosses(closes, sar)
+    crosses = bull if direction == "BULL" else bear
+    return [t + H1 for i, t in enumerate(times) if crosses[i] and t + H1 >= start]
+
+
 def build_telegram_message(rows: list[dict], eligible: list[dict] | None = None,
-                           now: datetime | None = None) -> str:
+                           now: datetime | None = None,
+                           recap: list[tuple[str, str, list[pd.Timestamp]]] | None = None) -> str:
     now = now or datetime.now(base.PARIS)
     lines = [f"{ball(r)}{r['index']} ({format_score(r['score'])})" for r in rows]
     if eligible:
@@ -181,6 +207,11 @@ def build_telegram_message(rows: list[dict], eligible: list[dict] | None = None,
         for e in eligible:
             when = "" if e["fresh"] else f" ({format_cross_time(e['cross_open'], now)})"
             lines.append(f"{ICON[e['direction']]}{e['pair']}{when}{' ' + WARNING_ICON if e['warning'] else ''}")
+    if recap:
+        lines += ["", f"CROSS DEPUIS {DAY_START_HOUR:02d}:00"]
+        for pair, direction, closes_at in recap:
+            hours = " ".join(f"{t.tz_convert(base.PARIS):%H:%M}" for t in closes_at)
+            lines.append(f"{ICON[direction]}{pair} {hours}")
     footer = f"⏰ {now.strftime('%Y-%m-%d %H:%M')} Paris"
     return "\n".join(["\U0001f9ed INDEX SAR D", ""] + lines + ["", footer])
 
@@ -248,8 +279,17 @@ def main() -> int:
     if dropped:
         print("Sorties (niveau du SAR du cross recasse) : " + ", ".join(dropped))
 
+    recap = None
+    if first_run_of_day(since, run_time):
+        start = day_start(run_time)
+        recap = [(pair, direction, hours) for pair, direction in combos if pair in h1
+                 for hours in [favorable_crosses(*h1[pair], direction, start)] if hours]
+        print(f"Premier run du jour : crosses favorables depuis {start:%d/%m %H:%M} Paris : "
+              + (", ".join(f"{p} {' '.join(f'{t.tz_convert(base.PARIS):%H:%M}' for t in h)}" for p, _, h in recap)
+                 or "aucun"))
+
     if rows:
-        message = build_telegram_message(rows, eligible)
+        message = build_telegram_message(rows, eligible, recap=recap)
         if args.telegram:
             print("\nTelegram :\n" + message)
             if send_telegram_message(message):
