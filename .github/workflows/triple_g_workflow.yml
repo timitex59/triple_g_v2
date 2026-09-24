@@ -205,6 +205,7 @@ jobs:
           STATE_FILES="$STATE_FILES imp_count_v2_sar_break_watchlist_state.json"
           STATE_FILES="$STATE_FILES sar_mtf_structure.json"
           STATE_FILES="$STATE_FILES imp_triangle_verdict_state.json"
+          STATE_FILES="$STATE_FILES index_sar_daily_state.json"
           STATE_FILES="$STATE_FILES relative_perf_btc_alcpb_mstr_state.json"
 
           for f in $STATE_FILES; do
