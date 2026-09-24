@@ -24,13 +24,20 @@ NOW = datetime(2026, 9, 24, 18, 20, tzinfo=base.PARIS)
 
 
 class FirstRunRecapTests(unittest.TestCase):
-    RUN = pd.Timestamp("2026-09-24 06:47", tz=base.PARIS).tz_convert("UTC")
+    RUN = pd.Timestamp("2026-09-24 07:15", tz=base.PARIS).tz_convert("UTC")
 
-    def test_first_run_when_the_previous_run_is_before_1am_paris(self):
+    def test_recap_goes_to_the_first_run_from_7am_paris(self):
         self.assertEqual(day_start(self.RUN), pd.Timestamp("2026-09-24 01:00", tz=base.PARIS))
         self.assertTrue(first_run_of_day(pd.Timestamp("2026-09-23 23:20", tz=base.PARIS), self.RUN))
         self.assertTrue(first_run_of_day(None, self.RUN))
-        self.assertFalse(first_run_of_day(pd.Timestamp("2026-09-24 01:20", tz=base.PARIS), self.RUN))
+        # un run de nuit (cron GitHub a 01:38) ne prend pas le recap du matin
+        self.assertTrue(first_run_of_day(pd.Timestamp("2026-09-24 01:38", tz=base.PARIS), self.RUN))
+        self.assertFalse(first_run_of_day(pd.Timestamp("2026-09-24 07:02", tz=base.PARIS), self.RUN))
+
+    def test_no_recap_during_the_night(self):
+        night = pd.Timestamp("2026-09-24 01:38", tz=base.PARIS)
+        self.assertFalse(first_run_of_day(pd.Timestamp("2026-09-23 23:15", tz=base.PARIS), night))
+        self.assertFalse(first_run_of_day(None, pd.Timestamp("2026-09-24 06:42", tz=base.PARIS)))
 
     def test_before_1am_the_day_still_started_the_previous_day(self):
         run = pd.Timestamp("2026-09-24 00:30", tz=base.PARIS)

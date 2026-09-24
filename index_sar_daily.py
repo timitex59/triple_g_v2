@@ -29,9 +29,9 @@ rouge) donne une paire des 29 ; les devises a boule grise sont exclues.
 - Heure : entre parentheses (heure de cloture de la bougie du cross, Paris ; date
   en plus si ce n'est pas aujourd'hui) pour les paires deja eligibles avant ce
   run ; pas d'heure pour celles qui entrent a ce run.
-CROSS DEPUIS 01:00 : au premier run du jour (run precedent avant 01:00 Paris, ou pas
-d'etat), heures de cloture Paris de tous les crosses H1 dans le sens de chaque
-combinaison forte x faible, depuis 01:00 : le script ne tourne pas la nuit.
+CROSS DEPUIS 01:00 : au premier run a partir de 07:00 Paris (run precedent avant
+07:00, ou pas d'etat), heures de cloture Paris de tous les crosses H1 dans le sens de
+chaque combinaison forte x faible, depuis 01:00 : les messages commencent a 7h.
 Etat (`--state-file`) mis a jour uniquement avec `--telegram`.
 
 Exemples :
@@ -60,6 +60,7 @@ ICON = {"BULL": "\U0001f7e2", "BEAR": "\U0001f534", "NEUTRE": "⚪"}
 WARNING_ICON = "⚠️"
 H1 = pd.Timedelta(hours=1)
 DAY_START_HOUR = 1   # recap du premier message du jour : crosses depuis 01:00 Paris
+RECAP_HOUR = 7       # ... envoye au premier run a partir de 07:00 Paris (debut des messages)
 
 
 def sar_position(df, start: float, increment: float, maximum: float) -> dict:
@@ -184,8 +185,12 @@ def day_start(now: pd.Timestamp) -> pd.Timestamp:
 
 
 def first_run_of_day(since: pd.Timestamp | None, now: pd.Timestamp) -> bool:
-    """Premier run depuis 01:00 Paris : le run precedent date d'avant (ou pas d'etat)."""
-    return since is None or since < day_start(now)
+    """Premier run a partir de 07:00 Paris : il est 07:00 passe et le run precedent date
+    d'avant 07:00 (ou pas d'etat). Un run de nuit (cron GitHub retarde) ne prend pas
+    le recap, qui reste pour le premier message du matin."""
+    paris = now.tz_convert(base.PARIS)
+    recap_from = paris.normalize() + pd.Timedelta(hours=RECAP_HOUR)
+    return paris >= recap_from and (since is None or since < recap_from)
 
 
 def favorable_crosses(times: list, closes: list[float], sar: list[float], direction: str,
