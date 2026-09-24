@@ -12,13 +12,22 @@ le SAR compare est celui de la derniere bougie. SAR = pine_sar (ta.sar),
 parametres par defaut 0.1 / 0.1 / 0.2 comme les autres scripts du repo.
 
 ELIGIBLE : chaque combinaison devise forte (boule verte) x devise faible (boule
-rouge) donne une paire des 29 ; les devises a boule grise sont exclues. La paire
-est ELIGIBLE si son prix a casse son SAR H1 dans le sens de la combinaison sur une
-bougie H1 CLOTUREE depuis le run precedent : crossover si la devise forte est la
-devise de base (USDJPY avec USD fort), crossunder si c'est la devise de cotation
-(AUDUSD avec USD fort). S'il y a plusieurs crosses dans la fenetre, le dernier
-compte. Fenetre = bougies H1 cloturees apres le run precedent (`--state-file`, mis
-a jour uniquement avec `--telegram`) ; sans etat : la derniere bougie cloturee.
+rouge) donne une paire des 29 ; les devises a boule grise sont exclues.
+- Entree : le prix de la paire a casse son SAR H1 dans le sens de la combinaison
+  sur une bougie H1 CLOTUREE depuis le run precedent : crossover si la devise forte
+  est la devise de base (USDJPY avec USD fort), crossunder si c'est la devise de
+  cotation (AUDUSD avec USD fort). S'il y a plusieurs crosses dans la fenetre, le
+  dernier compte. Sans etat : la derniere bougie cloturee seulement.
+- Niveau : la valeur du SAR H1 sur la bougie du cross est memorisee.
+- Sortie : une CLOTURE H1 franche au-dela de ce niveau dans le sens inverse
+  (au-dessus pour un crossunder, en dessous pour un crossover) ; une meche ne
+  suffit pas. Un nouveau cross dans le meme sens ne change ni l'heure ni le niveau.
+- Warning : la paire reste eligible si la combinaison forte x faible qui l'a fait
+  entrer n'existe plus, mais elle porte un warning.
+- Heure : entre parentheses (heure de cloture de la bougie du cross, Paris ; date
+  en plus si ce n'est pas aujourd'hui) pour les paires deja eligibles avant ce
+  run ; pas d'heure pour celles qui entrent a ce run.
+Etat (`--state-file`) mis a jour uniquement avec `--telegram`.
 
 Exemples :
     python index_sar_daily.py               # tableau console + apercu Telegram
@@ -43,6 +52,8 @@ from imp_trend5_29pairs import pine_sar, send_telegram_message
 INDICES = {"DXY": "USD", "EXY": "EUR", "BXY": "GBP", "JXY": "JPY",
            "SXY": "CHF", "CXY": "CAD", "AXY": "AUD", "ZXY": "NZD"}
 ICON = {"BULL": "\U0001f7e2", "BEAR": "\U0001f534", "NEUTRE": "⚪"}
+WARNING_ICON = "⚠️"
+H1 = pd.Timedelta(hours=1)
 
 
 def sar_position(df, start: float, increment: float, maximum: float) -> dict:
@@ -93,38 +104,93 @@ def combinations(rows: list[dict]) -> list[tuple[str, str]]:
     return sorted(combos)
 
 
-def h1_cross_since(times: list, closes: list[float], sar: list[float], since: pd.Timestamp | None) -> str | None:
-    """Sens ("BULL"/"BEAR") du dernier cross prix/SAR H1 parmi les bougies (cloturees)
-    dont la cloture tombe apres `since` ; sans `since`, la derniere bougie seulement.
-    None s'il n'y en a pas."""
+def last_cross_since(times: list, closes: list[float], sar: list[float],
+                     since: pd.Timestamp | None) -> tuple[str | None, int | None]:
+    """(sens, index) du dernier cross prix/SAR H1 parmi les bougies (cloturees) dont la
+    cloture tombe apres `since` ; sans `since`, la derniere bougie seulement.
+    (None, None) s'il n'y en a pas."""
     bull, bear = find_crosses(closes, sar)
     if since is None:
         first = len(times) - 1
     else:
-        first = next((i for i, t in enumerate(times) if t + pd.Timedelta(hours=1) > since), len(times))
-    event = None
+        first = next((i for i, t in enumerate(times) if t + H1 > since), len(times))
+    event, index = None, None
     for i in range(max(first, 1), len(times)):
         if bull[i]:
-            event = "BULL"
+            event, index = "BULL", i
         elif bear[i]:
-            event = "BEAR"
-    return event
+            event, index = "BEAR", i
+    return event, index
 
 
-def build_telegram_message(rows: list[dict], eligible: list[tuple[str, str]] | None = None,
+def level_broken(times: list, closes: list[float], cross_open: pd.Timestamp, level: float, direction: str) -> bool:
+    """Cloture H1 franche au-dela du niveau du SAR du cross, dans le sens inverse, sur
+    une bougie posterieure a celle du cross."""
+    for t, close in zip(times, closes):
+        if t > cross_open and (close > level if direction == "BEAR" else close < level):
+            return True
+    return False
+
+
+def update_eligible(previous: dict[str, dict], combos: list[tuple[str, str]], h1: dict[str, tuple],
+                    since: pd.Timestamp | None) -> tuple[list[dict], dict[str, dict]]:
+    """Liste ELIGIBLE, avec persistance d'un run a l'autre.
+
+    `previous` = {paire: {direction, level, cross_open}} ; `h1` = {paire: (times,
+    closes, sar)} des bougies H1 cloturees (une paire absente = fetch en erreur : elle
+    garde son etat). Renvoie (entrees, nouvel_etat) ; entree = {pair, direction,
+    cross_open, fresh (entree a ce run), warning (combinaison disparue)}.
+    """
+    state: dict[str, dict] = {}
+    fresh: set[str] = set()
+    for pair, entry in previous.items():
+        data = h1.get(pair)
+        if data is not None and level_broken(data[0], data[1], pd.Timestamp(entry["cross_open"]),
+                                             entry["level"], entry["direction"]):
+            continue
+        state[pair] = dict(entry)
+    for pair, direction in combos:
+        if state.get(pair, {}).get("direction") == direction or pair not in h1:
+            continue
+        times, closes, sar = h1[pair]
+        event, index = last_cross_since(times, closes, sar, since)
+        if event != direction:
+            continue
+        entry = dict(direction=direction, level=float(sar[index]), cross_open=times[index].isoformat())
+        if level_broken(times, closes, times[index], entry["level"], direction):
+            continue
+        state[pair] = entry
+        fresh.add(pair)
+    active = set(combos)
+    entries = [dict(pair=pair, direction=e["direction"], cross_open=pd.Timestamp(e["cross_open"]),
+                    fresh=pair in fresh, warning=(pair, e["direction"]) not in active)
+               for pair, e in sorted(state.items())]
+    return entries, state
+
+
+def format_cross_time(cross_open: pd.Timestamp, now: datetime) -> str:
+    closed = (cross_open + H1).tz_convert(base.PARIS)
+    return f"{closed:%H:%M}" if closed.date() == now.date() else f"{closed:%d/%m %H:%M}"
+
+
+def build_telegram_message(rows: list[dict], eligible: list[dict] | None = None,
                            now: datetime | None = None) -> str:
+    now = now or datetime.now(base.PARIS)
     lines = [f"{ball(r)}{r['index']} ({format_score(r['score'])})" for r in rows]
     if eligible:
-        lines += ["", "ELIGIBLE"] + [f"{ICON[direction]}{pair}" for pair, direction in eligible]
-    footer = f"⏰ {(now or datetime.now(base.PARIS)).strftime('%Y-%m-%d %H:%M')} Paris"
+        lines += ["", "ELIGIBLE"]
+        for e in eligible:
+            when = "" if e["fresh"] else f" ({format_cross_time(e['cross_open'], now)})"
+            lines.append(f"{ICON[e['direction']]}{e['pair']}{when}{' ' + WARNING_ICON if e['warning'] else ''}")
+    footer = f"⏰ {now.strftime('%Y-%m-%d %H:%M')} Paris"
     return "\n".join(["\U0001f9ed INDEX SAR D", ""] + lines + ["", footer])
 
 
-def load_last_run(path: Path) -> pd.Timestamp | None:
+def load_state(path: Path) -> dict:
     try:
-        return pd.Timestamp(json.loads(path.read_text(encoding="utf-8"))["last_run"])
-    except (OSError, ValueError, KeyError, TypeError):
-        return None
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
 
 
 def main() -> int:
@@ -133,7 +199,7 @@ def main() -> int:
     parser.add_argument("--d1-candles", type=int, default=500)
     parser.add_argument("--h1-candles", type=int, default=300)
     parser.add_argument("--state-file", type=Path, default=Path("index_sar_daily_state.json"),
-                        help="Heure du run precedent (debut de la fenetre des crosses H1).")
+                        help="Heure du run precedent et paires eligibles (niveau du SAR du cross).")
     parser.add_argument("--sar-start", type=float, default=0.1)
     parser.add_argument("--sar-increment", type=float, default=0.1)
     parser.add_argument("--sar-maximum", type=float, default=0.2)
@@ -159,24 +225,29 @@ def main() -> int:
         names = [r["index"] for r in rows if r["verdict"] == verdict]
         print(f"\n{ICON[verdict]} {verdict} : {', '.join(names) or 'aucun'}")
 
-    since = load_last_run(args.state_file)
-    print(f"\nCombinaisons forte x faible, cross SAR H1 depuis "
-          f"{since.tz_convert(base.PARIS):%Y-%m-%d %H:%M} Paris :" if since is not None
-          else "\nCombinaisons forte x faible, cross SAR H1 sur la derniere bougie cloturee :")
-    eligible = []
-    for pair, direction in combinations(rows):
+    saved = load_state(args.state_file)
+    since = pd.Timestamp(saved["last_run"]) if saved.get("last_run") else None
+    previous = saved.get("eligible", {})
+    combos = combinations(rows)
+    h1: dict[str, tuple] = {}
+    for pair in sorted({p for p, _ in combos} | set(previous)):
         try:
-            h1 = drop_unconfirmed(base.fetch_ohlc(pair, "60", args.h1_candles), timeframe="H")
-            sar = pine_sar(h1, args.sar_start, args.sar_increment, args.sar_maximum)
-            event = h1_cross_since(h1["time"].tolist(), h1["close"].astype(float).tolist(), sar, since)
+            df = drop_unconfirmed(base.fetch_ohlc(pair, "60", args.h1_candles), timeframe="H")
+            h1[pair] = (df["time"].tolist(), df["close"].astype(float).tolist(),
+                        pine_sar(df, args.sar_start, args.sar_increment, args.sar_maximum))
         except Exception as exc:
             errors.append((pair, str(exc)))
-            continue
-        expected = "crossover " if direction == "BULL" else "crossunder"
-        print(f"  {pair:<7} attendu {expected}  cross H1 : {event or '-'}")
-        if event == direction:
-            eligible.append((pair, direction))
-    print(f"\nELIGIBLE : {', '.join(p for p, _ in eligible) or 'aucune'}")
+    eligible, new_state = update_eligible(previous, combos, h1, since)
+
+    print("\nCombinaisons forte x faible : "
+          + (", ".join(f"{p} ({'crossover' if d == 'BULL' else 'crossunder'})" for p, d in combos) or "aucune"))
+    print("ELIGIBLE : " + (", ".join(
+        f"{e['pair']} [{'nouvelle' if e['fresh'] else format_cross_time(e['cross_open'], datetime.now(base.PARIS))}"
+        f", niveau {new_state[e['pair']]['level']:.5f}]{' ' + WARNING_ICON if e['warning'] else ''}"
+        for e in eligible) or "aucune"))
+    dropped = sorted(set(previous) - set(new_state))
+    if dropped:
+        print("Sorties (niveau du SAR du cross recasse) : " + ", ".join(dropped))
 
     if rows:
         message = build_telegram_message(rows, eligible)
@@ -187,7 +258,8 @@ def main() -> int:
         else:
             print("\nApercu Telegram (non envoye, ajouter --telegram) :\n" + message)
     if args.telegram:
-        args.state_file.write_text(json.dumps(dict(last_run=run_time.isoformat()), indent=2), encoding="utf-8")
+        payload = dict(last_run=run_time.isoformat(), eligible=new_state)
+        args.state_file.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     if errors:
         print("\nErreurs :")
         for index, error in errors:
