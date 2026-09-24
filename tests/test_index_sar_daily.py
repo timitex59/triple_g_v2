@@ -12,7 +12,7 @@ from index_sar_daily import (  # noqa: E402
     ball,
     build_telegram_message,
     combinations,
-    last_cross_since,
+    first_standing_cross,
     score,
     update_eligible,
 )
@@ -70,23 +70,34 @@ TIMES = list(pd.date_range("2026-09-24 10:00", periods=6, freq="h", tz="UTC"))
 SAR = [10.0] * 6
 
 
-class LastCrossSinceTests(unittest.TestCase):
+class FirstStandingCrossTests(unittest.TestCase):
     def test_cross_on_a_bar_closed_after_the_previous_run(self):
         # crossunder sur la bougie de 13:00 (cloturee a 14:00), run precedent a 13:20
         closes = [11, 11, 11, 9, 9, 9]
-        self.assertEqual(last_cross_since(TIMES, closes, SAR, pd.Timestamp("2026-09-24 13:20", tz="UTC")), ("BEAR", 3))
+        self.assertEqual(first_standing_cross(TIMES, closes, SAR, pd.Timestamp("2026-09-24 13:20", tz="UTC"), "BEAR"), 3)
 
     def test_cross_already_seen_by_the_previous_run_is_ignored(self):
         closes = [11, 11, 11, 9, 9, 9]
-        self.assertEqual(last_cross_since(TIMES, closes, SAR, pd.Timestamp("2026-09-24 14:20", tz="UTC")), (None, None))
+        self.assertIsNone(first_standing_cross(TIMES, closes, SAR, pd.Timestamp("2026-09-24 14:20", tz="UTC"), "BEAR"))
 
-    def test_last_cross_of_the_window_wins(self):
-        closes = [11, 9, 11, 11, 11, 11]
-        self.assertEqual(last_cross_since(TIMES, closes, SAR, pd.Timestamp("2026-09-24 10:30", tz="UTC"))[0], "BULL")
+    def test_a_later_opposite_cross_does_not_cancel_a_standing_one(self):
+        # crossover en 1 (niveau 10), puis crossunder en 3 avec un SAR remonte a 12 : cloture 11 > 10, le niveau tient
+        sar = [10, 10, 10, 12, 12, 12]
+        closes = [9, 11, 11, 11, 11, 11]
+        closes_bad = [9, 11, 13, 11, 11, 11]
+        self.assertEqual(first_standing_cross(TIMES, closes, sar, pd.Timestamp("2026-09-24 10:30", tz="UTC"), "BULL"), 1)
+        # un crossunder en 3 (13 -> 11 sous 12) ne fait rien : seul le niveau 10 compte
+        self.assertEqual(first_standing_cross(TIMES, closes_bad, sar, pd.Timestamp("2026-09-24 10:30", tz="UTC"), "BULL"), 1)
+
+    def test_cross_whose_level_was_broken_is_skipped_for_a_later_one(self):
+        # crossover en 1 (niveau 10) recasse en 2 (cloture 9.5), nouveau crossover en 4 (niveau 9) qui tient
+        sar = [10, 10, 10, 10, 9, 9]
+        closes = [9, 11, 9.5, 9.5, 10, 10]
+        self.assertEqual(first_standing_cross(TIMES, closes, sar, pd.Timestamp("2026-09-24 10:30", tz="UTC"), "BULL"), 4)
 
     def test_without_state_only_the_last_closed_bar_counts(self):
-        self.assertEqual(last_cross_since(TIMES, [11, 11, 11, 11, 11, 9], SAR, None)[0], "BEAR")
-        self.assertIsNone(last_cross_since(TIMES, [11, 11, 11, 11, 9, 9], SAR, None)[0])
+        self.assertEqual(first_standing_cross(TIMES, [11, 11, 11, 11, 11, 9], SAR, None, "BEAR"), 5)
+        self.assertIsNone(first_standing_cross(TIMES, [11, 11, 11, 11, 9, 9], SAR, None, "BEAR"))
 
 
 class UpdateEligibleTests(unittest.TestCase):

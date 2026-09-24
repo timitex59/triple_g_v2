@@ -16,8 +16,10 @@ rouge) donne une paire des 29 ; les devises a boule grise sont exclues.
 - Entree : le prix de la paire a casse son SAR H1 dans le sens de la combinaison
   sur une bougie H1 CLOTUREE depuis le run precedent : crossover si la devise forte
   est la devise de base (USDJPY avec USD fort), crossunder si c'est la devise de
-  cotation (AUDUSD avec USD fort). S'il y a plusieurs crosses dans la fenetre, le
-  dernier compte. Sans etat : la derniere bougie cloturee seulement.
+  cotation (AUDUSD avec USD fort). S'il y a plusieurs bougies depuis le run
+  precedent, elles sont rejouees dans l'ordre : le premier cross dans le bon sens
+  dont le niveau tient encore fait entrer la paire (un cross inverse ensuite ne
+  l'annule pas). Sans etat : la derniere bougie cloturee seulement.
 - Niveau : la valeur du SAR H1 sur la bougie du cross est memorisee.
 - Sortie : une CLOTURE H1 franche au-dela de ce niveau dans le sens inverse
   (au-dessus pour un crossunder, en dessous pour un crossover) ; une meche ne
@@ -104,23 +106,23 @@ def combinations(rows: list[dict]) -> list[tuple[str, str]]:
     return sorted(combos)
 
 
-def last_cross_since(times: list, closes: list[float], sar: list[float],
-                     since: pd.Timestamp | None) -> tuple[str | None, int | None]:
-    """(sens, index) du dernier cross prix/SAR H1 parmi les bougies (cloturees) dont la
-    cloture tombe apres `since` ; sans `since`, la derniere bougie seulement.
-    (None, None) s'il n'y en a pas."""
+def first_standing_cross(times: list, closes: list[float], sar: list[float],
+                         since: pd.Timestamp | None, direction: str) -> int | None:
+    """Index du premier cross prix/SAR H1 dans le sens `direction` parmi les bougies
+    (cloturees) dont la cloture tombe apres `since` (sans `since` : la derniere bougie
+    seulement) et dont le niveau n'a pas ete recasse depuis. Rejoue ce qu'aurait fait
+    un run a chaque bougie : un cross inverse ne fait pas sortir, seul le niveau
+    compte. None s'il n'y en a pas."""
     bull, bear = find_crosses(closes, sar)
+    crosses = bull if direction == "BULL" else bear
     if since is None:
         first = len(times) - 1
     else:
         first = next((i for i, t in enumerate(times) if t + H1 > since), len(times))
-    event, index = None, None
     for i in range(max(first, 1), len(times)):
-        if bull[i]:
-            event, index = "BULL", i
-        elif bear[i]:
-            event, index = "BEAR", i
-    return event, index
+        if crosses[i] and not level_broken(times, closes, times[i], float(sar[i]), direction):
+            return i
+    return None
 
 
 def level_broken(times: list, closes: list[float], cross_open: pd.Timestamp, level: float, direction: str) -> bool:
@@ -153,13 +155,10 @@ def update_eligible(previous: dict[str, dict], combos: list[tuple[str, str]], h1
         if state.get(pair, {}).get("direction") == direction or pair not in h1:
             continue
         times, closes, sar = h1[pair]
-        event, index = last_cross_since(times, closes, sar, since)
-        if event != direction:
+        index = first_standing_cross(times, closes, sar, since, direction)
+        if index is None:
             continue
-        entry = dict(direction=direction, level=float(sar[index]), cross_open=times[index].isoformat())
-        if level_broken(times, closes, times[index], entry["level"], direction):
-            continue
-        state[pair] = entry
+        state[pair] = dict(direction=direction, level=float(sar[index]), cross_open=times[index].isoformat())
         fresh.add(pair)
     active = set(combos)
     entries = [dict(pair=pair, direction=e["direction"], cross_open=pd.Timestamp(e["cross_open"]),
