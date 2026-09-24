@@ -3127,39 +3127,42 @@
       "confirmed_segments": [],
       "date": "2026-09-24",
       "finalized": false,
-      "segments": []
+      "segments": [
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-09-24",
+          "direction": 1,
+          "end_price": 112.172,
+          "end_time_paris": "2026-09-24T08:00:00+02:00",
+          "end_time_utc": "2026-09-24T06:00:00+00:00",
+          "pair": "CADJPY",
+          "pips": 20.90000000000032,
+          "start_price": 111.963,
+          "start_time_paris": "2026-09-24T07:00:00+02:00",
+          "start_time_utc": "2026-09-24T05:00:00+00:00"
+        }
+      ]
     }
   },
   "open_confirmed_segments": {},
   "open_segments": {
     "AUDCAD": {
-      "current_pips": 0.0,
+      "current_pips": -4.300000000000415,
       "date": "2026-09-24",
       "direction": 1,
-      "last_price": 0.99211,
-      "last_time_utc": "2026-09-24T05:00:00+00:00",
+      "last_price": 0.99168,
+      "last_time_utc": "2026-09-24T06:00:00+00:00",
       "pair": "AUDCAD",
       "start_price": 0.99211,
       "start_time_paris": "2026-09-24T07:00:00+02:00",
       "start_time_utc": "2026-09-24T05:00:00+00:00"
     },
-    "CADJPY": {
-      "current_pips": 0.0,
-      "date": "2026-09-24",
-      "direction": 1,
-      "last_price": 111.963,
-      "last_time_utc": "2026-09-24T05:00:00+00:00",
-      "pair": "CADJPY",
-      "start_price": 111.963,
-      "start_time_paris": "2026-09-24T07:00:00+02:00",
-      "start_time_utc": "2026-09-24T05:00:00+00:00"
-    },
     "EURAUD": {
-      "current_pips": -0.0,
+      "current_pips": -0.40000000000040004,
       "date": "2026-09-24",
       "direction": -1,
-      "last_price": 1.61818,
-      "last_time_utc": "2026-09-24T05:00:00+00:00",
+      "last_price": 1.61822,
+      "last_time_utc": "2026-09-24T06:00:00+00:00",
       "pair": "EURAUD",
       "start_price": 1.61818,
       "start_time_paris": "2026-09-24T07:00:00+02:00",
@@ -3220,6 +3223,6 @@
       "2026-W38"
     ]
   },
-  "updated_at_paris": "2026-09-24T07:15:46.388127+02:00",
+  "updated_at_paris": "2026-09-24T08:16:00.368268+02:00",
   "version": 3
 }
