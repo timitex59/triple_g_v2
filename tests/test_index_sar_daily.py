@@ -13,7 +13,7 @@ from index_sar_daily import (  # noqa: E402
     build_telegram_message,
     combinations,
     day_start,
-    favorable_crosses,
+    last_night_cross,
     first_run_of_day,
     first_standing_cross,
     score,
@@ -43,20 +43,33 @@ class FirstRunRecapTests(unittest.TestCase):
         run = pd.Timestamp("2026-09-24 00:30", tz=base.PARIS)
         self.assertEqual(day_start(run), pd.Timestamp("2026-09-23 01:00", tz=base.PARIS))
 
-    def test_favorable_crosses_closed_since_1am_only(self):
-        times = list(pd.date_range("2026-09-23 21:00", periods=6, freq="h", tz="UTC"))  # ouvertures 23:00..04:00 Paris
-        closes = [9, 11, 9, 11, 11, 9]          # crossovers en 1 et 3, crossunder en 2 et 5
-        start = pd.Timestamp("2026-09-24 01:00", tz=base.PARIS)
-        hours = favorable_crosses(times, closes, [10.0] * 6, "BULL", start)
-        # bougie 1 (00:00 Paris) cloturee a 01:00 : incluse ; bougie 3 cloturee a 03:00
-        self.assertEqual([f"{t.tz_convert(base.PARIS):%H:%M}" for t in hours], ["01:00", "03:00"])
+    # ouvertures 23:00 .. 08:00 Paris (clotures 00:00 .. 09:00)
+    TIMES = list(pd.date_range("2026-09-23 21:00", periods=10, freq="h", tz="UTC"))
+    START = pd.Timestamp("2026-09-24 01:00", tz=base.PARIS)
+
+    def hhmm(self, t):
+        return None if t is None else f"{t.tz_convert(base.PARIS):%H:%M}"
+
+    def test_only_the_last_favorable_cross_between_1am_and_7am(self):
+        # crossovers sur les bougies 1 (cloture 01:00), 3 (03:00), 7 (07:00) et 9 (09:00, apres 7h)
+        closes = [9, 11, 9, 11, 11, 11, 9, 11, 9, 11]
+        self.assertEqual(self.hhmm(last_night_cross(self.TIMES, closes, [10.0] * 10, "BULL", self.START)), "07:00")
+        # sans le cross de 07:00 : celui de 03:00
+        closes = [9, 11, 9, 11, 11, 11, 11, 11, 9, 11]
+        self.assertEqual(self.hhmm(last_night_cross(self.TIMES, closes, [10.0] * 10, "BULL", self.START)), "03:00")
+
+    def test_no_favorable_cross_in_the_night_window(self):
+        closes = [11, 11, 11, 11, 11, 11, 11, 11, 9, 11]   # seul cross favorable a 09:00
+        self.assertIsNone(last_night_cross(self.TIMES, closes, [10.0] * 10, "BULL", self.START))
 
     def test_recap_section_in_the_message(self):
         rows = [dict(index="USD", verdict="BULL", dist=1.0, chg=0.1, score=0.1)]
-        recap = [("USDCHF", "BULL", [pd.Timestamp("2026-09-24 00:00", tz="UTC"), pd.Timestamp("2026-09-24 08:00", tz="UTC")])]
+        recap = [("AUDUSD", "BEAR", pd.Timestamp("2026-09-24 03:00", tz="UTC")),
+                 ("USDCHF", "BULL", pd.Timestamp("2026-09-24 00:00", tz="UTC"))]
         message = build_telegram_message(rows, [], now=NOW, recap=recap)
         self.assertEqual(message, "\U0001f9ed INDEX SAR D\n\n\U0001f7e2USD (+0.10)\n\n"
-                                  "CROSS DEPUIS 01:00\n\U0001f7e2USDCHF 02:00 10:00\n\n⏰ 2026-09-24 18:20 Paris")
+                                  "CROSS DEPUIS 01:00\n\U0001f534AUDUSD 05:00\n\U0001f7e2USDCHF 02:00\n\n"
+                                  "⏰ 2026-09-24 18:20 Paris")
 
 
 class TelegramMessageTests(unittest.TestCase):

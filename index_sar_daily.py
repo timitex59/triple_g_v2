@@ -30,8 +30,8 @@ rouge) donne une paire des 29 ; les devises a boule grise sont exclues.
   en plus si ce n'est pas aujourd'hui) pour les paires deja eligibles avant ce
   run ; pas d'heure pour celles qui entrent a ce run.
 CROSS DEPUIS 01:00 : au premier run a partir de 07:00 Paris (run precedent avant
-07:00, ou pas d'etat), heures de cloture Paris de tous les crosses H1 dans le sens de
-chaque combinaison forte x faible, depuis 01:00 : les messages commencent a 7h.
+07:00, ou pas d'etat), pour chaque combinaison forte x faible, heure de cloture Paris
+du DERNIER cross H1 dans le bon sens entre 01:00 et 07:00 : les messages commencent a 7h.
 Etat (`--state-file`) mis a jour uniquement avec `--telegram`.
 
 Exemples :
@@ -193,18 +193,21 @@ def first_run_of_day(since: pd.Timestamp | None, now: pd.Timestamp) -> bool:
     return paris >= recap_from and (since is None or since < recap_from)
 
 
-def favorable_crosses(times: list, closes: list[float], sar: list[float], direction: str,
-                      start: pd.Timestamp) -> list[pd.Timestamp]:
-    """Heures de cloture des bougies H1 d'un cross dans le sens `direction`, cloturees a
-    partir de `start`."""
+def last_night_cross(times: list, closes: list[float], sar: list[float], direction: str,
+                     start: pd.Timestamp) -> pd.Timestamp | None:
+    """Heure de cloture du DERNIER cross H1 dans le sens `direction` dont la bougie a
+    cloture entre `start` (01:00 Paris) et 07:00 Paris le meme jour, bornes incluses.
+    None s'il n'y en a pas."""
+    end = start.normalize() + pd.Timedelta(hours=RECAP_HOUR)
     bull, bear = find_crosses(closes, sar)
     crosses = bull if direction == "BULL" else bear
-    return [t + H1 for i, t in enumerate(times) if crosses[i] and t + H1 >= start]
+    hits = [t + H1 for i, t in enumerate(times) if crosses[i] and start <= t + H1 <= end]
+    return hits[-1] if hits else None
 
 
 def build_telegram_message(rows: list[dict], eligible: list[dict] | None = None,
                            now: datetime | None = None,
-                           recap: list[tuple[str, str, list[pd.Timestamp]]] | None = None) -> str:
+                           recap: list[tuple[str, str, pd.Timestamp]] | None = None) -> str:
     now = now or datetime.now(base.PARIS)
     lines = [f"{ball(r)}{r['index']} ({format_score(r['score'])})" for r in rows]
     if eligible:
@@ -214,9 +217,8 @@ def build_telegram_message(rows: list[dict], eligible: list[dict] | None = None,
             lines.append(f"{ICON[e['direction']]}{e['pair']}{when}{' ' + WARNING_ICON if e['warning'] else ''}")
     if recap:
         lines += ["", f"CROSS DEPUIS {DAY_START_HOUR:02d}:00"]
-        for pair, direction, closes_at in recap:
-            hours = " ".join(f"{t.tz_convert(base.PARIS):%H:%M}" for t in closes_at)
-            lines.append(f"{ICON[direction]}{pair} {hours}")
+        for pair, direction, closed_at in recap:
+            lines.append(f"{ICON[direction]}{pair} {closed_at.tz_convert(base.PARIS):%H:%M}")
     footer = f"⏰ {now.strftime('%Y-%m-%d %H:%M')} Paris"
     return "\n".join(["\U0001f9ed INDEX SAR D", ""] + lines + ["", footer])
 
@@ -287,11 +289,11 @@ def main() -> int:
     recap = None
     if first_run_of_day(since, run_time):
         start = day_start(run_time)
-        recap = [(pair, direction, hours) for pair, direction in combos if pair in h1
-                 for hours in [favorable_crosses(*h1[pair], direction, start)] if hours]
-        print(f"Premier run du jour : crosses favorables depuis {start:%d/%m %H:%M} Paris : "
-              + (", ".join(f"{p} {' '.join(f'{t.tz_convert(base.PARIS):%H:%M}' for t in h)}" for p, _, h in recap)
-                 or "aucun"))
+        recap = [(pair, direction, closed_at) for pair, direction in combos if pair in h1
+                 for closed_at in [last_night_cross(*h1[pair], direction, start)] if closed_at is not None]
+        print(f"Premier run du jour : dernier cross favorable entre {start:%d/%m %H:%M} et "
+              f"{RECAP_HOUR:02d}:00 Paris : "
+              + (", ".join(f"{p} {t.tz_convert(base.PARIS):%H:%M}" for p, _, t in recap) or "aucun"))
 
     if rows:
         message = build_telegram_message(rows, eligible, recap=recap)
