@@ -1,6 +1,6 @@
 {
-  "updated": "2026-09-23",
-  "prev_update": "2026-09-22",
+  "updated": "2026-09-24",
+  "prev_update": "2026-09-23",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -32,7 +32,8 @@
       "last_rank": 5,
       "peak_rank": 1,
       "last_rel": 0.89,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-09-24"
     },
     "ALGM": {
       "streak": 5,
@@ -58,14 +59,13 @@
     },
     "AVT": {
       "streak": 1,
-      "days": 13,
+      "days": 14,
       "first_seen": "2026-06-23",
-      "last_seen": "2026-09-11",
-      "last_rank": 1,
+      "last_seen": "2026-09-24",
+      "last_rank": 5,
       "peak_rank": 1,
-      "last_rel": 8.54,
-      "active": false,
-      "dropped_on": "2026-09-14"
+      "last_rel": 14.61,
+      "active": true
     },
     "SMTC": {
       "streak": 1,
@@ -145,23 +145,23 @@
       "dropped_on": "2026-07-31"
     },
     "OKTA": {
-      "streak": 8,
-      "days": 35,
+      "streak": 9,
+      "days": 36,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-09-23",
+      "last_seen": "2026-09-24",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 71.06,
+      "last_rel": 77.52,
       "active": true
     },
     "QLYS": {
-      "streak": 8,
-      "days": 42,
+      "streak": 9,
+      "days": 43,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-09-23",
-      "last_rank": 2,
+      "last_seen": "2026-09-24",
+      "last_rank": 3,
       "peak_rank": 1,
-      "last_rel": 63.67,
+      "last_rel": 61.9,
       "active": true
     },
     "CXT": {
@@ -176,13 +176,13 @@
       "dropped_on": "2026-09-08"
     },
     "TWLO": {
-      "streak": 3,
-      "days": 6,
+      "streak": 4,
+      "days": 7,
       "first_seen": "2026-07-07",
-      "last_seen": "2026-09-23",
-      "last_rank": 3,
+      "last_seen": "2026-09-24",
+      "last_rank": 4,
       "peak_rank": 3,
-      "last_rel": 58.18,
+      "last_rel": 59.96,
       "active": true
     },
     "SYNA": {
@@ -263,13 +263,13 @@
       "dropped_on": "2026-08-10"
     },
     "P": {
-      "streak": 3,
-      "days": 14,
+      "streak": 4,
+      "days": 15,
       "first_seen": "2026-08-10",
-      "last_seen": "2026-09-23",
-      "last_rank": 4,
+      "last_seen": "2026-09-24",
+      "last_rank": 2,
       "peak_rank": 2,
-      "last_rel": 48.26,
+      "last_rel": 74.94,
       "active": true
     },
     "PATH": {
@@ -332,75 +332,82 @@
     "persistent": [
       [
         "OKTA",
-        8
+        9
       ],
       [
         "QLYS",
-        8
-      ],
-      [
-        "TWLO",
-        3
+        9
       ],
       [
         "P",
-        3
+        4
       ],
       [
-        "SNX",
+        "TWLO",
+        4
+      ],
+      [
+        "AVT",
         1
       ]
     ],
     "new": [
-      "SNX"
+      "AVT"
     ],
     "weakening": [
       {
-        "ticker": "P",
+        "ticker": "QLYS",
+        "rank": 3,
+        "prev_rank": 2,
+        "rel": 61.9,
+        "prev_rel": 63.67
+      },
+      {
+        "ticker": "TWLO",
         "rank": 4,
-        "prev_rank": 4,
-        "rel": 48.26,
-        "prev_rel": 50.87
+        "prev_rank": 3,
+        "rel": 59.96,
+        "prev_rel": 58.18
       }
     ],
     "dropped": [
-      "MANH"
+      "SNX"
     ],
     "durable": [
       [
         "OKTA",
-        8,
-        71.06,
-        568.5
+        9,
+        77.52,
+        697.7
       ],
       [
         "QLYS",
-        8,
-        63.67,
-        509.4
-      ],
-      [
-        "TWLO",
-        3,
-        58.18,
-        174.5
+        9,
+        61.9,
+        557.1
       ],
       [
         "P",
-        3,
-        48.26,
-        144.8
+        4,
+        74.94,
+        299.8
       ],
       [
-        "SNX",
+        "TWLO",
+        4,
+        59.96,
+        239.8
+      ],
+      [
+        "AVT",
         1,
-        0.89,
-        0.9
+        14.61,
+        14.6
       ]
     ],
     "switch": null
   },
   "leader_raw": "Logiciels",
-  "leader_raw_days": 39,
+  "leader_raw_days": 40,
   "leader_confirmed": "Logiciels"
 }
