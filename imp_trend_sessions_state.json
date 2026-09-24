@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-24T06:19:01.715797+00:00",
+  "updated_at": "2026-09-24T07:18:48.147832+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -6.79999999999518,
@@ -2241,31 +2241,15 @@
       "comparison_pips": -36.79999999999855
     },
     "Tokyo": {
-      "realized_pips": -274.7000000000049,
-      "current_session_realized_pips": 0.0,
-      "last_session_pips": 0.0,
-      "unrealized_pips": -30.999999999996586,
-      "total_pips": -305.70000000000147,
-      "daily_pips": -30.999999999996586,
-      "is_active": true,
-      "active_session_id": "2026-09-24",
-      "positions": {
-        "AUDNZD": {
-          "direction": "BULL",
-          "entry_price": 1.24012,
-          "entry_time_utc": "2026-09-23T22:43:17.392922+00:00"
-        },
-        "GBPAUD": {
-          "direction": "BEAR",
-          "entry_price": 1.88082,
-          "entry_time_utc": "2026-09-23T22:43:17.392922+00:00"
-        },
-        "EURAUD": {
-          "direction": "BEAR",
-          "entry_price": 1.61698,
-          "entry_time_utc": "2026-09-23T22:43:17.392922+00:00"
-        }
-      },
+      "realized_pips": -307.20000000000243,
+      "current_session_realized_pips": -32.49999999999753,
+      "last_session_pips": -32.49999999999753,
+      "unrealized_pips": 0.0,
+      "total_pips": -307.20000000000243,
+      "daily_pips": -32.49999999999753,
+      "is_active": false,
+      "active_session_id": null,
+      "positions": {},
       "events": [
         {
           "time_utc": "2026-08-24T22:44:11.394317+00:00",
@@ -4344,6 +4328,36 @@
           "pair": "EURAUD",
           "direction": "BEAR",
           "entry_price": 1.61698
+        },
+        {
+          "time_utc": "2026-09-24T07:18:48.147832+00:00",
+          "event": "EXIT",
+          "pair": "AUDNZD",
+          "direction": "BULL",
+          "entry_price": 1.24012,
+          "exit_price": 1.23912,
+          "pips": -9.999999999998899,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-24T07:18:48.147832+00:00",
+          "event": "EXIT",
+          "pair": "GBPAUD",
+          "direction": "BEAR",
+          "entry_price": 1.88082,
+          "exit_price": 1.88181,
+          "pips": -9.900000000000464,
+          "reason": "SESSION_END"
+        },
+        {
+          "time_utc": "2026-09-24T07:18:48.147832+00:00",
+          "event": "EXIT",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.61698,
+          "exit_price": 1.61824,
+          "pips": -12.599999999998168,
+          "reason": "SESSION_END"
         }
       ],
       "daily_pips_history": [
@@ -4366,18 +4380,22 @@
         {
           "time_utc": "2026-09-24T06:19:01.715797+00:00",
           "daily_pips": -30.999999999996586
+        },
+        {
+          "time_utc": "2026-09-24T07:18:48.147832+00:00",
+          "daily_pips": -32.49999999999753
         }
       ],
       "comparison_baseline": 12.200000000002504,
-      "comparison_pips": -317.90000000000396
+      "comparison_pips": -319.4000000000049
     },
     "Londres": {
       "realized_pips": -144.09999999998678,
       "current_session_realized_pips": 0.0,
       "last_session_pips": -2.2999999999995246,
-      "unrealized_pips": 0.0,
-      "total_pips": -144.09999999998678,
-      "daily_pips": 0.0,
+      "unrealized_pips": -1.500000000000945,
+      "total_pips": -145.59999999998772,
+      "daily_pips": -1.500000000000945,
       "is_active": true,
       "active_session_id": "2026-09-24",
       "positions": {
@@ -6753,10 +6771,14 @@
         {
           "time_utc": "2026-09-24T06:19:01.715797+00:00",
           "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-09-24T07:18:48.147832+00:00",
+          "daily_pips": -1.500000000000945
         }
       ],
       "comparison_baseline": 14.300000000000686,
-      "comparison_pips": -158.39999999998747
+      "comparison_pips": -159.8999999999884
     },
     "New York": {
       "realized_pips": -67.69999999999217,
