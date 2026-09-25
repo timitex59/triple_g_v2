@@ -1,175 +1,162 @@
 NASDAQ SECTOR PIPELINE
-Generated: 2026-09-24 20:17 CEST
+Generated: 2026-09-25 18:17 CEST
 Universe: Nasdaq-100 | News window: 14 days
 
 DOMINANT THEMES
-| Theme                        |   Score |   N | 21D     | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
-|------------------------------|---------|-----|---------|---------|----------------|----------|------------|
-| Cybersecurity                |   78.61 |   5 | +18.03% | +36.98% | +33.57%        | 80%      | 12/9       |
-| AI platforms / Mega-cap tech |   69.74 |   6 | +4.85%  | +31.76% | +28.36%        | 67%      | 12/10      |
-| Cloud / Data software        |   57.06 |  14 | -6.83%  | +17.13% | +13.72%        | 50%      | 12/11      |
+| Theme                              |   Score |   N | 21D     | 63D     | Rel63 vs QQQ   | >SMA50   | News src   |
+|------------------------------------|---------|-----|---------|---------|----------------|----------|------------|
+| AI platforms / Mega-cap tech       |   76.71 |   6 | +5.94%  | +28.16% | +22.52%        | 100%     | 12/9       |
+| Cybersecurity                      |   74.66 |   5 | +11.15% | +23.98% | +18.34%        | 80%      | 12/9       |
+| Semiconductors / AI infrastructure |   58.23 |  19 | +6.71%  | -3.04%  | -8.68%         | 79%      | 12/10      |
 
 TOP STOCKS BY DOMINANT THEME
-
-Cybersecurity
-| Ticker   | Name                      | Theme         |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
-|----------|---------------------------|---------------|---------|---------|---------|---------|-------|----------|
-| PANW     | Palo Alto Networks Inc.   | Cybersecurity |     100 | +11.35% | +36.98% | +33.57% |  78.1 | Y        |
-| CRWD     | CrowdStrike Holdings Inc. | Cybersecurity |     100 | +36.93% | +55.18% | +51.78% |  79.6 | Y        |
-| ZS       | Zscaler Inc.              | Cybersecurity |     100 | +21.87% | +68.59% | +65.18% |  75   | Y        |
 
 AI platforms / Mega-cap tech
 | Ticker   | Name                       | Theme                        |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
 |----------|----------------------------|------------------------------|---------|---------|---------|---------|-------|----------|
-| META     | Meta Platforms Inc.        | AI platforms / Mega-cap tech |  100    | +35.94% | +42.74% | +39.34% |  85.4 | Y        |
-| PLTR     | Palantir Technologies Inc. | AI platforms / Mega-cap tech |  100    | +11.38% | +79.35% | +75.95% |  61   | Y        |
-| MSFT     | Microsoft Corporation      | AI platforms / Mega-cap tech |   86.57 | +0.88%  | +40.86% | +37.45% |  40.9 | Y        |
+| MSFT     | Microsoft Corporation      | AI platforms / Mega-cap tech |     100 | +3.92%  | +38.56% | +32.92% |  59.7 | Y        |
+| META     | Meta Platforms Inc.        | AI platforms / Mega-cap tech |     100 | +30.39% | +36.52% | +30.88% |  76.2 | Y        |
+| PLTR     | Palantir Technologies Inc. | AI platforms / Mega-cap tech |     100 | +7.96%  | +69.68% | +64.04% |  73   | Y        |
 
-Cloud / Data software
-| Ticker   | Name                       | Theme                 |   Score | 21D     | 63D      | Rel63    |   RSI | >SMA50   |
-|----------|----------------------------|-----------------------|---------|---------|----------|----------|-------|----------|
-| TEAM     | Atlassian Corporation      | Cloud / Data software |  100    | +12.96% | +137.32% | +133.92% |  56.5 | Y        |
-| MSTR     | MicroStrategy Incorporated | Cloud / Data software |  100    | +27.92% | +90.13%  | +86.72%  |  60.4 | Y        |
-| WDAY     | Workday Inc.               | Cloud / Data software |   97.48 | -4.27%  | +61.45%  | +58.05%  |  42.1 | Y        |
+Cybersecurity
+| Ticker   | Name                      | Theme         |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|---------------------------|---------------|---------|---------|---------|---------|-------|----------|
+| CRWD     | CrowdStrike Holdings Inc. | Cybersecurity |  100    | +35.01% | +45.72% | +40.08% |  73.6 | Y        |
+| ZS       | Zscaler Inc.              | Cybersecurity |  100    | +14.69% | +47.69% | +42.05% |  64.2 | Y        |
+| PANW     | Palo Alto Networks Inc.   | Cybersecurity |   93.89 | +11.15% | +23.98% | +18.34% |  68.3 | Y        |
+
+Semiconductors / AI infrastructure
+| Ticker   | Name                        | Theme                          |   Score | 21D     | 63D     | Rel63   |   RSI | >SMA50   |
+|----------|-----------------------------|--------------------------------|---------|---------|---------|---------|-------|----------|
+| AMD      | Advanced Micro Devices Inc. | Semiconductors / AI infrastruc |  100    | +31.29% | +21.06% | +15.42% |  80.5 | Y        |
+| INTC     | Intel Corporation           | Semiconductors / AI infrastruc |  100    | +41.00% | -3.04%  | -8.68%  |  73.5 | Y        |
+| QCOM     | QUALCOMM Incorporated       | Semiconductors / AI infrastruc |   88.05 | +26.06% | +8.97%  | +3.33%  |  74   | Y        |
 
 BEST ETF PROXIES
 | ETF   | Name                             | Theme                              |   Score | 21D     | 63D     | 126D    | Rel63   |
 |-------|----------------------------------|------------------------------------|---------|---------|---------|---------|---------|
-| BUG   | Global X Cybersecurity ETF       | Cybersecurity                      |  100    | +17.16% | +36.96% | +86.32% | +33.56% |
-| HACK  | Amplify Cybersecurity ETF        | Cybersecurity                      |   93.81 | +12.05% | +27.86% | +62.44% | +24.46% |
-| CIBR  | First Trust Nasdaq Cybersecurity | Cybersecurity                      |   82.65 | +10.98% | +23.58% | +64.46% | +20.18% |
-| WCLD  | WisdomTree Cloud Computing Fund  | Cloud / Data software              |   81.16 | +1.95%  | +39.71% | +52.03% | +36.31% |
-| IHAK  | iShares Cybersecurity and Tech E | Cybersecurity                      |   75.87 | +9.40%  | +24.95% | +55.78% | +21.54% |
-| CLOU  | Global X Cloud Computing ETF     | Cloud / Data software              |   73.27 | +4.44%  | +34.25% | +49.90% | +30.84% |
-| SKYY  | First Trust Cloud Computing ETF  | Cloud / Data software              |   70.09 | +4.99%  | +29.30% | +50.86% | +25.90% |
-| THNQ  | ROBO Global Artificial Intellige | AI platforms / Mega-cap tech       |   63.75 | +9.46%  | +13.50% | +61.48% | +10.09% |
-| IGV   | iShares Expanded Tech-Software E | Cloud / Data software              |   62.51 | +5.44%  | +26.70% | +33.59% | +23.30% |
-| XSD   | SPDR S&P Semiconductor ETF       | Semiconductors / AI infrastructure |   44.52 | +8.95%  | -11.06% | +56.75% | -14.47% |
+| BUG   | Global X Cybersecurity ETF       | Cybersecurity                      |  100    | +13.56% | +27.82% | +80.23% | +22.17% |
+| HACK  | Amplify Cybersecurity ETF        | Cybersecurity                      |   89.08 | +9.12%  | +21.25% | +57.94% | +15.61% |
+| CIBR  | First Trust Nasdaq Cybersecurity | Cybersecurity                      |   83.91 | +8.71%  | +19.28% | +61.40% | +13.64% |
+| IHAK  | iShares Cybersecurity and Tech E | Cybersecurity                      |   81.14 | +7.41%  | +16.63% | +50.85% | +10.98% |
+| THNQ  | ROBO Global Artificial Intellige | AI platforms / Mega-cap tech       |   76.63 | +8.72%  | +14.83% | +65.63% | +9.19%  |
+| SOXX  | iShares Semiconductor ETF        | Semiconductors / AI infrastructure |   53.12 | +11.64% | -2.47%  | +75.05% | -8.11%  |
+| SMH   | VanEck Semiconductor ETF         | Semiconductors / AI infrastructure |   48    | +9.58%  | -0.43%  | +59.91% | -6.07%  |
+| QQQM  | Invesco Nasdaq 100 ETF           | Nasdaq-100 benchmark               |   44.75 | +4.91%  | +5.61%  | +30.24% | -0.03%  |
+| QQQ   | Invesco QQQ Trust                | Nasdaq-100 benchmark               |   42.68 | +4.92%  | +5.64%  | +30.22% | +0.00%  |
+| SOXQ  | Invesco PHLX Semiconductor ETF   | Semiconductors / AI infrastructure |   39.36 | +9.45%  | -3.52%  | +67.66% | -9.16%  |
 
 ETF UCITS EUROPE / FRANCE
-| Theme                        | Ticker   | ISIN         | Listing            | Ccy              | UCITS ETF                                  |
-|------------------------------|----------|--------------|--------------------|------------------|--------------------------------------------|
-| Cybersecurity                | WCBR     | IE00BLPK3577 | Euronext Paris     | EUR              | WisdomTree Cybersecurity UCITS ETF         |
-| Cybersecurity                | ISPY     | IE00BYPLS672 | Euronext Amsterdam | EUR              | L&G Cyber Security UCITS ETF               |
-| AI platforms / Mega-cap tech | WTAI     | IE00BDVPNG13 | Euronext Paris     | EUR              | WisdomTree Artificial Intelligence UCITS E |
-| AI platforms / Mega-cap tech | BOTZ     | IE00BLCHJB90 | Europe UCITS       | EUR/USD listings | Global X Robotics & Artificial Intelligenc |
+| Theme                          | Ticker   | ISIN         | Listing            | Ccy              | UCITS ETF                                  |
+|--------------------------------|----------|--------------|--------------------|------------------|--------------------------------------------|
+| AI platforms / Mega-cap tech   | WTAI     | IE00BDVPNG13 | Euronext Paris     | EUR              | WisdomTree Artificial Intelligence UCITS E |
+| AI platforms / Mega-cap tech   | BOTZ     | IE00BLCHJB90 | Europe UCITS       | EUR/USD listings | Global X Robotics & Artificial Intelligenc |
+| Cybersecurity                  | WCBR     | IE00BLPK3577 | Euronext Paris     | EUR              | WisdomTree Cybersecurity UCITS ETF         |
+| Cybersecurity                  | ISPY     | IE00BYPLS672 | Euronext Amsterdam | EUR              | L&G Cyber Security UCITS ETF               |
+| Semiconductors / AI infrastruc | SMH      | IE00BMC38736 | Euronext Paris     | EUR              | VanEck Semiconductor UCITS ETF             |
+| Semiconductors / AI infrastruc | SEME     | IE000I8KRLL9 | Euronext Paris     | EUR              | iShares MSCI Global Semiconductors UCITS E |
 
 ETF UCITS SCORED
 | Ticker   | Theme                          |   Score | 63D     | Rel63 vs EQQQ   | Listing / ISIN                    |
 |----------|--------------------------------|---------|---------|-----------------|-----------------------------------|
-| WCBR     | Cybersecurity                  |  100    | +41.25% | +37.63%         | Euronext Paris | IE00BLPK3577     |
-| ISPY     | Cybersecurity                  |   77.29 | +19.96% | +16.34%         | Euronext Amsterdam | IE00BYPLS672 |
-| WTAI     | AI platforms / Mega-cap tech   |   45.93 | +1.80%  | -1.82%          | Euronext Paris | IE00BDVPNG13     |
-| SEME     | Semiconductors / AI infrastruc |   39.62 | -7.41%  | -11.03%         | Euronext Paris | IE000I8KRLL9     |
-| SMH      | Semiconductors / AI infrastruc |   39.28 | -4.40%  | -8.03%          | Euronext Paris | IE00BMC38736     |
-| BOTZ     | AI platforms / Mega-cap tech   |    0    | -1.65%  | -5.27%          | Europe UCITS | IE00BLCHJB90       |
+| WCBR     | Cybersecurity                  |  100    | +29.21% | +25.22%         | Euronext Paris | IE00BLPK3577     |
+| ISPY     | Cybersecurity                  |   65.64 | +11.26% | +7.27%          | Euronext Amsterdam | IE00BYPLS672 |
+| SMH      | Semiconductors / AI infrastruc |   48.68 | -3.10%  | -7.09%          | Euronext Paris | IE00BMC38736     |
+| SEME     | Semiconductors / AI infrastruc |   45.38 | -5.57%  | -9.56%          | Euronext Paris | IE000I8KRLL9     |
+| WTAI     | AI platforms / Mega-cap tech   |   41.16 | +1.82%  | -2.18%          | Euronext Paris | IE00BDVPNG13     |
+| BOTZ     | AI platforms / Mega-cap tech   |   10.2  | -0.23%  | -4.22%          | Europe UCITS | IE00BLCHJB90       |
 
 FINAL SELECTION - RENKO VALIDATED
-| Final     | Type   | Ticker   | Theme                          | Renko          | Bias   | 3M/M/W   | ROC14    | ROC21    | PnL      |
-|-----------|--------|----------|--------------------------------|----------------|--------|----------|----------|----------|----------|
-| VALIDATED | ETF    | THNQ     | AI platforms / Mega-cap tech   | BULL CONFIRMED | BULL   | 1/1/1    | +8.74%   | +32.29%  | +0.00%   |
-| VALIDATED | ETF    | CLOU     | Cloud / Data software          | BULL CONFIRMED | BULL   | 1/1/1    | +33.38%  | +37.81%  | +0.00%   |
-| VALIDATED | ETF    | IGV      | Cloud / Data software          | BULL CONFIRMED | BULL   | 1/1/1    | +20.57%  | +24.00%  | +0.00%   |
-| VALIDATED | ETF    | SKYY     | Cloud / Data software          | BULL CONFIRMED | BULL   | 1/1/1    | +26.55%  | +34.17%  | +0.00%   |
-| VALIDATED | ETF    | BUG      | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +38.06%  | +72.98%  | +0.00%   |
-| VALIDATED | ETF    | CIBR     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +22.34%  | +50.42%  | +0.00%   |
-| VALIDATED | ETF    | HACK     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +27.90%  | +51.99%  | +0.00%   |
-| VALIDATED | ETF    | IHAK     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +25.55%  | +43.18%  | +0.00%   |
-| VALIDATED | STOCK  | META     | AI platforms / Mega-cap tech   | BULL CONFIRMED | BULL   | 1/1/1    | +34.39%  | +27.43%  | +0.00%   |
-| VALIDATED | STOCK  | MSFT     | AI platforms / Mega-cap tech   | BULL CONFIRMED | BULL   | 1/1/1    | +30.83%  | +19.77%  | +15.00%  |
-| VALIDATED | STOCK  | PLTR     | AI platforms / Mega-cap tech   | BULL CONFIRMED | BULL   | 1/1/1    | +49.69%  | +33.48%  | +0.00%   |
-| VALIDATED | STOCK  | TEAM     | Cloud / Data software          | BULL CONFIRMED | BULL   | 1/1/1    | +133.89% | +117.68% | +0.00%   |
-| VALIDATED | STOCK  | CRWD     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +52.75%  | +129.59% | -48.29%  |
-| VALIDATED | STOCK  | PANW     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +35.93%  | +116.02% | +122.60% |
-| VALIDATED | STOCK  | AMD      | Semiconductors / AI infrastruc | BULL CONFIRMED | BULL   | 1/1/1    | +15.38%  | +71.96%  | +122.71% |
+| Final     | Type   | Ticker   | Theme                          | Renko          | Bias   | 3M/M/W   | ROC14   | ROC21    | PnL      |
+|-----------|--------|----------|--------------------------------|----------------|--------|----------|---------|----------|----------|
+| VALIDATED | ETF    | THNQ     | AI platforms / Mega-cap tech   | BULL CONFIRMED | BULL   | 1/1/1    | +10.19% | +34.06%  | +0.00%   |
+| VALIDATED | ETF    | BUG      | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +34.05% | +67.95%  | +0.00%   |
+| VALIDATED | ETF    | CIBR     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +20.36% | +47.98%  | +0.00%   |
+| VALIDATED | ETF    | HACK     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +24.59% | +48.07%  | +0.00%   |
+| VALIDATED | ETF    | IHAK     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +22.44% | +39.63%  | +0.00%   |
+| VALIDATED | STOCK  | META     | AI platforms / Mega-cap tech   | BULL CONFIRMED | BULL   | 1/1/1    | +29.99% | +23.25%  | +0.00%   |
+| VALIDATED | STOCK  | MSFT     | AI platforms / Mega-cap tech   | BULL CONFIRMED | BULL   | 1/1/1    | +35.90% | +24.41%  | +19.46%  |
+| VALIDATED | STOCK  | PLTR     | AI platforms / Mega-cap tech   | BULL CONFIRMED | BULL   | 1/1/1    | +49.23% | +33.07%  | +0.00%   |
+| VALIDATED | STOCK  | CRWD     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +49.22% | +124.28% | -49.48%  |
+| VALIDATED | STOCK  | PANW     | Cybersecurity                  | BULL CONFIRMED | BULL   | 1/1/1    | +31.16% | +108.44% | +114.78% |
+| VALIDATED | STOCK  | AMD      | Semiconductors / AI infrastruc | BULL CONFIRMED | BULL   | 1/1/1    | +17.55% | +75.20%  | +126.90% |
 
 TOP 5 GLOBAL - ETF AND STOCKS COMBINED
-|   # | Ticker   | Type   | Theme                        |   Rank |   Score | 63D      | Rel63    | R14      | R21      | PnL Renko   |
-|-----|----------|--------|------------------------------|--------|---------|----------|----------|----------|----------|-------------|
-|   1 | TEAM     | STOCK  | Cloud / Data software        | 111.16 |     100 | +137.32% | +133.92% | +133.89% | +117.68% | +0.00%      |
-|   2 | PANW     | STOCK  | Cybersecurity                |  72.9  |     100 | +36.98%  | +33.57%  | +35.93%  | +116.02% | +122.60%    |
-|   3 | CRWD     | STOCK  | Cybersecurity                |  69.68 |     100 | +55.18%  | +51.78%  | +52.75%  | +129.59% | -48.29%     |
-|   4 | PLTR     | STOCK  | AI platforms / Mega-cap tech |  67.88 |     100 | +79.35%  | +75.95%  | +49.69%  | +33.48%  | +0.00%      |
-|   5 | BUG      | ETF    | Cybersecurity                |  57.36 |     100 | +36.96%  | +33.56%  | +38.06%  | +72.98%  | +0.00%      |
+|   # | Ticker   | Type   | Theme                          |   Rank |   Score | 63D     | Rel63   | R14     | R21      | PnL Renko   |
+|-----|----------|--------|--------------------------------|--------|---------|---------|---------|---------|----------|-------------|
+|   1 | CRWD     | STOCK  | Cybersecurity                  |  64.64 |  100    | +45.72% | +40.08% | +49.22% | +124.28% | -49.48%     |
+|   2 | PLTR     | STOCK  | AI platforms / Mega-cap tech   |  63.97 |  100    | +69.68% | +64.04% | +49.23% | +33.07%  | +0.00%      |
+|   3 | PANW     | STOCK  | Cybersecurity                  |  63.81 |   93.89 | +23.98% | +18.34% | +31.16% | +108.44% | +114.78%    |
+|   4 | AMD      | STOCK  | Semiconductors / AI infrastruc |  59.06 |  100    | +21.06% | +15.42% | +17.55% | +75.20%  | +126.90%    |
+|   5 | BUG      | ETF    | Cybersecurity                  |  52.5  |  100    | +27.82% | +22.17% | +34.05% | +67.95%  | +0.00%      |
 
 GLOBAL RANKING - RETAINED ASSETS
-|   # | Ticker   | Type   | Theme                          |   Rank |   Score | 63D      | Rel63    | R14      | R21      | PnL Renko   |
-|-----|----------|--------|--------------------------------|--------|---------|----------|----------|----------|----------|-------------|
-|   1 | TEAM     | STOCK  | Cloud / Data software          | 111.16 |  100    | +137.32% | +133.92% | +133.89% | +117.68% | +0.00%      |
-|   2 | PANW     | STOCK  | Cybersecurity                  |  72.9  |  100    | +36.98%  | +33.57%  | +35.93%  | +116.02% | +122.60%    |
-|   3 | CRWD     | STOCK  | Cybersecurity                  |  69.68 |  100    | +55.18%  | +51.78%  | +52.75%  | +129.59% | -48.29%     |
-|   4 | PLTR     | STOCK  | AI platforms / Mega-cap tech   |  67.88 |  100    | +79.35%  | +75.95%  | +49.69%  | +33.48%  | +0.00%      |
-|   5 | BUG      | ETF    | Cybersecurity                  |  57.36 |  100    | +36.96%  | +33.56%  | +38.06%  | +72.98%  | +0.00%      |
-|   6 | AMD      | STOCK  | Semiconductors / AI infrastruc |  56.86 |  100    | +16.38%  | +12.98%  | +15.38%  | +71.96%  | +122.71%    |
-|   7 | META     | STOCK  | AI platforms / Mega-cap tech   |  52.44 |  100    | +42.74%  | +39.34%  | +34.39%  | +27.43%  | +0.00%      |
-|   8 | HACK     | ETF    | Cybersecurity                  |  48.05 |   93.81 | +27.86%  | +24.46%  | +27.90%  | +51.99%  | +0.00%      |
-|   9 | MSFT     | STOCK  | AI platforms / Mega-cap tech   |  47.4  |   86.57 | +40.86%  | +37.45%  | +30.83%  | +19.77%  | +15.00%     |
-|  10 | CLOU     | ETF    | Cloud / Data software          |  42.84 |   73.27 | +34.25%  | +30.84%  | +33.38%  | +37.81%  | +0.00%      |
-|  11 | CIBR     | ETF    | Cybersecurity                  |  42.25 |   82.65 | +23.58%  | +20.18%  | +22.34%  | +50.42%  | +0.00%      |
-|  12 | IHAK     | ETF    | Cybersecurity                  |  40.12 |   75.87 | +24.95%  | +21.54%  | +25.55%  | +43.18%  | +0.00%      |
-|  13 | SKYY     | ETF    | Cloud / Data software          |  38.74 |   70.09 | +29.30%  | +25.90%  | +26.55%  | +34.17%  | +0.00%      |
-|  14 | IGV      | ETF    | Cloud / Data software          |  33.32 |   62.51 | +26.70%  | +23.30%  | +20.57%  | +24.00%  | +0.00%      |
-|  15 | THNQ     | ETF    | AI platforms / Mega-cap tech   |  28.71 |   63.75 | +13.50%  | +10.09%  | +8.74%   | +32.29%  | +0.00%      |
+|   # | Ticker   | Type   | Theme                          |   Rank |   Score | 63D     | Rel63   | R14     | R21      | PnL Renko   |
+|-----|----------|--------|--------------------------------|--------|---------|---------|---------|---------|----------|-------------|
+|   1 | CRWD     | STOCK  | Cybersecurity                  |  64.64 |  100    | +45.72% | +40.08% | +49.22% | +124.28% | -49.48%     |
+|   2 | PLTR     | STOCK  | AI platforms / Mega-cap tech   |  63.97 |  100    | +69.68% | +64.04% | +49.23% | +33.07%  | +0.00%      |
+|   3 | PANW     | STOCK  | Cybersecurity                  |  63.81 |   93.89 | +23.98% | +18.34% | +31.16% | +108.44% | +114.78%    |
+|   4 | AMD      | STOCK  | Semiconductors / AI infrastruc |  59.06 |  100    | +21.06% | +15.42% | +17.55% | +75.20%  | +126.90%    |
+|   5 | BUG      | ETF    | Cybersecurity                  |  52.5  |  100    | +27.82% | +22.17% | +34.05% | +67.95%  | +0.00%      |
+|   6 | MSFT     | STOCK  | AI platforms / Mega-cap tech   |  51.87 |  100    | +38.56% | +32.92% | +35.90% | +24.41%  | +19.46%     |
+|   7 | META     | STOCK  | AI platforms / Mega-cap tech   |  48.63 |  100    | +36.52% | +30.88% | +29.99% | +23.25%  | +0.00%      |
+|   8 | HACK     | ETF    | Cybersecurity                  |  42.88 |   89.08 | +21.25% | +15.61% | +24.59% | +48.07%  | +0.00%      |
+|   9 | CIBR     | ETF    | Cybersecurity                  |  40.05 |   83.91 | +19.28% | +13.64% | +20.36% | +47.98%  | +0.00%      |
+|  10 | IHAK     | ETF    | Cybersecurity                  |  37.44 |   81.14 | +16.63% | +10.98% | +22.44% | +39.63%  | +0.00%      |
+|  11 | THNQ     | ETF    | AI platforms / Mega-cap tech   |  32.99 |   76.63 | +14.83% | +9.19%  | +10.19% | +34.06%  | +0.00%      |
 
 ANALYTIC CLASSIFICATION - RETAINED ASSETS
-| Theme                          | Bucket         | Type   | Ticker   |   Score | 63D      | Rel63    | R14      | R21      | Role                        | Use                                                  |
-|--------------------------------|----------------|--------|----------|---------|----------|----------|----------|----------|-----------------------------|------------------------------------------------------|
-| AI platforms / Mega-cap tech   | TACTICAL ETF   | ETF    | THNQ     |   63.75 | +13.50%  | +10.09%  | +8.74%   | +32.29%  | Secondary sector vehicle    | Useful for exposure, but not the strongest ETF proxy |
-| AI platforms / Mega-cap tech   | TACTICAL STOCK | STOCK  | META     |  100    | +42.74%  | +39.34%  | +34.39%  | +27.43%  | Strong single-name momentum | Actionable, but monitor extension and volatility     |
-| AI platforms / Mega-cap tech   | TACTICAL STOCK | STOCK  | MSFT     |   86.57 | +40.86%  | +37.45%  | +30.83%  | +19.77%  | Strong single-name momentum | Actionable, but monitor extension and volatility     |
-| AI platforms / Mega-cap tech   | TACTICAL STOCK | STOCK  | PLTR     |  100    | +79.35%  | +75.95%  | +49.69%  | +33.48%  | Strong single-name momentum | Actionable, but monitor extension and volatility     |
-| Cloud / Data software          | TACTICAL ETF   | ETF    | CLOU     |   73.27 | +34.25%  | +30.84%  | +33.38%  | +37.81%  | Secondary sector vehicle    | Useful for exposure, but not the strongest ETF proxy |
-| Cloud / Data software          | TACTICAL ETF   | ETF    | IGV      |   62.51 | +26.70%  | +23.30%  | +20.57%  | +24.00%  | Secondary sector vehicle    | Useful for exposure, but not the strongest ETF proxy |
-| Cloud / Data software          | TACTICAL ETF   | ETF    | SKYY     |   70.09 | +29.30%  | +25.90%  | +26.55%  | +34.17%  | Secondary sector vehicle    | Useful for exposure, but not the strongest ETF proxy |
-| Cloud / Data software          | LEADER STOCK   | STOCK  | TEAM     |  100    | +137.32% | +133.92% | +133.89% | +117.68% | Primary momentum leader     | Best single-name expression of the theme             |
-| Cybersecurity                  | CORE ETF       | ETF    | BUG      |  100    | +36.96%  | +33.56%  | +38.06%  | +72.98%  | Diversified sector vehicle  | Use first for broad exposure to the theme            |
-| Cybersecurity                  | TACTICAL ETF   | ETF    | CIBR     |   82.65 | +23.58%  | +20.18%  | +22.34%  | +50.42%  | Secondary sector vehicle    | Useful for exposure, but not the strongest ETF proxy |
-| Cybersecurity                  | CORE ETF       | ETF    | HACK     |   93.81 | +27.86%  | +24.46%  | +27.90%  | +51.99%  | Diversified sector vehicle  | Use first for broad exposure to the theme            |
-| Cybersecurity                  | TACTICAL ETF   | ETF    | IHAK     |   75.87 | +24.95%  | +21.54%  | +25.55%  | +43.18%  | Secondary sector vehicle    | Useful for exposure, but not the strongest ETF proxy |
-| Cybersecurity                  | LEADER STOCK   | STOCK  | CRWD     |  100    | +55.18%  | +51.78%  | +52.75%  | +129.59% | Primary momentum leader     | Best single-name expression of the theme             |
-| Cybersecurity                  | TACTICAL STOCK | STOCK  | PANW     |  100    | +36.98%  | +33.57%  | +35.93%  | +116.02% | Strong single-name momentum | Actionable, but monitor extension and volatility     |
-| Semiconductors / AI infrastruc | TACTICAL STOCK | STOCK  | AMD      |  100    | +16.38%  | +12.98%  | +15.38%  | +71.96%  | Strong single-name momentum | Actionable, but monitor extension and volatility     |
+| Theme                          | Bucket         | Type   | Ticker   |   Score | 63D     | Rel63   | R14     | R21      | Role                        | Use                                                  |
+|--------------------------------|----------------|--------|----------|---------|---------|---------|---------|----------|-----------------------------|------------------------------------------------------|
+| AI platforms / Mega-cap tech   | TACTICAL ETF   | ETF    | THNQ     |   76.63 | +14.83% | +9.19%  | +10.19% | +34.06%  | Secondary sector vehicle    | Useful for exposure, but not the strongest ETF proxy |
+| AI platforms / Mega-cap tech   | TACTICAL STOCK | STOCK  | META     |  100    | +36.52% | +30.88% | +29.99% | +23.25%  | Strong single-name momentum | Actionable, but monitor extension and volatility     |
+| AI platforms / Mega-cap tech   | TACTICAL STOCK | STOCK  | MSFT     |  100    | +38.56% | +32.92% | +35.90% | +24.41%  | Strong single-name momentum | Actionable, but monitor extension and volatility     |
+| AI platforms / Mega-cap tech   | TACTICAL STOCK | STOCK  | PLTR     |  100    | +69.68% | +64.04% | +49.23% | +33.07%  | Strong single-name momentum | Actionable, but monitor extension and volatility     |
+| Cybersecurity                  | CORE ETF       | ETF    | BUG      |  100    | +27.82% | +22.17% | +34.05% | +67.95%  | Diversified sector vehicle  | Use first for broad exposure to the theme            |
+| Cybersecurity                  | TACTICAL ETF   | ETF    | CIBR     |   83.91 | +19.28% | +13.64% | +20.36% | +47.98%  | Secondary sector vehicle    | Useful for exposure, but not the strongest ETF proxy |
+| Cybersecurity                  | CORE ETF       | ETF    | HACK     |   89.08 | +21.25% | +15.61% | +24.59% | +48.07%  | Diversified sector vehicle  | Use first for broad exposure to the theme            |
+| Cybersecurity                  | TACTICAL ETF   | ETF    | IHAK     |   81.14 | +16.63% | +10.98% | +22.44% | +39.63%  | Secondary sector vehicle    | Useful for exposure, but not the strongest ETF proxy |
+| Cybersecurity                  | TACTICAL STOCK | STOCK  | CRWD     |  100    | +45.72% | +40.08% | +49.22% | +124.28% | Strong single-name momentum | Actionable, but monitor extension and volatility     |
+| Cybersecurity                  | TACTICAL STOCK | STOCK  | PANW     |   93.89 | +23.98% | +18.34% | +31.16% | +108.44% | Strong single-name momentum | Actionable, but monitor extension and volatility     |
+| Semiconductors / AI infrastruc | TACTICAL STOCK | STOCK  | AMD      |  100    | +21.06% | +15.42% | +17.55% | +75.20%  | Strong single-name momentum | Actionable, but monitor extension and volatility     |
 
 WATCHLIST - GOOD THEME, WAITING FOR RENKO
-| Final     | Type   | Ticker   | Theme                          | Renko      | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL      |
-|-----------|--------|----------|--------------------------------|------------|--------|----------|---------|---------|----------|
-| WATCHLIST | ETF    | WCLD     | Cloud / Data software          | MIXED      | MIXED  | 1/1/0    | +39.66% | +43.15% | ---      |
-| WATCHLIST | ETF    | XSD      | Semiconductors / AI infrastruc | MIXED      | MIXED  | -1/0/0   | -17.45% | +5.38%  | ---      |
-| WATCHLIST | STOCK  | ARM      | Semiconductors / AI infrastruc | BULL MIXED | BULL   | 0/0/1    | -29.27% | +47.20% | +87.53%  |
-| WATCHLIST | STOCK  | INTC     | Semiconductors / AI infrastruc | BULL MIXED | BULL   | 0/1/1    | -6.59%  | +25.64% | +100.64% |
+| Final     | Type   | Ticker   | Theme                          | Renko         | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
+|-----------|--------|----------|--------------------------------|---------------|--------|----------|---------|---------|---------|
+| WATCHLIST | ETF    | SMH      | Semiconductors / AI infrastruc | MIXED         | MIXED  | 0/1/1    | -7.68%  | +19.49% | ---     |
+| WATCHLIST | ETF    | SOXQ     | Semiconductors / AI infrastruc | MIXED         | MIXED  | 0/1/1    | -11.32% | +19.99% | ---     |
+| WATCHLIST | ETF    | SOXX     | Semiconductors / AI infrastruc | MIXED         | MIXED  | 0/1/0    | -10.06% | +23.48% | ---     |
+| WATCHLIST | STOCK  | INTC     | Semiconductors / AI infrastruc | BULL MIXED    | BULL   | 0/1/1    | -7.13%  | +24.90% | +99.47% |
+| WATCHLIST | STOCK  | QCOM     | Semiconductors / AI infrastruc | BULL WEAK ROC | BULL   | 1/1/1    | -9.19%  | +16.00% | +14.31% |
 
 EARLY SHIFT - ONLY IF DOMINANT THEMES SLOW
 Slowing dominant themes: AI platforms / Mega-cap tech
-| Ticker   | Type   | Theme                 |   Early | 21D    | Rel63   | Renko   | R14     | R21     |
-|----------|--------|-----------------------|---------|--------|---------|---------|---------|---------|
-| WCLD     | ETF    | Cloud / Data software |   31.13 | +1.95% | +36.31% | 1/1/0   | +39.66% | +43.15% |
+No early-shift candidate passed the partial Renko and momentum filters.
 
 REJECTED BY RENKO
-| Final    | Type   | Ticker   | Theme                 | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
-|----------|--------|----------|-----------------------|---------|--------|----------|---------|---------|---------|
-| REJECTED | STOCK  | MSTR     | Cloud / Data software | BEAR    | BEAR   | 1/-1/1   | +44.02% | -8.52%  | -27.05% |
-| REJECTED | STOCK  | WDAY     | Cloud / Data software | BEAR    | BEAR   | 0/1/0    | +63.19% | +50.30% | -69.61% |
-| REJECTED | STOCK  | ZS       | Cybersecurity         | BEAR    | BEAR   | 0/1/1    | +72.09% | +53.67% | -82.00% |
+| Final    | Type   | Ticker   | Theme         | Renko   | Bias   | 3M/M/W   | ROC14   | ROC21   | PnL     |
+|----------|--------|----------|---------------|---------|--------|----------|---------|---------|---------|
+| REJECTED | STOCK  | ZS       | Cybersecurity | BEAR    | BEAR   | 0/1/1    | +56.36% | +39.63% | -65.37% |
 
 NEWS VALIDATION
 
-Cybersecurity: score=100.0 hits=12 sources=9
-- 2026-09-24 | Yahoo Finance | European Cybersecurity Stocks Gaining Attention As Nato Threats Put Critical Networks In Focus - Yahoo Finance
-  https://news.google.com/rss/articles/CBMisgFBVV95cUxOemtKOWMtTXBySVJCckd3bWVWU0N4aTZKTWNhVjJPR0RXeUFTeXVQazJqbVJuYVFWTHlPSklUSkFnLWRIMzlFSjJPand6dmIxYkRjaUpKVTJscVp1UEJKVDVLdkdwN0V5ZjdQV01pNVdvY0dwT093SE1zby1sV1pnSHFid1JPTTZqVnlXVGtqM0dTSWtWZXRmUy1seEJ3R3laMFJDWTB6SGRWLXdUMldOTDRR?oc=5
-- 2026-09-24 | Bloomberg.com | Cybersecurity Stocks Are So Hot Investors Question Staying Power - Bloomberg.com
-  https://news.google.com/rss/articles/CBMitgFBVV95cUxOanAxc1Z2SnRJaWlLOFpKem5zMDdHSXBPM182bm90S2ZSb2tTTl83Z3F3cUpTclo5WnN4QTAwVFlUTzcwWlgyTV9WOFVobnh4RmZwSkpCZ0VmUnNlYlBpZHN6VkxndkhDQ0NBVUJYamRGM0dzbGN3b3dGSTBRTExRTjJfYzNJRmxqNGRUZ2Y5bUpidTNDd204YUIzSmdacTdodzVkS3p6YVZucnM1RTNvSExUNERlZw?oc=5
-
-AI platforms / Mega-cap tech: score=100.0 hits=12 sources=10
-- 2026-09-24 | Yahoo Finance | 3 "Strong Buy" Tech Stocks to Buy Now Down 20% and Hold for AI Upside - Yahoo Finance
-  https://news.google.com/rss/articles/CBMikgFBVV95cUxQeWhScnRwYlpHLVpRbzloZmRoLW9wTHlScHl1dk5fVlRSZmFidENEUUtnTjctVk5FT19ZaFlMZnlPTXhwd2VyX3REeWRzaXpTMXNKd1I5QzBkbDFXMUE4RmJhcE9SWHYyM2M3Z19xSTFxMDlmSFVpeWlwWEc1RnJZYnktcm5yREd0NUFnQkdCbmpFZw?oc=5
+AI platforms / Mega-cap tech: score=100.0 hits=12 sources=9
+- 2026-09-25 | Investor's Business Daily | Hyperscaler Stocks Could Rebound In This 2027 Scenario, Says Goldman Sachs - Investor's Business Daily
+  https://news.google.com/rss/articles/CBMingFBVV95cUxQejJMRjVNRmJaV1YtVlpRRERmaWdjTVVyVXZpUDE3VGl0VFEwWFNJOWptUzFtamVvdHd2RjRCTnR4aWVUYlkyTWtRMW9WZEtWRzVqeERDUjlWY1l6NlFTZkljMV8wamtveGl6cWJEVWFwSk44UGpPLXBMdDJmNHRRcGVGWWxmQW5QSDU4NkJQZmRiOXA0ZE1hOHVuUGZWQQ?oc=5
 - 2026-09-22 | Reuters | Nasdaq reaches record high close, AI stocks rally - Reuters
   https://news.google.com/rss/articles/CBMipwFBVV95cUxOOUI2bTZ5ZFhnZUozYjg5LXM1WHhuT24xUS0zYmRRZkViWVBreE05ZTNMWFBDSGhHTXUyQ3ZyMWhsUFdxSUlxUXVUUXVHWGRVelg3Z2RuVXo3bndwaXJfRXhEUEFERFNSUVZoaDNERnFxdnhuNkxLdVhnNDRpRGhxYndETzVJdVNnZXJESmpMNmw5QVFQODFGY2w2NzVCcFl0bXBSNjRaTQ?oc=5
 
-Cloud / Data software: score=100.0 hits=12 sources=11
-- 2026-09-24 | Yahoo Finance | Productivity Software Stocks Q2 Highlights: DocuSign (NASDAQ:DOCU) - Yahoo Finance
-  https://news.google.com/rss/articles/CBMiqwFBVV95cUxOTi1jaGxTODhmdHpGQnJuZDRyUmJnNFdONDhtRmVWNUdPZm82OEtXQjFfYm5leUJaSmYwYkQtRjZIWUxDdk9FUWNIalNkSXVRNnNHdnhVdTBRR2tBc2szZVF4QnNuUk0wTDIwNXhVYXpwZDA0MnRtdk5xQnBodzNHZ1EzdmN1RkdBWFR3YUw2aFB2UXFZZkRaVjJJTUZpQjdJWnZlV09jSU5VS1k?oc=5
-- 2026-09-24 | StockStory | Q2 Earnings Highlights: JFrog (NASDAQ:FROG) Vs The Rest Of The Software Development Stocks - StockStory
-  https://news.google.com/rss/articles/CBMi3gFBVV95cUxPY25ja3ItT3hsUkNlMVBsT1Q4WTNtZHVfc1NvRXd3ODNiUS1BaWt5MzhXbnc2RXJ2aHVuQWdYbGprVjY5ODRtZmJBQzh3WEhVWng0Z0lCTTBTYnA1dUM5RVJEQ09lNHVPTDFycHdUWGo0S0p2ZjNMYnhjZ25CZVZBdTNyc1Fzc3pJS0RMRU13M0VZZ1NwcHdBSmwtN1MxVWstdS1xcGtzaWUySDFvLTlCTGRTRjF2MjJncVRkbF9qRWhoU1lFbzhnaWdnX2xnWjRfbXlqdnhZVTdxa2FoSFE?oc=5
+Cybersecurity: score=100.0 hits=12 sources=9
+- 2026-09-25 | Barron's | Trump Downplayed AI Safety Concerns, but His Investment Portfolio Bought Cybersecurity Stocks - Barron's
+  https://news.google.com/rss/articles/CBMijwFBVV95cUxQYlhqQU9iM3o2ZWh3a1dGcXpwMnVTWUwwREZQZEZtM2didGVGa0dha3BYa3hMRUx4Sy1NXzY3cHAtLXBJRjdYNjhRbkVpWHdVTXE3b3pQa0hyWWh1S2xnZ3drOWg0Q0V0dVBDa0ZqRDk4ZnBFdUxSMUVZVDNVeDYyTm1CZTZyWWo5bG9EMGdBbw?oc=5
+- 2026-09-25 | Insurance Journal | Cybersecurity Stocks Are So Hot Investors Question Staying Power - Insurance Journal
+  https://news.google.com/rss/articles/CBMid0FVX3lxTE9IZGRmVno2c09rVGZuYno2bjIxLTQwOXlXckJpWVVXR2tVbHBRdUdWVnpzTk1tUFdjZ05DdUw3TkxaSUhuN0tVREVmeUR4OWE4ZFNnS2RFQVN6SDM0dDBENklyYndzSjF1WjhieWcwSmd1YVQ2QWlJ?oc=5
+
+Semiconductors / AI infrastructure: score=100.0 hits=12 sources=10
+- 2026-09-24 | Yahoo Finance | 5 AI Semiconductor Stocks to Buy and Hold Through 2031 - Yahoo Finance
+  https://news.google.com/rss/articles/CBMimAFBVV95cUxNV3JhdHBmSUZycVRqV3hYTDlac2Jyd29yR21Kb3pqWThVWTRvSmxtby1wQXE5enBTY1BLeHJqOGhJSlVZbnI3WWd4c3JFTlhBalBxRTZIcDQ3OFpnYmMyU1pPNDBBR1plS2tSUGtNd2RPSnVQOUJHSER0M2NlQlZXT0JRMTZmVWw2MzE0WEItUnotSUNaZllwbw?oc=5
+- 2026-09-23 | Morningstar | 2 Undervalued Semiconductor Stocks to Watch While the Market Is Skeptical of AI Growth - Morningstar
+  https://news.google.com/rss/articles/CBMivAFBVV95cUxPdTdkd3lSRVVNUkVSdm1NcTNwWlVRbHcycHp2c2VPdExBU3ZaRzdQZ1k0RGxkU2Zqa25wcjZ1anVQT0xucWc5bmM2SGRuT1ZxTlZoem5hQm9IV3ZOSkZhb1JOaklRbEdIV292THBtcmRSRlZaNXJPYUZVQ1NGNVhQMWM5VHc4R2oxbl9WNGZYVUxIWjdRZE0xTTl2RjVHdGdqT25BUkRoNnJKNTdUTHFqWXhEemFsTUtJcGlBaQ?oc=5
 
 METHOD
 Score action = momentum 21D/63D/126D + force relative vs QQQ + volume + tendance SMA50/SMA200 + proximite high 20D.
