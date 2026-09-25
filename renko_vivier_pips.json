@@ -3187,50 +3187,53 @@
       "confirmed_segments": [],
       "date": "2026-09-25",
       "finalized": false,
-      "segments": []
+      "segments": [
+        {
+          "close_reason": "VIVIER_EXIT",
+          "date": "2026-09-25",
+          "direction": 1,
+          "end_price": 111.632,
+          "end_time_paris": "2026-09-25T13:00:00+02:00",
+          "end_time_utc": "2026-09-25T11:00:00+00:00",
+          "pair": "CADJPY",
+          "pips": -33.3999999999989,
+          "start_price": 111.966,
+          "start_time_paris": "2026-09-25T07:00:00+02:00",
+          "start_time_utc": "2026-09-25T05:00:00+00:00"
+        }
+      ]
     }
   },
   "open_confirmed_segments": {},
   "open_segments": {
     "AUDCAD": {
-      "current_pips": 17.000000000000348,
+      "current_pips": 13.800000000000479,
       "date": "2026-09-25",
       "direction": 1,
-      "last_price": 0.9941,
-      "last_time_utc": "2026-09-25T10:00:00+00:00",
+      "last_price": 0.99378,
+      "last_time_utc": "2026-09-25T11:00:00+00:00",
       "pair": "AUDCAD",
       "start_price": 0.9924,
       "start_time_paris": "2026-09-25T07:00:00+02:00",
       "start_time_utc": "2026-09-25T05:00:00+00:00"
     },
     "AUDCHF": {
-      "current_pips": 13.700000000000934,
+      "current_pips": 12.100000000000444,
       "date": "2026-09-25",
       "direction": 1,
-      "last_price": 0.58298,
-      "last_time_utc": "2026-09-25T10:00:00+00:00",
+      "last_price": 0.58282,
+      "last_time_utc": "2026-09-25T11:00:00+00:00",
       "pair": "AUDCHF",
       "start_price": 0.58161,
       "start_time_paris": "2026-09-25T07:00:00+02:00",
       "start_time_utc": "2026-09-25T05:00:00+00:00"
     },
-    "CADJPY": {
-      "current_pips": -21.79999999999893,
-      "date": "2026-09-25",
-      "direction": 1,
-      "last_price": 111.748,
-      "last_time_utc": "2026-09-25T10:00:00+00:00",
-      "pair": "CADJPY",
-      "start_price": 111.966,
-      "start_time_paris": "2026-09-25T07:00:00+02:00",
-      "start_time_utc": "2026-09-25T05:00:00+00:00"
-    },
     "EURAUD": {
-      "current_pips": 1.80000000000069,
+      "current_pips": -5.699999999999594,
       "date": "2026-09-25",
       "direction": -1,
-      "last_price": 1.6209,
-      "last_time_utc": "2026-09-25T10:00:00+00:00",
+      "last_price": 1.62165,
+      "last_time_utc": "2026-09-25T11:00:00+00:00",
       "pair": "EURAUD",
       "start_price": 1.62108,
       "start_time_paris": "2026-09-25T07:00:00+02:00",
@@ -3292,6 +3295,6 @@
       "2026-W38"
     ]
   },
-  "updated_at_paris": "2026-09-25T12:15:45.467366+02:00",
+  "updated_at_paris": "2026-09-25T13:15:45.635960+02:00",
   "version": 3
 }
