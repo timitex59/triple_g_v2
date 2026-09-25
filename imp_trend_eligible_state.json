@@ -1,44 +1,11 @@
 {
   "version": 1,
   "active": {
-    "AUDCAD": {
-      "direction": "BULL",
-      "confirmations": 11,
-      "entered_at": "2026-09-25T16:20:13.129053+00:00",
-      "last_seen_at": "2026-09-25T16:20:13.129053+00:00",
-      "snapshot": {
-        "pair": "AUDCAD",
-        "direction": "BULL",
-        "confirmations": 11,
-        "renko_confirmations": 3,
-        "avg_vote_confirmations": 3,
-        "directional_avg_confirmations": 1,
-        "tradable": true,
-        "rank_tier": 2,
-        "rank_reason": "11/12",
-        "RENKO_M": "BULL",
-        "RENKO_W": "BULL",
-        "RENKO_D": "BULL",
-        "D1_IMP21": "BULL",
-        "D1_ALL_AVG": "BULL",
-        "D1_ALL_AVG_PIPS": 49.94761904761907,
-        "D1_BULL_AVG": "BULL",
-        "D1_BEAR_AVG": "BULL",
-        "D1_DIRECTIONAL_AVG_PIPS": 43.42941176470592,
-        "H1_IMP21": "BULL",
-        "H1_ALL_AVG": "BULL",
-        "H1_ALL_AVG_PIPS": 0.14285714285712645,
-        "H1_BULL_AVG": "BEAR",
-        "H1_BEAR_AVG": "BULL",
-        "H1_DIRECTIONAL_AVG_PIPS": -1.3299999999999985,
-        "CURRENCY_INDEX": "BULL"
-      }
-    },
     "AUDCHF": {
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-09-25T15:18:55.969249+00:00",
-      "last_seen_at": "2026-09-25T16:20:13.129053+00:00",
+      "last_seen_at": "2026-09-25T17:21:33.964575+00:00",
       "snapshot": {
         "pair": "AUDCHF",
         "direction": "BULL",
@@ -71,7 +38,7 @@
       "direction": "BULL",
       "confirmations": 11,
       "entered_at": "2026-09-23T12:18:57.737347+00:00",
-      "last_seen_at": "2026-09-25T16:20:13.129053+00:00",
+      "last_seen_at": "2026-09-25T17:21:33.964575+00:00",
       "snapshot": {
         "pair": "AUDNZD",
         "direction": "BULL",
@@ -104,7 +71,7 @@
       "direction": "BEAR",
       "confirmations": 11,
       "entered_at": "2026-09-22T18:56:42.525918+00:00",
-      "last_seen_at": "2026-09-25T16:20:13.129053+00:00",
+      "last_seen_at": "2026-09-25T17:21:33.964575+00:00",
       "snapshot": {
         "pair": "GBPAUD",
         "direction": "BEAR",
@@ -137,7 +104,7 @@
       "direction": "BEAR",
       "confirmations": 10,
       "entered_at": "2026-09-25T15:18:55.969249+00:00",
-      "last_seen_at": "2026-09-25T16:20:13.129053+00:00",
+      "last_seen_at": "2026-09-25T17:21:33.964575+00:00",
       "snapshot": {
         "pair": "EURAUD",
         "direction": "BEAR",
@@ -1087,7 +1054,15 @@
       "direction": "BULL",
       "previous_direction": null,
       "confirmations": 11
+    },
+    {
+      "time_utc": "2026-09-25T17:21:33.964575+00:00",
+      "event": "INVALIDATED",
+      "pair": "AUDCAD",
+      "direction": "BULL",
+      "reason": "RENKO_D_NOT_ALIGNED",
+      "entered_at": "2026-09-25T16:20:13.129053+00:00"
     }
   ],
-  "updated_at": "2026-09-25T16:20:13.129053+00:00"
+  "updated_at": "2026-09-25T17:21:33.964575+00:00"
 }

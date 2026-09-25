@@ -1,6 +1,6 @@
 {
-  "updated": "2026-09-24",
-  "prev_update": "2026-09-23",
+  "updated": "2026-09-25",
+  "prev_update": "2026-09-24",
   "tickers": {
     "TTMI": {
       "streak": 1,
@@ -58,25 +58,24 @@
       "dropped_on": "2026-07-01"
     },
     "AVT": {
-      "streak": 1,
-      "days": 14,
+      "streak": 2,
+      "days": 15,
       "first_seen": "2026-06-23",
-      "last_seen": "2026-09-24",
-      "last_rank": 5,
+      "last_seen": "2026-09-25",
+      "last_rank": 4,
       "peak_rank": 1,
-      "last_rel": 14.61,
+      "last_rel": 21.15,
       "active": true
     },
     "SMTC": {
       "streak": 1,
-      "days": 5,
+      "days": 6,
       "first_seen": "2026-06-23",
-      "last_seen": "2026-07-03",
-      "last_rank": 5,
+      "last_seen": "2026-09-25",
+      "last_rank": 3,
       "peak_rank": 2,
-      "last_rel": 56.01,
-      "active": false,
-      "dropped_on": "2026-07-06"
+      "last_rel": 23.99,
+      "active": true
     },
     "SITM": {
       "streak": 2,
@@ -145,13 +144,13 @@
       "dropped_on": "2026-07-31"
     },
     "OKTA": {
-      "streak": 9,
-      "days": 36,
+      "streak": 10,
+      "days": 37,
       "first_seen": "2026-07-02",
-      "last_seen": "2026-09-24",
+      "last_seen": "2026-09-25",
       "last_rank": 1,
       "peak_rank": 1,
-      "last_rel": 77.52,
+      "last_rel": 61.5,
       "active": true
     },
     "QLYS": {
@@ -162,7 +161,8 @@
       "last_rank": 3,
       "peak_rank": 1,
       "last_rel": 61.9,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-09-25"
     },
     "CXT": {
       "streak": 2,
@@ -176,13 +176,13 @@
       "dropped_on": "2026-09-08"
     },
     "TWLO": {
-      "streak": 4,
-      "days": 7,
+      "streak": 5,
+      "days": 8,
       "first_seen": "2026-07-07",
-      "last_seen": "2026-09-24",
-      "last_rank": 4,
-      "peak_rank": 3,
-      "last_rel": 59.96,
+      "last_seen": "2026-09-25",
+      "last_rank": 2,
+      "peak_rank": 2,
+      "last_rel": 46.47,
       "active": true
     },
     "SYNA": {
@@ -208,15 +208,14 @@
       "dropped_on": "2026-09-14"
     },
     "MANH": {
-      "streak": 5,
-      "days": 26,
+      "streak": 1,
+      "days": 27,
       "first_seen": "2026-07-31",
-      "last_seen": "2026-09-22",
+      "last_seen": "2026-09-25",
       "last_rank": 5,
       "peak_rank": 1,
-      "last_rel": 55.89,
-      "active": false,
-      "dropped_on": "2026-09-23"
+      "last_rel": 51.09,
+      "active": true
     },
     "NTNX": {
       "streak": 1,
@@ -270,7 +269,8 @@
       "last_rank": 2,
       "peak_rank": 2,
       "last_rel": 74.94,
-      "active": true
+      "active": false,
+      "dropped_on": "2026-09-25"
     },
     "PATH": {
       "streak": 5,
@@ -332,82 +332,84 @@
     "persistent": [
       [
         "OKTA",
-        9
-      ],
-      [
-        "QLYS",
-        9
-      ],
-      [
-        "P",
-        4
+        10
       ],
       [
         "TWLO",
-        4
+        5
       ],
       [
         "AVT",
+        2
+      ],
+      [
+        "SMTC",
+        1
+      ],
+      [
+        "MANH",
         1
       ]
     ],
     "new": [
-      "AVT"
+      "SMTC",
+      "MANH"
     ],
     "weakening": [
       {
-        "ticker": "QLYS",
-        "rank": 3,
-        "prev_rank": 2,
-        "rel": 61.9,
-        "prev_rel": 63.67
+        "ticker": "OKTA",
+        "rank": 1,
+        "prev_rank": 1,
+        "rel": 61.5,
+        "prev_rel": 77.52
       },
       {
         "ticker": "TWLO",
-        "rank": 4,
-        "prev_rank": 3,
-        "rel": 59.96,
-        "prev_rel": 58.18
+        "rank": 2,
+        "prev_rank": 4,
+        "rel": 46.47,
+        "prev_rel": 59.96
       }
     ],
     "dropped": [
-      "SNX"
+      "QLYS",
+      "P"
     ],
     "durable": [
       [
         "OKTA",
-        9,
-        77.52,
-        697.7
-      ],
-      [
-        "QLYS",
-        9,
-        61.9,
-        557.1
-      ],
-      [
-        "P",
-        4,
-        74.94,
-        299.8
+        10,
+        61.5,
+        615.0
       ],
       [
         "TWLO",
-        4,
-        59.96,
-        239.8
+        5,
+        46.47,
+        232.3
+      ],
+      [
+        "MANH",
+        1,
+        51.09,
+        51.1
       ],
       [
         "AVT",
+        2,
+        21.15,
+        42.3
+      ],
+      [
+        "SMTC",
         1,
-        14.61,
-        14.6
+        23.99,
+        24.0
       ]
     ],
     "switch": null
   },
   "leader_raw": "Logiciels",
-  "leader_raw_days": 40,
+  "leader_raw_days": 41,
   "leader_confirmed": "Logiciels"
 }

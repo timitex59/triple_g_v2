@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-25T16:20:13.130293+00:00",
+  "updated_at": "2026-09-25T17:21:33.965831+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": 25.70000000000013,
@@ -7044,12 +7044,12 @@
       "comparison_pips": -238.29999999999214
     },
     "New York": {
-      "realized_pips": -219.99999999999014,
-      "current_session_realized_pips": -42.60000000000041,
+      "realized_pips": -224.89999999999003,
+      "current_session_realized_pips": -47.50000000000032,
       "last_session_pips": -109.6999999999976,
-      "unrealized_pips": 30.599999999998406,
-      "total_pips": -189.39999999999173,
-      "daily_pips": -12.000000000002007,
+      "unrealized_pips": 34.50000000000064,
+      "total_pips": -190.3999999999894,
+      "daily_pips": -12.99999999999968,
       "is_active": true,
       "active_session_id": "2026-09-25",
       "positions": {
@@ -7072,11 +7072,6 @@
           "direction": "BEAR",
           "entry_price": 1.6227,
           "entry_time_utc": "2026-09-25T15:18:55.970494+00:00"
-        },
-        "AUDCAD": {
-          "direction": "BULL",
-          "entry_price": 0.99505,
-          "entry_time_utc": "2026-09-25T16:20:13.130293+00:00"
         }
       },
       "events": [
@@ -10157,6 +10152,16 @@
           "pair": "AUDCAD",
           "direction": "BULL",
           "entry_price": 0.99505
+        },
+        {
+          "time_utc": "2026-09-25T17:21:33.965831+00:00",
+          "event": "EXIT",
+          "pair": "AUDCAD",
+          "direction": "BULL",
+          "entry_price": 0.99505,
+          "exit_price": 0.99456,
+          "pips": -4.899999999999904,
+          "reason": "INVALIDATED"
         }
       ],
       "daily_pips_history": [
@@ -10187,10 +10192,14 @@
         {
           "time_utc": "2026-09-25T16:20:13.130293+00:00",
           "daily_pips": -12.000000000002007
+        },
+        {
+          "time_utc": "2026-09-25T17:21:33.965831+00:00",
+          "daily_pips": -12.99999999999968
         }
       ],
       "comparison_baseline": 69.39999999999876,
-      "comparison_pips": -258.7999999999905
+      "comparison_pips": -259.79999999998813
     }
   }
 }
