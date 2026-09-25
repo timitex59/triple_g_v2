@@ -1,14 +1,14 @@
 {
   "version": 1,
-  "updated_at": "2026-09-24T22:24:18.399546+00:00",
+  "updated_at": "2026-09-25T01:30:17.482484+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": -6.79999999999518,
       "current_session_realized_pips": 0.0,
       "last_session_pips": -22.500000000000853,
-      "unrealized_pips": 0.19999999999686935,
-      "total_pips": -6.59999999999831,
-      "daily_pips": 0.19999999999686935,
+      "unrealized_pips": -2.220446049250313e-12,
+      "total_pips": -6.7999999999974,
+      "daily_pips": -2.220446049250313e-12,
       "is_active": true,
       "active_session_id": "2026-09-24",
       "positions": {
@@ -2256,18 +2256,22 @@
         {
           "time_utc": "2026-09-24T22:24:18.399546+00:00",
           "daily_pips": 0.19999999999686935
+        },
+        {
+          "time_utc": "2026-09-25T01:30:17.482484+00:00",
+          "daily_pips": -2.220446049250313e-12
         }
       ],
       "comparison_baseline": 30.000000000003364,
-      "comparison_pips": -36.60000000000167
+      "comparison_pips": -36.800000000000765
     },
     "Tokyo": {
       "realized_pips": -307.20000000000243,
       "current_session_realized_pips": 0.0,
       "last_session_pips": -32.49999999999753,
-      "unrealized_pips": 0.0,
-      "total_pips": -307.20000000000243,
-      "daily_pips": 0.0,
+      "unrealized_pips": -0.1999999999990898,
+      "total_pips": -307.4000000000015,
+      "daily_pips": -0.1999999999990898,
       "is_active": true,
       "active_session_id": "2026-09-25",
       "positions": {
@@ -4422,10 +4426,14 @@
         {
           "time_utc": "2026-09-24T22:24:18.399546+00:00",
           "daily_pips": 0.0
+        },
+        {
+          "time_utc": "2026-09-25T01:30:17.482484+00:00",
+          "daily_pips": -0.1999999999990898
         }
       ],
       "comparison_baseline": 12.200000000002504,
-      "comparison_pips": -319.4000000000049
+      "comparison_pips": -319.600000000004
     },
     "Londres": {
       "realized_pips": -188.0999999999905,
