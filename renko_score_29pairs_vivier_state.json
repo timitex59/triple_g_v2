@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "updated_at_paris": "2026-09-25 10:17",
+  "updated_at_paris": "2026-09-25 11:17",
   "pairs": {
     "AUDCAD": {
       "direction": 1,
       "entered_at_paris": "2026-09-23 15:17",
-      "last_seen_at_paris": "2026-09-25 10:17",
+      "last_seen_at_paris": "2026-09-25 11:17",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -17,12 +17,12 @@
         "D": -1
       },
       "base_pct": 66.66666666666666,
-      "weighted_pct": 53.33333333333333,
-      "daily_chg": 0.27843912675033133,
+      "weighted_pct": 59.99999999999999,
+      "daily_chg": 0.30063354989709684,
       "daily_sar_dir": -1,
       "daily_sar_value": 1.00118,
       "fib_position": "Fibo <0.500",
-      "fib_pct_of_range": 39.70223325062042,
+      "fib_pct_of_range": 41.521918941273825,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.500",
       "entry_fib_pct_of_range": 43.67245657568273,
@@ -42,7 +42,7 @@
     "AUDCHF": {
       "direction": 1,
       "entered_at_paris": "2026-09-24 10:17",
-      "last_seen_at_paris": "2026-09-25 10:17",
+      "last_seen_at_paris": "2026-09-25 11:17",
       "entry_px": {
         "M": 1,
         "W": 1,
@@ -55,11 +55,11 @@
       },
       "base_pct": 83.33333333333334,
       "weighted_pct": 75.00000000000001,
-      "daily_chg": 0.323881059849084,
+      "daily_chg": 0.33421768941874597,
       "daily_sar_dir": -1,
       "daily_sar_value": 0.58468312,
       "fib_position": "Fibo <0.500",
-      "fib_pct_of_range": 41.96078431372506,
+      "fib_pct_of_range": 42.5490196078433,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.382",
       "entry_fib_pct_of_range": 35.68627450980374,
@@ -79,7 +79,7 @@
     "CADJPY": {
       "direction": 1,
       "entered_at_paris": "2026-09-25 07:17",
-      "last_seen_at_paris": "2026-09-25 10:17",
+      "last_seen_at_paris": "2026-09-25 11:17",
       "entry_px": {
         "M": 1,
         "W": -1,
@@ -92,28 +92,32 @@
       },
       "base_pct": 33.33333333333333,
       "weighted_pct": 0.0,
-      "daily_chg": -0.4591891218453043,
+      "daily_chg": -0.6113622610614723,
       "daily_sar_dir": -1,
       "daily_sar_value": 112.938,
-      "fib_position": "Fibo <0.382",
-      "fib_pct_of_range": 26.713171932704014,
+      "fib_position": "Fibo <0.236",
+      "fib_pct_of_range": 23.18424292162488,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo <0.382",
       "entry_fib_pct_of_range": 25.400082068116554,
       "entry_fib_source": "CURRENT",
-      "sar_dir": -1,
+      "sar_dir": 1,
       "fib_context_month_utc": "2026-09",
       "fib_objective_active": true,
       "fib_objective_carried": false,
       "fib_objective_value": 115.428,
       "fib_objective_origin_month_utc": "2026-09",
       "fib_objective_started_time_utc": "2026-09-25T05:00:00+00:00",
-      "sar_flame": false
+      "sar_flame": true,
+      "sar_last_processed_time_utc": "2026-09-25T09:00:00+00:00",
+      "sar_record_value": 111.618,
+      "sar_record_time_utc": "2026-09-25T09:00:00+00:00",
+      "sar_flame_kind": "FIRST"
     },
     "EURAUD": {
       "direction": -1,
       "entered_at_paris": "2026-09-23 16:17",
-      "last_seen_at_paris": "2026-09-25 10:17",
+      "last_seen_at_paris": "2026-09-25 11:17",
       "entry_px": {
         "M": -1,
         "W": -1,
@@ -126,11 +130,11 @@
       },
       "base_pct": -83.33333333333334,
       "weighted_pct": -41.66666666666667,
-      "daily_chg": -0.1343208172620778,
+      "daily_chg": -0.13986617210316787,
       "daily_sar_dir": 1,
       "daily_sar_value": 1.60824,
       "fib_position": "Fibo >0.618",
-      "fib_pct_of_range": 74.19543592744287,
+      "fib_pct_of_range": 73.61029842012873,
       "fib_source": "CURRENT",
       "entry_fib_position": "Fibo >0.500",
       "entry_fib_pct_of_range": 57.51901696898758,
@@ -152,6 +156,6 @@
   },
   "pending_objectives": {},
   "objective_events": [],
-  "telegram_last_body_hash": "bcbc44ffbd764ae9723a5c8977875e083febac4690048fe400f894d7393e3cc4",
-  "telegram_last_sent_at_paris": "2026-09-23 23:05"
+  "telegram_last_body_hash": "ec9c79acb936824d34b7e383f09561943e298eb74ad1e3271e81925e8477c6ef",
+  "telegram_last_sent_at_paris": "2026-09-25 11:15"
 }
