@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-09-25T13:46:03.402736+00:00",
+  "updated_at": "2026-09-25T14:18:48.562851+00:00",
   "sessions": {
     "Sydney": {
       "realized_pips": 25.70000000000013,
@@ -4480,12 +4480,12 @@
       "comparison_pips": -275.10000000000565
     },
     "Londres": {
-      "realized_pips": -192.29999999999026,
-      "current_session_realized_pips": -4.1999999999997595,
+      "realized_pips": -229.89999999999011,
+      "current_session_realized_pips": -41.79999999999961,
       "last_session_pips": -44.00000000000372,
-      "unrealized_pips": -48.79999999999774,
-      "total_pips": -241.099999999988,
-      "daily_pips": -52.9999999999975,
+      "unrealized_pips": -42.50000000000087,
+      "total_pips": -272.399999999991,
+      "daily_pips": -84.30000000000048,
       "is_active": true,
       "active_session_id": "2026-09-25",
       "positions": {
@@ -4497,11 +4497,6 @@
         "GBPAUD": {
           "direction": "BEAR",
           "entry_price": 1.8835,
-          "entry_time_utc": "2026-09-25T06:18:44.211196+00:00"
-        },
-        "EURAUD": {
-          "direction": "BEAR",
-          "entry_price": 1.62108,
           "entry_time_utc": "2026-09-25T06:18:44.211196+00:00"
         }
       },
@@ -6974,6 +6969,16 @@
           "exit_price": 0.58198,
           "pips": -4.1999999999997595,
           "reason": "INVALIDATED"
+        },
+        {
+          "time_utc": "2026-09-25T14:18:48.562851+00:00",
+          "event": "EXIT",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.62108,
+          "exit_price": 1.62484,
+          "pips": -37.59999999999985,
+          "reason": "INVALIDATED"
         }
       ],
       "daily_pips_history": [
@@ -7016,18 +7021,22 @@
         {
           "time_utc": "2026-09-25T13:46:03.402736+00:00",
           "daily_pips": -52.9999999999975
+        },
+        {
+          "time_utc": "2026-09-25T14:18:48.562851+00:00",
+          "daily_pips": -84.30000000000048
         }
       ],
       "comparison_baseline": 14.300000000000686,
-      "comparison_pips": -255.3999999999887
+      "comparison_pips": -286.6999999999917
     },
     "New York": {
-      "realized_pips": -186.99999999998934,
-      "current_session_realized_pips": -9.599999999999609,
+      "realized_pips": -219.99999999999014,
+      "current_session_realized_pips": -42.60000000000041,
       "last_session_pips": -109.6999999999976,
-      "unrealized_pips": -41.9999999999976,
-      "total_pips": -228.99999999998693,
-      "daily_pips": -51.59999999999721,
+      "unrealized_pips": -40.29999999999978,
+      "total_pips": -260.2999999999899,
+      "daily_pips": -82.90000000000019,
       "is_active": true,
       "active_session_id": "2026-09-25",
       "positions": {
@@ -7039,11 +7048,6 @@
         "GBPAUD": {
           "direction": "BEAR",
           "entry_price": 1.88403,
-          "entry_time_utc": "2026-09-25T11:19:03.721470+00:00"
-        },
-        "EURAUD": {
-          "direction": "BEAR",
-          "entry_price": 1.62154,
           "entry_time_utc": "2026-09-25T11:19:03.721470+00:00"
         }
       },
@@ -10094,6 +10098,16 @@
           "exit_price": 0.58198,
           "pips": -9.599999999999609,
           "reason": "INVALIDATED"
+        },
+        {
+          "time_utc": "2026-09-25T14:18:48.562851+00:00",
+          "event": "EXIT",
+          "pair": "EURAUD",
+          "direction": "BEAR",
+          "entry_price": 1.62154,
+          "exit_price": 1.62484,
+          "pips": -33.0000000000008,
+          "reason": "INVALIDATED"
         }
       ],
       "daily_pips_history": [
@@ -10112,10 +10126,14 @@
         {
           "time_utc": "2026-09-25T13:46:03.402736+00:00",
           "daily_pips": -51.59999999999721
+        },
+        {
+          "time_utc": "2026-09-25T14:18:48.562851+00:00",
+          "daily_pips": -82.90000000000019
         }
       ],
       "comparison_baseline": 69.39999999999876,
-      "comparison_pips": -298.39999999998565
+      "comparison_pips": -329.6999999999887
     }
   }
 }
